@@ -24,6 +24,9 @@
 #include "solver/libsolv/helpers.hpp"
 #include "solver/libsolv/matcher.hpp"
 
+#define MAMBA_TOOL_VERSION "2.0"
+#define MAMBA_SOLV_VERSION MAMBA_TOOL_VERSION "_" LIBSOLV_VERSION_STRING
+
 namespace mamba::solver::libsolv
 {
     struct Database::DatabaseImpl
@@ -272,6 +275,19 @@ namespace mamba::solver::libsolv
             add_pip_as_python_dependency(pool(), s_repo);
         }
         s_repo.internalize();
+    }
+
+    void
+    Database::set_repo_metadata_before_internalize(RepoInfo& repo, const RepodataOrigin& metadata)
+    {
+        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
+        // Set metadata BEFORE internalize() (called in add_repo_from_packages_impl_post)
+        // This is critical: metadata setters must be called before internalize() to avoid
+        // memory corruption
+        s_repo.set_url(metadata.url);
+        s_repo.set_etag(metadata.etag);
+        s_repo.set_mod(metadata.mod);
+        s_repo.set_tool_version(MAMBA_SOLV_VERSION);
     }
 
     auto Database::native_serialize_repo(

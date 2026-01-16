@@ -31,7 +31,8 @@ namespace mamba
         Context& ctx,
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
-        MultiPackageCache& package_caches
+        MultiPackageCache& package_caches,
+        const std::vector<std::string>& root_packages = {}
     ) -> expected_t<void, mamba_aggregated_error>;
 
     /* Brief Creates channels and mirrors objects,

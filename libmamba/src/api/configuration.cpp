@@ -1508,6 +1508,32 @@ namespace mamba
                        "automatically used when present.)\n"
                    ));
 
+        insert(Configurable("repodata_use_shards", &m_context.repodata_use_shards)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description(
+                       "Use sharded repodata when available. Sharded repodata allows "
+                       "fetching only necessary package metadata instead of entire repodata.json "
+                       "files, significantly reducing bandwidth and improving performance.\n"
+                   ));
+
+        insert(Configurable("repodata_shards_ttl", &m_context.repodata_shards_ttl)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description(
+                       "Time-to-live for shard cache in seconds. Shards are cached indefinitely "
+                       "by default since they are immutable (named by SHA256 hash). This option "
+                       "controls when to re-check for updated shard indexes.\n"
+                   ));
+
+        insert(Configurable("repodata_shards_threads", &m_context.repodata_shards_threads)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description(
+                       "Number of threads to use for parallel shard fetching. Higher values "
+                       "may improve performance when fetching many shards, but increase network "
+                       "and CPU usage.\n"
+                   ));
 
         insert(Configurable("repodata_has_zst", &m_context.repodata_has_zst)
                    .group("Repodata")

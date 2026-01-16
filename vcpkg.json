@@ -4,6 +4,7 @@
     "curl",
     "libiconv",
     "libxml2",
+    "msgpack-c",
     {
       "name": "winreg",
       "platform": "windows"

@@ -5,7 +5,10 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <iostream>
 #include <stdexcept>
+
+#include <fmt/format.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
@@ -32,6 +35,32 @@
 
 namespace mamba
 {
+    namespace
+    {
+        /**
+         * Extract package names from spec strings.
+         *
+         * Parses each spec string and extracts the package name, skipping invalid specs.
+         */
+        auto extract_package_names_from_specs(const std::vector<std::string>& raw_specs)
+            -> std::vector<std::string>
+        {
+            std::vector<std::string> names;
+            for (const auto& spec : raw_specs)
+            {
+                auto parsed = specs::MatchSpec::parse(spec);
+                if (parsed.has_value())
+                {
+                    const auto& name_spec = parsed->name();
+                    if (name_spec.is_exact())
+                    {
+                        names.push_back(name_spec.to_string());
+                    }
+                }
+            }
+            return names;
+        }
+    }
 
     const auto& truthy_values(const std::string platform)
     {
@@ -624,12 +653,35 @@ namespace mamba
             };
             add_logger_to_database(db);
 
-            auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
+            // Extract package names from specs for sharded repodata traversal
+            std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
+
+            // Optionally include installed packages if prefix exists (for better sharded repodata
+            // efficiency)
+            if (fs::exists(ctx.prefix_params.target_prefix))
+            {
+                auto maybe_prefix_data = PrefixData::create(
+                    ctx.prefix_params.target_prefix,
+                    channel_context
+                );
+                if (maybe_prefix_data.has_value())
+                {
+                    PrefixData& prefix_data = maybe_prefix_data.value();
+                    auto installed_pkgs = prefix_data.sorted_records();
+                    for (const auto& pkg : installed_pkgs)
+                    {
+                        root_packages.push_back(pkg.name);
+                    }
+                }
+            }
+
+            auto maybe_load = load_channels(ctx, channel_context, db, package_caches, root_packages);
             if (!maybe_load)
             {
                 throw std::runtime_error(maybe_load.error().what());
             }
 
+            // Load prefix data again (or use existing if already loaded)
             auto maybe_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!maybe_prefix_data)
             {
@@ -655,6 +707,8 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
+            std::cout << "\r" << fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
+                      << std::flush;
             auto outcome = solver::libsolv::Solver()
                                .solve(
                                    db,
@@ -664,6 +718,8 @@ namespace mamba
                                        : solver::libsolv::MatchSpecParser::Mixed
                                )
                                .value();
+            std::cout << "\r" << fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done")
+                      << std::endl;
 
             if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
@@ -1316,7 +1372,8 @@ namespace mamba
             solver::libsolv::Database db{ channel_context.params() };
             add_logger_to_database(db);
 
-            auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
+            // No root packages for explicit install (will use traditional repodata)
+            auto maybe_load = load_channels(ctx, channel_context, db, package_caches, {});
             if (!maybe_load)
             {
                 throw std::runtime_error(maybe_load.error().what());

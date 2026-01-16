@@ -106,9 +106,11 @@ def shell(*args, cwd=os.getcwd(), **kwargs):
     return res.decode()
 
 
-def info(*args, **kwargs):
+def info(*args, no_rc=True, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "info"] + [arg for arg in args if arg]
+    if no_rc:
+        cmd += ["--no-rc"]
     res = subprocess_run(*cmd, **kwargs)
     if "--json" in args:
         try:
@@ -208,12 +210,14 @@ def create(
         raise (e)
 
 
-def remove(*args, no_dry_run=False, **kwargs):
+def remove(*args, no_rc=True, no_dry_run=False, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "remove", "-y"] + [arg for arg in args if arg]
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
+    if no_rc:
+        cmd += ["--no-rc"]
     if (dry_run_tests == DryRun.DRY) and "--dry-run" not in args and not no_dry_run:
         cmd += ["--dry-run"]
 
@@ -315,10 +319,12 @@ def run_env(*args, f=None, **kwargs):
     return res.decode()
 
 
-def umamba_list(*args, **kwargs):
+def umamba_list(*args, no_rc=True, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "list"] + [str(arg) for arg in args if arg]
+    if no_rc:
+        cmd += ["--no-rc"]
     res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:

@@ -22,6 +22,7 @@
 namespace solv
 {
     class ObjPool;
+    class ObjRepoView;
 }
 
 namespace mamba
@@ -111,6 +112,19 @@ namespace mamba::solver::libsolv
             PipAsPythonDependency add = PipAsPythonDependency::No
         ) -> RepoInfo;
 
+        /**
+         * Add a repository from packages with metadata set before internalization.
+         * This is needed for sharded repodata where metadata must be set before internalize()
+         * to avoid memory corruption.
+         */
+        template <typename Range>
+        auto add_repo_from_packages_with_metadata(
+            const Range& packages,
+            std::string_view name,
+            const RepodataOrigin& metadata,
+            PipAsPythonDependency add = PipAsPythonDependency::No
+        ) -> RepoInfo;
+
         auto
         native_serialize_repo(const RepoInfo& repo, const fs::u8path& path, const RepodataOrigin& metadata)
             -> expected_t<RepoInfo>;
@@ -152,6 +166,10 @@ namespace mamba::solver::libsolv
         };
 
     private:
+
+        // Helper to set repo metadata before internalize (needed for sharded repodata)
+        static void
+        set_repo_metadata_before_internalize(RepoInfo& repo, const RepodataOrigin& metadata);
 
         struct DatabaseImpl;
 
@@ -205,6 +223,33 @@ namespace mamba::solver::libsolv
         -> RepoInfo
     {
         return add_repo_from_packages(packages.begin(), packages.end(), name, add);
+    }
+
+    template <typename Range>
+    auto Database::add_repo_from_packages_with_metadata(
+        const Range& packages,
+        std::string_view name,
+        const RepodataOrigin& metadata,
+        PipAsPythonDependency add
+    ) -> RepoInfo
+    {
+        auto repo = add_repo_from_packages_impl_pre(name);
+        // Set metadata BEFORE internalize() (called in add_repo_from_packages_impl_post)
+        // This is critical: metadata setters must be called before internalize() to avoid
+        // memory corruption. We need to include the implementation file to access
+        // ObjRepoView and MAMBA_SOLV_VERSION, so we'll do this in the .cpp file instead.
+        // For now, we'll set it via a helper function defined in database.cpp
+        set_repo_metadata_before_internalize(repo, metadata);
+
+        // Add packages to repo
+        for (const auto& pkg : packages)
+        {
+            add_repo_from_packages_impl_loop(repo, pkg);
+        }
+
+        // This will call internalize() - metadata must be set before this
+        add_repo_from_packages_impl_post(repo, add);
+        return repo;
     }
 
     // TODO(C++20): Use ranges::transform

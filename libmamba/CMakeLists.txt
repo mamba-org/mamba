@@ -248,6 +248,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/shard_index.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/shard_loader.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_types.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdir_index.cpp
@@ -398,6 +400,8 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_index.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_loader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_types.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdir_index.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp

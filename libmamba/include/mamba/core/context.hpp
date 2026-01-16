@@ -223,6 +223,7 @@ namespace mamba
 
         // Conda compat
         bool add_pip_as_python_dependency = true;
+        bool prefix_data_interoperability = false;
 
         std::string host_platform = std::string(specs::build_platform_name());
         std::string platform = std::string(specs::build_platform_name());

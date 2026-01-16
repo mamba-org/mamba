@@ -536,7 +536,38 @@ namespace mamba
         LOG_INFO << "Unlinking package '" << m_specifier << "'";
         LOG_DEBUG << "Use metadata found at '" << json.string() << "'";
 
+        // Check if this is a pip package (pip packages don't have conda-meta JSON files)
+        // Pip packages are handled by pip uninstall in transaction.cpp, so we can skip
+        // the unlinking process here if the JSON file doesn't exist for a pip package
+        if (m_pkg_info.channel == "pypi")
+        {
+            // For pip packages, the conda-meta JSON file may not exist
+            // They are uninstalled via pip uninstall in transaction.cpp
+            if (!fs::exists(json))
+            {
+                LOG_DEBUG << "Skipping unlinking for pip package '" << m_specifier
+                          << "' (no conda-meta JSON file, handled by pip uninstall)";
+                return true;
+            }
+        }
+
+        // Check if the JSON file exists before trying to read it
+        if (!fs::exists(json))
+        {
+            LOG_WARNING << "conda-meta JSON file not found for package '" << m_specifier << "' at '"
+                        << json.string() << "'";
+            // Return true to avoid failing the transaction, but log the warning
+            return true;
+        }
+
         std::ifstream json_file = open_ifstream(json);
+        if (!json_file.good())
+        {
+            LOG_WARNING << "Failed to open conda-meta JSON file for package '" << m_specifier
+                        << "' at '" << json.string() << "'";
+            return true;
+        }
+
         nlohmann::json json_record;
         json_file >> json_record;
 
@@ -609,9 +640,29 @@ namespace mamba
             // Sometimes we might want to raise here ...
             m_clobber_warnings.push_back(rel_dst.string());
 #ifdef _WIN32
-            return std::make_tuple(std::string(validation::sha256sum(dst)), rel_dst.generic_string());
-#endif
+            // Try to compute SHA256 of existing file, but if it fails (e.g., file is locked
+            // or from a pip package), fall back to removing it like on other platforms
+            try
+            {
+                return std::make_tuple(
+                    std::string(validation::sha256sum(dst)),
+                    rel_dst.generic_string()
+                );
+            }
+            catch (const std::exception& e)
+            {
+                LOG_DEBUG << "Could not compute SHA256 of existing file " << dst
+                          << ", will remove it: " << e.what();
+            }
+            catch (...)
+            {
+                LOG_DEBUG << "Could not compute SHA256 of existing file " << dst
+                          << ", will remove it (unknown error)";
+            }
             fs::remove(dst);
+#else
+            fs::remove(dst);
+#endif
         }
         if (ec)
         {

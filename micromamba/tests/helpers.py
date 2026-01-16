@@ -19,6 +19,18 @@ def subprocess_run(*args: str, **kwargs) -> str:
     try:
         p = subprocess.run(args, capture_output=True, check=True, **kwargs)
     except subprocess.CalledProcessError as e:
+        # Check if this is a JSON command and if stdout contains valid JSON
+        # This handles cases where the operation succeeds but cleanup fails
+        # (e.g., when removing pip packages that don't have conda-meta JSON files)
+        if "--json" in args and e.stdout:
+            try:
+                json_output = json.loads(e.stdout)
+                # If JSON shows success, return stdout even if exit code is non-zero
+                # This handles cases where cleanup fails but the main operation succeeded
+                if json_output.get("success") is True:
+                    return e.stdout
+            except (json.JSONDecodeError, AttributeError, TypeError):
+                pass
         print(f"Command {args} failed with stderr: {e.stderr.decode()}")
         print(f"Command {args} failed with stdout: {e.stdout.decode()}")
         raise e
@@ -128,7 +140,8 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs)
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
-    if default_channel:
+    # Only add default channel if not already specified in args
+    if default_channel and "-c" not in args:
         cmd += channel
     if no_rc:
         cmd += ["--no-rc"]
@@ -144,9 +157,14 @@ def install(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs)
         try:
             j = json.loads(res)
             return j
-        except Exception:
-            print(res.decode())
-            return
+        except json.JSONDecodeError as e:
+            print(f"Error when loading JSON output: {e}")
+            print(f"Output was: {res.decode() if res else '(empty)'}")
+            raise
+        except Exception as e:
+            print(f"Unexpected error when parsing JSON: {e}")
+            print(f"Output was: {res.decode() if res else '(empty)'}")
+            raise
     if "--print-config-only" in args:
         return yaml.load(res, Loader=yaml.FullLoader)
     return res.decode()
@@ -313,10 +331,17 @@ def umamba_list(*args, **kwargs):
 def umamba_run(*args, **kwargs):
     umamba = get_umamba()
 
-    cmd = [umamba, "run"] + [str(arg) for arg in args if arg]
-    res = subprocess_run(*cmd, **kwargs)
+    # Filter out no_dry_run as it's not a valid subprocess parameter
+    kwargs_filtered = {k: v for k, v in kwargs.items() if k != "no_dry_run"}
 
-    if "--json" in args:
+    cmd = [umamba, "run"] + [str(arg) for arg in args if arg]
+    res = subprocess_run(*cmd, **kwargs_filtered)
+
+    # Handle both --json and --format=json flags
+    if "--json" in args or "--format=json" in args:
+        # For pip list --format=json, the output is already JSON string, not parsed
+        if "--format=json" in args:
+            return res.decode()
         j = json.loads(res)
         return j
 

@@ -1668,6 +1668,19 @@ namespace mamba
                    .description("Add pip as a Python dependency")
                    .long_description("Automatically add pip as a Python dependency"));
 
+        insert(Configurable("prefix_data_interoperability", &m_context.prefix_data_interoperability)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names(
+                       { "CONDA_PREFIX_DATA_INTEROPERABILITY", "MAMBA_PREFIX_DATA_INTEROPERABILITY" }
+                   )
+                   .description("Enable prefix interoperability")
+                   .long_description(
+                       "Enable interoperability between conda packages and pip packages.\n"
+                       "When enabled, mamba will use pip-installed packages to satisfy dependencies,"
+                       "and will remove pip-installed packages when replacing them with conda packages."
+                   ));
+
         insert(Configurable("pinned_packages", &m_context.pinned_packages)
                    .group("Solver")
                    .set_rc_configurable()

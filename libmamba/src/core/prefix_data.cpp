@@ -79,6 +79,16 @@ namespace mamba
         }
     }
 
+    void PrefixData::add_pip_packages(const std::vector<specs::PackageInfo>& packages)
+    {
+        for (const auto& pkg : packages)
+        {
+            LOG_DEBUG << "Adding pip package: " << pkg.name << "=" << pkg.version << "="
+                      << pkg.build_string;
+            m_pip_package_records.insert({ pkg.name, std::move(pkg) });
+        }
+    }
+
     const PrefixData::package_map& PrefixData::records() const
     {
         return m_package_records;

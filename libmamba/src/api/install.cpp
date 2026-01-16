@@ -377,19 +377,29 @@ namespace mamba
         }
     }
 
-    auto
-    create_install_request(PrefixData& prefix_data, std::vector<std::string> specs, bool freeze_installed)
-        -> solver::Request
+    struct InstallRequestOptions
+    {
+        bool freeze_installed = false;
+        bool prefix_data_interoperability = false;
+    };
+
+    auto create_install_request(
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        const InstallRequestOptions options = {}
+    ) -> solver::Request
     {
         using Request = solver::Request;
 
         const auto& prefix_pkgs = prefix_data.records();
 
         auto request = Request();
-        request.jobs.reserve(specs.size() + freeze_installed * prefix_pkgs.size());
+        request.jobs.reserve(
+            specs.size() + static_cast<size_t>(options.freeze_installed) * prefix_pkgs.size()
+        );
 
         // Consider if a FreezeAll type in Request is relevant?
-        if (freeze_installed && !prefix_pkgs.empty())
+        if (options.freeze_installed && !prefix_pkgs.empty())
         {
             LOG_INFO << "Locking environment: " << prefix_pkgs.size() << " packages freezed";
             for (const auto& [name, pkg] : prefix_pkgs)
@@ -404,15 +414,55 @@ namespace mamba
             }
         }
 
-        for (const auto& s : specs)
+        // When prefix_data_interoperability is enabled, use Update requests instead of Install
+        // for packages that conflict with pip packages. This tells the solver to replace the
+        // pip package with the conda version.
+        if (options.prefix_data_interoperability)
         {
-            request.jobs.emplace_back(
-                Request::Install{
-                    specs::MatchSpec::parse(s)
-                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                        .value(),
+            const auto& pip_pkgs = prefix_data.pip_records();
+            for (const auto& s : specs)
+            {
+                auto spec = specs::MatchSpec::parse(s)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value();
+
+                // Check if there's a pip package with the same name
+                if (spec.name().is_exact())
+                {
+                    const auto spec_name_str = spec.name().to_string();
+                    if (pip_pkgs.find(spec_name_str) != pip_pkgs.end())
+                    {
+                        // Use Update instead of Install to replace the pip package
+                        request.jobs.emplace_back(
+                            Request::Update{
+                                std::move(spec),
+                                /* .clean_dependencies= */ false,
+                            }
+                        );
+                        continue;
+                    }
                 }
-            );
+                // No pip package conflict, use normal Install
+                request.jobs.emplace_back(
+                    Request::Install{
+                        std::move(spec),
+                    }
+                );
+            }
+        }
+        else
+        {
+            // Interoperability disabled, use normal Install requests
+            for (const auto& s : specs)
+            {
+                request.jobs.emplace_back(
+                    Request::Install{
+                        specs::MatchSpec::parse(s)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
+            }
         }
         return request;
     }
@@ -590,7 +640,12 @@ namespace mamba
             load_installed_packages_in_database(ctx, db, prefix_data);
 
 
-            auto request = create_install_request(prefix_data, raw_specs, freeze_installed);
+            auto request = create_install_request(
+                prefix_data,
+                raw_specs,
+                InstallRequestOptions{ .freeze_installed = freeze_installed,
+                                       .prefix_data_interoperability = ctx.prefix_data_interoperability }
+            );
             add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
             request.flags = ctx.solver_flags;
 

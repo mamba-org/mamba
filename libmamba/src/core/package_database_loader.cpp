@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <iterator>
+#include <ranges>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -158,6 +161,36 @@ namespace mamba
     {
         // TODO(C++20): We could do a PrefixData range that returns packages without storing them.
         auto pkgs = prefix.sorted_records();
+
+        // When prefix_data_interoperability is enabled, include pip packages in the solver database
+        // so they can be removed when replaced by conda packages. The solver will handle conflicts
+        // and remove pip packages when conda packages with the same name are installed.
+        // This is part of the prefix interoperability feature.
+        if (ctx.prefix_data_interoperability)
+        {
+            // Filter pip packages to only those that don't have a conda equivalent
+            auto pip_packages_to_add = prefix.pip_records()
+                                       | std::ranges::views::filter(
+                                           [&pkgs](const auto& pair)
+                                           {
+                                               const auto& name = pair.first;
+                                               return !std::ranges::any_of(
+                                                   pkgs,
+                                                   [&name](const auto& pkg)
+                                                   { return pkg.name == name; }
+                                               );
+                                           }
+                                       )
+                                       | std::ranges::views::values;  // Extract the PackageInfo
+                                                                      // values
+
+            // Add filtered pip packages to pkgs
+            // If a conda package already exists, we don't add the pip package.
+            // This represents a conflict state that shouldn't normally exist, but if it does,
+            // the existing conda package takes precedence.
+            std::ranges::copy(pip_packages_to_add, std::back_inserter(pkgs));
+        }
+
         // TODO(C++20): We only need a range that concatenate both
         for (auto&& pkg : get_virtual_packages(ctx.platform))
         {

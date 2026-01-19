@@ -99,7 +99,7 @@ jobs:
           dockerRunArgs: -v /var/run/docker.sock:/var/run/docker.sock
           install: |
             apt-get update -y
-            apt-get install -y python3 docker.io curl
+            apt-get install -y python3 docker.io curl bzip2
           run: |
             set -euo pipefail
             # Install micromamba

@@ -1,4 +1,4 @@
-name: Micromamba
+name: Micromamba Static Build
 
 on:
   push:
@@ -34,6 +34,9 @@ jobs:
           - { os: ubuntu-latest, platform: linux, arch: ppc64le }
           - { os: macos-latest, platform: osx, arch: "64" }
           - { os: macos-latest, platform: osx, arch: arm64 }
+    defaults:
+      run:
+        shell: bash -l -eo pipefail {0}
     steps:
       - name: Disk Space Before Clean Up
         if: matrix.platform == 'linux'
@@ -59,58 +62,35 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           df -h
-      - name: Checkout micromamba-feedstock
+      - name: Checkout mamba repository
         uses: actions/checkout@v6
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v2
         with:
-          repository: conda-forge/micromamba-feedstock
-          path: micromamba-feedstock
-      - name: Disable output validation
-        if: ${{ matrix.platform == 'osx' }}
-        run: |
-          cd micromamba-feedstock/
-          sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
-      - name: Replaces python 3.9 with 3.13
-        if: ${{ matrix.platform == 'linux' }}
-        run: |
-          cd micromamba-feedstock/recipe/
-          sed -i 's|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3\.9|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3.13|' meta.yaml
-      - name: Uses libcurl 8.14
-        if: ${{ matrix.platform == 'linux' }}
-        run: |
-          cd micromamba-feedstock/recipe/
-          sed -i 's|    - libcurl >=8\.4\.0[[:space:]]*# \[unix\]|    - libcurl >=8.4,<8.15    #[unix]|' meta.yaml
-          sed -i 's|    - libcurl-static >=8\.4\.0[[:space:]]*# \[unix\]|    - libcurl-static >=8.4,<8.15    #[unix]|' meta.yaml
-      - name: Checkout mamba branch
-        uses: actions/checkout@v6
+          environment-file: ./dev/environment-micromamba-static.yml
+          environment-name: build_env
+          cache-environment: true
+      - uses: hendrikmuhs/ccache-action@main
         with:
-          path: mamba
-      - name: Clear mamba git directory and link source
-        # `source` subfolder is the special location looked-up by our feedstock.
-        # Due to Docker, we can only put it as a subfolder of `micromamba-feedstock`,
-        run: |
-          rm -rf "mamba/.git"
-          mv mamba/ micromamba-feedstock/source
-          # Prevent irrelevant file permission error
-          git -C micromamba-feedstock/ config --local --add safe.directory '*'
-      - uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-name: mambabuild
-          create-args: python boa
-          post-cleanup: none # FIXME the cleanup fails on OSX
-      - name: Build conda package (Unix native)
+          variant: sccache
+          key: ${{ github.job }}-${{ matrix.os }}-${{ matrix.arch }}
+          restore-keys: |
+            ccache-micromamba-static-${{ matrix.os }}-${{ matrix.arch }}
+      - name: Build micromamba (Unix native)
         if: ${{ !(matrix.platform == 'linux' && matrix.arch != '64') }}
-        shell: bash -l {0}
         run: |
-          cd micromamba-feedstock/
-          # Special values for running the feedstock with a local source
-          export FEEDSTOCK_ROOT="${PWD}"
-          export CI="local"
-          # For OSX not using Docker
-          export CONDA_BLD_PATH="${PWD}/build_artifacts"
-          mkdir -p "${CONDA_BLD_PATH}"
-          python build-locally.py "${{ matrix.platform }}_${{ matrix.arch }}_"
-      # The build_locally.py script will test all Linux builds, which fails outside of linux-64
-      - name: Build conda package (Linux emulated)
+          cmake -B build/ -G Ninja \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            -D CMAKE_C_COMPILER_LAUNCHER=sccache \
+            -D BUILD_STATIC=ON \
+            -D BUILD_MICROMAMBA=ON \
+            -D BUILD_LIBMAMBA=ON \
+            -D BUILD_LIBMAMBAPY=OFF \
+            -D BUILD_LIBMAMBA_SPDLOG=ON \
+            -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
+          cmake --build build/ --parallel
+      - name: Build micromamba (Linux emulated)
         if: ${{ matrix.platform == 'linux' && matrix.arch != '64' }}
         uses: uraimo/run-on-arch-action@v3
         with:
@@ -119,53 +99,74 @@ jobs:
           dockerRunArgs: -v /var/run/docker.sock:/var/run/docker.sock
           install: |
             apt-get update -y
-            apt-get install -y python3 docker.io
+            apt-get install -y python3 docker.io curl
           run: |
-            cd micromamba-feedstock/
-            # Prevent irrelevant file permission error
-            chown -R $(whoami) .
-            # Special values for running the feedstock with a local source
-            export FEEDSTOCK_ROOT="${PWD}"
-            export CI="local"
-            python3 build-locally.py "${{ matrix.platform }}_${{ matrix.arch }}_"
-      - name: Unpack micromamba package
-        shell: bash -l {0}
-        run: |
-          ls micromamba-feedstock/build_artifacts
-          micromamba package extract \
-            "micromamba-feedstock/build_artifacts/${{ matrix.platform }}-${{ matrix.arch }}/"micromamba-*.tar.bz2 "pkg/"
-          mkdir -p "${{ github.workspace }}/artifacts"
-          cp pkg/bin/micromamba "${{ github.workspace }}/artifacts"
+            set -euo pipefail
+            # Install micromamba
+            curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+            export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
+            ./bin/micromamba shell init -s bash -p "${MAMBA_ROOT_PREFIX}"
+            source "${MAMBA_ROOT_PREFIX}/etc/profile.d/micromamba.sh"
 
+            # Create environment
+            micromamba create -n build_env -f dev/environment-micromamba-static.yml -y
+            micromamba activate build_env
+
+            # Build
+            cmake -B build/ -G Ninja \
+              -D CMAKE_BUILD_TYPE=Release \
+              -D BUILD_STATIC=ON \
+              -D BUILD_MICROMAMBA=ON \
+              -D BUILD_LIBMAMBA=ON \
+              -D BUILD_LIBMAMBAPY=OFF \
+              -D BUILD_LIBMAMBA_SPDLOG=ON \
+              -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
+            cmake --build build/ --parallel
+
+            # Test basic commands
+            mkdir -p test_prefix
+            ./build/micromamba/micromamba --version
+            ./build/micromamba/micromamba --help
+            ./build/micromamba/micromamba env create -y -n testenv -r ./test_prefix "python<3.13"
+            ./build/micromamba/micromamba list -n testenv -r ./test_prefix --log-level 1
+      - name: Show build cache statistics
+        if: ${{ !(matrix.platform == 'linux' && matrix.arch != '64') }}
+        run: sccache --show-stats
       - name: Test basic commands
         if: ${{ matrix.arch != 'aarch64' && matrix.arch != 'ppc64le' }}
         run: |
-          mkdir test_prefix
-          ${{ github.workspace }}/artifacts/micromamba --version
-          ${{ github.workspace }}/artifacts/micromamba --help
-          ${{ github.workspace }}/artifacts/micromamba env create -y -n testenv -r ./test_prefix "python<3.13"
-          ${{ github.workspace }}/artifacts/micromamba list -n testenv -r ./test_prefix --log-level 1
-
-      - name: Archive conda-build artifact
+          mkdir -p test_prefix
+          ./build/micromamba/micromamba --version
+          ./build/micromamba/micromamba --help
+          ./build/micromamba/micromamba env create -y -n testenv -r ./test_prefix "python<3.13"
+          ./build/micromamba/micromamba list -n testenv -r ./test_prefix --log-level 1
+      - name: Archive build artifact
         if: failure()
-        run: tar -czf ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz $MAMBA_ROOT_PREFIX/envs/mambabuild/conda-bld/micromamba_*
-      - name: Upload conda build artifacts
+        run: |
+          tar -czf ${{ github.workspace }}/micromamba-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz build/
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: failure()
         with:
-          name: micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
-          path: ${{ github.workspace }}/micromamba-conda-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+          name: micromamba-build-failed-${{ matrix.platform }}-${{ matrix.arch }}
+          path: ${{ github.workspace }}/micromamba-build-failed-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
           retention-days: 7
       - name: Upload micromamba
         uses: actions/upload-artifact@v6
+        if: ${{ !(matrix.platform == 'linux' && matrix.arch != '64') }}
         with:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
-          path: ${{ github.workspace }}/artifacts/micromamba
+          path: build/micromamba/micromamba
+
   micromamba-static-win:
     name: "win-64"
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd /C call {0}
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout mamba repository
+        uses: actions/checkout@v6
       - name: Cache vcpkg packages
         uses: actions/cache@v5
         with:
@@ -184,22 +185,14 @@ jobs:
           key: sccache-${{ github.job }}-win-64
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
-      - uses: mamba-org/setup-micromamba@v2
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v2
         with:
-          environment-name: mambabuild
+          environment-file: ./dev/environment-micromamba-static.yml
+          environment-name: build_env
+          cache-environment: true
           init-shell: bash cmd.exe
-          create-args: >-
-            cli11>=2.2,<3
-            cpp-expected
-            nlohmann_json
-            simdjson-static>=3.3.0
-            spdlog
-            fmt>=11.1.0
-            yaml-cpp-static>=0.8.0
-            libsolv-static>=0.7.24
-            reproc-cpp-static>=14.2.4.post0
-      - name: build micromamba
-        shell: cmd /C call {0}
+      - name: Build micromamba
         run: |
           set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md;%CONDA_PREFIX%\Library
           cmake -B build/ -G Ninja ^
@@ -207,10 +200,11 @@ jobs:
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
             -D CMAKE_BUILD_TYPE="Release" ^
-            -D BUILD_LIBMAMBA=ON ^
-            -D BUILD_LIBMAMBA_SPDLOG=ON ^
             -D BUILD_STATIC=ON ^
-            -D BUILD_MICROMAMBA=ON
+            -D BUILD_MICROMAMBA=ON ^
+            -D BUILD_LIBMAMBA=ON ^
+            -D BUILD_LIBMAMBAPY=OFF ^
+            -D BUILD_LIBMAMBA_SPDLOG=ON
           if %errorlevel% neq 0 exit /b %errorlevel%
           cmake --build build/ --parallel
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -220,20 +214,18 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\build\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
-      - name: build cache statistics
+      - name: Build cache statistics
         run: sccache --show-stats
-      - name: Archive-build artifact
+      - name: Archive build artifact
         if: failure()
         run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
-
       - name: Test basic commands
         run: |
           mkdir test_prefix
           ${{ github.workspace }}/build/micromamba/micromamba.exe --version
           ${{ github.workspace }}/build/micromamba/micromamba.exe --help
           ${{ github.workspace }}/build/micromamba/micromamba.exe env create -y -n testenv -r ./test_prefix "python<3.13"
-          ${{ github.workspace }}/build/micromamba/micromamba.exe list -n testenv -r ./test_prefix  --log-level 1
-
+          ${{ github.workspace }}/build/micromamba/micromamba.exe list -n testenv -r ./test_prefix --log-level 1
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: failure()

@@ -3,12 +3,10 @@ channels:
 dependencies:
   - python >=3.12
   # libmamba build dependencies
-  # Workaround `mamba-org/mamba#4043`
-  # TODO: Understand the linkage issue with GCC 14
-  - sel(linux): cxx-compiler <1.11 #       GCC 13
+  - cxx-compiler
+  # sysroot_linux-64==2.17 has to be used because all packages of conda-forge are built with it for now.
+  # See: https://github.com/conda-forge/conda-forge-pinning-feedstock/blob/7c988617ecdf11066c3e2655349e6c170f8ac426/recipe/conda_build_config.yaml#L20
   - sel(linux): sysroot_linux-64==2.17
-  - sel(osx): cxx-compiler
-  - sel(win): cxx-compiler
   - cmake >=3.16
   - pkg-config # Used by some CMake dependencies
   - ninja

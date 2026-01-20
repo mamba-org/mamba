@@ -7,6 +7,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/core/shard_types.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/version.hpp"
 
 using namespace mamba;
@@ -80,4 +81,237 @@ TEST_CASE("RepodataDict to RepoData conversion", "[mamba::core][mamba::core::sha
     REQUIRE(repo_data.version == 2);
     REQUIRE(repo_data.packages.size() == 1);
     REQUIRE(repo_data.packages.begin()->second.name == "test-pkg");
+}
+
+TEST_CASE("ShardPackageRecord round-trip conversion", "[mamba::core][mamba::core::shard_types]")
+{
+    SECTION("ShardPackageRecord -> RepoDataPackage -> ShardPackageRecord")
+    {
+        ShardPackageRecord original;
+        original.name = "roundtrip-package";
+        original.version = "3.2.1";
+        original.build = "py39_0";
+        original.build_number = 5;
+        original.sha256 = "abcdef1234567890";
+        original.md5 = "1234567890abcdef";
+        original.depends = { "python >=3.9", "numpy" };
+        original.constrains = { "scipy <2.0" };
+        original.noarch = "python";
+        original.size = 12345;
+
+        // Convert to RepoDataPackage and back
+        specs::RepoDataPackage repo_pkg = to_repo_data_package(original);
+        ShardPackageRecord roundtripped = from_repo_data_package(repo_pkg);
+
+        // Verify all fields are preserved (except size which is not in RepoDataPackage)
+        REQUIRE(roundtripped.name == original.name);
+        REQUIRE(roundtripped.version == original.version);
+        REQUIRE(roundtripped.build == original.build);
+        REQUIRE(roundtripped.build_number == original.build_number);
+        REQUIRE(roundtripped.sha256 == original.sha256);
+        REQUIRE(roundtripped.md5 == original.md5);
+        REQUIRE(roundtripped.depends == original.depends);
+        REQUIRE(roundtripped.constrains == original.constrains);
+        REQUIRE(roundtripped.noarch == original.noarch);
+    }
+
+    SECTION("RepoDataPackage -> ShardPackageRecord -> RepoDataPackage")
+    {
+        specs::RepoDataPackage original;
+        original.name = "roundtrip-pkg";
+        original.version = specs::Version::parse("4.5.6").value();
+        original.build_string = "h123abc_1";
+        original.build_number = 10;
+        original.sha256 = "sha256hash";
+        original.md5 = "md5hash";
+        original.depends = { "libstdcxx-ng >=7.5.0", "openssl >=1.1.1" };
+        original.constrains = { "some-constraint >=1.0" };
+        original.noarch = specs::NoArchType::Generic;
+
+        // Convert to ShardPackageRecord and back
+        ShardPackageRecord shard_rec = from_repo_data_package(original);
+        specs::RepoDataPackage roundtripped = to_repo_data_package(shard_rec);
+
+        // Verify all fields are preserved
+        REQUIRE(roundtripped.name == original.name);
+        REQUIRE(roundtripped.version.to_string() == original.version.to_string());
+        REQUIRE(roundtripped.build_string == original.build_string);
+        REQUIRE(roundtripped.build_number == original.build_number);
+        REQUIRE(roundtripped.sha256 == original.sha256);
+        REQUIRE(roundtripped.md5 == original.md5);
+        REQUIRE(roundtripped.depends == original.depends);
+        REQUIRE(roundtripped.constrains == original.constrains);
+        REQUIRE(roundtripped.noarch == original.noarch);
+    }
+
+    SECTION("Round-trip with no noarch")
+    {
+        ShardPackageRecord original;
+        original.name = "no-noarch-pkg";
+        original.version = "1.0.0";
+        original.build = "build_0";
+        // noarch is not set (nullopt)
+
+        specs::RepoDataPackage repo_pkg = to_repo_data_package(original);
+        ShardPackageRecord roundtripped = from_repo_data_package(repo_pkg);
+
+        REQUIRE_FALSE(roundtripped.noarch.has_value());
+    }
+
+    SECTION("Round-trip with generic noarch")
+    {
+        ShardPackageRecord original;
+        original.name = "generic-noarch-pkg";
+        original.version = "2.0.0";
+        original.build = "build_1";
+        original.noarch = "generic";
+
+        specs::RepoDataPackage repo_pkg = to_repo_data_package(original);
+        ShardPackageRecord roundtripped = from_repo_data_package(repo_pkg);
+
+        REQUIRE(roundtripped.noarch == "generic");
+    }
+}
+
+TEST_CASE("to_package_info conversion", "[mamba::core][mamba::core::shard_types]")
+{
+    SECTION("Basic conversion with all fields")
+    {
+        ShardPackageRecord record;
+        record.name = "test-package";
+        record.version = "1.2.3";
+        record.build = "py310_0";
+        record.build_number = 42;
+        record.sha256 = "abc123sha256";
+        record.md5 = "def456md5";
+        record.depends = { "python >=3.10", "numpy >=1.20" };
+        record.constrains = { "scipy <2.0" };
+        record.noarch = "python";
+        record.size = 98765;
+
+        std::string filename = "test-package-1.2.3-py310_0.tar.bz2";
+        std::string channel_id = "conda-forge";
+        specs::DynamicPlatform platform = "linux-64";
+        std::string base_url = "https://conda.anaconda.org/conda-forge/linux-64";
+
+        specs::PackageInfo pkg_info = to_package_info(record, filename, channel_id, platform, base_url);
+
+        REQUIRE(pkg_info.name == "test-package");
+        REQUIRE(pkg_info.version == "1.2.3");
+        REQUIRE(pkg_info.build_string == "py310_0");
+        REQUIRE(pkg_info.build_number == 42);
+        REQUIRE(pkg_info.sha256 == "abc123sha256");
+        REQUIRE(pkg_info.md5 == "def456md5");
+        REQUIRE(pkg_info.dependencies == record.depends);
+        REQUIRE(pkg_info.constrains == record.constrains);
+        REQUIRE(pkg_info.noarch == specs::NoArchType::Python);
+        REQUIRE(pkg_info.size == 98765);
+        REQUIRE(pkg_info.filename == filename);
+        REQUIRE(pkg_info.channel == channel_id);
+        REQUIRE(pkg_info.platform == platform);
+        REQUIRE(
+            pkg_info.package_url
+            == "https://conda.anaconda.org/conda-forge/linux-64/test-package-1.2.3-py310_0.tar.bz2"
+        );
+    }
+
+    SECTION("Conversion with generic noarch")
+    {
+        ShardPackageRecord record;
+        record.name = "generic-pkg";
+        record.version = "1.0.0";
+        record.build = "0";
+        record.noarch = "generic";
+
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "generic-pkg-1.0.0-0.tar.bz2",
+            "conda-forge",
+            "noarch",
+            "https://conda.anaconda.org/conda-forge/noarch"
+        );
+
+        REQUIRE(pkg_info.noarch == specs::NoArchType::Generic);
+    }
+
+    SECTION("Conversion without noarch")
+    {
+        ShardPackageRecord record;
+        record.name = "native-pkg";
+        record.version = "2.0.0";
+        record.build = "h123_1";
+        // noarch is not set
+
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "native-pkg-2.0.0-h123_1.conda",
+            "conda-forge",
+            "linux-64",
+            "https://conda.anaconda.org/conda-forge/linux-64"
+        );
+
+        REQUIRE(pkg_info.noarch == specs::NoArchType::No);
+    }
+
+    SECTION("Conversion without optional hashes")
+    {
+        ShardPackageRecord record;
+        record.name = "no-hash-pkg";
+        record.version = "3.0.0";
+        record.build = "0";
+        // sha256 and md5 are not set
+
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "no-hash-pkg-3.0.0-0.tar.bz2",
+            "test-channel",
+            "osx-64",
+            "https://example.com/test-channel/osx-64"
+        );
+
+        REQUIRE(pkg_info.sha256.empty());
+        REQUIRE(pkg_info.md5.empty());
+    }
+
+    SECTION("URL construction with trailing slash in base_url")
+    {
+        ShardPackageRecord record;
+        record.name = "url-test-pkg";
+        record.version = "1.0.0";
+        record.build = "0";
+
+        // Base URL with trailing slash
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "url-test-pkg-1.0.0-0.tar.bz2",
+            "channel",
+            "win-64",
+            "https://example.com/channel/win-64/"
+        );
+
+        // Should not have double slashes
+        REQUIRE(
+            pkg_info.package_url == "https://example.com/channel/win-64/url-test-pkg-1.0.0-0.tar.bz2"
+        );
+    }
+
+    SECTION("Conversion with empty dependencies and constrains")
+    {
+        ShardPackageRecord record;
+        record.name = "no-deps-pkg";
+        record.version = "1.0.0";
+        record.build = "0";
+        // depends and constrains are empty by default
+
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "no-deps-pkg-1.0.0-0.tar.bz2",
+            "channel",
+            "linux-64",
+            "https://example.com"
+        );
+
+        REQUIRE(pkg_info.dependencies.empty());
+        REQUIRE(pkg_info.constrains.empty());
+    }
 }

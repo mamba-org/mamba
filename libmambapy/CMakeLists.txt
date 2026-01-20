@@ -22,6 +22,7 @@ endif()
 
 find_package(Python COMPONENTS Interpreter Development.Module)
 find_package(pybind11 REQUIRED)
+find_package(msgpack-c REQUIRED)
 
 pybind11_add_module(
     bindings
@@ -53,7 +54,7 @@ target_include_directories(bindings PRIVATE bindings)
 mamba_target_add_compile_warnings(bindings WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
 target_link_libraries(
-    bindings PRIVATE pybind11::pybind11 ${libmamba_target} mamba::libmamba-dyn-spdlog
+    bindings PRIVATE pybind11::pybind11 ${libmamba_target} mamba::libmamba-dyn-spdlog msgpack-c
 )
 target_compile_features(bindings PUBLIC cxx_std_20)
 set_target_properties(

@@ -248,6 +248,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/shard_types.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdir_index.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/thread_utils.cpp
@@ -397,6 +398,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_types.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/subdir_index.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/tasksync.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/thread_utils.hpp
@@ -436,6 +438,7 @@ find_package(yaml-cpp CONFIG REQUIRED)
 find_package(reproc CONFIG REQUIRED)
 find_package(reproc++ CONFIG REQUIRED)
 find_package(Libsolv MODULE REQUIRED)
+find_package(msgpack-c CONFIG REQUIRED)
 add_subdirectory(ext/solv-cpp)
 
 macro(libmamba_create_target target_name linkage output_name)
@@ -455,7 +458,7 @@ macro(libmamba_create_target target_name linkage output_name)
     )
 
     # Header only libraries are always linked the same way
-    target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
+    target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json msgpack-c)
 
     target_compile_features(${target_name} PUBLIC cxx_std_20)
     set_target_properties(
@@ -478,7 +481,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp
+            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp msgpack-c
             PRIVATE
                 reproc
                 reproc++
@@ -621,7 +624,8 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC ${LIBSOLV_LIBRARIES} ${LIBSOLVEXT_LIBRARIES} yaml-cpp::yaml-cpp fmt::fmt
+            PUBLIC
+                ${LIBSOLV_LIBRARIES} ${LIBSOLVEXT_LIBRARIES} yaml-cpp::yaml-cpp fmt::fmt msgpack-c
             PRIVATE
                 ${LibArchive_LIBRARIES}
                 ${CURL_LIBRARIES}

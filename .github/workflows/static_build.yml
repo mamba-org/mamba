@@ -114,7 +114,7 @@ jobs:
             fi
             curl -Ls "https://micro.mamba.pm/api/micromamba/${MICROMAMBA_PLATFORM}/latest" | tar -xvj bin/micromamba
             export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
-            ./bin/micromamba shell init -s bash -p "${MAMBA_ROOT_PREFIX}"
+            ./bin/micromamba shell init -s bash -r "${MAMBA_ROOT_PREFIX}"
             source "${MAMBA_ROOT_PREFIX}/etc/profile.d/micromamba.sh"
 
             # Create environment

@@ -955,6 +955,7 @@ namespace mamba
 
             static void activate_buffer();
             static void deactivate_buffer();
+            static bool is_buffer_enabled();
             static void print_buffer(std::ostream& ostream);
 
         private:

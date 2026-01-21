@@ -63,7 +63,7 @@ namespace mamba
         using base_type = mamba_error;
         using error_list_t = std::vector<mamba_error>;
 
-        explicit mamba_aggregated_error(error_list_t&& error_list);
+        explicit mamba_aggregated_error(error_list_t&& error_list, bool with_bug_report_info = true);
 
         const char* what() const noexcept override;
 
@@ -71,7 +71,8 @@ namespace mamba
 
         error_list_t m_error_list;
         mutable std::string m_aggregated_message;
-        static constexpr const char* m_base_message = "Multiple errors occurred:\n";
+        bool m_with_bug_report_message = true;
+
     };
 
     /********************************

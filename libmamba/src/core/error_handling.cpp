@@ -55,12 +55,22 @@ namespace mamba
         return m_data;
     }
 
-    constexpr const char* mamba_aggregated_error::m_base_message;  // = "Many errors occurred:\n";
+    namespace
+    {
+        constexpr auto* message_aggregated_error_top = "Multiple errors occurred:\n";
+        constexpr auto* message_aggregated_bug_report = "If you run into this error repeatedly, your package cache may be corrupted.\n"
+                                                        "Please try running `mamba clean -a` to remove this cache before retrying the operation.\n"
+                                                        "\n"
+                                                        "If you still are having issues, please report the error on `mamba-org/mamba`'s issue tracker:\n"
+                                                        "https://github.com/mamba-org/mamba/issues/new?assignees=&labels=&projects=&template=bug.yml";
 
-    mamba_aggregated_error::mamba_aggregated_error(error_list_t&& error_list)
-        : base_type(mamba_aggregated_error::m_base_message, mamba_error_code::aggregated)
+    }
+
+    mamba_aggregated_error::mamba_aggregated_error(error_list_t&& error_list, bool with_bug_report_info)
+        : base_type(message_aggregated_error_top, mamba_error_code::aggregated)
         , m_error_list(std::move(error_list))
         , m_aggregated_message()
+        , m_with_bug_report_message(with_bug_report_info)
     {
     }
 
@@ -68,7 +78,7 @@ namespace mamba
     {
         if (m_aggregated_message.empty())
         {
-            m_aggregated_message = m_base_message;
+            m_aggregated_message = message_aggregated_error_top;
 
             for (const mamba_error& er : m_error_list)
             {
@@ -76,11 +86,10 @@ namespace mamba
                 m_aggregated_message += "\n";
             }
 
-            m_aggregated_message += "If you run into this error repeatedly, your package cache may be corrupted.\n"
-                                    "Please try running `mamba clean -a` to remove this cache before retrying the operation.\n"
-                                    "\n"
-                                    "If you still are having issues, please report the error on `mamba-org/mamba`'s issue tracker:\n"
-                                    "https://github.com/mamba-org/mamba/issues/new?assignees=&labels=&projects=&template=bug.yml";
+            if (m_with_bug_report_message)
+            {
+                m_aggregated_message += message_aggregated_bug_report;
+            }
         }
         return m_aggregated_message.c_str();
     }

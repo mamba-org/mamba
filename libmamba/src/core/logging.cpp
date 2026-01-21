@@ -245,6 +245,11 @@ namespace mamba::logging
         details::message_logger_use_buffer = false;
     }
 
+    bool MessageLogger::is_buffer_enabled()
+    {
+        return details::message_logger_use_buffer;
+    }
+
     void MessageLogger::print_buffer(std::ostream& /*out*/)
     {
         details::MessageLoggerBuffer::buffer tmp;

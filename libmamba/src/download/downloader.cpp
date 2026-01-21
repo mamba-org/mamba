@@ -202,6 +202,69 @@ namespace mamba::download
      * DownloadAttempt implementation *
      **********************************/
 
+    struct DownloadAttempt::Impl
+    {
+        Impl(
+            CURLHandle& handle,
+            const MirrorRequest& request,
+            CURLMultiHandle& downloader,
+            const RemoteFetchParams& params,
+            const specs::AuthenticationDataBase& auth_info,
+            bool verbose,
+            on_success_callback on_success,
+            on_failure_callback on_error,
+            on_stop_callback on_stop
+        );
+
+        bool finish_download(CURLMultiHandle& downloader, CURLcode code);
+        void clean_attempt(CURLMultiHandle& downloader, bool erase_downloaded);
+        void invoke_progress_callback(const Event&) const;
+
+        void configure_handle(
+            const RemoteFetchParams& params,
+            const specs::AuthenticationDataBase& auth_info,
+            bool verbose
+        );
+        void configure_handle_headers(
+            const RemoteFetchParams& params,
+            const specs::AuthenticationDataBase& auth_info
+        );
+
+        size_t write_data(char* buffer, size_t data);
+
+        static size_t curl_header_callback(char* buffer, size_t size, size_t nbitems, void* self);
+        static size_t curl_write_callback(char* buffer, size_t size, size_t nbitems, void* self);
+        static int curl_progress_callback(
+            void* f,
+            curl_off_t total_to_download,
+            curl_off_t now_downloaded,
+            curl_off_t,
+            curl_off_t
+        );
+
+        bool can_retry(CURLcode code) const;
+        bool can_retry(const TransferData& data) const;
+
+        TransferData get_transfer_data() const;
+        Error build_download_error(CURLcode code) const;
+        Error build_download_error(TransferData data) const;
+        Success build_download_success(TransferData data) const;
+
+        CURLHandle* p_handle = nullptr;
+        const MirrorRequest* p_request = nullptr;
+        std::atomic_bool m_is_stop_requested = false;
+        on_success_callback m_success_callback;
+        on_failure_callback m_failure_callback;
+        on_stop_callback m_stop_callback;
+        std::size_t m_retry_wait_seconds = std::size_t(0);
+        std::unique_ptr<CompressionStream> p_stream = nullptr;
+        std::ofstream m_file;
+        mutable std::string m_response = "";
+        std::string m_cache_control;
+        std::string m_etag;
+        std::string m_last_modified;
+    };
+
     DownloadAttempt::DownloadAttempt(
         CURLHandle& handle,
         const MirrorRequest& request,
@@ -209,8 +272,9 @@ namespace mamba::download
         const RemoteFetchParams& params,
         const specs::AuthenticationDataBase& auth_info,
         bool verbose,
-        on_success_callback success,
-        on_failure_callback error
+        on_success_callback on_success,
+        on_failure_callback on_error,
+        on_stop_callback on_stop
     )
         : p_impl(
               std::make_unique<Impl>(
@@ -220,8 +284,9 @@ namespace mamba::download
                   params,
                   auth_info,
                   verbose,
-                  std::move(success),
-                  std::move(error)
+                  std::move(on_success),
+                  std::move(on_error),
+                  std::move(on_stop)
               )
           )
     {
@@ -233,6 +298,14 @@ namespace mamba::download
         { return impl->finish_download(handle, code); };
     }
 
+    auto DownloadAttempt::request_stop() -> void
+    {
+        if (p_impl)
+        {
+            p_impl->m_is_stop_requested = true;
+        }
+    }
+
     DownloadAttempt::Impl::Impl(
         CURLHandle& handle,
         const MirrorRequest& request,
@@ -240,13 +313,15 @@ namespace mamba::download
         const RemoteFetchParams& params,
         const specs::AuthenticationDataBase& auth_info,
         bool verbose,
-        on_success_callback success,
-        on_failure_callback error
+        on_success_callback on_success,
+        on_failure_callback on_error,
+        on_stop_callback on_stop
     )
         : p_handle(&handle)
         , p_request(&request)
-        , m_success_callback(std::move(success))
-        , m_failure_callback(std::move(error))
+        , m_success_callback(std::move(on_success))
+        , m_failure_callback(std::move(on_error))
+        , m_stop_callback(std::move(on_stop))
         , m_retry_wait_seconds(static_cast<std::size_t>(params.retry_timeout))
     {
         p_stream = make_compression_stream(
@@ -269,6 +344,12 @@ namespace mamba::download
 
     bool DownloadAttempt::Impl::finish_download(CURLMultiHandle& downloader, CURLcode code)
     {
+        if (code == CURLE_ABORTED_BY_CALLBACK)
+        {
+            clean_attempt(downloader, true);
+            return m_stop_callback();
+        }
+
         if (!CURLHandle::is_curl_res_ok(code))
         {
             Error error = build_download_error(code);
@@ -579,6 +660,15 @@ namespace mamba::download
     )
     {
         auto* self = reinterpret_cast<DownloadAttempt::Impl*>(f);
+
+        if (self->m_is_stop_requested)
+        {
+            // Stop has been requested, we need to abort the download.
+            // Returning `1` will end make libcurl abort and return `CURLE_ABORTED_BY_CALLBACK`.
+            // see https://curl.se/libcurl/c/CURLOPT_XFERINFOFUNCTION.html for details.
+            return 1;
+        }
+
         const auto speed_Bps = self->p_handle->get_info<std::size_t>(CURLINFO_SPEED_DOWNLOAD_T)
                                    .value_or(0);
         const size_t total = total_to_download ? static_cast<std::size_t>(total_to_download)
@@ -686,6 +776,7 @@ namespace mamba::download
      * PREPARING_DOWNLOAD:
      *     - set_transfer_started => RUNNING_DOWNLOAD
      * RUNNING_DOWNLOAD:
+     *     - set_stopped() => SEQUENCE_STOPPED
      *     - set_state(true) => LAST_REQUEST_FINISHED
      *     - set_state(false) => LAST_REQUEST_FAILED
      *     - set_state(Error with wait_next_retry) => LAST_REQUEST_FAILED
@@ -720,6 +811,15 @@ namespace mamba::download
         }
     }
 
+    void MirrorAttempt::invoke_on_stopped() const
+    {
+        if (m_request.value().on_stopped.has_value())
+        {
+            // We dont want to propagate errors coming from user's callbacks
+            [[maybe_unused]] auto result = safe_invoke(m_request.value().on_stopped.value());
+        }
+    }
+
     void MirrorAttempt::prepare_request(const Request& initial_request)
     {
         if (m_state != State::LAST_REQUEST_FAILED)
@@ -742,8 +842,9 @@ namespace mamba::download
         const RemoteFetchParams& params,
         const specs::AuthenticationDataBase& auth_info,
         bool verbose,
-        on_success_callback success,
-        on_failure_callback error
+        on_success_callback on_success,
+        on_failure_callback on_error,
+        on_stop_callback on_stop
     ) -> completion_function
     {
         LOG_DEBUG << "Preparing download...";
@@ -755,8 +856,9 @@ namespace mamba::download
             params,
             auth_info,
             verbose,
-            std::move(success),
-            std::move(error)
+            std::move(on_success),
+            std::move(on_error),
+            std::move(on_stop)
         );
         return m_attempt.create_completion_function();
     }
@@ -776,6 +878,11 @@ namespace mamba::download
     {
         auto res = (m_state == State::SEQUENCE_FINISHED) || (m_step == m_request_generators.size());
         return res;
+    }
+
+    bool MirrorAttempt::has_stopped() const
+    {
+        return m_state == State::SEQUENCE_STOPPED;
     }
 
     void MirrorAttempt::set_transfer_started()
@@ -827,6 +934,12 @@ namespace mamba::download
         update_transfers_done(false);
     }
 
+    void MirrorAttempt::set_stopped()
+    {
+        // TODO: NOT COMPLETE
+        m_state = State::SEQUENCE_STOPPED;
+    }
+
     void MirrorAttempt::update_last_content(const Content* content)
     {
         p_last_content = content;
@@ -840,6 +953,12 @@ namespace mamba::download
     void MirrorAttempt::update_transfers_done(bool success)
     {
         p_mirror->update_transfers_done(success, !m_request.value().check_only);
+    }
+
+    void MirrorAttempt::request_stop()
+    {
+        // TODO: CHECK WHAT ELSE TO DO HERE
+        m_attempt.request_stop();
     }
 
     /**********************************
@@ -902,6 +1021,13 @@ namespace mamba::download
                 throw_if_required(res);
                 save(std::move(res));
                 return is_waiting();
+            },
+            [this]
+            {
+                invoke_on_stopped();
+                set_stopped();
+                save(make_stop_error());
+                return false;
             }
         );
         return { m_handle.get_id(), completion_func };
@@ -923,7 +1049,7 @@ namespace mamba::download
         m_mirror_attempt.set_transfer_started();
     }
 
-    const Result& DownloadTracker::get_result() const
+    const Result& DownloadTracker::get_result() const  // TODO: what to do if stopped?
     {
         return m_attempt_results.back();
     }
@@ -958,6 +1084,15 @@ namespace mamba::download
                 // We dont want to propagate errors coming from user's callbacks
                 [[maybe_unused]] auto result = safe_invoke(p_initial_request->on_failure.value(), res);
             }
+        }
+    }
+
+    void DownloadTracker::invoke_on_stopped() const
+    {
+        if (p_initial_request->on_stopped.has_value())
+        {
+            // We dont want to propagate errors coming from user's callbacks
+            [[maybe_unused]] auto result = safe_invoke(p_initial_request->on_stopped.value());
         }
     }
 
@@ -1006,6 +1141,20 @@ namespace mamba::download
         {
             m_state = State::FAILED;
         }
+    }
+
+    void DownloadTracker::set_stopped()
+    {
+        // TODO: more?
+        m_mirror_attempt.set_stopped();
+        m_state = State::STOPPED;
+    }
+
+    void DownloadTracker::request_stop()
+    {
+        // TODO: ?
+        m_state = State::STOPPING;
+        m_mirror_attempt.request_stop();
     }
 
     void DownloadTracker::throw_if_required(const expected_t<void>& res)
@@ -1084,7 +1233,7 @@ namespace mamba::download
                 m_mirror_set,
                 [iteration](const auto& mirror)
                 {
-                    return iteration > mirror->failed_transfers()
+                    return iteration > mirror->capture_stats().failed_transfers
                            && mirror->can_accept_more_connections();
                 }
             );
@@ -1099,8 +1248,8 @@ namespace mamba::download
 
     bool DownloadTracker::is_bad_mirror(Mirror* mirror) const
     {
-        return mirror->successful_transfers() == 0
-               && mirror->failed_transfers() >= mirror->max_retries();
+        const auto stats = mirror->capture_stats();
+        return stats.successful_transfers == 0 && stats.failed_transfers >= mirror->max_retries();
     }
 
     /*****************************
@@ -1153,19 +1302,48 @@ namespace mamba::download
         m_waiting_count -= static_cast<size_t>(failed_count);
     }
 
+    void Downloader::request_stop()
+    {
+        // HACK: print the warning after the progress bars
+        for (const auto& tracker [[maybe_unused]] : m_trackers)
+        {
+            LOG_WARNING << "...";
+            LOG_WARNING << "Interruption requested by user, stopping all downloads...";
+        }
+        logging::flush_logs();
+
+        for (auto& tracker : m_trackers)
+        {
+            tracker.request_stop();
+        }
+    }
+
     MultiResult Downloader::download()
     {
+        bool was_interrupted = false;
         while (!download_done())
         {
-            if (is_sig_interrupted())
+            if (is_sig_interrupted() && not was_interrupted)
             {
-                invoke_unexpected_termination();
+                was_interrupted = true;
+                request_stop();
+                download_while_stopping();
                 break;
             }
             prepare_next_downloads();
             update_downloads();
         }
+
         return build_result();
+    }
+
+    void Downloader::download_while_stopping()
+    {
+        while (!download_done())
+        {
+            update_downloads();
+        }
+        invoke_unexpected_termination();
     }
 
     void Downloader::prepare_next_downloads()
@@ -1210,8 +1388,8 @@ namespace mamba::download
                 continue;
             }
 
-            auto completion_callback = m_completion_map.find(msg.m_handle_id);
-            if (completion_callback == m_completion_map.end())
+            auto completion_callback_iter = m_completion_map.find(msg.m_handle_id);
+            if (completion_callback_iter == m_completion_map.end())
             {
                 LOG_ERROR << fmt::format(
                     "Received DONE message from unknown target - running transfers left = {}",
@@ -1220,8 +1398,11 @@ namespace mamba::download
             }
             else
             {
-                bool still_waiting = completion_callback->second(m_curl_handle, msg.m_transfer_result);
-                m_completion_map.erase(completion_callback);
+                bool still_waiting = completion_callback_iter->second(
+                    m_curl_handle,
+                    msg.m_transfer_result
+                );
+                m_completion_map.erase(completion_callback_iter);
                 if (!still_waiting)
                 {
                     --m_waiting_count;

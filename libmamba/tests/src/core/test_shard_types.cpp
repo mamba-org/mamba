@@ -26,6 +26,11 @@ TEST_CASE("ShardPackageRecord conversion", "[mamba::core][mamba::core::shard_typ
         pkg.depends = { "dep1", "dep2" };
         pkg.constrains = { "constraint1" };
         pkg.noarch = specs::NoArchType::Generic;
+        pkg.license = "MIT";
+        pkg.license_family = "MIT";
+        pkg.subdir = "linux-64";
+        pkg.timestamp = 1234567890;
+        pkg.size = 98765;
 
         ShardPackageRecord shard_record = from_repo_data_package(pkg);
 
@@ -38,6 +43,11 @@ TEST_CASE("ShardPackageRecord conversion", "[mamba::core][mamba::core::shard_typ
         REQUIRE(shard_record.depends.size() == 2);
         REQUIRE(shard_record.constrains.size() == 1);
         REQUIRE(shard_record.noarch == "generic");
+        REQUIRE(shard_record.license == "MIT");
+        REQUIRE(shard_record.license_family == "MIT");
+        REQUIRE(shard_record.subdir == "linux-64");
+        REQUIRE(shard_record.timestamp == 1234567890);
+        REQUIRE(shard_record.size == 98765);
     }
 
     SECTION("Convert ShardPackageRecord to RepoDataPackage")
@@ -50,6 +60,11 @@ TEST_CASE("ShardPackageRecord conversion", "[mamba::core][mamba::core::shard_typ
         shard_record.sha256 = "xyz789";
         shard_record.depends = { "dep3" };
         shard_record.noarch = "python";
+        shard_record.license = "BSD";
+        shard_record.license_family = "BSD";
+        shard_record.subdir = "noarch";
+        shard_record.timestamp = 9876543210;
+        shard_record.size = 54321;
 
         specs::RepoDataPackage pkg = to_repo_data_package(shard_record);
 
@@ -60,6 +75,11 @@ TEST_CASE("ShardPackageRecord conversion", "[mamba::core][mamba::core::shard_typ
         REQUIRE(pkg.sha256 == "xyz789");
         REQUIRE(pkg.depends.size() == 1);
         REQUIRE(pkg.noarch == specs::NoArchType::Python);
+        REQUIRE(pkg.license == "BSD");
+        REQUIRE(pkg.license_family == "BSD");
+        REQUIRE(pkg.subdir == "noarch");
+        REQUIRE(pkg.timestamp == 9876543210);
+        REQUIRE(pkg.size == 54321);
     }
 }
 
@@ -98,12 +118,16 @@ TEST_CASE("ShardPackageRecord round-trip conversion", "[mamba::core][mamba::core
         original.constrains = { "scipy <2.0" };
         original.noarch = "python";
         original.size = 12345;
+        original.license = "Apache-2.0";
+        original.license_family = "Apache";
+        original.subdir = "linux-64";
+        original.timestamp = 1609459200;
 
         // Convert to RepoDataPackage and back
         specs::RepoDataPackage repo_pkg = to_repo_data_package(original);
         ShardPackageRecord roundtripped = from_repo_data_package(repo_pkg);
 
-        // Verify all fields are preserved (except size which is not in RepoDataPackage)
+        // Verify all fields are preserved
         REQUIRE(roundtripped.name == original.name);
         REQUIRE(roundtripped.version == original.version);
         REQUIRE(roundtripped.build == original.build);
@@ -113,6 +137,11 @@ TEST_CASE("ShardPackageRecord round-trip conversion", "[mamba::core][mamba::core
         REQUIRE(roundtripped.depends == original.depends);
         REQUIRE(roundtripped.constrains == original.constrains);
         REQUIRE(roundtripped.noarch == original.noarch);
+        REQUIRE(roundtripped.size == original.size);
+        REQUIRE(roundtripped.license == original.license);
+        REQUIRE(roundtripped.license_family == original.license_family);
+        REQUIRE(roundtripped.subdir == original.subdir);
+        REQUIRE(roundtripped.timestamp == original.timestamp);
     }
 
     SECTION("RepoDataPackage -> ShardPackageRecord -> RepoDataPackage")
@@ -127,6 +156,11 @@ TEST_CASE("ShardPackageRecord round-trip conversion", "[mamba::core][mamba::core
         original.depends = { "libstdcxx-ng >=7.5.0", "openssl >=1.1.1" };
         original.constrains = { "some-constraint >=1.0" };
         original.noarch = specs::NoArchType::Generic;
+        original.license = "GPL-3.0";
+        original.license_family = "GPL";
+        original.subdir = "osx-64";
+        original.timestamp = 1704067200;
+        original.size = 45678;
 
         // Convert to ShardPackageRecord and back
         ShardPackageRecord shard_rec = from_repo_data_package(original);
@@ -142,6 +176,11 @@ TEST_CASE("ShardPackageRecord round-trip conversion", "[mamba::core][mamba::core
         REQUIRE(roundtripped.depends == original.depends);
         REQUIRE(roundtripped.constrains == original.constrains);
         REQUIRE(roundtripped.noarch == original.noarch);
+        REQUIRE(roundtripped.license == original.license);
+        REQUIRE(roundtripped.license_family == original.license_family);
+        REQUIRE(roundtripped.subdir == original.subdir);
+        REQUIRE(roundtripped.timestamp == original.timestamp);
+        REQUIRE(roundtripped.size == original.size);
     }
 
     SECTION("Round-trip with no noarch")
@@ -171,6 +210,23 @@ TEST_CASE("ShardPackageRecord round-trip conversion", "[mamba::core][mamba::core
 
         REQUIRE(roundtripped.noarch == "generic");
     }
+
+    SECTION("Round-trip without optional metadata fields")
+    {
+        ShardPackageRecord original;
+        original.name = "minimal-metadata-pkg";
+        original.version = "1.0.0";
+        original.build = "0";
+        // license, license_family, subdir, timestamp are not set
+
+        specs::RepoDataPackage repo_pkg = to_repo_data_package(original);
+        ShardPackageRecord roundtripped = from_repo_data_package(repo_pkg);
+
+        REQUIRE_FALSE(roundtripped.license.has_value());
+        REQUIRE_FALSE(roundtripped.license_family.has_value());
+        REQUIRE_FALSE(roundtripped.subdir.has_value());
+        REQUIRE_FALSE(roundtripped.timestamp.has_value());
+    }
 }
 
 TEST_CASE("to_package_info conversion", "[mamba::core][mamba::core::shard_types]")
@@ -188,6 +244,10 @@ TEST_CASE("to_package_info conversion", "[mamba::core][mamba::core::shard_types]
         record.constrains = { "scipy <2.0" };
         record.noarch = "python";
         record.size = 98765;
+        record.license = "MIT";
+        record.license_family = "MIT";
+        record.subdir = "noarch";
+        record.timestamp = 1640995200;
 
         std::string filename = "test-package-1.2.3-py310_0.tar.bz2";
         std::string channel_id = "conda-forge";
@@ -206,6 +266,8 @@ TEST_CASE("to_package_info conversion", "[mamba::core][mamba::core::shard_types]
         REQUIRE(pkg_info.constrains == record.constrains);
         REQUIRE(pkg_info.noarch == specs::NoArchType::Python);
         REQUIRE(pkg_info.size == 98765);
+        REQUIRE(pkg_info.license == "MIT");
+        REQUIRE(pkg_info.timestamp == 1640995200);
         REQUIRE(pkg_info.filename == filename);
         REQUIRE(pkg_info.channel == channel_id);
         REQUIRE(pkg_info.platform == platform);
@@ -271,6 +333,49 @@ TEST_CASE("to_package_info conversion", "[mamba::core][mamba::core::shard_types]
 
         REQUIRE(pkg_info.sha256.empty());
         REQUIRE(pkg_info.md5.empty());
+    }
+
+    SECTION("Conversion with optional metadata fields")
+    {
+        ShardPackageRecord record;
+        record.name = "metadata-pkg";
+        record.version = "1.0.0";
+        record.build = "0";
+        record.license = "BSD-3-Clause";
+        record.license_family = "BSD";
+        record.subdir = "linux-64";
+        record.timestamp = 1234567890;
+
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "metadata-pkg-1.0.0-0.tar.bz2",
+            "channel",
+            "linux-64",
+            "https://example.com/channel/linux-64"
+        );
+
+        REQUIRE(pkg_info.license == "BSD-3-Clause");
+        REQUIRE(pkg_info.timestamp == 1234567890);
+    }
+
+    SECTION("Conversion without optional metadata fields")
+    {
+        ShardPackageRecord record;
+        record.name = "minimal-pkg";
+        record.version = "1.0.0";
+        record.build = "0";
+        // license, license_family, subdir, timestamp are not set
+
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "minimal-pkg-1.0.0-0.tar.bz2",
+            "channel",
+            "linux-64",
+            "https://example.com/channel/linux-64"
+        );
+
+        REQUIRE(pkg_info.license.empty());
+        REQUIRE(pkg_info.timestamp == 0);
     }
 
     SECTION("URL construction with trailing slash in base_url")

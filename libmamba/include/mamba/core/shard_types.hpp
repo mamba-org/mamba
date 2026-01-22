@@ -30,7 +30,7 @@ namespace mamba
      * - Contains only fields needed for dependency traversal, reducing memory usage
      *   when processing many shards.
      * - Conversion to RepoDataPackage happens lazily when building repodata for
-     *   the solver, deferring parsing costs until needed.
+     *   the solver, deferring parsing costs until actually needed.
      *
      * **Comparison with specs::PackageInfo:**
      * - PackageInfo is the runtime representation used for installed packages,
@@ -59,10 +59,14 @@ namespace mamba
      * 4. **Flexible msgpack handling**: Custom parsing handles various msgpack types
      *    for sha256/md5 (strings, bytes, EXT types), easier with a dedicated structure.
      *
+     * This structure supports all fields defined in the shard format specification.
+     * See https://conda.org/learn/ceps/cep-0016 for the complete shard format specification.
+     *
      * @see specs::RepoDataPackage The canonical package record type used for repodata.json
      * @see specs::PackageInfo The runtime package representation used throughout the codebase
      * @see to_repo_data_package() Conversion function to RepoDataPackage
      * @see from_repo_data_package() Conversion function from RepoDataPackage
+     * @see https://conda.org/learn/ceps/cep-0016 CEP 16 - Sharded Repodata specification
      */
     struct ShardPackageRecord
     {
@@ -76,6 +80,10 @@ namespace mamba
         std::vector<std::string> constrains;
         std::optional<std::string> noarch;
         std::size_t size = 0;
+        std::optional<std::string> license;
+        std::optional<std::string> license_family;
+        std::optional<std::string> subdir;
+        std::optional<std::size_t> timestamp;
     };
 
     /**

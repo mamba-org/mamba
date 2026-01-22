@@ -94,7 +94,7 @@ TEST_CASE("RepodataDict to RepoData conversion", "[mamba::core][mamba::core::sha
     ShardPackageRecord record;
     record.name = "test-pkg";
     record.version = "1.0.0";
-    repodata_dict.packages["test-pkg-1.0.0.tar.bz2"] = record;
+    repodata_dict.shard_dict.packages["test-pkg-1.0.0.tar.bz2"] = record;
 
     specs::RepoData repo_data = to_repo_data(repodata_dict);
 

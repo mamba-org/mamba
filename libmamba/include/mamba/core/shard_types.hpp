@@ -153,11 +153,8 @@ namespace mamba
         /** Repodata version. */
         std::size_t repodata_version = 2;
 
-        /** Packages in .tar.bz2 format, keyed by filename. */
-        std::map<std::string, ShardPackageRecord> packages;
-
-        /** Packages in .conda format, keyed by filename. */
-        std::map<std::string, ShardPackageRecord> conda_packages;
+        /** Shard dictionary containing packages in both .tar.bz2 and .conda formats. */
+        ShardDict shard_dict;
     };
 
     /**

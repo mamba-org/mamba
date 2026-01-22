@@ -111,14 +111,14 @@ namespace mamba
 
         // Convert packages
         std::map<std::string, specs::RepoDataPackage> packages;
-        for (const auto& [filename, record] : repodata.packages)
+        for (const auto& [filename, record] : repodata.shard_dict.packages)
         {
             packages[filename] = to_repo_data_package(record);
         }
 
         // Convert conda packages
         std::map<std::string, specs::RepoDataPackage> conda_packages;
-        for (const auto& [filename, record] : repodata.conda_packages)
+        for (const auto& [filename, record] : repodata.shard_dict.conda_packages)
         {
             conda_packages[filename] = to_repo_data_package(record);
         }

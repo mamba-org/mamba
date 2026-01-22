@@ -1,2 +1,5 @@
 github_checks:
   annotations: false
+
+ignore:
+  - "libmamba/tests"

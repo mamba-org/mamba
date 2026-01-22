@@ -106,7 +106,7 @@ namespace mamba
      *
      * Contains channel metadata including base URLs and subdir information.
      */
-    struct RepodataInfoDict
+    struct RepoMetadata
     {
         /** Base URL where packages are stored. */
         std::string base_url;
@@ -127,7 +127,7 @@ namespace mamba
     struct ShardsIndexDict
     {
         /** Channel information. */
-        RepodataInfoDict info;
+        RepoMetadata info;
 
         /** Version of the shards index format. */
         std::size_t version = 1;
@@ -148,7 +148,7 @@ namespace mamba
     struct RepodataDict
     {
         /** Channel information. */
-        RepodataInfoDict info;
+        RepoMetadata info;
 
         /** Repodata version. */
         std::size_t repodata_version = 2;

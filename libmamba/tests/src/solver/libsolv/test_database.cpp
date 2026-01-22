@@ -92,8 +92,13 @@ namespace
 
                 SECTION("Read serialized repo")
                 {
-                    auto repo2 = db.add_repo_from_native_serialization(solv_file, origin, "conda-forge")
-                                     .value();
+                    auto maybe_repo2 = db.add_repo_from_native_serialization(
+                        solv_file,
+                        origin,
+                        "conda-forge"
+                    );
+                    REQUIRE(maybe_repo2.has_value());
+                    auto repo2 = maybe_repo2.value();
                     REQUIRE(repo2.name() == origin.url);
                     REQUIRE(repo2.package_count() == repo1.package_count());
                     REQUIRE(repo2 != repo1);

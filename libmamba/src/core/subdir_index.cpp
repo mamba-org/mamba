@@ -145,6 +145,7 @@ namespace mamba
         );
         j["mtime_ns"] = nsecs.count();
         j["has_zst"] = data.m_has_zst;
+        j["has_shards"] = data.m_has_shards;
     }
 
     void from_json(const nlohmann::json& j, SubdirMetadata& data)
@@ -162,6 +163,7 @@ namespace mamba
             )
         );
         util::deserialize_maybe_missing(j, "has_zst", data.m_has_zst);
+        util::deserialize_maybe_missing(j, "has_shards", data.m_has_shards);
     }
 
     auto SubdirMetadata::read(const fs::u8path& file) -> expected_subdir_metadata
@@ -230,6 +232,21 @@ namespace mamba
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
+    auto SubdirMetadata::has_up_to_date_shards(std::size_t ttl_seconds) const -> bool
+    {
+        if (!m_has_shards.has_value() || !m_has_shards.value().value)
+        {
+            return false;
+        }
+        // If TTL is provided, use it; otherwise use default expiration check
+        if (ttl_seconds > 0)
+        {
+            return std::difftime(std::time(nullptr), m_has_shards.value().last_checked)
+                   <= static_cast<double>(ttl_seconds);
+        }
+        return !m_has_shards.value().has_expired();
+    }
+
     void SubdirMetadata::set_http_metadata(HttpMetadata data)
     {
         m_http = std::move(data);
@@ -249,6 +266,12 @@ namespace mamba
     void SubdirMetadata::set_zst(bool value)
     {
         m_has_zst = { value, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
+    }
+
+    void SubdirMetadata::set_shards(bool value)
+    {
+        m_has_shards = { value,
+                         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
     }
 
     auto
@@ -772,6 +795,67 @@ namespace mamba
                 m_metadata.set_zst(false);
             };
         }
+
+        // Check for sharded repodata availability
+        if ((!params.offline || caching_is_forbidden()) && !m_metadata.has_up_to_date_shards())
+        {
+            // Construct shard index path by replacing repodata.json with
+            // repodata_shards.msgpack.zst Use repodata_url_path() to get just the path component
+            // (mirror system will prepend base URL)
+            std::string shard_index_path = repodata_url_path();
+            // Replace the filename (repodata.json) with repodata_shards.msgpack.zst
+            if (util::ends_with(shard_index_path, "/" + m_repodata_filename))
+            {
+                shard_index_path = shard_index_path.substr(
+                                       0,
+                                       shard_index_path.size() - m_repodata_filename.size()
+                                   )
+                                   + "repodata_shards.msgpack.zst";
+            }
+            else if (util::ends_with(shard_index_path, m_repodata_filename))
+            {
+                shard_index_path = shard_index_path.substr(
+                                       0,
+                                       shard_index_path.size() - m_repodata_filename.size()
+                                   )
+                                   + "repodata_shards.msgpack.zst";
+            }
+            else
+            {
+                // Fallback: append if filename doesn't match
+                shard_index_path = util::url_concat(shard_index_path, "/repodata_shards.msgpack.zst");
+            }
+            request.push_back(
+                download::Request(
+                    name() + " (check shards)",
+                    download::MirrorName(channel_id()),
+                    shard_index_path,
+                    "",
+                    /* lhead_only = */ true,
+                    /* lignore_failure = */ true
+                )
+            );
+
+            request.back().on_success = [this](const download::Success& success)
+            {
+                int http_status = success.transfer.http_status;
+                LOG_DEBUG << "Shard index check: " << success.transfer.effective_url << " ["
+                          << http_status << "]";
+                m_metadata.set_shards(http_status == 200);
+                return expected_t<void>();
+            };
+
+            request.back().on_failure = [this](const download::Error& error)
+            {
+                if (error.transfer.has_value())
+                {
+                    LOG_DEBUG << "Shard index check failed: " << error.transfer.value().effective_url
+                              << " [" << error.transfer.value().http_status << "]";
+                }
+                m_metadata.set_shards(false);
+            };
+        }
+
         return request;
     }
 

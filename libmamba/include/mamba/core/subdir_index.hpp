@@ -72,8 +72,12 @@ namespace mamba
         /** Check if zst is available and freshly checked. */
         [[nodiscard]] auto has_up_to_date_zst() const -> bool;
 
+        /** Check if shards are available and freshly checked. */
+        [[nodiscard]] auto has_up_to_date_shards(std::size_t ttl_seconds = 0) const -> bool;
+
         void set_http_metadata(HttpMetadata data);
         void set_zst(bool value);
+        void set_shards(bool value);
         void store_file_metadata(const fs::u8path& file);
 
         /** Write the metadata to a lightweight file. */
@@ -100,6 +104,7 @@ namespace mamba
 
         HttpMetadata m_http;
         std::optional<CheckedAt> m_has_zst;
+        std::optional<CheckedAt> m_has_shards;
         time_type m_stored_mtime;
         std::size_t m_stored_file_size;
 
@@ -180,6 +185,16 @@ namespace mamba
 
         void clear_valid_cache_files();
 
+        template <typename First, typename End>
+        static auto
+        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
+            -> download::MultiRequest;
+
+        template <typename First, typename End>
+        static auto
+        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
+            -> download::MultiRequest;
+
     private:
 
         // This paths are pointing to what is found when iterating over the cache directories.
@@ -231,16 +246,7 @@ namespace mamba
             -> expected_t<void>;
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
-        template <typename First, typename End>
-        static auto
-        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
-            -> download::MultiRequest;
         auto build_check_requests(const SubdirDownloadParams& params) -> download::MultiRequest;
-
-        template <typename First, typename End>
-        static auto
-        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
-            -> download::MultiRequest;
         auto build_index_request(const SubdirDownloadParams& params)
             -> std::optional<download::Request>;
 

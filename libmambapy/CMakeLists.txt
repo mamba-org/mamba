@@ -9,9 +9,21 @@ include("../cmake/CompilerWarnings.cmake")
 
 project(libmambapy)
 
+# Link to aggregated libmamba target (includes all components) For solver-only usage (e.g.,
+# conda-libmamba-solver), could link to: mamba::libmamba-common-dyn (or -static) and
+# mamba::libmamba-solver-dyn (or -static) instead of the full libmamba target
 if(NOT TARGET mamba::libmamba)
     find_package(libmamba CONFIG REQUIRED)
-    set(libmamba_target mamba::libmamba-dyn)
+    # Try to find component targets first, fall back to aggregated
+    if(TARGET mamba::libmamba-common-dyn AND TARGET mamba::libmamba-solver-dyn)
+        # For now, still use aggregated target for full functionality TODO: Create solver-only
+        # bindings target for conda-libmamba-solver
+        set(libmamba_target mamba::libmamba-dyn)
+    elseif(TARGET mamba::libmamba-dyn)
+        set(libmamba_target mamba::libmamba-dyn)
+    else()
+        set(libmamba_target mamba::libmamba)
+    endif()
 else()
     set(libmamba_target mamba::libmamba)
 endif()

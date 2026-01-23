@@ -459,18 +459,18 @@ namespace mamba
                 {
                     label = label.substr(0, 82) + "...";
                 }
-                std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "✔ Done") << std::endl;
+                Console::instance().print(fmt::format("{:<85} {:>20}", label, "✔ Done"));
                 return std::optional<ShardsIndexDict>(std::move(cached_index.value()));
             }
         }
 
-        // Print message when fetching shard index (update on same line)
+        // Print message when fetching shard index
         std::string label = "Fetch Shards' Index for " + subdir.name();
         if (label.length() > 85)
         {
             label = label.substr(0, 82) + "...";
         }
-        std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "⧖ Starting") << std::flush;
+        Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
 
         // Build download request
         auto request_opt = build_shard_index_request(
@@ -522,14 +522,14 @@ namespace mamba
                 );
             }
 
-            // Parse the downloaded file (update on same line)
+            // Parse the downloaded file
             // Reuse label variable from outer scope
             label = "Fetch Shards' Index for " + subdir.name();
             if (label.length() > 85)
             {
                 label = label.substr(0, 82) + "...";
             }
-            std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "⧖ Starting") << std::flush;
+            Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
             auto index_result = parse_shard_index(downloaded_path);
             if (!index_result.has_value())
             {
@@ -543,12 +543,12 @@ namespace mamba
                 fs::copy_file(downloaded_path, cache_path, fs::copy_options::overwrite_existing);
             }
 
-            // Print final status and newline when done (reuse label variable)
+            // Print final status when done (reuse label variable)
             if (label.length() > 85)
             {
                 label = label.substr(0, 82) + "...";
             }
-            std::cout << "\r" << fmt::format("{:<85} {:>20}", label, "✔ Done") << std::endl;
+            Console::instance().print(fmt::format("{:<85} {:>20}", label, "✔ Done"));
             return std::optional<ShardsIndexDict>(std::move(index_result.value()));
         }
         catch (const std::exception& e)

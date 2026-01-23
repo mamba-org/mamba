@@ -540,25 +540,28 @@ namespace mamba
         const ShardDict& shard
     )
     {
-        LOG_DEBUG << "Processing fetched shard for package '" << package
-                  << "': " << shard.packages.size() << " .tar.bz2 packages, "
-                  << shard.conda_packages.size() << " .conda packages";
+        // Log dependencies found in the shard (only if DEBUG or TRACE level is enabled)
+        if (logging::get_log_level() <= log_level::debug)
+        {
+            LOG_DEBUG << "Processing fetched shard for package '" << package
+                      << "': " << shard.packages.size() << " .tar.bz2 packages, "
+                      << shard.conda_packages.size() << " .conda packages";
 
-        // Log dependencies found in the shard
-        for (const auto& [filename, record] : shard.packages)
-        {
-            if (!record.depends.empty())
+            for (const auto& [filename, record] : shard.packages)
             {
-                LOG_DEBUG << "Package '" << record.name << "' from shard '" << package
-                          << "' has dependencies: [" << util::join(", ", record.depends) << "]";
+                if (!record.depends.empty())
+                {
+                    LOG_DEBUG << "Package '" << record.name << "' from shard '" << package
+                              << "' has dependencies: [" << util::join(", ", record.depends) << "]";
+                }
             }
-        }
-        for (const auto& [filename, record] : shard.conda_packages)
-        {
-            if (!record.depends.empty())
+            for (const auto& [filename, record] : shard.conda_packages)
             {
-                LOG_DEBUG << "Conda package '" << record.name << "' from shard '" << package
-                          << "' has dependencies: [" << util::join(", ", record.depends) << "]";
+                if (!record.depends.empty())
+                {
+                    LOG_DEBUG << "Conda package '" << record.name << "' from shard '" << package
+                              << "' has dependencies: [" << util::join(", ", record.depends) << "]";
+                }
             }
         }
 

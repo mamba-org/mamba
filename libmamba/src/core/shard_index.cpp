@@ -19,6 +19,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -364,27 +365,24 @@ namespace mamba
                                     else if (shard_val_obj.type == MSGPACK_OBJECT_STR)
                                     {
                                         // Sometimes hash is stored as hex string
-                                        std::string hex_str(
+                                        std::string_view hex_str(
                                             shard_val_obj.via.str.ptr,
                                             shard_val_obj.via.str.size
                                         );
-                                        // Convert hex string to bytes (simplified - would need
-                                        // proper hex parsing)
-                                        std::vector<std::uint8_t> hash_bytes;
-                                        hash_bytes.reserve(hex_str.size() / 2);
-                                        for (size_t k = 0; k < hex_str.size(); k += 2)
+                                        // Convert hex string to bytes using utility function
+                                        std::vector<std::uint8_t> hash_bytes(hex_str.size() / 2);
+                                        util::EncodingError error = util::EncodingError::Ok;
+                                        util::hex_to_bytes_to(
+                                            hex_str,
+                                            reinterpret_cast<std::byte*>(hash_bytes.data()),
+                                            error
+                                        );
+                                        if (error == util::EncodingError::Ok)
                                         {
-                                            if (k + 1 < hex_str.size())
-                                            {
-                                                std::string byte_str = hex_str.substr(k, 2);
-                                                hash_bytes.push_back(
-                                                    static_cast<std::uint8_t>(
-                                                        std::stoul(byte_str, nullptr, 16)
-                                                    )
-                                                );
-                                            }
+                                            index.shards[package_name] = std::move(hash_bytes);
                                         }
-                                        index.shards[package_name] = hash_bytes;
+                                        // If error, hash_bytes will be empty and won't be added to
+                                        // index
                                     }
                                 }
                             }

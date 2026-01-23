@@ -22,6 +22,7 @@ set(
     LIBMAMBA_TEST_SRCS
     include/mambatests.hpp
     include/mambatests_utils.hpp
+    include/test_shard_utils.hpp
     src/test_main.cpp
     # Catch utils
     src/catch-utils/conda_url.hpp
@@ -102,6 +103,8 @@ set(
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
+    src/core/test_shard_types.cpp
+    src/core/test_shard_utils.cpp
     src/core/test_subdir_index.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp
@@ -126,11 +129,32 @@ target_include_directories(
 find_package(Catch2 REQUIRED)
 find_package(Threads REQUIRED)
 
+# Find zstd for test utilities that use it directly (test_shard_utils.cpp uses ZSTD functions) Try
+# CONFIG mode first (preferred), then fall back to module mode
+find_package(zstd CONFIG QUIET)
+if(NOT zstd_FOUND)
+    find_package(zstd REQUIRED)
+endif()
+
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
     PRIVATE Catch2::Catch2WithMain Threads::Threads
 )
+
+# Link zstd if test code uses it directly (e.g., test_shard_utils.cpp) The test code includes
+# <zstd.h> and calls ZSTD functions directly, so it needs to link against zstd
+if(TARGET zstd::libzstd_static)
+    target_link_libraries(test_libmamba PRIVATE zstd::libzstd_static)
+elseif(TARGET zstd::libzstd_shared)
+    target_link_libraries(test_libmamba PRIVATE zstd::libzstd_shared)
+elseif(zstd_FOUND)
+    # Fallback: try to link against zstd library directly
+    target_link_libraries(test_libmamba PRIVATE ${zstd_LIBRARIES})
+    if(zstd_INCLUDE_DIRS)
+        target_include_directories(test_libmamba PRIVATE ${zstd_INCLUDE_DIRS})
+    endif()
+endif()
 set_target_properties(
     test_libmamba PROPERTIES COMPILE_DEFINITIONS CATCH_CONFIG_ENABLE_ALL_STRINGMAKERS
 )

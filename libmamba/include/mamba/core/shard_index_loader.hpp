@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_SHARD_INDEX_HPP
-#define MAMBA_CORE_SHARD_INDEX_HPP
+#ifndef MAMBA_CORE_SHARD_INDEX_LOADER_HPP
+#define MAMBA_CORE_SHARD_INDEX_LOADER_HPP
 
 #include <optional>
 

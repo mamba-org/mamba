@@ -11,9 +11,9 @@
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/shard_index.hpp"
-#include "mamba/core/shard_loader.hpp"
+#include "mamba/core/shard_index_loader.hpp"
 #include "mamba/core/shard_types.hpp"
+#include "mamba/core/shards.hpp"
 #include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/mirror.hpp"

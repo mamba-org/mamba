@@ -12,8 +12,8 @@
 #include <msgpack/zone.h>
 
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/shard_loader.hpp"
 #include "mamba/core/shard_types.hpp"
+#include "mamba/core/shards.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/mirror.hpp"
 #include "mamba/download/parameters.hpp"

@@ -14,7 +14,7 @@
 
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/shard_index.hpp"
+#include "mamba/core/shard_index_loader.hpp"
 #include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"

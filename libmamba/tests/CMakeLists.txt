@@ -103,8 +103,8 @@ set(
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_shell_init.cpp
-    src/core/test_shard_index.cpp
-    src/core/test_shard_loader.cpp
+    src/core/test_shard_index_loader.cpp
+    src/core/test_shards.cpp
     src/core/test_shard_types.cpp
     src/core/test_shard_utils.cpp
     src/core/test_subdir_index.cpp

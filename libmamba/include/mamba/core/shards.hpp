@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_CORE_SHARD_LOADER_HPP
-#define MAMBA_CORE_SHARD_LOADER_HPP
+#ifndef MAMBA_CORE_SHARDS_HPP
+#define MAMBA_CORE_SHARDS_HPP
 
 #include <map>
 #include <optional>

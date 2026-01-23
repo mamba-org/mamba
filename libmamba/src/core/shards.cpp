@@ -18,8 +18,8 @@
 
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/shard_loader.hpp"
 #include "mamba/core/shard_types.hpp"
+#include "mamba/core/shards.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"

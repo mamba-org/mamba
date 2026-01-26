@@ -566,6 +566,14 @@ install(
           ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
 )
+# Install FindLibsolv.cmake so that libmambaConfig.cmake can find it when used by consumers (e.g.,
+# libmambapy). The CMAKE_MODULE_PATH is set in libmambaConfig.cmake.in to include
+# CMAKE_CURRENT_LIST_DIR, so FindLibsolv.cmake must be installed in the same directory. Use
+# CMAKE_SOURCE_DIR to reference the root project directory where cmake/modules is located
+install(
+    FILES ${CMAKE_SOURCE_DIR}/cmake/modules/FindLibsolv.cmake
+    DESTINATION ${LIBMAMBA_CMAKECONFIG_INSTALL_DIR}
+)
 
 install(
     EXPORT ${PROJECT_NAME}Targets

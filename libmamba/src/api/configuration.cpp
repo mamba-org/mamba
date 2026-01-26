@@ -393,11 +393,6 @@ namespace mamba
                 value = "<false>";
                 return;
             }
-            if (value == "truststore")
-            {
-                value = "<truststore>";
-                return;
-            }
 
             auto& cacert = config.at("cacert_path").value<std::string>();
             if (!cacert.empty())
@@ -407,7 +402,11 @@ namespace mamba
             }
             else
             {
-                if (value.empty() || (value == "true") || (value == "1") || (value == "<true>"))
+                if (value == "truststore")
+                {
+                    value = "<truststore>";
+                }
+                else if (value.empty() || (value == "true") || (value == "1") || (value == "<true>"))
                 {
                     value = "<system>";
                 }

@@ -279,6 +279,14 @@ macro(libmamba_common_create_target target_name linkage output_name)
             # resolved by the aggregated target linking all components together. Note: We can't use
             # target_link_libraries here because it would create a circular dependency. Instead,
             # we'll add these as linker options after the components are built.
+        elseif(WIN32)
+            # On Windows, use /FORCE:UNRESOLVED to allow unresolved symbols. The symbols will be
+            # resolved at runtime when the DLLs are loaded. The aggregated libmamba target will
+            # ensure all DLLs are available together. Note: We can't use delay loading (/DELAYLOAD)
+            # because the DLLs don't exist yet at link time. /FORCE:UNRESOLVED allows the DLL to be
+            # created with unresolved symbols, which will be resolved when the DLLs are loaded
+            # together.
+            target_link_options(${target_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/FORCE:UNRESOLVED>)
         endif()
     endif()
 

@@ -270,25 +270,42 @@ if(BUILD_SHARED)
 endif()
 
 # Add DT_NEEDED entries to libmamba-common-dyn after all components are built This ensures the
-# dynamic linker loads solver and network libraries when common is loaded We use target_link_options
-# with generator expressions to add the libraries to the link line without creating CMake dependency
-# edges that would trigger cycle detection
+# dynamic linker loads solver and network libraries when common is loaded We use a post-build step
+# with patchelf (on Linux) to add DT_NEEDED entries after all libraries are built, avoiding the need
+# for the libraries to exist at link time and avoiding circular dependency issues
 if(BUILD_SHARED)
     if(
         TARGET libmamba-common-dyn
         AND TARGET libmamba-solver-dyn
         AND TARGET libmamba-network-dyn
+        AND UNIX
+        AND NOT APPLE
     )
-        # Use --no-as-needed to ensure libraries are added to DT_NEEDED even if symbols aren't
-        # directly referenced at link time (since we're using --allow-shlib-undefined)
-        target_link_options(
-            libmamba-common-dyn
-            PRIVATE
-            -Wl,--no-as-needed
-            $<TARGET_FILE:mamba::libmamba-solver-dyn>
-            $<TARGET_FILE:mamba::libmamba-network-dyn>
-            -Wl,--as-needed
-        )
+        # Find patchelf utility
+        find_program(PATCHELF_EXECUTABLE patchelf)
+        if(PATCHELF_EXECUTABLE)
+            # Add post-build step to add DT_NEEDED entries using patchelf This adds the solver and
+            # network libraries to common's DT_NEEDED list Note: This runs after common is built,
+            # but solver/network might not be built yet. We'll create a separate custom target that
+            # runs after all libraries are built.
+            add_custom_target(
+                libmamba-common-dyn-add-dt-needed
+                COMMAND
+                    ${PATCHELF_EXECUTABLE} --add-needed
+                    $<TARGET_SONAME_FILE_NAME:mamba::libmamba-solver-dyn>
+                    $<TARGET_FILE:mamba::libmamba-common-dyn>
+                COMMAND
+                    ${PATCHELF_EXECUTABLE} --add-needed
+                    $<TARGET_SONAME_FILE_NAME:mamba::libmamba-network-dyn>
+                    $<TARGET_FILE:mamba::libmamba-common-dyn>
+                DEPENDS libmamba-common-dyn libmamba-solver-dyn libmamba-network-dyn
+                COMMENT "Adding DT_NEEDED entries to libmamba-common.so"
+            )
+            # Make the aggregated target depend on this custom target to ensure it runs
+            if(TARGET libmamba-dyn)
+                add_dependencies(libmamba-dyn libmamba-common-dyn-add-dt-needed)
+            endif()
+        endif()
     endif()
 endif()
 

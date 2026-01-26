@@ -68,6 +68,11 @@ macro(libmamba_archive_create_target target_name linkage output_name)
             target_link_options(${target_name} PRIVATE -Wl,-undefined,dynamic_lookup)
         elseif(UNIX)
             target_link_options(${target_name} PRIVATE -Wl,--allow-shlib-undefined)
+        elseif(WIN32)
+            # On Windows, use /FORCE:UNRESOLVED to allow unresolved symbols. The symbols will be
+            # resolved at runtime when the DLLs are loaded. The aggregated libmamba target will
+            # ensure all DLLs are available together.
+            target_link_options(${target_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/FORCE:UNRESOLVED>)
         endif()
     endif()
 

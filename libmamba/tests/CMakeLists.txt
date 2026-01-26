@@ -229,6 +229,20 @@ mamba_target_add_compile_warnings(test_libmamba_logging WARNING_AS_ERROR ${MAMBA
 
 # ##################################################################################################
 
+# Ensure DT_NEEDED entries are added to libmamba-common.so before tests run This is needed on Linux
+# where libmamba-common.so needs to load libmamba-solver.so and libmamba-network.so at runtime
+if(
+    BUILD_SHARED
+    AND UNIX
+    AND NOT APPLE
+)
+    if(TARGET libmamba-common-dyn-add-dt-needed)
+        add_dependencies(testing_libmamba_lock libmamba-common-dyn-add-dt-needed)
+        add_dependencies(test_libmamba libmamba-common-dyn-add-dt-needed)
+        add_dependencies(test_libmamba_logging libmamba-common-dyn-add-dt-needed)
+    endif()
+endif()
+
 add_custom_target(
     test
     COMMAND test_libmamba_logging

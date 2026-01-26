@@ -174,3 +174,48 @@ See `#2592 <https://github.com/mamba-org/mamba/issues/2592>`_, `#1446 <https://g
 ---------------------------------------------------------
 ``mamba install`` and other ``mamba`` commands yield said errors. This might be due to being flagged by an antivirus.
 A solution is to whitelist the appropriate folders and files; see `#3979 <https://github.com/mamba-org/mamba/issues/3979>`_ for more details.
+
+
+SSL Certificate Verification Issues
+------------------------------------
+
+SSL/TLS certificate verification errors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you encounter SSL certificate verification errors, especially in corporate environments with MITM HTTPS proxies, you have several options:
+
+**Use the OS trust store (Recommended for corporate environments)**
+
+Set ``ssl_verify`` to ``truststore`` to use your operating system's certificate trust store. This is particularly useful when your organization has installed custom CA certificates in the system trust store::
+
+  micromamba config set ssl_verify truststore
+
+Or in your :file:`~/.condarc` or :file:`~/.mambarc` file:
+
+.. code-block:: yaml
+
+  ssl_verify: truststore
+
+On Windows, this uses the Windows certificate store via Schannel. On macOS and Linux, this uses the system certificate paths.
+
+**Use a custom certificate file**
+
+If you have a specific CA certificate bundle, you can point to it directly::
+
+  micromamba config set ssl_verify /path/to/cacert.pem
+
+Or set the ``REQUESTS_CA_BUNDLE`` environment variable::
+
+  export REQUESTS_CA_BUNDLE=/path/to/cacert.pem
+
+**Disable SSL verification (Not recommended)**
+
+.. warning::
+
+   Disabling SSL verification is **not recommended** as it exposes you to security risks including man-in-the-middle attacks.
+
+Only use this for testing or if you understand the security implications::
+
+  micromamba config set ssl_verify false
+
+See `#2857 <https://github.com/mamba-org/mamba/issues/2857>`_ for more details on corporate proxy environments.

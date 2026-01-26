@@ -393,6 +393,11 @@ namespace mamba
                 value = "<false>";
                 return;
             }
+            if (value == "truststore")
+            {
+                value = "<truststore>";
+                return;
+            }
 
             auto& cacert = config.at("cacert_path").value<std::string>();
             if (!cacert.empty())
@@ -1561,6 +1566,7 @@ namespace mamba
                    .description("Verify SSL certificates for HTTPS requests")
                    .long_description(unindent(R"(
                         'ssl_verify' can be either an empty string (regular SSL verification),
+                        the string "truststore" to use the operating system trust store,
                         the string "<false>" to indicate no SSL verification, or a path to
                         a directory with cert files, or a cert file..)"))
                    .needs({ "cacert_path", "offline" })

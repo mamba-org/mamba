@@ -83,7 +83,8 @@ namespace mamba::download
                 }
                 // TODO: Adapt the semantic of `<system>` to decouple the use of CA certificates
                 // from `conda-forge::ca-certificates` and the system CA certificates.
-                else if (remote_fetch_params.ssl_verify == "<system>" || remote_fetch_params.ssl_verify == "<truststore>")
+                else if (remote_fetch_params.ssl_verify == "<system>"
+                         || remote_fetch_params.ssl_verify == "<truststore>")
                 {
                     // See the location of the CA certificates as distributed by
                     // `conda-forge::ca-certificates`:

@@ -154,21 +154,19 @@ namespace mamba
                     continue;
                 }
 
+                // Skip nil values for optional fields
+                if (val_obj.type == MSGPACK_OBJECT_NIL)
+                {
+                    // Only skip for optional fields, required fields should not be nil
+                    if (key != "sha256" && key != "md5" && key != "constrains" && key != "noarch")
+                    {
+                        LOG_DEBUG << "Field '" << key << "' is nil in ShardPackageRecord, skipping";
+                    }
+                    continue;
+                }
+
                 try
                 {
-                    // Skip nil values for optional fields
-                    if (val_obj.type == MSGPACK_OBJECT_NIL)
-                    {
-                        // Only skip for optional fields, required fields should not be nil
-                        if (key == "sha256" || key == "md5" || key == "constrains" || key == "noarch")
-                        {
-                            continue;
-                        }
-                        // For required fields, log and continue
-                        LOG_DEBUG << "Field '" << key << "' is nil in ShardPackageRecord, skipping";
-                        continue;
-                    }
-
                     if (key == "name")
                     {
                         record.name = msgpack_object_to_string(val_obj);

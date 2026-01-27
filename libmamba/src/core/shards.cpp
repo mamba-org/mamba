@@ -600,38 +600,45 @@ namespace mamba
 
             if (is_full_url)
             {
-                std::size_t scheme_end = shard_path_str.find("://");
-                if (scheme_end != std::string::npos)
+                // Parse URL to extract base URL and relative path
+                auto url_parsed = util::URL::parse(shard_path_str);
+                if (url_parsed.has_value())
                 {
-                    std::size_t path_start = shard_path_str.find('/', scheme_end + 3);
-                    if (path_start != std::string::npos)
+                    const auto& parsed_url = url_parsed.value();
+                    // Construct base URL: scheme://host/
+                    std::string base_url = util::url_concat(
+                        parsed_url.scheme(),
+                        "://",
+                        parsed_url.host(),
+                        "/"
+                    );
+                    // Get relative path (remove leading '/')
+                    std::string path = parsed_url.path();
+                    if (path.size() > 1)
                     {
-                        std::string base_url = shard_path_str.substr(0, path_start + 1);
-                        std::string relative_path = shard_path_str.substr(path_start + 1);
-
-                        mirror_name = base_url;
-
-                        if (!extended_mirrors.has_mirrors(mirror_name))
-                        {
-                            auto mirror = download::make_mirror(base_url);
-                            if (mirror)
-                            {
-                                extended_mirrors.add_unique_mirror(mirror_name, std::move(mirror));
-                            }
-                        }
-
-                        url_path = relative_path;
+                        url_path = path.substr(1);  // Remove leading '/'
                     }
                     else
                     {
-                        mirror_name = "";
-                        url_path = shard_path_str;
+                        url_path = "";
+                    }
+
+                    mirror_name = base_url;
+
+                    if (!extended_mirrors.has_mirrors(mirror_name))
+                    {
+                        auto mirror = download::make_mirror(base_url);
+                        if (mirror)
+                        {
+                            extended_mirrors.add_unique_mirror(mirror_name, std::move(mirror));
+                        }
                     }
                 }
                 else
                 {
-                    LOG_WARNING << "Invalid shard URL: " << shard_path_str;
-                    continue;
+                    // Parsing failed, use PassThroughMirror with full URL
+                    mirror_name = "";
+                    url_path = shard_path_str;
                 }
             }
             else

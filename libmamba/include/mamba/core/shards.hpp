@@ -23,6 +23,9 @@
 
 namespace mamba
 {
+    // Forward declaration
+    class TemporaryFile;
+
     /**
      * Handle repodata_shards.msgpack.zst and individual per-package shards.
      *
@@ -133,6 +136,61 @@ namespace mamba
          */
         void
         process_fetched_shard(const std::string& url, const std::string& package, const ShardDict& shard);
+
+        /**
+         * Filter packages into those that need fetching vs already in memory.
+         */
+        void filter_packages_to_fetch(
+            const std::vector<std::string>& packages,
+            std::map<std::string, ShardDict>& results,
+            std::vector<std::string>& packages_to_fetch
+        ) const;
+
+        /**
+         * Build URLs for packages to fetch and create url_to_package mapping.
+         */
+        void build_shard_urls(
+            const std::vector<std::string>& packages_to_fetch,
+            std::vector<std::string>& urls,
+            std::map<std::string, std::string>& url_to_package
+        ) const;
+
+        /**
+         * Create download requests for shards with proper mirror handling.
+         */
+        void create_download_requests(
+            const std::map<std::string, std::string>& url_to_package,
+            const std::string& cache_dir_str,
+            download::mirror_map& extended_mirrors,
+            download::MultiRequest& requests,
+            std::vector<std::string>& cache_miss_urls,
+            std::vector<std::string>& cache_miss_packages,
+            std::map<std::string, fs::u8path>& package_to_artifact_path,
+            std::vector<std::shared_ptr<TemporaryFile>>& artifacts
+        ) const;
+
+        /**
+         * Process a single downloaded shard: handle content types, read, decompress, and parse.
+         */
+        auto process_downloaded_shard(
+            const std::string& url,
+            const std::string& package,
+            const download::Success& success,
+            const std::map<std::string, fs::u8path>& package_to_artifact_path
+        ) -> expected_t<ShardDict>;
+
+        /**
+         * Decompress zstd compressed shard data.
+         */
+        auto decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data)
+            -> expected_t<std::vector<std::uint8_t>>;
+
+        /**
+         * Parse msgpack data into ShardDict.
+         */
+        auto
+        parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data, const std::string& package)
+            -> expected_t<ShardDict>;
     };
 
 }

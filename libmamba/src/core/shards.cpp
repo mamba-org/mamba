@@ -533,13 +533,12 @@ namespace mamba
         return it->second;
     }
 
-    auto Shards::fetch_shards(const std::vector<std::string>& packages)
-        -> expected_t<std::map<std::string, ShardDict>>
+    void Shards::filter_packages_to_fetch(
+        const std::vector<std::string>& packages,
+        std::map<std::string, ShardDict>& results,
+        std::vector<std::string>& packages_to_fetch
+    ) const
     {
-        std::map<std::string, ShardDict> results;
-
-        // Check visited shards first
-        std::vector<std::string> packages_to_fetch;
         for (const auto& package : packages)
         {
             if (auto it = m_visited.find(package); it != m_visited.end())
@@ -554,15 +553,14 @@ namespace mamba
                 packages_to_fetch.push_back(package);
             }
         }
+    }
 
-        if (packages_to_fetch.empty())
-        {
-            return results;
-        }
-
-        // Build URLs for packages to fetch
-        std::vector<std::string> urls;
-        std::map<std::string, std::string> url_to_package;
+    void Shards::build_shard_urls(
+        const std::vector<std::string>& packages_to_fetch,
+        std::vector<std::string>& urls,
+        std::map<std::string, std::string>& url_to_package
+    ) const
+    {
         LOG_DEBUG << "Building shard URLs for " << packages_to_fetch.size()
                   << " package(s) from base_url: " << shards_base_url();
         for (const auto& package : packages_to_fetch)
@@ -581,480 +579,511 @@ namespace mamba
         }
         LOG_DEBUG << "Successfully built " << urls.size() << " shard URL(s) out of "
                   << packages_to_fetch.size() << " package(s)";
+    }
 
-        // Build network requests for all packages (no cache for now)
-        if (!url_to_package.empty())
+    void Shards::create_download_requests(
+        const std::map<std::string, std::string>& url_to_package,
+        const std::string& cache_dir_str,
+        download::mirror_map& extended_mirrors,
+        download::MultiRequest& requests,
+        std::vector<std::string>& cache_miss_urls,
+        std::vector<std::string>& cache_miss_packages,
+        std::map<std::string, fs::u8path>& package_to_artifact_path,
+        std::vector<std::shared_ptr<TemporaryFile>>& artifacts
+    ) const
+    {
+        for (const auto& [url, package] : url_to_package)
         {
-            download::MultiRequest requests;
-            std::vector<std::string> cache_miss_urls;
-            std::vector<std::string> cache_miss_packages;
+            cache_miss_urls.push_back(url);
+            cache_miss_packages.push_back(package);
 
-            // Map packages to their artifact paths for buffer handling
-            std::map<std::string, fs::u8path> package_to_artifact_path;
+            auto artifact = std::make_shared<TemporaryFile>("mambashard", "", cache_dir_str);
+            artifacts.push_back(artifact);
 
-            // Keep artifacts alive to prevent deletion
-            std::vector<std::shared_ptr<TemporaryFile>> artifacts;
+            fs::u8path artifact_path = artifact->path();
+            package_to_artifact_path[package] = artifact_path;
 
-            // Create an extended mirror map that includes mirrors for absolute URLs
-            download::mirror_map extended_mirrors;
+            std::string shard_path_str = relative_shard_path(package);
+            bool is_full_url = util::url_has_scheme(shard_path_str);
 
-            // Ensure PassThroughMirror exists for absolute URLs (created automatically in
-            // constructor)
+            std::string mirror_name;
+            std::string url_path;
 
-            // Create cache directory using user cache dir, not URL path
-            const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();
-            const fs::u8path cache_dir_path = fs::u8path(
-                                                  XDG_CACHE_HOME_SET
-                                                      ? util::get_env("XDG_CACHE_HOME").value()
-                                                      : util::user_cache_dir()
-                                              )
-                                              / "conda" / "pkgs";
-
-            const std::string cache_dir_str = create_cache_dir(cache_dir_path);
-
-            for (const auto& [url, package] : url_to_package)
+            if (is_full_url)
             {
-                cache_miss_urls.push_back(url);
-                cache_miss_packages.push_back(package);
-
-                auto artifact = std::make_shared<TemporaryFile>("mambashard", "", cache_dir_str);
-
-                // Keep artifact alive to prevent deletion
-                artifacts.push_back(artifact);
-
-                // Store artifact path for this package BEFORE creating the request
-                fs::u8path artifact_path = artifact->path();
-                package_to_artifact_path[package] = artifact_path;
-
-                // Get relative path for download::Request (mirror system will prepend base URL)
-                std::string shard_path_str = relative_shard_path(package);
-
-                // Check if shard_path_str is a full URL (absolute shards_base_url on different
-                // host)
-                bool is_full_url = util::url_has_scheme(shard_path_str);
-
-                std::string mirror_name;
-                std::string url_path;
-
-                if (is_full_url)
+                std::size_t scheme_end = shard_path_str.find("://");
+                if (scheme_end != std::string::npos)
                 {
-                    // For absolute URLs, extract base URL and create a mirror for it
-                    // Extract base URL: https://shards.prefix.dev/conda-forge/file.msgpack.zst ->
-                    // https://shards.prefix.dev/conda-forge/
-                    std::size_t scheme_end = shard_path_str.find("://");
-                    if (scheme_end != std::string::npos)
+                    std::size_t path_start = shard_path_str.find('/', scheme_end + 3);
+                    if (path_start != std::string::npos)
                     {
-                        std::size_t path_start = shard_path_str.find('/', scheme_end + 3);
-                        if (path_start != std::string::npos)
+                        std::string base_url = shard_path_str.substr(0, path_start + 1);
+                        std::string relative_path = shard_path_str.substr(path_start + 1);
+
+                        mirror_name = base_url;
+
+                        if (!extended_mirrors.has_mirrors(mirror_name))
                         {
-                            std::string base_url = shard_path_str.substr(0, path_start + 1);
-                            std::string relative_path = shard_path_str.substr(path_start + 1);
-
-                            // Create a unique mirror name based on the base URL
-                            mirror_name = base_url;
-
-                            // Create mirror for this base URL if it doesn't exist
-                            if (!extended_mirrors.has_mirrors(mirror_name))
+                            auto mirror = download::make_mirror(base_url);
+                            if (mirror)
                             {
-                                auto mirror = download::make_mirror(base_url);
-                                if (mirror)
-                                {
-                                    extended_mirrors.add_unique_mirror(mirror_name, std::move(mirror));
-                                }
+                                extended_mirrors.add_unique_mirror(mirror_name, std::move(mirror));
                             }
+                        }
 
-                            url_path = relative_path;
-                        }
-                        else
-                        {
-                            // No path component, use PassThroughMirror with full URL
-                            mirror_name = "";
-                            url_path = shard_path_str;
-                        }
+                        url_path = relative_path;
                     }
                     else
                     {
-                        // Not a valid URL, skip
-                        LOG_WARNING << "Invalid shard URL: " << shard_path_str;
-                        continue;
+                        mirror_name = "";
+                        url_path = shard_path_str;
                     }
                 }
                 else
                 {
-                    // Relative path, use channel mirror
-                    mirror_name = m_channel.id();
-                    url_path = shard_path_str;
+                    LOG_WARNING << "Invalid shard URL: " << shard_path_str;
+                    continue;
                 }
-
-                download::Request request(
-                    package + "-shard",
-                    download::MirrorName(mirror_name),
-                    url_path,
-                    artifact->path().string(),
-                    /*head_only*/ false,
-                    /*ignore_failure*/ false
-                );
-
-                // Keep artifact alive by capturing it in the lambda
-                // The file path is stored in package_to_artifact_path, so we don't need artifact in
-                // the callback
-                request.on_success = [artifact = std::move(artifact), url, package](
-                                         const download::Success& /* success */
-                                     )
-                {
-                    // File is downloaded to artifact->path()
-                    // Keep artifact alive until download completes
-                    (void) artifact;  // Suppress unused warning
-                    return expected_t<void>();
-                };
-
-                request.on_failure = [url, package](const download::Error& error)
-                {
-                    LOG_WARNING << "Failed to fetch shard " << url << " for package " << package
-                                << ": " << error.message;
-                };
-
-                requests.push_back(std::move(request));
+            }
+            else
+            {
+                mirror_name = m_channel.id();
+                url_path = shard_path_str;
             }
 
-            // Download cache misses
-            if (!requests.empty())
+            download::Request request(
+                package + "-shard",
+                download::MirrorName(mirror_name),
+                url_path,
+                artifact->path().string(),
+                /*head_only*/ false,
+                /*ignore_failure*/ false
+            );
+
+            request.on_success = [artifact = std::move(artifact), url, package](
+                                     const download::Success& /* success */
+                                 )
             {
-                LOG_DEBUG << "Downloading " << requests.size() << " shard(s) for packages: ["
-                          << util::join(", ", packages_to_fetch) << "]";
-                download::Options download_options;
-                download_options.download_threads = m_download_threads;
+                (void) artifact;
+                return expected_t<void>();
+            };
 
-                auto download_results = download::download(
-                    std::move(requests),
-                    extended_mirrors,
-                    m_remote_fetch_params,
-                    m_auth_info,
-                    download_options,
-                    nullptr  // monitor
+            request.on_failure = [url, package](const download::Error& error)
+            {
+                LOG_WARNING << "Failed to fetch shard " << url << " for package " << package << ": "
+                            << error.message;
+            };
+
+            requests.push_back(std::move(request));
+        }
+    }
+
+    auto Shards::decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data)
+        -> expected_t<std::vector<std::uint8_t>>
+    {
+        LOG_DEBUG << "Decompressing shard using zstd";
+        ZSTD_DCtx* dctx = ZSTD_createDCtx();
+        if (dctx == nullptr)
+        {
+            return make_unexpected(
+                "Failed to create zstd decompression context",
+                mamba_error_code::unknown
+            );
+        }
+
+        std::vector<std::uint8_t> decompressed_data(ZSTD_DStreamOutSize());
+        ZSTD_inBuffer input = { compressed_data.data(), compressed_data.size(), 0 };
+        ZSTD_outBuffer output = { decompressed_data.data(), decompressed_data.size(), 0 };
+
+        std::vector<std::uint8_t> full_decompressed;
+        while (input.pos < input.size)
+        {
+            std::size_t ret = ZSTD_decompressStream(dctx, &output, &input);
+            if (ZSTD_isError(ret))
+            {
+                ZSTD_freeDCtx(dctx);
+                return make_unexpected(
+                    std::string("Zstd decompression error: ") + ZSTD_getErrorName(ret),
+                    mamba_error_code::unknown
                 );
+            }
 
-                // Process download results
-                for (std::size_t i = 0; i < download_results.size() && i < cache_miss_urls.size();
-                     ++i)
+            full_decompressed.insert(
+                full_decompressed.end(),
+                decompressed_data.begin(),
+                decompressed_data.begin() + static_cast<std::ptrdiff_t>(output.pos)
+            );
+            output.pos = 0;
+
+            constexpr std::size_t MAX_SHARD_SIZE = 100 * 1024 * 1024;
+            if (full_decompressed.size() > MAX_SHARD_SIZE)
+            {
+                ZSTD_freeDCtx(dctx);
+                return make_unexpected(
+                    "Decompressed shard exceeds maximum size",
+                    mamba_error_code::unknown
+                );
+            }
+        }
+
+        ZSTD_freeDCtx(dctx);
+        LOG_DEBUG << "Decompressed shard: " << compressed_data.size() << " bytes -> "
+                  << full_decompressed.size() << " bytes";
+        return full_decompressed;
+    }
+
+    auto Shards::parse_shard_msgpack(
+        const std::vector<std::uint8_t>& decompressed_data,
+        const std::string& package
+    ) -> expected_t<ShardDict>
+    {
+        LOG_DEBUG << "Parsing msgpack data for package '" << package << "' shard";
+        msgpack_unpacked unpacked = {};
+        try
+        {
+            size_t offset = 0;
+            msgpack_unpack_return ret = msgpack_unpack_next(
+                &unpacked,
+                reinterpret_cast<const char*>(decompressed_data.data()),
+                decompressed_data.size(),
+                &offset
+            );
+
+            if (ret != MSGPACK_UNPACK_SUCCESS && ret != MSGPACK_UNPACK_EXTRA_BYTES)
+            {
+                if (unpacked.zone != nullptr)
                 {
-                    const std::string& url = cache_miss_urls[i];
-                    const std::string& package = cache_miss_packages[i];
+                    msgpack_zone_destroy(unpacked.zone);
+                    unpacked.zone = nullptr;
+                }
+                return make_unexpected("Failed to unpack msgpack data", mamba_error_code::unknown);
+            }
 
-                    if (!download_results[i].has_value())
+            const msgpack_object& obj = unpacked.data;
+            ShardDict shard;
+
+            auto parse_package_records = [&package](
+                                             const msgpack_object& map_obj,
+                                             std::map<std::string, ShardPackageRecord>& target_map,
+                                             const std::string& log_prefix,
+                                             const std::string& map_name
+                                         )
+            {
+                if (map_obj.type == MSGPACK_OBJECT_MAP)
+                {
+                    for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
                     {
-                        LOG_WARNING << "Failed to download shard " << url << " for package '"
-                                    << package << "'";
-                        continue;
-                    }
-
-                    const auto& success = download_results[i].value();
-                    LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
-                              << url << " (" << success.transfer.downloaded_size << " bytes)";
-
-                    // Always use artifact path - the file is downloaded to the artifact path
-                    // specified in the request
-                    fs::u8path shard_file;
-                    auto artifact_it = package_to_artifact_path.find(package);
-                    if (artifact_it != package_to_artifact_path.end())
-                    {
-                        shard_file = artifact_it->second;
-                        LOG_DEBUG << "Using artifact path for shard: " << shard_file.string();
-                    }
-                    else
-                    {
-                        LOG_WARNING << "No artifact path found for package: " << package;
-                        continue;
-                    }
-
-                    // Check what type of content we got and handle accordingly
-                    if (std::holds_alternative<download::Filename>(success.content))
-                    {
-                        // Download returned filename - use it directly as it's where the file was
-                        // written
-                        std::string filename_value = std::get<download::Filename>(success.content).value;
-                        LOG_DEBUG << "Download returned Filename: " << filename_value;
-
-                        // Use the filename from download result if it's a valid path
-                        if (filename_value.find("://") == std::string::npos)
+                        try
                         {
-                            // Filename is a file path (not a URL)
-                            shard_file = filename_value;
-                            LOG_DEBUG << "Using filename from download result: "
-                                      << shard_file.string();
-
-                            // Check if file exists (with small retry for async writes)
-                            int retries = 5;
-                            while (!fs::exists(shard_file) && retries > 0)
-                            {
-                                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                                retries--;
-                            }
-
-                            if (!fs::exists(shard_file))
-                            {
-                                LOG_WARNING
-                                    << "Shard file not found at path: " << shard_file.string()
-                                    << " (downloaded size: " << success.transfer.downloaded_size
-                                    << " bytes)";
-                                continue;
-                            }
+                            std::string pkg_filename = msgpack_object_to_string(
+                                map_obj.via.map.ptr[k].key
+                            );
+                            ShardPackageRecord record = parse_shard_package_record(
+                                map_obj.via.map.ptr[k].val
+                            );
+                            LOG_DEBUG << "Parsed " << log_prefix
+                                      << " package record from shard for package '" << package
+                                      << "': " << record.name << "=" << record.version << "-"
+                                      << record.build;
+                            target_map[pkg_filename] = record;
                         }
-                        else
+                        catch (const std::exception& e)
                         {
-                            // Filename is a URL, which shouldn't happen - fall back to artifact
-                            // path
-                            LOG_WARNING
-                                << "Download returned URL instead of file path: " << filename_value
-                                << ", using artifact path: " << shard_file.string();
-                            if (!fs::exists(shard_file))
-                            {
-                                LOG_WARNING << "Shard file not found at artifact path: "
-                                            << shard_file.string();
-                                continue;
-                            }
+                            LOG_WARNING << "Failed to parse package record in '" << map_name
+                                        << "': " << e.what();
                         }
                     }
-                    else if (std::holds_alternative<download::Buffer>(success.content))
-                    {
-                        // Download returned buffer instead of file - write to artifact path
-                        LOG_DEBUG << "Shard download returned buffer, writing to artifact path";
+                }
+            };
 
-                        // Write buffer to file
-                        const auto& buffer = std::get<download::Buffer>(success.content);
-                        // Explicitly convert fs::u8path to string to avoid ambiguity
-                        // between string and wstring on Windows.
-                        std::ofstream out_file(shard_file.string(), std::ios::binary);
-                        if (!out_file.is_open())
-                        {
-                            LOG_WARNING << "Failed to create shard file for buffer: "
-                                        << shard_file.string();
-                            continue;
-                        }
-                        out_file.write(
-                            buffer.value.data(),
-                            static_cast<std::streamsize>(buffer.value.size())
-                        );
-                        out_file.close();
-                        LOG_DEBUG << "Wrote buffer to file: " << shard_file.string() << " ("
-                                  << buffer.value.size() << " bytes)";
-                    }
-                    else
-                    {
-                        LOG_WARNING << "Shard download returned unknown content type";
-                        continue;
-                    }
+            if (obj.type == MSGPACK_OBJECT_MAP)
+            {
+                for (std::uint32_t j = 0; j < obj.via.map.size; ++j)
+                {
+                    const msgpack_object& key_obj = obj.via.map.ptr[j].key;
+                    const msgpack_object& val_obj = obj.via.map.ptr[j].val;
 
-                    // Read and parse shard
-                    if (!fs::exists(shard_file))
-                    {
-                        LOG_WARNING << "Shard file does not exist: " << shard_file.string();
-                        continue;
-                    }
-
-                    // Explicitly convert fs::u8path to string to avoid ambiguity
-                    // between string and wstring on Windows.
-                    std::ifstream file(shard_file.string(), std::ios::binary);
-                    if (!file.is_open())
-                    {
-                        LOG_WARNING << "Failed to open downloaded shard file: "
-                                    << shard_file.string();
-                        continue;
-                    }
-
-                    std::vector<std::uint8_t> compressed_data(
-                        (std::istreambuf_iterator<char>(file)),
-                        std::istreambuf_iterator<char>()
-                    );
-                    file.close();
-
-                    LOG_DEBUG << "Reading shard file for package '" << package
-                              << "': " << shard_file.string() << " (" << compressed_data.size()
-                              << " bytes compressed)";
-
-                    // Decompress zstd
-                    LOG_DEBUG << "Decompressing shard for package '" << package << "' using zstd";
-                    ZSTD_DCtx* dctx = ZSTD_createDCtx();
-                    if (dctx == nullptr)
-                    {
-                        LOG_WARNING << "Failed to create zstd decompression context";
-                        continue;
-                    }
-
-                    std::vector<std::uint8_t> decompressed_data(ZSTD_DStreamOutSize());
-                    ZSTD_inBuffer input = { compressed_data.data(), compressed_data.size(), 0 };
-                    ZSTD_outBuffer output = { decompressed_data.data(), decompressed_data.size(), 0 };
-
-                    std::vector<std::uint8_t> full_decompressed;
-                    while (input.pos < input.size)
-                    {
-                        std::size_t ret = ZSTD_decompressStream(dctx, &output, &input);
-                        if (ZSTD_isError(ret))
-                        {
-                            LOG_WARNING << "Zstd decompression error: " << ZSTD_getErrorName(ret);
-                            ZSTD_freeDCtx(dctx);
-                            continue;
-                        }
-
-                        full_decompressed.insert(
-                            full_decompressed.end(),
-                            decompressed_data.begin(),
-                            decompressed_data.begin() + static_cast<std::ptrdiff_t>(output.pos)
-                        );
-                        output.pos = 0;
-                        // Maximum shard size: 100MB (reasonable limit for shard decompression)
-                        constexpr std::size_t MAX_SHARD_SIZE = 100 * 1024 * 1024;
-                        if (full_decompressed.size() > MAX_SHARD_SIZE)
-                        {
-                            LOG_WARNING << "Decompressed shard exceeds maximum size";
-                            ZSTD_freeDCtx(dctx);
-                            continue;
-                        }
-                    }
-
-                    ZSTD_freeDCtx(dctx);
-
-                    LOG_DEBUG << "Decompressed shard for package '" << package
-                              << "': " << compressed_data.size() << " bytes -> "
-                              << full_decompressed.size() << " bytes";
-
-                    // Parse msgpack - handle "packages.conda" key name from Python format
-                    // We can't use MSGPACK_DEFINE directly because Python uses "packages.conda"
-                    // which is not a valid C++ identifier
-                    LOG_DEBUG << "Parsing msgpack data for package '" << package << "' shard";
-                    msgpack_unpacked unpacked = {};
+                    std::string key;
                     try
                     {
-                        size_t offset = 0;
-                        msgpack_unpack_return ret = msgpack_unpack_next(
-                            &unpacked,
-                            reinterpret_cast<const char*>(full_decompressed.data()),
-                            full_decompressed.size(),
-                            &offset
-                        );
+                        key = msgpack_object_to_string(key_obj);
+                    }
+                    catch (const std::exception&)
+                    {
+                        continue;
+                    }
 
-                        if (ret != MSGPACK_UNPACK_SUCCESS && ret != MSGPACK_UNPACK_EXTRA_BYTES)
+                    try
+                    {
+                        if (key == "packages")
                         {
-                            if (unpacked.zone != nullptr)
-                            {
-                                msgpack_zone_destroy(unpacked.zone);
-                                unpacked.zone = nullptr;
-                            }
-                            throw std::runtime_error("Failed to unpack msgpack data");
+                            parse_package_records(val_obj, shard.packages, "package", "packages");
                         }
-
-                        const msgpack_object& obj = unpacked.data;
-                        ShardDict shard;
-
-                        // Lambda to parse package records from a msgpack map into a target map
-                        auto parse_package_records =
-                            [&package](
-                                const msgpack_object& map_obj,
-                                std::map<std::string, ShardPackageRecord>& target_map,
-                                const std::string& log_prefix,
-                                const std::string& map_name
-                            )
+                        else if (key == "packages.conda")
                         {
-                            if (map_obj.type == MSGPACK_OBJECT_MAP)
-                            {
-                                for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
-                                {
-                                    try
-                                    {
-                                        std::string pkg_filename = msgpack_object_to_string(
-                                            map_obj.via.map.ptr[k].key
-                                        );
-
-                                        ShardPackageRecord record = parse_shard_package_record(
-                                            map_obj.via.map.ptr[k].val
-                                        );
-                                        LOG_DEBUG << "Parsed " << log_prefix
-                                                  << " package record from shard for package '"
-                                                  << package << "': " << record.name << "="
-                                                  << record.version << "-" << record.build;
-                                        target_map[pkg_filename] = record;
-                                    }
-                                    catch (const std::exception& e)
-                                    {
-                                        LOG_WARNING << "Failed to parse package record in '"
-                                                    << map_name << "': " << e.what();
-                                    }
-                                }
-                            }
-                        };
-
-                        if (obj.type == MSGPACK_OBJECT_MAP)
-                        {
-                            for (std::uint32_t j = 0; j < obj.via.map.size; ++j)
-                            {
-                                const msgpack_object& key_obj = obj.via.map.ptr[j].key;
-                                const msgpack_object& val_obj = obj.via.map.ptr[j].val;
-
-                                std::string key;
-                                try
-                                {
-                                    key = msgpack_object_to_string(key_obj);
-                                }
-                                catch (const std::exception&)
-                                {
-                                    continue;
-                                }
-
-                                try
-                                {
-                                    if (key == "packages")
-                                    {
-                                        parse_package_records(
-                                            val_obj,
-                                            shard.packages,
-                                            "package",
-                                            "packages"
-                                        );
-                                    }
-                                    else if (key == "packages.conda")
-                                    {
-                                        parse_package_records(
-                                            val_obj,
-                                            shard.conda_packages,
-                                            "conda package",
-                                            "packages.conda"
-                                        );
-                                    }
-                                }
-                                catch (const std::exception& e)
-                                {
-                                    LOG_DEBUG << "Failed to parse field '" << key
-                                              << "' in shard: " << e.what();
-                                }
-                            }
+                            parse_package_records(
+                                val_obj,
+                                shard.conda_packages,
+                                "conda package",
+                                "packages.conda"
+                            );
                         }
-
-                        if (unpacked.zone != nullptr)
-                        {
-                            msgpack_zone_destroy(unpacked.zone);
-                            unpacked.zone = nullptr;
-                        }
-
-                        LOG_DEBUG << "Successfully parsed shard for package '" << package
-                                  << "': " << shard.packages.size() << " .tar.bz2 packages, "
-                                  << shard.conda_packages.size() << " .conda packages";
-
-                        results[package] = shard;
-                        process_fetched_shard(url, package, shard);
                     }
                     catch (const std::exception& e)
                     {
-                        // Ensure zone is cleaned up even if exception occurs
-                        if (unpacked.zone != nullptr)
-                        {
-                            msgpack_zone_destroy(unpacked.zone);
-                            unpacked.zone = nullptr;
-                        }
-                        LOG_WARNING << "Failed to parse msgpack for shard " << url << ": "
-                                    << e.what();
+                        LOG_DEBUG << "Failed to parse field '" << key << "' in shard: " << e.what();
                     }
                 }
             }
+
+            if (unpacked.zone != nullptr)
+            {
+                msgpack_zone_destroy(unpacked.zone);
+                unpacked.zone = nullptr;
+            }
+
+            LOG_DEBUG << "Successfully parsed shard for package '" << package
+                      << "': " << shard.packages.size() << " .tar.bz2 packages, "
+                      << shard.conda_packages.size() << " .conda packages";
+            return shard;
+        }
+        catch (const std::exception& e)
+        {
+            if (unpacked.zone != nullptr)
+            {
+                msgpack_zone_destroy(unpacked.zone);
+                unpacked.zone = nullptr;
+            }
+            return make_unexpected(
+                std::string("Failed to parse msgpack: ") + e.what(),
+                mamba_error_code::unknown
+            );
+        }
+    }
+
+    auto Shards::process_downloaded_shard(
+        const std::string& /* url */,
+        const std::string& package,
+        const download::Success& success,
+        const std::map<std::string, fs::u8path>& package_to_artifact_path
+    ) -> expected_t<ShardDict>
+    {
+        fs::u8path shard_file;
+        auto artifact_it = package_to_artifact_path.find(package);
+        if (artifact_it != package_to_artifact_path.end())
+        {
+            shard_file = artifact_it->second;
+            LOG_DEBUG << "Using artifact path for shard: " << shard_file.string();
+        }
+        else
+        {
+            return make_unexpected(
+                "No artifact path found for package: " + package,
+                mamba_error_code::unknown
+            );
+        }
+
+        if (std::holds_alternative<download::Filename>(success.content))
+        {
+            std::string filename_value = std::get<download::Filename>(success.content).value;
+            LOG_DEBUG << "Download returned Filename: " << filename_value;
+
+            if (filename_value.find("://") == std::string::npos)
+            {
+                shard_file = filename_value;
+                LOG_DEBUG << "Using filename from download result: " << shard_file.string();
+
+                int retries = 5;
+                while (!fs::exists(shard_file) && retries > 0)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    retries--;
+                }
+
+                if (!fs::exists(shard_file))
+                {
+                    return make_unexpected(
+                        "Shard file not found at path: " + shard_file.string(),
+                        mamba_error_code::unknown
+                    );
+                }
+            }
+            else
+            {
+                LOG_WARNING << "Download returned URL instead of file path: " << filename_value
+                            << ", using artifact path: " << shard_file.string();
+                if (!fs::exists(shard_file))
+                {
+                    return make_unexpected(
+                        "Shard file not found at artifact path: " + shard_file.string(),
+                        mamba_error_code::unknown
+                    );
+                }
+            }
+        }
+        else if (std::holds_alternative<download::Buffer>(success.content))
+        {
+            LOG_DEBUG << "Shard download returned buffer, writing to artifact path";
+            const auto& buffer = std::get<download::Buffer>(success.content);
+            std::ofstream out_file(shard_file.string(), std::ios::binary);
+            if (!out_file.is_open())
+            {
+                return make_unexpected(
+                    "Failed to create shard file for buffer: " + shard_file.string(),
+                    mamba_error_code::unknown
+                );
+            }
+            out_file.write(buffer.value.data(), static_cast<std::streamsize>(buffer.value.size()));
+            out_file.close();
+            LOG_DEBUG << "Wrote buffer to file: " << shard_file.string() << " ("
+                      << buffer.value.size() << " bytes)";
+        }
+        else
+        {
+            return make_unexpected(
+                "Shard download returned unknown content type",
+                mamba_error_code::unknown
+            );
+        }
+
+        if (!fs::exists(shard_file))
+        {
+            return make_unexpected(
+                "Shard file does not exist: " + shard_file.string(),
+                mamba_error_code::unknown
+            );
+        }
+
+        std::ifstream file(shard_file.string(), std::ios::binary);
+        if (!file.is_open())
+        {
+            return make_unexpected(
+                "Failed to open downloaded shard file: " + shard_file.string(),
+                mamba_error_code::unknown
+            );
+        }
+
+        std::vector<std::uint8_t> compressed_data(
+            (std::istreambuf_iterator<char>(file)),
+            std::istreambuf_iterator<char>()
+        );
+        file.close();
+
+        LOG_DEBUG << "Reading shard file for package '" << package << "': " << shard_file.string()
+                  << " (" << compressed_data.size() << " bytes compressed)";
+
+        auto decompressed_result = decompress_zstd_shard(compressed_data);
+        if (!decompressed_result.has_value())
+        {
+            return make_unexpected(
+                decompressed_result.error().what(),
+                decompressed_result.error().error_code()
+            );
+        }
+
+        auto parse_result = parse_shard_msgpack(decompressed_result.value(), package);
+        if (!parse_result.has_value())
+        {
+            return make_unexpected(parse_result.error().what(), parse_result.error().error_code());
+        }
+
+        return parse_result.value();
+    }
+
+    auto Shards::fetch_shards(const std::vector<std::string>& packages)
+        -> expected_t<std::map<std::string, ShardDict>>
+    {
+        std::map<std::string, ShardDict> results;
+        std::vector<std::string> packages_to_fetch;
+
+        filter_packages_to_fetch(packages, results, packages_to_fetch);
+
+        if (packages_to_fetch.empty())
+        {
+            return results;
+        }
+
+        std::vector<std::string> urls;
+        std::map<std::string, std::string> url_to_package;
+        build_shard_urls(packages_to_fetch, urls, url_to_package);
+
+        if (url_to_package.empty())
+        {
+            return results;
+        }
+
+        download::MultiRequest requests;
+        std::vector<std::string> cache_miss_urls;
+        std::vector<std::string> cache_miss_packages;
+        std::map<std::string, fs::u8path> package_to_artifact_path;
+        std::vector<std::shared_ptr<TemporaryFile>> artifacts;
+        download::mirror_map extended_mirrors;
+
+        const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();
+        const fs::u8path cache_dir_path = fs::u8path(
+                                              XDG_CACHE_HOME_SET
+                                                  ? util::get_env("XDG_CACHE_HOME").value()
+                                                  : util::user_cache_dir()
+                                          )
+                                          / "conda" / "pkgs";
+        const std::string cache_dir_str = create_cache_dir(cache_dir_path);
+
+        create_download_requests(
+            url_to_package,
+            cache_dir_str,
+            extended_mirrors,
+            requests,
+            cache_miss_urls,
+            cache_miss_packages,
+            package_to_artifact_path,
+            artifacts
+        );
+
+        if (requests.empty())
+        {
+            return results;
+        }
+
+        LOG_DEBUG << "Downloading " << requests.size() << " shard(s) for packages: ["
+                  << util::join(", ", packages_to_fetch) << "]";
+        download::Options download_options;
+        download_options.download_threads = m_download_threads;
+
+        auto download_results = download::download(
+            std::move(requests),
+            extended_mirrors,
+            m_remote_fetch_params,
+            m_auth_info,
+            download_options,
+            nullptr  // monitor
+        );
+
+        for (std::size_t i = 0; i < download_results.size() && i < cache_miss_urls.size(); ++i)
+        {
+            const std::string& url = cache_miss_urls[i];
+            const std::string& package = cache_miss_packages[i];
+
+            if (!download_results[i].has_value())
+            {
+                LOG_WARNING << "Failed to download shard " << url << " for package '" << package
+                            << "'";
+                continue;
+            }
+
+            const auto& success = download_results[i].value();
+            LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
+                      << url << " (" << success.transfer.downloaded_size << " bytes)";
+
+            auto shard_result = process_downloaded_shard(url, package, success, package_to_artifact_path);
+            if (!shard_result.has_value())
+            {
+                LOG_WARNING << "Failed to process downloaded shard for package '" << package
+                            << "': " << shard_result.error().what();
+                continue;
+            }
+
+            results[package] = shard_result.value();
+            process_fetched_shard(url, package, shard_result.value());
         }
 
         return results;

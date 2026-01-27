@@ -83,6 +83,47 @@ namespace mamba
         }
 
         /**
+         * Extract a hash value (sha256 or md5) from a msgpack object.
+         * Handles string, binary, and extension types, converting bytes to hex strings.
+         */
+        auto msgpack_object_to_hash_string(const msgpack_object& obj) -> std::string
+        {
+            if (obj.type == MSGPACK_OBJECT_STR)
+            {
+                return std::string(obj.via.str.ptr, obj.via.str.size);
+            }
+            else if (obj.type == MSGPACK_OBJECT_BIN)
+            {
+                // Convert bytes to hex string
+                return util::bytes_to_hex_str(
+                    reinterpret_cast<const std::byte*>(obj.via.bin.ptr),
+                    reinterpret_cast<const std::byte*>(obj.via.bin.ptr + obj.via.bin.size)
+                );
+            }
+            else if (obj.type == MSGPACK_OBJECT_EXT)
+            {
+                // Handle EXT type (sometimes used for bytes)
+                return util::bytes_to_hex_str(
+                    reinterpret_cast<const std::byte*>(obj.via.ext.ptr),
+                    reinterpret_cast<const std::byte*>(obj.via.ext.ptr + obj.via.ext.size)
+                );
+            }
+            else
+            {
+                // Try to convert as string
+                try
+                {
+                    return msgpack_object_to_string(obj);
+                }
+                catch (...)
+                {
+                    // Return empty string if conversion fails
+                    return std::string();
+                }
+            }
+        }
+
+        /**
          * Manually parse a ShardPackageRecord from msgpack object.
          *
          * This handles the case where sha256 and md5 can be either strings or bytes
@@ -146,87 +187,11 @@ namespace mamba
                     }
                     else if (key == "sha256")
                     {
-                        // Handle both string and bytes
-                        if (val_obj.type == MSGPACK_OBJECT_STR)
-                        {
-                            record.sha256 = std::string(val_obj.via.str.ptr, val_obj.via.str.size);
-                        }
-                        else if (val_obj.type == MSGPACK_OBJECT_BIN)
-                        {
-                            // Convert bytes to hex string
-                            std::string hex_str = util::bytes_to_hex_str(
-                                reinterpret_cast<const std::byte*>(val_obj.via.bin.ptr),
-                                reinterpret_cast<const std::byte*>(
-                                    val_obj.via.bin.ptr + val_obj.via.bin.size
-                                )
-                            );
-                            record.sha256 = hex_str;
-                        }
-                        else if (val_obj.type == MSGPACK_OBJECT_EXT)
-                        {
-                            // Handle EXT type (sometimes used for bytes)
-                            std::string hex_str = util::bytes_to_hex_str(
-                                reinterpret_cast<const std::byte*>(val_obj.via.ext.ptr),
-                                reinterpret_cast<const std::byte*>(
-                                    val_obj.via.ext.ptr + val_obj.via.ext.size
-                                )
-                            );
-                            record.sha256 = hex_str;
-                        }
-                        else
-                        {
-                            // Try to convert as string
-                            try
-                            {
-                                record.sha256 = msgpack_object_to_string(val_obj);
-                            }
-                            catch (...)
-                            {
-                                // Skip if conversion fails
-                            }
-                        }
+                        record.sha256 = msgpack_object_to_hash_string(val_obj);
                     }
                     else if (key == "md5")
                     {
-                        // Handle both string and bytes
-                        if (val_obj.type == MSGPACK_OBJECT_STR)
-                        {
-                            record.md5 = std::string(val_obj.via.str.ptr, val_obj.via.str.size);
-                        }
-                        else if (val_obj.type == MSGPACK_OBJECT_BIN)
-                        {
-                            // Convert bytes to hex string
-                            std::string hex_str = util::bytes_to_hex_str(
-                                reinterpret_cast<const std::byte*>(val_obj.via.bin.ptr),
-                                reinterpret_cast<const std::byte*>(
-                                    val_obj.via.bin.ptr + val_obj.via.bin.size
-                                )
-                            );
-                            record.md5 = hex_str;
-                        }
-                        else if (val_obj.type == MSGPACK_OBJECT_EXT)
-                        {
-                            // Handle EXT type (sometimes used for bytes)
-                            std::string hex_str = util::bytes_to_hex_str(
-                                reinterpret_cast<const std::byte*>(val_obj.via.ext.ptr),
-                                reinterpret_cast<const std::byte*>(
-                                    val_obj.via.ext.ptr + val_obj.via.ext.size
-                                )
-                            );
-                            record.md5 = hex_str;
-                        }
-                        else
-                        {
-                            // Try to convert as string
-                            try
-                            {
-                                record.md5 = msgpack_object_to_string(val_obj);
-                            }
-                            catch (...)
-                            {
-                                // Skip if conversion fails
-                            }
-                        }
+                        record.md5 = msgpack_object_to_hash_string(val_obj);
                     }
                     else if (key == "depends")
                     {

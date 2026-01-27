@@ -365,7 +365,7 @@ namespace mamba
      * Get the relative path for a shard (for use with download::Request).
      * Returns path relative to channel base, e.g., "linux-64/shards/<hash>.msgpack.zst"
      */
-    auto Shards::shard_path(const std::string& package) const -> std::string
+    auto Shards::relative_shard_path(const std::string& package) const -> std::string
     {
         auto it = m_shards_index.shards.find(package);
         if (it == m_shards_index.shards.end())
@@ -627,7 +627,7 @@ namespace mamba
                 package_to_artifact_path[package] = artifact_path;
 
                 // Get relative path for download::Request (mirror system will prepend base URL)
-                std::string shard_path_str = shard_path(package);
+                std::string shard_path_str = relative_shard_path(package);
 
                 // Check if shard_path_str is a full URL (absolute shards_base_url on different
                 // host)

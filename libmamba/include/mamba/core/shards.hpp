@@ -126,7 +126,7 @@ namespace mamba
          * Get the relative path for a shard (for use with download::Request).
          * Returns path relative to channel base.
          */
-        [[nodiscard]] auto shard_path(const std::string& package) const -> std::string;
+        [[nodiscard]] auto relative_shard_path(const std::string& package) const -> std::string;
 
         /**
          * Process a fetched shard and add it to visited shards.

@@ -134,8 +134,7 @@ namespace mamba
         /**
          * Process a fetched shard and add it to visited shards.
          */
-        void
-        process_fetched_shard(const std::string& url, const std::string& package, const ShardDict& shard);
+        void process_fetched_shard(const std::string& package, const ShardDict& shard);
 
         /**
          * Filter packages into those that need fetching vs already in memory.
@@ -173,7 +172,6 @@ namespace mamba
          * Process a single downloaded shard: handle content types, read, decompress, and parse.
          */
         auto process_downloaded_shard(
-            const std::string& url,
             const std::string& package,
             const download::Success& success,
             const std::map<std::string, fs::u8path>& package_to_artifact_path

@@ -480,11 +480,7 @@ namespace mamba
         m_visited[package] = shard;
     }
 
-    void Shards::process_fetched_shard(
-        const std::string& /* url */,
-        const std::string& package,
-        const ShardDict& shard
-    )
+    void Shards::process_fetched_shard(const std::string& package, const ShardDict& shard)
     {
         // Log dependencies found in the shard (only if DEBUG or TRACE level is enabled)
         if (logging::get_log_level() <= log_level::debug)
@@ -862,7 +858,6 @@ namespace mamba
     }
 
     auto Shards::process_downloaded_shard(
-        const std::string& /* url */,
         const std::string& package,
         const download::Success& success,
         const std::map<std::string, fs::u8path>& package_to_artifact_path
@@ -1074,7 +1069,7 @@ namespace mamba
             LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
                       << url << " (" << success.transfer.downloaded_size << " bytes)";
 
-            auto shard_result = process_downloaded_shard(url, package, success, package_to_artifact_path);
+            auto shard_result = process_downloaded_shard(package, success, package_to_artifact_path);
             if (!shard_result.has_value())
             {
                 LOG_WARNING << "Failed to process downloaded shard for package '" << package
@@ -1083,7 +1078,7 @@ namespace mamba
             }
 
             results[package] = shard_result.value();
-            process_fetched_shard(url, package, shard_result.value());
+            process_fetched_shard(package, shard_result.value());
         }
 
         return results;

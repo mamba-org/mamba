@@ -473,7 +473,7 @@ namespace mamba
         return it->second;
     }
 
-    void Shards::visit_shard(const std::string& package, const ShardDict& shard)
+    void Shards::load_shard(const std::string& package, const ShardDict& shard)
     {
         LOG_DEBUG << "Visiting shard for package '" << package << "': " << shard.packages.size()
                   << " .tar.bz2 packages, " << shard.conda_packages.size() << " .conda packages";

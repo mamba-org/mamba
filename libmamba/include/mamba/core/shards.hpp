@@ -70,7 +70,7 @@ namespace mamba
         [[nodiscard]] auto visit_package(const std::string& package) const -> ShardDict;
 
         /** Store new shard data. */
-        void visit_shard(const std::string& package, const ShardDict& shard);
+        void load_shard(const std::string& package, const ShardDict& shard);
 
         /** Fetch an individual shard for the given package. */
         auto fetch_shard(const std::string& package) -> expected_t<ShardDict>;

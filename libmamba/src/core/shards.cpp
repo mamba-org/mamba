@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -57,7 +58,10 @@ namespace mamba
             }
             else if (obj.type == MSGPACK_OBJECT_NEGATIVE_INTEGER)
             {
-                return static_cast<std::uint64_t>(obj.via.i64);
+                // For negative integers, take absolute value before converting to uint64_t
+                // This handles cases where build_number or size might be incorrectly serialized
+                // as negative values, which are semantically invalid
+                return static_cast<std::uint64_t>(std::abs(obj.via.i64));
             }
             throw std::runtime_error("Expected INTEGER type");
         }

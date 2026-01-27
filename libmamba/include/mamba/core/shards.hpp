@@ -72,8 +72,8 @@ namespace mamba
         /** Return a shard that is already loaded in memory. */
         [[nodiscard]] auto visit_package(const std::string& package) const -> ShardDict;
 
-        /** Store new shard data. */
-        void load_shard(const std::string& package, const ShardDict& shard);
+        /** Process a fetched shard and add it to visited shards. */
+        void process_fetched_shard(const std::string& package, const ShardDict& shard);
 
         /** Fetch an individual shard for the given package. */
         auto fetch_shard(const std::string& package) -> expected_t<ShardDict>;
@@ -130,11 +130,6 @@ namespace mamba
          * Returns path relative to channel base.
          */
         [[nodiscard]] auto relative_shard_path(const std::string& package) const -> std::string;
-
-        /**
-         * Process a fetched shard and add it to visited shards.
-         */
-        void process_fetched_shard(const std::string& package, const ShardDict& shard);
 
         /**
          * Filter packages into those that need fetching vs already in memory.

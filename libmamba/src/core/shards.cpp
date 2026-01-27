@@ -473,13 +473,6 @@ namespace mamba
         return it->second;
     }
 
-    void Shards::load_shard(const std::string& package, const ShardDict& shard)
-    {
-        LOG_DEBUG << "Visiting shard for package '" << package << "': " << shard.packages.size()
-                  << " .tar.bz2 packages, " << shard.conda_packages.size() << " .conda packages";
-        m_visited[package] = shard;
-    }
-
     void Shards::process_fetched_shard(const std::string& package, const ShardDict& shard)
     {
         // Log dependencies found in the shard (only if DEBUG or TRACE level is enabled)

@@ -446,7 +446,7 @@ TEST_CASE("Shards - Basic operations")
         REQUIRE_FALSE(shards.shard_loaded("pkg2"));
     }
 
-    SECTION("load_shard and visit_package")
+    SECTION("process_fetched_shard and visit_package")
     {
         ShardDict shard1;
         ShardPackageRecord record1;
@@ -454,7 +454,7 @@ TEST_CASE("Shards - Basic operations")
         record1.version = "1.0.0";
         shard1.packages["pkg1-1.0.0.tar.bz2"] = record1;
 
-        shards.load_shard("pkg1", shard1);
+        shards.process_fetched_shard("pkg1", shard1);
         REQUIRE(shards.shard_loaded("pkg1"));
         REQUIRE_FALSE(shards.shard_loaded("pkg2"));
 
@@ -529,7 +529,7 @@ TEST_CASE("Shards - build_repodata")
         pkg2.build_number = 0;
         shard1.packages["test-pkg-2.0.0-0.tar.bz2"] = pkg2;
 
-        shards.load_shard("pkg1", shard1);
+        shards.process_fetched_shard("pkg1", shard1);
 
         auto repodata = shards.build_repodata();
         REQUIRE(repodata.shard_dict.packages.size() == 2);
@@ -560,7 +560,7 @@ TEST_CASE("Shards - build_repodata")
         pkg1.build = "0";
         shard1.conda_packages["test-pkg-1.0.0-0.conda"] = pkg1;
 
-        shards.load_shard("pkg1", shard1);
+        shards.process_fetched_shard("pkg1", shard1);
 
         auto repodata = shards.build_repodata();
         REQUIRE(repodata.shard_dict.conda_packages.size() == 1);
@@ -581,8 +581,8 @@ TEST_CASE("Shards - build_repodata")
         pkg2.version = "1.0.0";
         shard2.packages["pkg2-1.0.0.tar.bz2"] = pkg2;
 
-        shards.load_shard("pkg1", shard1);
-        shards.load_shard("pkg2", shard2);
+        shards.process_fetched_shard("pkg1", shard1);
+        shards.process_fetched_shard("pkg2", shard2);
 
         auto repodata = shards.build_repodata();
         REQUIRE(repodata.shard_dict.packages.size() == 2);
@@ -658,7 +658,7 @@ TEST_CASE("Shards - fetch_shards with visited cache")
         pkg1.version = "1.0.0";
         shard1.packages["pkg1-1.0.0.tar.bz2"] = pkg1;
 
-        shards.load_shard("pkg1", shard1);
+        shards.process_fetched_shard("pkg1", shard1);
 
         std::vector<std::string> packages = { "pkg1", "pkg2" };
         auto result = shards.fetch_shards(packages);
@@ -779,7 +779,7 @@ TEST_CASE("Shards - build_repodata sorting")
         pkg2.build_number = 1;
         shard1.packages["test-pkg-1.0.0-1.tar.bz2"] = pkg2;
 
-        shards.load_shard("pkg1", shard1);
+        shards.process_fetched_shard("pkg1", shard1);
 
         auto repodata = shards.build_repodata();
         REQUIRE(repodata.shard_dict.packages.size() == 2);
@@ -818,7 +818,7 @@ TEST_CASE("Shards - build_repodata sorting")
         pkg2.build_number = 0;
         shard1.packages["test-pkg-1.0.0-b.tar.bz2"] = pkg2;
 
-        shards.load_shard("pkg1", shard1);
+        shards.process_fetched_shard("pkg1", shard1);
 
         auto repodata = shards.build_repodata();
         REQUIRE(repodata.shard_dict.packages.size() == 2);

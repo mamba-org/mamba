@@ -581,6 +581,13 @@ namespace mamba
         std::vector<std::shared_ptr<TemporaryFile>>& artifacts
     ) const
     {
+        // Reserve space in the vectors
+        const std::size_t num_file_to_fetch = url_to_package.size();
+
+        cache_miss_urls.reserve(num_file_to_fetch);
+        cache_miss_packages.reserve(num_file_to_fetch);
+        artifacts.reserve(num_file_to_fetch);
+
         for (const auto& [url, package] : url_to_package)
         {
             cache_miss_urls.push_back(url);

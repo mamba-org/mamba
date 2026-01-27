@@ -601,22 +601,22 @@ namespace mamba
             // Ensure PassThroughMirror exists for absolute URLs (created automatically in
             // constructor)
 
+            // Create cache directory using user cache dir, not URL path
+            const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();
+            const fs::u8path cache_dir_path = fs::u8path(
+                                                  XDG_CACHE_HOME_SET
+                                                      ? util::get_env("XDG_CACHE_HOME").value()
+                                                      : util::user_cache_dir()
+                                              )
+                                              / "conda" / "pkgs";
+
+            const std::string cache_dir_str = create_cache_dir(cache_dir_path);
+
             for (const auto& [url, package] : url_to_package)
             {
                 cache_miss_urls.push_back(url);
                 cache_miss_packages.push_back(package);
 
-                // Create cache directory using user cache dir, not URL path
-                fs::u8path cache_dir_path;
-                if (auto cache_home = util::get_env("XDG_CACHE_HOME"))
-                {
-                    cache_dir_path = fs::u8path(*cache_home) / "conda" / "pkgs";
-                }
-                else
-                {
-                    cache_dir_path = fs::u8path(util::user_cache_dir()) / "conda" / "pkgs";
-                }
-                std::string cache_dir_str = create_cache_dir(cache_dir_path);
                 auto artifact = std::make_shared<TemporaryFile>("mambashard", "", cache_dir_str);
 
                 // Keep artifact alive to prevent deletion

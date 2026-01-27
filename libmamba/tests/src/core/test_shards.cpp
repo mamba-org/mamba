@@ -440,10 +440,10 @@ TEST_CASE("Shards - Basic operations")
         REQUIRE_FALSE(shards.contains("nonexistent"));
     }
 
-    SECTION("shard_loaded")
+    SECTION("is_shard_present")
     {
-        REQUIRE_FALSE(shards.shard_loaded("pkg1"));
-        REQUIRE_FALSE(shards.shard_loaded("pkg2"));
+        REQUIRE_FALSE(shards.is_shard_present("pkg1"));
+        REQUIRE_FALSE(shards.is_shard_present("pkg2"));
     }
 
     SECTION("process_fetched_shard and visit_package")
@@ -455,8 +455,8 @@ TEST_CASE("Shards - Basic operations")
         shard1.packages["pkg1-1.0.0.tar.bz2"] = record1;
 
         shards.process_fetched_shard("pkg1", shard1);
-        REQUIRE(shards.shard_loaded("pkg1"));
-        REQUIRE_FALSE(shards.shard_loaded("pkg2"));
+        REQUIRE(shards.is_shard_present("pkg1"));
+        REQUIRE_FALSE(shards.is_shard_present("pkg2"));
 
         auto visited = shards.visit_package("pkg1");
         REQUIRE(visited.packages.size() == 1);

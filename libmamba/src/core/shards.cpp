@@ -458,7 +458,7 @@ namespace mamba
         }
     }
 
-    auto Shards::shard_loaded(const std::string& package) const -> bool
+    auto Shards::is_shard_present(const std::string& package) const -> bool
     {
         return m_visited.find(package) != m_visited.end();
     }

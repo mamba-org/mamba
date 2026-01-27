@@ -67,7 +67,7 @@ namespace mamba
         [[nodiscard]] auto shard_url(const std::string& package) const -> std::string;
 
         /** Return True if the given package's shard is in memory. */
-        [[nodiscard]] auto shard_loaded(const std::string& package) const -> bool;
+        [[nodiscard]] auto is_shard_present(const std::string& package) const -> bool;
 
         /** Return a shard that is already loaded in memory. */
         [[nodiscard]] auto visit_package(const std::string& package) const -> ShardDict;

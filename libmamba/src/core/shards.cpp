@@ -28,6 +28,7 @@
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 
 namespace mamba
@@ -310,14 +311,9 @@ namespace mamba
         }
 
         std::string shards_base_url_str = m_shards_index.info.shards_base_url;
-        if (!shards_base_url_str.empty() && !util::ends_with(shards_base_url_str, "/"))
-        {
-            shards_base_url_str += "/";
-        }
 
-        // Check if shards_base_url is absolute (starts with http:// or https://)
-        bool is_absolute = util::starts_with(shards_base_url_str, "http://")
-                           || util::starts_with(shards_base_url_str, "https://");
+        // Check if shards_base_url is absolute (has a URL scheme)
+        bool is_absolute = util::url_has_scheme(shards_base_url_str);
 
         std::string result;
         if (is_absolute)
@@ -328,9 +324,11 @@ namespace mamba
         else
         {
             // For relative URLs, join with repodata URL
-            result = util::url_concat(m_url, "/", shards_base_url_str);
+            // url_concat handles slashes automatically, no need for "/" separator
+            result = util::url_concat(m_url, shards_base_url_str);
         }
 
+        // Ensure trailing slash
         if (!util::ends_with(result, "/"))
         {
             result += "/";
@@ -385,69 +383,52 @@ namespace mamba
 
         std::string shards_base_url_str = m_shards_index.info.shards_base_url;
 
-        // Check if shards_base_url is absolute
-        bool is_absolute = util::starts_with(shards_base_url_str, "http://")
-                           || util::starts_with(shards_base_url_str, "https://");
+        // Check if shards_base_url is absolute (has a URL scheme)
+        bool is_absolute = util::url_has_scheme(shards_base_url_str);
 
         if (is_absolute)
         {
             // For absolute URLs, check if it's on the same host as the channel
-            // Extract host from shards_base_url and m_url
-            std::string shards_host;
-            std::string channel_host;
+            // Parse URLs to extract hosts and paths
+            auto shards_url_parsed = util::URL::parse(shards_base_url_str);
+            auto channel_url_parsed = util::URL::parse(m_url);
 
-            // Extract host from shards_base_url_str
-            std::size_t scheme_end = shards_base_url_str.find("://");
-            if (scheme_end != std::string::npos)
+            if (shards_url_parsed.has_value() && channel_url_parsed.has_value())
             {
-                std::size_t host_end = shards_base_url_str.find('/', scheme_end + 3);
-                if (host_end != std::string::npos)
-                {
-                    shards_host = shards_base_url_str.substr(scheme_end + 3, host_end - scheme_end - 3);
-                }
-                else
-                {
-                    shards_host = shards_base_url_str.substr(scheme_end + 3);
-                }
-            }
+                const auto& shards_url = shards_url_parsed.value();
+                const auto& channel_url = channel_url_parsed.value();
 
-            // Extract host from m_url
-            scheme_end = m_url.find("://");
-            if (scheme_end != std::string::npos)
-            {
-                std::size_t host_end = m_url.find('/', scheme_end + 3);
-                if (host_end != std::string::npos)
-                {
-                    channel_host = m_url.substr(scheme_end + 3, host_end - scheme_end - 3);
-                }
-                else
-                {
-                    channel_host = m_url.substr(scheme_end + 3);
-                }
-            }
+                // Compare hosts (decoded)
+                std::string shards_host = shards_url.host();
+                std::string channel_host = channel_url.host();
 
-            // If hosts match, extract path component relative to channel
-            if (shards_host == channel_host)
-            {
-                // Extract path from shards_base_url_str
-                std::size_t path_start = shards_base_url_str.find(
-                    '/',
-                    scheme_end + 3 + shards_host.size()
-                );
-                if (path_start != std::string::npos)
+                // If hosts match, extract path component relative to channel
+                if (shards_host == channel_host)
                 {
-                    std::string path = shards_base_url_str.substr(path_start + 1);  // +1 to skip
-                                                                                    // leading /
-                    if (!util::ends_with(path, "/"))
+                    // Get path from shards URL (decoded, starts with '/')
+                    std::string path = shards_url.path();
+                    // Remove leading '/' since we want relative path
+                    if (path.size() > 1)
+                    {
+                        path = path.substr(1);
+                    }
+                    else
+                    {
+                        path.clear();
+                    }
+
+                    // Ensure trailing slash
+                    if (!path.empty() && !util::ends_with(path, "/"))
                     {
                         path += "/";
                     }
                     return path + shard_name;
                 }
             }
-            // If hosts don't match, we can't use mirror system - return full URL
+            // If hosts don't match or parsing failed, we can't use mirror system - return full URL
             // This will need special handling in fetch_shards
-            return shards_base_url_str + shard_name;
+            // Use url_concat to ensure proper URL joining
+            return util::url_concat(shards_base_url_str, shard_name);
         }
         else
         {
@@ -468,7 +449,8 @@ namespace mamba
             }
 
             // Construct path: platform/shards/<hash>.msgpack.zst
-            std::string path = util::url_concat(platform, "/", normalized_shards);
+            // url_concat handles slashes automatically, no need for "/" separator
+            std::string path = util::url_concat(platform, normalized_shards);
             if (!util::ends_with(path, "/"))
             {
                 path += "/";
@@ -650,8 +632,7 @@ namespace mamba
 
                 // Check if shard_path_str is a full URL (absolute shards_base_url on different
                 // host)
-                bool is_full_url = util::starts_with(shard_path_str, "http://")
-                                   || util::starts_with(shard_path_str, "https://");
+                bool is_full_url = util::url_has_scheme(shard_path_str);
 
                 std::string mirror_name;
                 std::string url_path;

@@ -50,10 +50,10 @@ namespace mamba
         Shards(
             ShardsIndexDict shards_index,
             std::string url,
-            const specs::Channel& channel,
-            const specs::AuthenticationDataBase& auth_info,
+            specs::Channel channel,
+            specs::AuthenticationDataBase auth_info,
             const download::mirror_map& mirrors,
-            const download::RemoteFetchParams& remote_fetch_params,
+            download::RemoteFetchParams remote_fetch_params,
             std::size_t download_threads = 10
         );
 

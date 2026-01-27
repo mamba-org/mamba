@@ -67,6 +67,7 @@ namespace mamba
             std::vector<std::string> result;
             if (obj.type == MSGPACK_OBJECT_ARRAY)
             {
+                result.reserve(obj.via.array.size);
                 for (std::uint32_t i = 0; i < obj.via.array.size; ++i)
                 {
                     try

@@ -38,6 +38,7 @@ runs:
       with:
         path: ${{ inputs.path }}
         key: ${{ inputs.key_prefix }}-${{ inputs.key_base }}-${{ inputs.key_suffix }}
+        enableCrossOsArchive: true
         fail-on-cache-miss: true
     - name: Delete workspace
       if: ${{ inputs.action == 'delete' }}

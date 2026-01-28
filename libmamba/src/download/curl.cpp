@@ -604,8 +604,7 @@ namespace mamba::download
         {
             return CURLMultiResponse{ .m_handle_id = CURLId(msg->easy_handle),
                                       .m_transfer_result = msg->data.result,
-                                      .m_transfer_done = msg->msg == CURLMSG_DONE
-            };
+                                      .m_transfer_done = msg->msg == CURLMSG_DONE };
         }
         else
         {

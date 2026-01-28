@@ -72,7 +72,6 @@ namespace mamba
         error_list_t m_error_list;
         mutable std::string m_aggregated_message;
         bool m_with_bug_report_message = true;
-
     };
 
     /********************************

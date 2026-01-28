@@ -129,6 +129,7 @@ main(int argc, char** argv)
 
         if (is_interruption)
         {
+            reset_console();
             LOG_WARNING << e.what();
             return 0;
         }

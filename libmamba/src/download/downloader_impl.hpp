@@ -175,6 +175,7 @@ namespace mamba::download
         bool can_start_transfer() const;
         void set_transfer_started();
 
+        // requires: is_done() == true
         const Result& get_result() const;
 
         bool is_waiting() const;

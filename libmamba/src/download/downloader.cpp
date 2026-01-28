@@ -1047,8 +1047,9 @@ namespace mamba::download
         m_mirror_attempt.set_transfer_started();
     }
 
-    const Result& DownloadTracker::get_result() const  // TODO: what to do if stopped?
+    const Result& DownloadTracker::get_result() const
     {
+        assert(not m_attempt_results.empty());
         return m_attempt_results.back();
     }
 

@@ -936,7 +936,6 @@ namespace mamba::download
 
     void MirrorAttempt::set_stopped()
     {
-        // TODO: NOT COMPLETE
         m_state = State::SEQUENCE_STOPPED;
     }
 
@@ -957,7 +956,6 @@ namespace mamba::download
 
     void MirrorAttempt::request_stop()
     {
-        // TODO: CHECK WHAT ELSE TO DO HERE
         m_attempt.request_stop();
     }
 
@@ -1154,14 +1152,12 @@ namespace mamba::download
 
     void DownloadTracker::set_stopped()
     {
-        // TODO: more?
         m_mirror_attempt.set_stopped();
         m_state = State::STOPPED;
     }
 
     void DownloadTracker::request_stop()
     {
-        // TODO: ?
         m_mirror_attempt.request_stop();
     }
 

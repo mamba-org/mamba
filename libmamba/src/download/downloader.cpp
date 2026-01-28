@@ -1338,12 +1338,10 @@ namespace mamba::download
 
     MultiResult Downloader::download()
     {
-        bool was_interrupted = false;
         while (!download_done())
         {
-            if (is_sig_interrupted() && not was_interrupted)
+            if (is_sig_interrupted())
             {
-                was_interrupted = true;
                 request_stop();
                 download_while_stopping();
                 break;

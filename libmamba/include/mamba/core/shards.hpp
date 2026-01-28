@@ -43,7 +43,6 @@ namespace mamba
          * @param url URL of repodata_shards.msgpack.zst.
          * @param channel Channel information for downloads.
          * @param auth_info Authentication information.
-         * @param mirrors Mirror map for downloads.
          * @param remote_fetch_params Remote fetch parameters.
          * @param download_threads Number of threads to use for parallel shard fetching.
          */
@@ -52,7 +51,6 @@ namespace mamba
             std::string url,
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
-            const download::mirror_map& mirrors,
             download::RemoteFetchParams remote_fetch_params,
             std::size_t download_threads = 10
         );
@@ -104,9 +102,6 @@ namespace mamba
 
         /** Authentication information. */
         specs::AuthenticationDataBase m_auth_info;
-
-        /** Mirror map (reference, not copyable). */
-        [[maybe_unused]] const download::mirror_map& m_mirrors;
 
         /** Remote fetch parameters. */
         download::RemoteFetchParams m_remote_fetch_params;

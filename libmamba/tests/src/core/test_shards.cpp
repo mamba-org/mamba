@@ -60,7 +60,6 @@ TEST_CASE("Shards URL construction")
 
         specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
         specs::AuthenticationDataBase auth_info;
-        download::mirror_map mirrors;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
@@ -68,7 +67,6 @@ TEST_CASE("Shards URL construction")
             "https://example.com/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
-            mirrors,
             remote_fetch_params
         );
 
@@ -91,7 +89,6 @@ TEST_CASE("Shards URL construction")
 
         specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
         specs::AuthenticationDataBase auth_info;
-        download::mirror_map mirrors;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
@@ -99,7 +96,6 @@ TEST_CASE("Shards URL construction")
             "https://example.com/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
-            mirrors,
             remote_fetch_params
         );
 
@@ -122,7 +118,6 @@ TEST_CASE("Shards URL construction")
 
         specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
         specs::AuthenticationDataBase auth_info;
-        download::mirror_map mirrors;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
@@ -130,7 +125,6 @@ TEST_CASE("Shards URL construction")
             "https://example.com/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
-            mirrors,
             remote_fetch_params
         );
 
@@ -413,7 +407,6 @@ TEST_CASE("Shards - Basic operations")
 
     specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
     specs::AuthenticationDataBase auth_info;
-    download::mirror_map mirrors;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
@@ -421,7 +414,6 @@ TEST_CASE("Shards - Basic operations")
         "https://example.com/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
-        mirrors,
         remote_fetch_params
     );
 
@@ -491,7 +483,6 @@ TEST_CASE("Shards - build_repodata")
 
     specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
     specs::AuthenticationDataBase auth_info;
-    download::mirror_map mirrors;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
@@ -499,7 +490,6 @@ TEST_CASE("Shards - build_repodata")
         "https://example.com/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
-        mirrors,
         remote_fetch_params
     );
 
@@ -599,7 +589,6 @@ TEST_CASE("Shards - Error handling")
 
     specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
     specs::AuthenticationDataBase auth_info;
-    download::mirror_map mirrors;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
@@ -607,7 +596,6 @@ TEST_CASE("Shards - Error handling")
         "https://example.com/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
-        mirrors,
         remote_fetch_params
     );
 
@@ -638,7 +626,6 @@ TEST_CASE("Shards - fetch_shards with visited cache")
 
     specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
     specs::AuthenticationDataBase auth_info;
-    download::mirror_map mirrors;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
@@ -646,7 +633,6 @@ TEST_CASE("Shards - fetch_shards with visited cache")
         "https://example.com/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
-        mirrors,
         remote_fetch_params
     );
 
@@ -710,11 +696,6 @@ TEST_CASE("Shards - Parse shard file from disk")
 
     specs::Channel channel = make_simple_channel("file://" + tmp_dir.path().string());
     specs::AuthenticationDataBase auth_info;
-    download::mirror_map mirrors;
-    mirrors.add_unique_mirror(
-        channel.id(),
-        download::make_mirror("file://" + tmp_dir.path().string() + "/")
-    );
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
@@ -722,7 +703,6 @@ TEST_CASE("Shards - Parse shard file from disk")
         "file://" + tmp_dir.path().string() + "/repodata.json",
         channel,
         auth_info,
-        mirrors,
         remote_fetch_params
     );
 
@@ -750,7 +730,6 @@ TEST_CASE("Shards - build_repodata sorting")
 
     specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
     specs::AuthenticationDataBase auth_info;
-    download::mirror_map mirrors;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
@@ -758,7 +737,6 @@ TEST_CASE("Shards - build_repodata sorting")
         "https://example.com/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
-        mirrors,
         remote_fetch_params
     );
 
@@ -853,7 +831,6 @@ TEST_CASE("Shards - shards_base_url edge cases")
 
     specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
     specs::AuthenticationDataBase auth_info;
-    download::mirror_map mirrors;
     download::RemoteFetchParams remote_fetch_params;
 
     SECTION("Empty shards_base_url")
@@ -864,7 +841,6 @@ TEST_CASE("Shards - shards_base_url edge cases")
             "https://example.com/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
-            mirrors,
             remote_fetch_params
         );
 
@@ -880,7 +856,6 @@ TEST_CASE("Shards - shards_base_url edge cases")
             "https://example.com/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
-            mirrors,
             remote_fetch_params
         );
 
@@ -897,7 +872,6 @@ TEST_CASE("Shards - shards_base_url edge cases")
             "https://example.com/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
-            mirrors,
             remote_fetch_params
         );
 

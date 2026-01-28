@@ -276,7 +276,6 @@ namespace mamba
         std::string url,
         specs::Channel channel,
         specs::AuthenticationDataBase auth_info,
-        const download::mirror_map& mirrors,
         download::RemoteFetchParams remote_fetch_params,
         std::size_t download_threads
     )
@@ -284,7 +283,6 @@ namespace mamba
         , m_url(std::move(url))
         , m_channel(std::move(channel))
         , m_auth_info(std::move(auth_info))
-        , m_mirrors(mirrors)  // Reference, not copy
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(download_threads)
     {

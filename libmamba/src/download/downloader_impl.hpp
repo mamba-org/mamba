@@ -177,6 +177,9 @@ namespace mamba::download
 
         const Result& get_result() const;
 
+        bool is_waiting() const;
+        void complete_as_stopped();
+
     private:
 
         enum class State
@@ -184,7 +187,6 @@ namespace mamba::download
             WAITING,
             PREPARING,
             RUNNING,
-            STOPPING,
             STOPPED,
             FINISHED,
             FAILED
@@ -194,7 +196,6 @@ namespace mamba::download
         void invoke_on_failure(const Error&) const;
         void invoke_on_stopped() const;
 
-        bool is_waiting() const;
         bool can_try_other_mirror() const;
 
         void set_state(bool success);
@@ -256,6 +257,7 @@ namespace mamba::download
 
         void request_stop();
         void download_while_stopping();
+        void force_stop_waiting_downloads();
 
         MultiRequest m_requests;
         std::vector<DownloadTracker> m_trackers;

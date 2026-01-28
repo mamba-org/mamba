@@ -1024,9 +1024,7 @@ namespace mamba::download
             },
             [this]
             {
-                invoke_on_stopped();
-                set_stopped();
-                save(make_stop_error());
+                complete_as_stopped();
                 return false;
             }
         );
@@ -1153,7 +1151,6 @@ namespace mamba::download
     void DownloadTracker::request_stop()
     {
         // TODO: ?
-        m_state = State::STOPPING;
         m_mirror_attempt.request_stop();
     }
 
@@ -1252,6 +1249,13 @@ namespace mamba::download
         return stats.successful_transfers == 0 && stats.failed_transfers >= mirror->max_retries();
     }
 
+    void DownloadTracker::complete_as_stopped()
+    {
+        invoke_on_stopped();
+        set_stopped();
+        save(make_stop_error());
+    }
+
     /*****************************
      * DOWNLOADER IMPLEMENTATION *
      *****************************/
@@ -1307,8 +1311,7 @@ namespace mamba::download
         // HACK: print the warning after the progress bars
         for (const auto& tracker [[maybe_unused]] : m_trackers)
         {
-            LOG_WARNING << "...";
-            LOG_WARNING << "Interruption requested by user, stopping all downloads...";
+            LOG_WARNING << "Interruption requested by user, stopping download...";
         }
         logging::flush_logs();
 
@@ -1316,6 +1319,12 @@ namespace mamba::download
         {
             tracker.request_stop();
         }
+
+        // Waiting downloads need to be stopped at this point to avoid waiting for never finishing
+        // downloads (because they never started), even if the stopping was requested before all
+        // downloads. The downloads that already started will end naturally when receiving the
+        // proper libcurl message.
+        force_stop_waiting_downloads();
     }
 
     MultiResult Downloader::download()
@@ -1344,6 +1353,19 @@ namespace mamba::download
             update_downloads();
         }
         invoke_unexpected_termination();
+    }
+
+    void Downloader::force_stop_waiting_downloads()
+    {
+        for (auto& tracker : m_trackers)
+        {
+            if (tracker.is_waiting())
+            {
+                tracker.complete_as_stopped();
+                assert(m_waiting_count > 0);
+                --m_waiting_count;
+            }
+        }
     }
 
     void Downloader::prepare_next_downloads()
@@ -1382,7 +1404,7 @@ namespace mamba::download
         while (auto resp = m_curl_handle.pop_message())
         {
             const auto& msg = resp.value();
-            if (!msg.m_transfer_done)
+            if (not msg.m_transfer_done)
             {
                 // We are only interested in messages about finished transfers
                 continue;

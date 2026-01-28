@@ -389,11 +389,31 @@ namespace mamba
             return true;
         }
 
+        // before user confirmation
+        if (is_sig_interrupted())
+        {
+            Console::stream() << "Interrupted by user - stopped before transaction.";
+            return true;
+        }
+        
         auto lf = LockFile(ctx.prefix_params.target_prefix / "conda-meta");
         clean_trash_files(ctx.prefix_params.target_prefix, false);
 
+        // after user confirmation or ctrl-c
+        if (is_sig_interrupted())
+        {
+            Console::stream() << "Interrupted by user - stopped before transaction.";
+            return true;
+        }
+
         Console::stream() << "\nTransaction starting";
         fetch_extract_packages(ctx, channel_context);
+
+        if (is_sig_interrupted())
+        {
+            Console::stream() << "Interrupted by user - transaction stopped.";
+            return true;
+        }
 
         if (ctx.download_only)
         {

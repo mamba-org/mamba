@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/logging.hpp"
 
@@ -92,6 +94,14 @@ namespace mamba
             }
         }
         return m_aggregated_message.c_str();
+    }
+
+    bool mamba_aggregated_error::has_only_error(const mamba_error_code code) const
+    {
+        return std::ranges::all_of(
+            m_error_list,
+            [&](const auto& err) { return err.error_code() == code; }
+        );
     }
 
     tl::unexpected<mamba_error> make_unexpected(const char* msg, mamba_error_code ec)

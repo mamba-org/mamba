@@ -67,6 +67,8 @@ namespace mamba
 
         const char* what() const noexcept override;
 
+        bool has_only_error(mamba_error_code code) const;
+
     private:
 
         error_list_t m_error_list;

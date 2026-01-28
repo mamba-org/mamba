@@ -90,6 +90,12 @@ main(int argc, char** argv)
     ctx.command_params.current_command = full_command.str();
 
     std::optional<std::string> error_to_report;
+    auto handle_exception = [&](auto& e)
+    {
+        error_to_report = e.what();
+        set_sig_interrupted();
+    };
+
     try
     {
         CLI11_PARSE(app, argc, utf8argv);
@@ -105,10 +111,35 @@ main(int argc, char** argv)
             Console::instance().print(app.get_subcommand("config")->help());
         }
     }
+    catch (const mamba::mamba_error& e)
+    {
+        // We treat interruptions (ctrl-c) specially by not logging a critical error.s
+        const bool is_interruption = [&]
+        {
+            if (e.error_code() == mamba::mamba_error_code::aggregated)
+            {
+                const auto& aggregated_error = static_cast<const mamba::mamba_aggregated_error&>(e);
+                return aggregated_error.has_only_error(mamba::mamba_error_code::user_interrupted);
+            }
+            else
+            {
+                return e.error_code() == mamba::mamba_error_code::user_interrupted;
+            }
+        }();
+
+        if (is_interruption)
+        {
+            LOG_WARNING << e.what();
+            return 0;
+        }
+        else
+        {
+            handle_exception(e);
+        }
+    }
     catch (const std::exception& e)
     {
-        error_to_report = e.what();
-        set_sig_interrupted();
+        handle_exception(e);
     }
 
     reset_console();

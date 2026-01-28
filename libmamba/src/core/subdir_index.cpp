@@ -557,7 +557,7 @@ namespace mamba
             // missing subdirs (e.g. local path as a `noarch` but no `linux-64`).
             for (auto& result : results)
             {
-                // Don't log if it's a user interuption.
+                // Don't log if it's a user interruption.
                 if (!result.has_value() and not result.error().is_stop)
                 {
                     LOG_WARNING << "Failed to load subdir: " << result.error().message;

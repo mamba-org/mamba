@@ -395,7 +395,7 @@ namespace mamba
             Console::stream() << "Interrupted by user - stopped before transaction.";
             return true;
         }
-        
+
         auto lf = LockFile(ctx.prefix_params.target_prefix / "conda-meta");
         clean_trash_files(ctx.prefix_params.target_prefix, false);
 

@@ -398,7 +398,7 @@ namespace mamba
         if (ctx.download_only)
         {
             Console::stream()
-                << "Download only - packages are downloaded and extracted. Skipping the linking phase.";
+                << "Download only - packages download and extraction is done. Skipping the linking phase.";
             return true;
         }
 

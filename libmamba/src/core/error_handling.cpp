@@ -80,7 +80,11 @@ namespace mamba
     {
         if (m_aggregated_message.empty())
         {
-            m_aggregated_message = message_aggregated_error_top;
+            // If we have only one error, don't say it's multiple errors.
+            if (m_error_list.size() > 1)
+            {
+                m_aggregated_message = message_aggregated_error_top;
+            }
 
             for (const mamba_error& er : m_error_list)
             {

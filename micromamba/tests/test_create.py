@@ -50,6 +50,67 @@ def assert_explicit_envs_identical(src_explicit, clone_explicit):
     )
 
 
+def assert_yaml_envs_identical(src_yaml, clone_yaml):
+    """
+    Compare two YAML environment exports.
+
+    This function normalizes YAML exports by parsing them and comparing
+    the normalized structure, ensuring dependencies (including pip packages)
+    are identical.
+    """
+
+    def normalize_yaml(yaml_str):
+        """Normalize YAML by parsing and sorting dependencies."""
+        data = yaml.safe_load(yaml_str)
+        if data is None:
+            return {}
+
+        normalized = {}
+
+        # Skip name and prefix fields - cloned environments have different names and prefixes
+
+        # Normalize dependencies
+        if "dependencies" in data:
+            deps = data["dependencies"]
+            normalized_deps = []
+            pip_deps = []
+
+            for dep in deps:
+                if isinstance(dep, dict) and "pip" in dep:
+                    # Extract pip dependencies
+                    pip_deps.extend(sorted(dep["pip"]))
+                elif isinstance(dep, str):
+                    # Conda package
+                    normalized_deps.append(dep)
+
+            # Sort conda dependencies
+            normalized_deps.sort()
+
+            # Reconstruct dependencies list
+            normalized["dependencies"] = normalized_deps
+            if pip_deps:
+                normalized["dependencies"].append({"pip": sorted(pip_deps)})
+
+        # Preserve channels if present
+        if "channels" in data:
+            normalized["channels"] = sorted(data["channels"])
+
+        # Preserve variables if present
+        if "variables" in data:
+            normalized["variables"] = data["variables"]
+
+        return normalized
+
+    src_normalized = normalize_yaml(src_yaml)
+    clone_normalized = normalize_yaml(clone_yaml)
+
+    assert src_normalized == clone_normalized, (
+        f"YAML environment specifications differ.\n"
+        f"Source: {yaml.dump(src_normalized, sort_keys=True)}\n"
+        f"Clone: {yaml.dump(clone_normalized, sort_keys=True)}"
+    )
+
+
 env_file_requires_pip_install_path = __this_dir__ / "env-requires-pip-install.yaml"
 
 
@@ -335,11 +396,11 @@ def test_clone_by_name(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.create("--clone", src_env, "-n", clone_env, "--json", no_dry_run=True)
     assert res["success"]
 
-    # Compare explicit exported environment specifications
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
+    # Compare YAML exported environment specifications
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
 
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -353,11 +414,11 @@ def test_clone_by_prefix_path(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.create("--clone", src_prefix, "-p", clone_prefix, "--json", no_dry_run=True)
     assert res["success"]
 
-    # Compare explicit exported environment specifications
-    src_explicit = helpers.run_env("export", "-p", src_prefix, "--explicit")
-    clone_explicit = helpers.run_env("export", "-p", clone_prefix, "--explicit")
+    # Compare YAML exported environment specifications
+    src_yaml = helpers.run_env("export", "-p", src_prefix)
+    clone_yaml = helpers.run_env("export", "-p", clone_prefix)
 
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -466,9 +527,9 @@ def test_clone_with_quiet(tmp_home, tmp_root_prefix, tmp_path, quiet_flag):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -492,9 +553,9 @@ def test_clone_with_verbose(tmp_home, tmp_root_prefix, tmp_path, verbose_flag):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -518,9 +579,9 @@ def test_clone_with_copy(tmp_home, tmp_root_prefix, tmp_path, copy_flag):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -545,9 +606,9 @@ def test_clone_with_always_softlink(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -571,9 +632,9 @@ def test_clone_with_no_pin(tmp_home, tmp_root_prefix, tmp_path, no_pin_flag):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -597,9 +658,9 @@ def test_clone_with_no_py_pin(tmp_home, tmp_root_prefix, tmp_path, no_py_pin_fla
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -623,9 +684,9 @@ def test_clone_with_shortcuts(tmp_home, tmp_root_prefix, tmp_path, shortcuts_fla
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -649,9 +710,9 @@ def test_clone_with_safety_checks(tmp_home, tmp_root_prefix, tmp_path, safety_ch
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -682,9 +743,9 @@ def test_clone_with_relocate_prefix(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
     # Verify environments have same packages
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
     # On non-Windows, verify relocation was applied
     if platform.system() != "Windows":
@@ -711,9 +772,9 @@ def test_clone_with_no_env(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -740,9 +801,9 @@ def test_clone_with_channel(tmp_home, tmp_root_prefix, tmp_path, channel_flag):
     assert res["success"]
 
     # Verify environments are identical (channels shouldn't affect cloning)
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -769,9 +830,9 @@ def test_clone_with_override_channels(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -797,9 +858,9 @@ def test_clone_with_channel_priority(tmp_home, tmp_root_prefix, tmp_path, channe
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -824,12 +885,12 @@ def test_clone_target_as_prefix_vs_name(tmp_home, tmp_root_prefix, tmp_path):
     assert res2["success"]
 
     # Both should be identical to source
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    name_explicit = helpers.run_env("export", "-n", clone_env_name, "--explicit")
-    prefix_explicit = helpers.run_env("export", "-p", clone_env_prefix, "--explicit")
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    name_yaml = helpers.run_env("export", "-n", clone_env_name)
+    prefix_yaml = helpers.run_env("export", "-p", clone_env_prefix)
 
-    assert_explicit_envs_identical(src_explicit, name_explicit)
-    assert_explicit_envs_identical(src_explicit, prefix_explicit)
+    assert_yaml_envs_identical(src_yaml, name_yaml)
+    assert_yaml_envs_identical(src_yaml, prefix_yaml)
 
 
 @pytest.mark.skipif(
@@ -859,9 +920,9 @@ def test_clone_with_multiple_flags(tmp_home, tmp_root_prefix, tmp_path):
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
 
 
 @pytest.mark.skipif(
@@ -911,9 +972,100 @@ def test_clone_environment_with_many_packages(tmp_home, tmp_root_prefix, tmp_pat
     assert res["success"]
 
     # Verify environments are identical
-    src_explicit = helpers.run_env("export", "-n", src_env, "--explicit")
-    clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
-    assert_explicit_envs_identical(src_explicit, clone_explicit)
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_with_pypi_packages(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning an environment with both conda and PyPI packages."""
+    src_env = "clone-src-pypi"
+    clone_env = "clone-target-pypi"
+
+    # Create source environment with conda packages
+    helpers.create("-n", src_env, "python=3.10", "pip", "--json", no_dry_run=True)
+
+    # Install PyPI packages
+    helpers.umamba_run("-n", src_env, "pip", "install", "itsdangerous==2.1.2", "click==8.1.7")
+
+    # Verify PyPI packages are installed in source
+    src_packages = helpers.umamba_list("-n", src_env, "--json")
+    src_pip_packages = [pkg for pkg in src_packages if pkg.get("channel") == "pypi"]
+    assert any(pkg["name"] == "itsdangerous" for pkg in src_pip_packages)
+    assert any(pkg["name"] == "click" for pkg in src_pip_packages)
+
+    # Clone the environment
+    res = helpers.create("--clone", src_env, "-n", clone_env, "--json", no_dry_run=True)
+    assert res["success"]
+
+    # Verify conda packages are cloned
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
+
+    # Verify PyPI packages are cloned
+    clone_packages = helpers.umamba_list("-n", clone_env, "--json")
+    clone_pip_packages = [pkg for pkg in clone_packages if pkg.get("channel") == "pypi"]
+
+    # Check that PyPI packages are present
+    clone_pip_names = {pkg["name"] for pkg in clone_pip_packages}
+    assert "itsdangerous" in clone_pip_names
+    assert "click" in clone_pip_names
+
+    # Verify versions match
+    src_itsdangerous = next(pkg for pkg in src_pip_packages if pkg["name"] == "itsdangerous")
+    clone_itsdangerous = next(pkg for pkg in clone_pip_packages if pkg["name"] == "itsdangerous")
+    assert src_itsdangerous["version"] == clone_itsdangerous["version"]
+
+    src_click = next(pkg for pkg in src_pip_packages if pkg["name"] == "click")
+    clone_click = next(pkg for pkg in clone_pip_packages if pkg["name"] == "click")
+    assert src_click["version"] == clone_click["version"]
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
+    reason="Running only ultra-dry tests",
+)
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_clone_pypi_only(tmp_home, tmp_root_prefix, tmp_path):
+    """Test cloning an environment with only PyPI packages."""
+    src_env = "clone-src-pypi-only"
+    clone_env = "clone-target-pypi-only"
+
+    # Create source environment with only Python and pip
+    helpers.create("-n", src_env, "python=3.10", "pip", "--json", no_dry_run=True)
+
+    # Install PyPI packages only
+    helpers.umamba_run("-n", src_env, "pip", "install", "itsdangerous==2.1.2")
+
+    # Verify PyPI package is installed in source
+    src_packages = helpers.umamba_list("-n", src_env, "--json")
+    src_pip_packages = [pkg for pkg in src_packages if pkg.get("channel") == "pypi"]
+    assert any(pkg["name"] == "itsdangerous" for pkg in src_pip_packages)
+
+    # Clone the environment
+    res = helpers.create("--clone", src_env, "-n", clone_env, "--json", no_dry_run=True)
+    assert res["success"]
+
+    # Verify YAML environment specifications are identical
+    src_yaml = helpers.run_env("export", "-n", src_env)
+    clone_yaml = helpers.run_env("export", "-n", clone_env)
+    assert_yaml_envs_identical(src_yaml, clone_yaml)
+
+    # Verify PyPI package is cloned
+    clone_packages = helpers.umamba_list("-n", clone_env, "--json")
+    clone_pip_packages = [pkg for pkg in clone_packages if pkg.get("channel") == "pypi"]
+    assert any(pkg["name"] == "itsdangerous" for pkg in clone_pip_packages)
+
+    # Verify version matches
+    src_itsdangerous = next(pkg for pkg in src_pip_packages if pkg["name"] == "itsdangerous")
+    clone_itsdangerous = next(pkg for pkg in clone_pip_packages if pkg["name"] == "itsdangerous")
+    assert src_itsdangerous["version"] == clone_itsdangerous["version"]
 
 
 # Only run this test on Linux, as it is the only platform where xeus-cling

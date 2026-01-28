@@ -4,7 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
 #include <iostream>
+
+#include <yaml-cpp/yaml.h>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
@@ -57,6 +60,7 @@ namespace mamba
         void clone_environment(
             Context& ctx,
             ChannelContext& channel_context,
+            Configuration& config,
             const fs::u8path& source_prefix,
             bool create_env,
             bool remove_prefix_on_failure
@@ -77,40 +81,85 @@ namespace mamba
             }
             const PrefixData& source_prefix_data = maybe_prefix_data.value();
 
-            std::vector<std::string> explicit_urls;
-            const auto records = source_prefix_data.sorted_records();
-            explicit_urls.reserve(records.size());
-
-            for (const auto& pkg : records)
+            // Export source environment to YAML format
+            TemporaryFile yaml_file("mamba_env_", ".yml");
             {
-                if (pkg.package_url.empty())
+                YAML::Emitter out;
+                out << YAML::BeginMap;
+
+                // Add dependencies section
+                out << YAML::Key << "dependencies" << YAML::Value << YAML::BeginSeq;
+
+                // Add conda packages
+                const auto records = source_prefix_data.sorted_records();
+                for (const auto& pkg : records)
                 {
-                    // Fallback to channel/platform/filename if possible.
-                    if (pkg.channel.empty() || pkg.platform.empty() || pkg.filename.empty())
-                    {
-                        LOG_WARNING << "Skipping package without URL information while cloning: "
-                                    << pkg.name;
-                        continue;
-                    }
-                    const auto url = pkg.url_for_channel(pkg.channel);
-                    explicit_urls.push_back(url);
+                    out << fmt::format("{}={}={}", pkg.name, pkg.version, pkg.build_string);
                 }
-                else
+
+                // Add pip packages as a sub-map
+                const auto& pip_records = source_prefix_data.pip_records();
+                if (!pip_records.empty())
                 {
-                    std::string url = pkg.package_url;
-                    if (!pkg.sha256.empty())
+                    out << YAML::BeginMap;
+                    out << YAML::Key << "pip" << YAML::Value << YAML::BeginSeq;
+                    for (const auto& [name, pkg] : pip_records)
                     {
-                        url += "#sha256:" + pkg.sha256;
+                        out << (pkg.name + "==" + pkg.version);
                     }
-                    else if (!pkg.md5.empty())
-                    {
-                        url += "#" + pkg.md5;
-                    }
-                    explicit_urls.push_back(std::move(url));
+                    out << YAML::EndSeq;
+                    out << YAML::EndMap;
                 }
+
+                out << YAML::EndSeq;
+                out << YAML::EndMap;
+
+                // Write YAML to temporary file
+                std::ofstream yaml_out = open_ofstream(yaml_file.path());
+                yaml_out << out.c_str();
+                yaml_out.close();
             }
 
-            install_explicit_specs(ctx, channel_context, explicit_urls, create_env, remove_prefix_on_failure);
+            // Read YAML file and populate config
+            const auto parse_result = detail::read_yaml_file(
+                ctx,
+                yaml_file.path().string(),
+                ctx.platform,
+                ctx.use_uv
+            );
+
+            // Populate config with parsed YAML contents
+            if (!parse_result.dependencies.empty())
+            {
+                auto& specs = config.at("specs").value<std::vector<std::string>>();
+                specs.insert(
+                    specs.end(),
+                    parse_result.dependencies.begin(),
+                    parse_result.dependencies.end()
+                );
+            }
+
+            if (!parse_result.others_pkg_mgrs_specs.empty())
+            {
+                auto& others_pkg_mgrs_specs = config.at("others_pkg_mgrs_specs")
+                                                  .value<std::vector<detail::other_pkg_mgr_spec>>();
+                others_pkg_mgrs_specs.insert(
+                    others_pkg_mgrs_specs.end(),
+                    parse_result.others_pkg_mgrs_specs.begin(),
+                    parse_result.others_pkg_mgrs_specs.end()
+                );
+            }
+
+            // Install packages from config
+            const auto& install_specs_vec = config.at("specs").value<std::vector<std::string>>();
+            install_specs(
+                ctx,
+                channel_context,
+                config,
+                install_specs_vec,
+                create_env,
+                remove_prefix_on_failure
+            );
         }
     }  // namespace
 
@@ -239,7 +288,14 @@ namespace mamba
         {
             const auto clone_value = clone_cfg.value<std::string>();
             const auto source_prefix = compute_clone_source_prefix(ctx, clone_value);
-            clone_environment(ctx, channel_context, source_prefix, create_env, remove_prefix_on_failure);
+            clone_environment(
+                ctx,
+                channel_context,
+                config,
+                source_prefix,
+                create_env,
+                remove_prefix_on_failure
+            );
             return;
         }
 

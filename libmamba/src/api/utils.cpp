@@ -27,16 +27,16 @@ namespace mamba
     {
         tl::expected<command_args, std::runtime_error> get_pkg_mgr_install_command(
             const std::string& name,
-            const std::string& target_prefix,
+            const fs::u8path& prefix,
             const fs::u8path& spec_file,
             pip::Update update
         )
         {
             const auto get_python_path = [&]
-            { return util::which_in("python", util::get_path_dirs(target_prefix)).string(); };
+            { return util::which_in("python", util::get_path_dirs(prefix)).string(); };
 
             const auto get_uv_path = [&]
-            { return util::which_in("uv", util::get_path_dirs(target_prefix)).string(); };
+            { return util::which_in("uv", util::get_path_dirs(prefix)).string(); };
 
             command_args cmd = [&]
             {
@@ -157,14 +157,21 @@ namespace mamba
             {
                 specs_f << d.c_str() << '\n';
             }
+            specs_f.flush();
+            specs_f.close();
         }
+
+        // Use target_prefix to find pip/python executable
+        const fs::u8path& target_prefix = ctx.prefix_params.target_prefix;
+        // Ensure we use an absolute path for the requirements file
+        const fs::u8path specs_path = fs::absolute(specs.path());
 
         command_args command = [&]
         {
             const auto maybe_command = get_pkg_mgr_install_command(
                 pkg_mgr,
-                ctx.prefix_params.target_prefix.string(),
-                specs.path(),
+                target_prefix,
+                specs_path,
                 update
             );
             if (maybe_command)
@@ -198,6 +205,7 @@ namespace mamba
         fmt::print(LOG_INFO, "Calling: {}", fmt::join(command, " "));
 
         auto [status, ec] = reproc::run(wrapped_command, options);
+
         assert_reproc_success(options, status, ec);
         if (status != 0)
         {

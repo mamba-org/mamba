@@ -74,7 +74,10 @@ namespace mamba::download
         std::size_t running_transfers = 0;
         std::size_t successful_transfers = 0;
         std::size_t failed_transfers = 0;
+        std::size_t stopped_transfers = 0;
     };
+
+    static_assert(std::default_initializable<MirrorStats>);
 
     // A Mirror represents a location from where an asset can be downloaded.
     // It handles the generation of required requests to get the asset, and
@@ -97,9 +100,11 @@ namespace mamba::download
         request_generator_list
         get_request_generators(const std::string& url_path, const std::string& spec_sha256) const;
 
+        // Note: values from below accessors are obsolete as soon as acquired, because of
+        // concurrency.
+
         std::size_t max_retries() const;
-        std::size_t successful_transfers() const;
-        std::size_t failed_transfers() const;
+        MirrorStats capture_stats() const;
 
         bool can_accept_more_connections() const;
         bool can_retry_with_fewer_connections() const;
@@ -118,8 +123,6 @@ namespace mamba::download
 
         MirrorID m_id;
         size_t m_max_retries;
-
-        static_assert(std::default_initializable<MirrorStats>);
 
         util::synchronized_value<MirrorStats> m_stats;
     };

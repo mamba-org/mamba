@@ -627,13 +627,13 @@ namespace mamba
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
             if (!maybe_load)
             {
-                throw std::runtime_error(maybe_load.error().what());
+                throw maybe_load.error();
             }
 
             auto maybe_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!maybe_prefix_data)
             {
-                throw std::runtime_error(maybe_prefix_data.error().what());
+                throw maybe_prefix_data.error();
             }
             PrefixData& prefix_data = maybe_prefix_data.value();
 

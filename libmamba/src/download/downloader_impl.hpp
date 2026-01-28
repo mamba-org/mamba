@@ -178,6 +178,8 @@ namespace mamba::download
         const Result& get_result() const;
 
         bool is_waiting() const;
+        bool is_done() const;
+        bool is_ongoing() const;
         void complete_as_stopped();
 
     private:

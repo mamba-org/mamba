@@ -1099,6 +1099,16 @@ namespace mamba::download
         return m_state == State::WAITING;
     }
 
+    bool DownloadTracker::is_done() const
+    {
+        return m_state == State::FAILED or m_state == State::STOPPED or m_state == State::FINISHED;
+    }
+
+    bool DownloadTracker::is_ongoing() const
+    {
+        return not is_waiting() and not is_done();
+    }
+
     bool DownloadTracker::can_try_other_mirror() const
     {
         bool is_file = util::starts_with(p_initial_request->url_path, "file://");
@@ -1308,17 +1318,19 @@ namespace mamba::download
 
     void Downloader::request_stop()
     {
-        // HACK: print the warning after the progress bars
-        for (const auto& tracker [[maybe_unused]] : m_trackers)
-        {
-            LOG_WARNING << "Interruption requested by user, stopping download...";
-        }
-        logging::flush_logs();
-
         for (auto& tracker : m_trackers)
         {
-            tracker.request_stop();
+            if (tracker.is_ongoing())
+            {
+                // FIXME: this hack is because of the console output overwriting the cli output
+                // lines: log 2 lines per stopped download so that at least one get displayed to the
+                // user.
+                LOG_WARNING << "!!!!";
+                LOG_WARNING << "Interruption requested by user - stopping download... ";
+                tracker.request_stop();
+            }
         }
+        logging::flush_logs();
 
         // Waiting downloads need to be stopped at this point to avoid waiting for never finishing
         // downloads (because they never started), even if the stopping was requested before all

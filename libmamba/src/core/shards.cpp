@@ -893,33 +893,18 @@ namespace mamba
             std::string filename_value = std::get<download::Filename>(success.content).value;
             LOG_DEBUG << "Download returned Filename: " << filename_value;
 
-            if (filename_value.find("://") == std::string::npos)
-            {
-                shard_file = filename_value;
-                LOG_DEBUG << "Using filename from download result: " << shard_file.string();
+            shard_file = filename_value;
+            LOG_DEBUG << "Using filename from download result: " << shard_file.string();
 
-                if (!fs::exists(shard_file))
-                {
-                    return make_unexpected(
-                        "Shard file not found at path: " + shard_file.string(),
-                        mamba_error_code::unknown
-                    );
-                }
-            }
-            else
+            if (!fs::exists(shard_file))
             {
-                LOG_WARNING << "Download returned URL instead of file path: " << filename_value
-                            << ", using artifact path: " << shard_file.string();
-                if (!fs::exists(shard_file))
-                {
-                    return make_unexpected(
-                        "Shard file not found at artifact path: " + shard_file.string(),
-                        mamba_error_code::unknown
-                    );
-                }
+                return make_unexpected(
+                    "Shard file not found at path: " + shard_file.string(),
+                    mamba_error_code::unknown
+                );
             }
         }
-        else if (std::holds_alternative<download::Buffer>(success.content))
+        else  // std::holds_alternative<download::Buffer>(success.content)
         {
             LOG_DEBUG << "Shard download returned buffer, writing to artifact path";
             const auto& buffer = std::get<download::Buffer>(success.content);
@@ -935,21 +920,6 @@ namespace mamba
             out_file.close();
             LOG_DEBUG << "Wrote buffer to file: " << shard_file.string() << " ("
                       << buffer.value.size() << " bytes)";
-        }
-        else
-        {
-            return make_unexpected(
-                "Shard download returned unknown content type",
-                mamba_error_code::unknown
-            );
-        }
-
-        if (!fs::exists(shard_file))
-        {
-            return make_unexpected(
-                "Shard file does not exist: " + shard_file.string(),
-                mamba_error_code::unknown
-            );
         }
 
         std::ifstream file(shard_file.string(), std::ios::binary);
@@ -1036,11 +1006,6 @@ namespace mamba
             package_to_artifact_path,
             artifacts
         );
-
-        if (requests.empty())
-        {
-            return results;
-        }
 
         LOG_DEBUG << "Downloading " << requests.size() << " shard(s) for packages: ["
                   << util::join(", ", packages_to_fetch) << "]";

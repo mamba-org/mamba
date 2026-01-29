@@ -4,15 +4,23 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fstream>
+#include <iostream>
+#include <set>
 #include <string>
+
+#include <nlohmann/json.hpp>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/env.hpp"
+#include "mamba/api/environment_yaml.hpp"
+#include "mamba/api/install.hpp"
 #include "mamba/api/remove.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/history.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
@@ -215,79 +223,161 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
             }
             else
             {
+                // Use the new modular API for YAML export
                 auto pd = mamba::PrefixData::create(ctx.prefix_params.target_prefix, channel_context)
                               .value();
-                mamba::History& hist = pd.history();
 
-                const auto& versions_map = pd.records();
-                const auto& pip_versions_map = pd.pip_records();
+                mamba::detail::yaml_file_contents yaml_contents;
 
-                std::cout << "name: "
-                          << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
-                          << "\n";
-                std::cout << "channels:\n";
-
-                auto requested_specs_map = hist.get_requested_specs_map();
-                std::stringstream dependencies;
-                std::set<std::string> channels;
-
-                for (const auto& [k, v] : versions_map)
+                // Handle --from-history: use requested specs from history
+                if (from_history)
                 {
-                    if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
+                    mamba::History& hist = pd.history();
+                    auto requested_specs_map = hist.get_requested_specs_map();
+                    const auto& versions_map = pd.records();
+
+                    yaml_contents.name = mamba::detail::get_env_name(
+                        ctx,
+                        ctx.prefix_params.target_prefix
+                    );
+                    yaml_contents.prefix = ctx.prefix_params.target_prefix.string();
+
+                    // Build dependencies from requested specs
+                    std::set<std::string> channels_set;
+                    for (const auto& [k, v] : versions_map)
                     {
-                        continue;
+                        if (requested_specs_map.find(k) != requested_specs_map.end())
+                        {
+                            std::string dep = requested_specs_map[k].to_string();
+                            if (no_md5 == -1 && !v.md5.empty())
+                            {
+                                dep += "[md5=" + v.md5 + "]";
+                            }
+                            yaml_contents.dependencies.push_back(std::move(dep));
+                            auto chans = channel_context.make_channel(v.channel);
+                            for (const auto& chan : chans)
+                            {
+                                channels_set.insert(chan.display_name());
+                            }
+                        }
+                    }
+                    yaml_contents.channels.assign(channels_set.begin(), channels_set.end());
+
+                    // Handle pip packages
+                    const auto& pip_versions_map = pd.pip_records();
+                    if (!pip_versions_map.empty())
+                    {
+                        mamba::detail::other_pkg_mgr_spec pip_spec;
+                        pip_spec.pkg_mgr = "pip";
+                        pip_spec.cwd = ctx.prefix_params.target_prefix.string();
+                        for (const auto& [name, pkg] : pip_versions_map)
+                        {
+                            pip_spec.deps.push_back(pkg.name + "==" + pkg.version);
+                        }
+                        yaml_contents.others_pkg_mgrs_specs.push_back(std::move(pip_spec));
+                        if (std::find(
+                                yaml_contents.dependencies.begin(),
+                                yaml_contents.dependencies.end(),
+                                "pip"
+                            )
+                            == yaml_contents.dependencies.end())
+                        {
+                            yaml_contents.dependencies.push_back("pip");
+                        }
                     }
 
-                    auto chans = channel_context.make_channel(v.channel);
-
-                    if (from_history)
+                    // Get environment variables - read directly from state file
+                    // (reusing the logic from the new API)
+                    const auto state_file_path = ctx.prefix_params.target_prefix / "conda-meta"
+                                                 / "state";
+                    if (mamba::fs::exists(state_file_path))
                     {
-                        dependencies << "  - " << requested_specs_map[k].to_string() << "\n";
-                    }
-                    else
-                    {
-                        dependencies << "  - ";
-                        if (channel_subdir)
+                        auto fin = mamba::open_ifstream(state_file_path);
+                        try
                         {
-                            dependencies
-                                // If the size is not one, it's a custom multi channel
-                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
-                                << "/" << v.platform << "::";
+                            nlohmann::json j;
+                            fin >> j;
+                            if (j.contains("env_vars") && j["env_vars"].is_object())
+                            {
+                                for (auto it = j["env_vars"].begin(); it != j["env_vars"].end(); ++it)
+                                {
+                                    // Convert UPPERCASE keys to lowercase
+                                    std::string key = it.key();
+                                    std::string lower_key = mamba::util::to_lower(key);
+                                    yaml_contents.variables[lower_key] = it.value().get<std::string>();
+                                }
+                            }
                         }
-                        dependencies << v.name << "=" << v.version;
-                        if (!no_build)
+                        catch (nlohmann::json::exception&)
                         {
-                            dependencies << "=" << v.build_string;
+                            // If parsing fails, leave variables empty
                         }
-                        if (no_md5 == -1)
-                        {
-                            dependencies << "[md5=" << v.md5 << "]";
-                        }
-                        dependencies << "\n";
-                    }
-
-                    for (const auto& chan : chans)
-                    {
-                        channels.insert(chan.display_name());
                     }
                 }
-                // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
-                if (!pip_versions_map.empty())
+                else
                 {
-                    dependencies << "  - pip:\n";
-                    for (const auto& [k, v] : pip_versions_map)
+                    // Use the new API for standard export
+                    yaml_contents = mamba::prefix_to_yaml_contents(
+                        pd,
+                        ctx,
+                        mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix),
+                        { no_build, false, no_md5 == -1 }
+                    );
+
+                    // Handle --channel-subdir: modify dependency strings to include platform
+                    if (channel_subdir)
                     {
-                        dependencies << "    - " << v.name << "==" << v.version << "\n";
+                        const auto& versions_map = pd.records();
+                        std::vector<std::string> modified_deps;
+                        modified_deps.reserve(yaml_contents.dependencies.size());
+                        for (const auto& dep : yaml_contents.dependencies)
+                        {
+                            // Check if this dependency corresponds to a package we can look up
+                            bool modified = false;
+                            for (const auto& [k, v] : versions_map)
+                            {
+                                // Check if dependency string contains this package name
+                                std::string dep_name = v.name + "=";
+                                if (dep.find(dep_name) == 0
+                                    || dep.find("::" + dep_name) != std::string::npos
+                                    || dep == v.name)
+                                {
+                                    auto chans = channel_context.make_channel(v.channel);
+                                    std::string new_dep;
+                                    if (chans.size() == 1)
+                                    {
+                                        new_dep = chans.front().display_name() + "/" + v.platform
+                                                  + "::";
+                                    }
+                                    else
+                                    {
+                                        new_dep = v.channel + "/" + v.platform + "::";
+                                    }
+
+                                    // Extract spec part (name=version[=build]) from original dep
+                                    auto colon_pos = dep.find("::");
+                                    std::string spec_part = (colon_pos != std::string::npos)
+                                                                ? dep.substr(colon_pos + 2)
+                                                                : dep;
+                                    new_dep += spec_part;
+                                    modified_deps.push_back(new_dep);
+                                    modified = true;
+                                    break;
+                                }
+                            }
+                            if (!modified)
+                            {
+                                modified_deps.push_back(dep);
+                            }
+                        }
+                        yaml_contents.dependencies = std::move(modified_deps);
                     }
                 }
 
-                for (const auto& c : channels)
-                {
-                    std::cout << "  - " << c << "\n";
-                }
-                std::cout << "dependencies:\n" << dependencies.str() << std::endl;
-
-                std::cout << "prefix: " << ctx.prefix_params.target_prefix << std::endl;
+                // Write YAML directly to stdout
+                // Note: prefix will be included if it was set (either from prefix_to_yaml_contents
+                // or in the --from-history case), otherwise it will be omitted
+                mamba::yaml_contents_to_stream(yaml_contents, std::cout);
 
                 std::cout.flush();
             }

@@ -240,7 +240,7 @@ namespace mamba
                 error_list.push_back(std::move(error));
                 if (ec == mamba_error_code::user_interrupted)
                 {
-                    return tl::unexpected(mamba_aggregated_error(std::move(error_list)));
+                    return tl::unexpected(mamba_aggregated_error(std::move(error_list), false));
                 }
             }
 

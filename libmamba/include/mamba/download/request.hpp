@@ -57,7 +57,13 @@ namespace mamba::download
         std::optional<std::size_t> retry_wait_seconds = std::nullopt;
         std::optional<TransferData> transfer = std::nullopt;
         std::size_t attempt_number = std::size_t(1);
+        bool is_stop = false;
     };
+
+    inline auto make_stop_error() -> Error
+    {
+        return { .message = "Stopped by user request", .is_stop = true };
+    }
 
     using Result = tl::expected<Success, Error>;
     using MultiResult = std::vector<Result>;
@@ -86,6 +92,7 @@ namespace mamba::download
         // TODO: remove these functions when we plug a library with continuation
         using on_success_callback_t = std::function<expected_t<void>(const Success&)>;
         using on_failure_callback_t = std::function<void(const Error&)>;
+        using on_stopped_callback_t = std::function<void()>;
 
         std::string name;
         // If filename is not initialized, the data will be downloaded
@@ -100,6 +107,7 @@ namespace mamba::download
         std::optional<progress_callback_t> progress = std::nullopt;
         std::optional<on_success_callback_t> on_success = std::nullopt;
         std::optional<on_failure_callback_t> on_failure = std::nullopt;
+        std::optional<on_stopped_callback_t> on_stopped = std::nullopt;
 
     protected:
 

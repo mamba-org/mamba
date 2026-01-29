@@ -90,14 +90,9 @@ namespace mamba::download
         return m_max_retries;
     }
 
-    std::size_t Mirror::successful_transfers() const
+    MirrorStats Mirror::capture_stats() const
     {
-        return m_stats->successful_transfers;
-    }
-
-    std::size_t Mirror::failed_transfers() const
-    {
-        return m_stats->failed_transfers;
+        return m_stats.value();
     }
 
     bool Mirror::can_accept_more_connections() const

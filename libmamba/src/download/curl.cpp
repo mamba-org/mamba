@@ -602,9 +602,9 @@ namespace mamba::download
         CURLMsg* msg = curl_multi_info_read(p_handle, &msgs_in_queue);
         if (msg != nullptr)
         {
-            return CURLMultiResponse{ CURLId(msg->easy_handle),
-                                      msg->data.result,
-                                      msg->msg == CURLMSG_DONE };
+            return CURLMultiResponse{ .m_handle_id = CURLId(msg->easy_handle),
+                                      .m_transfer_result = msg->data.result,
+                                      .m_transfer_done = msg->msg == CURLMSG_DONE };
         }
         else
         {

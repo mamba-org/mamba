@@ -33,6 +33,7 @@ namespace mamba::download
         using completion_function = std::function<bool(CURLMultiHandle&, CURLcode)>;
         using on_success_callback = std::function<bool(Success)>;
         using on_failure_callback = std::function<bool(Error)>;
+        using on_stop_callback = std::function<bool()>;
 
         DownloadAttempt() = default;
 
@@ -43,77 +44,21 @@ namespace mamba::download
             const RemoteFetchParams& params,
             const specs::AuthenticationDataBase& auth_info,
             bool verbose,
-            on_success_callback success,
-            on_failure_callback error
+            on_success_callback on_success,
+            on_failure_callback on_error,
+            on_stop_callback on_stop
         );
 
         auto create_completion_function() -> completion_function;
+
+        auto request_stop() -> void;
 
     private:
 
         // This internal structure stored in an std::unique_ptr is required to guarantee
         // move semantics: some of these functions return lambda capturing the current
         // instance, therefore this latter must be stable in memory.
-        struct Impl
-        {
-            Impl(
-                CURLHandle& handle,
-                const MirrorRequest& request,
-                CURLMultiHandle& downloader,
-                const RemoteFetchParams& params,
-                const specs::AuthenticationDataBase& auth_info,
-                bool verbose,
-                on_success_callback success,
-                on_failure_callback error
-            );
-
-            bool finish_download(CURLMultiHandle& downloader, CURLcode code);
-            void clean_attempt(CURLMultiHandle& downloader, bool erase_downloaded);
-            void invoke_progress_callback(const Event&) const;
-
-            void configure_handle(
-                const RemoteFetchParams& params,
-                const specs::AuthenticationDataBase& auth_info,
-                bool verbose
-            );
-            void configure_handle_headers(
-                const RemoteFetchParams& params,
-                const specs::AuthenticationDataBase& auth_info
-            );
-
-            size_t write_data(char* buffer, size_t data);
-
-            static size_t curl_header_callback(char* buffer, size_t size, size_t nbitems, void* self);
-            static size_t curl_write_callback(char* buffer, size_t size, size_t nbitems, void* self);
-            static int curl_progress_callback(
-                void* f,
-                curl_off_t total_to_download,
-                curl_off_t now_downloaded,
-                curl_off_t,
-                curl_off_t
-            );
-
-            bool can_retry(CURLcode code) const;
-            bool can_retry(const TransferData& data) const;
-
-            TransferData get_transfer_data() const;
-            Error build_download_error(CURLcode code) const;
-            Error build_download_error(TransferData data) const;
-            Success build_download_success(TransferData data) const;
-
-            CURLHandle* p_handle = nullptr;
-            const MirrorRequest* p_request = nullptr;
-            on_success_callback m_success_callback;
-            on_failure_callback m_failure_callback;
-            std::size_t m_retry_wait_seconds = std::size_t(0);
-            std::unique_ptr<CompressionStream> p_stream = nullptr;
-            std::ofstream m_file;
-            mutable std::string m_response = "";
-            std::string m_cache_control;
-            std::string m_etag;
-            std::string m_last_modified;
-        };
-
+        struct Impl;
         std::unique_ptr<Impl> p_impl = nullptr;
     };
 
@@ -131,12 +76,14 @@ namespace mamba::download
         using completion_function = DownloadAttempt::completion_function;
         using on_success_callback = DownloadAttempt::on_success_callback;
         using on_failure_callback = DownloadAttempt::on_failure_callback;
+        using on_stop_callback = DownloadAttempt::on_stop_callback;
 
         MirrorAttempt() = default;
         MirrorAttempt(Mirror& mirror, const std::string& url_path, const std::string& spec_sha256);
 
         expected_t<void> invoke_on_success(const Success& res) const;
         void invoke_on_failure(const Error& res) const;
+        void invoke_on_stopped() const;
 
         void prepare_request(const Request& initial_request);
         auto prepare_attempt(
@@ -145,18 +92,23 @@ namespace mamba::download
             const RemoteFetchParams& params,
             const specs::AuthenticationDataBase& auth_info,
             bool verbose,
-            on_success_callback success,
-            on_failure_callback error
+            on_success_callback on_success,
+            on_failure_callback on_error,
+            on_stop_callback on_stop
         ) -> completion_function;
 
         bool can_start_transfer() const;
         bool has_failed() const;
         bool has_finished() const;
+        bool has_stopped() const;
 
         void set_transfer_started();
         void set_state(bool success);
         void set_state(const Error& res);
+        void set_stopped();
         void update_last_content(const Content* content);
+
+        void request_stop();
 
     private:
 
@@ -169,6 +121,7 @@ namespace mamba::download
             LAST_REQUEST_FAILED,
             SEQUENCE_FINISHED,
             SEQUENCE_FAILED,
+            SEQUENCE_STOPPED,
         };
 
         bool can_retry() const;
@@ -216,11 +169,17 @@ namespace mamba::download
             bool verbose
         ) -> completion_map_entry;
 
+        void request_stop();
+
         bool has_failed() const;
         bool can_start_transfer() const;
         void set_transfer_started();
 
+        // requires: is_done() == true
         const Result& get_result() const;
+
+        bool is_waiting() const;
+        void complete_as_stopped();
 
     private:
 
@@ -229,19 +188,21 @@ namespace mamba::download
             WAITING,
             PREPARING,
             RUNNING,
+            STOPPED,
             FINISHED,
             FAILED
         };
 
         expected_t<void> invoke_on_success(const Success&) const;
         void invoke_on_failure(const Error&) const;
+        void invoke_on_stopped() const;
 
-        bool is_waiting() const;
         bool can_try_other_mirror() const;
 
         void set_state(bool success);
         void set_state(const Error& res);
         void set_error_state();
+        void set_stopped();
 
         /**
          * Invoked when the download succeeded but the download callback
@@ -294,6 +255,10 @@ namespace mamba::download
         bool download_done() const;
         MultiResult build_result() const;
         void invoke_unexpected_termination() const;
+
+        void request_stop();
+        void download_while_stopping();
+        void force_stop_waiting_downloads();
 
         MultiRequest m_requests;
         std::vector<DownloadTracker> m_trackers;

@@ -898,13 +898,6 @@ namespace mamba
                 shard_file = filename_value;
                 LOG_DEBUG << "Using filename from download result: " << shard_file.string();
 
-                int retries = 5;
-                while (!fs::exists(shard_file) && retries > 0)
-                {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    retries--;
-                }
-
                 if (!fs::exists(shard_file))
                 {
                     return make_unexpected(

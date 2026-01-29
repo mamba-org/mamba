@@ -774,70 +774,71 @@ namespace mamba
                                              const std::string& map_name
                                          )
             {
-                if (map_obj.type == MSGPACK_OBJECT_MAP)
+                for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
                 {
-                    for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
+                    try
                     {
-                        try
-                        {
-                            std::string pkg_filename = msgpack_object_to_string(
-                                map_obj.via.map.ptr[k].key
-                            );
-                            ShardPackageRecord record = parse_shard_package_record(
-                                map_obj.via.map.ptr[k].val
-                            );
-                            LOG_DEBUG << "Parsed " << log_prefix
-                                      << " package record from shard for package '" << package
-                                      << "': " << record.name << "=" << record.version << "-"
-                                      << record.build;
-                            target_map[pkg_filename] = record;
-                        }
-                        catch (const std::exception& e)
-                        {
-                            LOG_WARNING << "Failed to parse package record in '" << map_name
-                                        << "': " << e.what();
-                        }
+                        std::string pkg_filename = msgpack_object_to_string(map_obj.via.map.ptr[k].key);
+                        ShardPackageRecord record = parse_shard_package_record(
+                            map_obj.via.map.ptr[k].val
+                        );
+                        LOG_DEBUG << "Parsed " << log_prefix
+                                  << " package record from shard for package '" << package
+                                  << "': " << record.name << "=" << record.version << "-"
+                                  << record.build;
+                        target_map[pkg_filename] = record;
+                    }
+                    catch (const std::exception& e)
+                    {
+                        LOG_WARNING << "Failed to parse package record in '" << map_name
+                                    << "': " << e.what();
                     }
                 }
             };
 
-            if (obj.type == MSGPACK_OBJECT_MAP)
+            if (obj.type != MSGPACK_OBJECT_MAP)
             {
-                for (std::uint32_t j = 0; j < obj.via.map.size; ++j)
+                return make_unexpected(
+                    "Expected MAP type for shard msgpack, but got " + std::to_string(obj.type),
+                    mamba_error_code::unknown
+                );
+            }
+
+            for (std::uint32_t j = 0; j < obj.via.map.size; ++j)
+            {
+                const msgpack_object& key_obj = obj.via.map.ptr[j].key;
+                const msgpack_object& val_obj = obj.via.map.ptr[j].val;
+
+                std::string key;
+                try
                 {
-                    const msgpack_object& key_obj = obj.via.map.ptr[j].key;
-                    const msgpack_object& val_obj = obj.via.map.ptr[j].val;
+                    key = msgpack_object_to_string(key_obj);
+                }
+                catch (const std::exception&)
+                {
+                    LOG_WARNING << "Failed to parse msgpack object key at index " << j;
+                    continue;
+                }
 
-                    std::string key;
-                    try
+                try
+                {
+                    if (key == "packages")
                     {
-                        key = msgpack_object_to_string(key_obj);
+                        parse_package_records(val_obj, shard.packages, "package", "packages");
                     }
-                    catch (const std::exception&)
+                    else if (key == "packages.conda")
                     {
-                        continue;
+                        parse_package_records(
+                            val_obj,
+                            shard.conda_packages,
+                            "conda package",
+                            "packages.conda"
+                        );
                     }
-
-                    try
-                    {
-                        if (key == "packages")
-                        {
-                            parse_package_records(val_obj, shard.packages, "package", "packages");
-                        }
-                        else if (key == "packages.conda")
-                        {
-                            parse_package_records(
-                                val_obj,
-                                shard.conda_packages,
-                                "conda package",
-                                "packages.conda"
-                            );
-                        }
-                    }
-                    catch (const std::exception& e)
-                    {
-                        LOG_DEBUG << "Failed to parse field '" << key << "' in shard: " << e.what();
-                    }
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_DEBUG << "Failed to parse field '" << key << "' in shard: " << e.what();
                 }
             }
 

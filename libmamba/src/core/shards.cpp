@@ -409,13 +409,9 @@ namespace mamba
                     // Get path from shards URL (decoded, starts with '/')
                     std::string path = shards_url.path();
                     // Remove leading '/' since we want relative path
-                    if (path.size() > 1)
+                    if (util::starts_with(path, "/"))
                     {
                         path = path.substr(1);
-                    }
-                    else
-                    {
-                        path.clear();
                     }
 
                     // Ensure trailing slash

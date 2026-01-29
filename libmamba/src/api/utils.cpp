@@ -29,7 +29,8 @@ namespace mamba
             const std::string& name,
             const std::string& target_prefix,
             const fs::u8path& spec_file,
-            pip::Update update
+            pip::Update update,
+            const Context::OutputParams& output_params
         )
         {
             const auto get_python_path = [&]
@@ -51,7 +52,13 @@ namespace mamba
             }();
 
             cmd.insert(cmd.end(), { "pip", "install" });
-            command_args cmd_extension = { "-r", spec_file, "--quiet" };
+            command_args cmd_extension = { "-r", spec_file };
+
+            // Only use --quiet when --json or --quiet is used to avoid interfering with output
+            if (output_params.json || output_params.quiet)
+            {
+                cmd_extension.push_back("--quiet");
+            }
 
             if (name != "uv")
             {
@@ -165,7 +172,8 @@ namespace mamba
                 pkg_mgr,
                 ctx.prefix_params.target_prefix.string(),
                 specs.path(),
-                update
+                update,
+                ctx.output_params
             );
             if (maybe_command)
             {

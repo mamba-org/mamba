@@ -665,11 +665,11 @@ namespace mamba
                 /*ignore_failure*/ false
             );
 
-            request.on_success = [artifact = std::move(artifact), url, package](
+            request.on_success = [url, package](
                                      const download::Success& /* success */
                                  )
             {
-                (void) artifact;
+                LOG_DEBUG << "Successfully fetched shard " << url << " for package " << package;
                 return expected_t<void>();
             };
 

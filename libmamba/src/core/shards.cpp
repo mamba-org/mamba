@@ -427,33 +427,31 @@ namespace mamba
             // Use url_concat to ensure proper URL joining
             return util::url_concat(shards_base_url_str, shard_name);
         }
-        else
+
+        // For relative URLs, construct path relative to platform
+        // m_url is like: https://prefix.dev/conda-forge/linux-64/repodata_shards.msgpack.zst
+        // Extract platform (subdir) from m_url or use from index
+        std::string platform = m_shards_index.info.subdir;
+
+        // Normalize shards_base_url_str (remove ./ prefix if present)
+        std::string normalized_shards = shards_base_url_str;
+        if (util::starts_with(normalized_shards, "./"))
         {
-            // For relative URLs, construct path relative to platform
-            // m_url is like: https://prefix.dev/conda-forge/linux-64/repodata_shards.msgpack.zst
-            // Extract platform (subdir) from m_url or use from index
-            std::string platform = m_shards_index.info.subdir;
-
-            // Normalize shards_base_url_str (remove ./ prefix if present)
-            std::string normalized_shards = shards_base_url_str;
-            if (util::starts_with(normalized_shards, "./"))
-            {
-                normalized_shards = normalized_shards.substr(2);
-            }
-            if (util::starts_with(normalized_shards, "/"))
-            {
-                normalized_shards = normalized_shards.substr(1);
-            }
-
-            // Construct path: platform/shards/<hash>.msgpack.zst
-            // url_concat handles slashes automatically, no need for "/" separator
-            std::string path = util::url_concat(platform, normalized_shards);
-            if (!util::ends_with(path, "/"))
-            {
-                path += "/";
-            }
-            return path + shard_name;
+            normalized_shards = normalized_shards.substr(2);
         }
+        if (util::starts_with(normalized_shards, "/"))
+        {
+            normalized_shards = normalized_shards.substr(1);
+        }
+
+        // Construct path: platform/shards/<hash>.msgpack.zst
+        // url_concat handles slashes automatically, no need for "/" separator
+        std::string path = util::url_concat(platform, normalized_shards);
+        if (!util::ends_with(path, "/"))
+        {
+            path += "/";
+        }
+        return path + shard_name;
     }
 
     auto Shards::is_shard_present(const std::string& package) const -> bool

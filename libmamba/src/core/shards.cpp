@@ -1098,18 +1098,17 @@ namespace mamba
                     return version_b.value() < version_a.value();  // Descending order
                 }
             }
-            else if (version_a.has_value() || version_b.has_value())
+
+            // If only one can be parsed, prefer the parsed one
+            if (version_a.has_value() || version_b.has_value())
             {
-                // If only one can be parsed, prefer the parsed one
                 return !version_a.has_value();
             }
-            else
+
+            // Fallback to string comparison if parsing fails
+            if (record_a.version != record_b.version)
             {
-                // Fallback to string comparison if parsing fails
-                if (record_a.version != record_b.version)
-                {
-                    return record_b.version < record_a.version;  // Descending order
-                }
+                return record_b.version < record_a.version;  // Descending order
             }
 
             // Finally compare by build number (descending - highest first)

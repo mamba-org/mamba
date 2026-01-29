@@ -144,7 +144,7 @@ init_network_options(CLI::App* subcom, Configuration& config)
     auto& ssl_verify = config.at("ssl_verify");
     subcom
         ->add_option("--ssl-verify", ssl_verify.get_cli_config<std::string>(), ssl_verify.description())
-        ->option_text("'<false>' or PATH")
+        ->option_text("'<false>', 'truststore', or PATH")
         ->group(cli_group);
 
     auto& ssl_no_revoke = config.at("ssl_no_revoke");

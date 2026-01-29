@@ -27,6 +27,11 @@ find_dependency(tl-expected)
 find_dependency(nlohmann_json)
 find_dependency(yaml-cpp)
 find_dependency(reproc++)
+# Dependencies required by exported targets
+find_dependency(Libsolv MODULE)
+find_dependency(BZip2)
+find_dependency(simdjson)
+find_dependency(zstd)
 
 if(NOT (TARGET libmamba-dyn OR TARGET libmamba-static))
     include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")

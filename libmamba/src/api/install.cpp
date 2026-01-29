@@ -9,6 +9,7 @@
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/environment_yaml.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
@@ -119,188 +120,6 @@ namespace mamba
                 return tmp_file;
             }
             return nullptr;
-        }
-
-        yaml_file_contents read_yaml_file(
-            const Context& ctx,
-            const std::string& yaml_file,
-            const std::string& platform,
-            bool use_uv
-        )
-        {
-            // Download content of environment yaml file
-            auto tmp_yaml_file = downloaded_file_from_url(ctx, yaml_file);
-            fs::u8path file;
-
-            if (tmp_yaml_file)
-            {
-                file = tmp_yaml_file->path();
-            }
-            else
-            {
-                file = fs::weakly_canonical(util::expand_home(yaml_file));
-                if (!fs::exists(file))
-                {
-                    LOG_ERROR << "YAML spec file '" << file.string() << "' not found";
-                    throw std::runtime_error("File not found. Aborting.");
-                }
-            }
-
-            yaml_file_contents result;
-            YAML::Node f;
-            try
-            {
-                f = YAML::LoadFile(file.string());
-            }
-            catch (YAML::Exception& e)
-            {
-                LOG_ERROR << "YAML error in spec file '" << file.string() << "'";
-                throw e;
-            }
-
-            YAML::Node deps;
-            if (f["dependencies"] && f["dependencies"].IsSequence() && f["dependencies"].size() > 0)
-            {
-                deps = f["dependencies"];
-            }
-            else
-            {
-                // Empty of absent `dependencies` key
-                deps = YAML::Node(YAML::NodeType::Null);
-            }
-            YAML::Node final_deps;
-
-            bool has_pip_deps = false;
-            for (auto it = deps.begin(); it != deps.end(); ++it)
-            {
-                if (it->IsScalar())
-                {
-                    final_deps.push_back(*it);
-                }
-                else if (it->IsMap())
-                {
-                    // we merge a map to the upper level if the selector works
-                    for (const auto& map_el : *it)
-                    {
-                        std::string key = map_el.first.as<std::string>();
-                        if (util::starts_with(key, "sel("))
-                        {
-                            bool selected = detail::eval_selector(key, platform);
-                            if (selected)
-                            {
-                                const YAML::Node& rest = map_el.second;
-                                if (rest.IsScalar())
-                                {
-                                    final_deps.push_back(rest);
-                                }
-                                else
-                                {
-                                    throw std::runtime_error(
-                                        "Complicated selection merge not implemented yet."
-                                    );
-                                }
-                            }
-                        }
-                        else if (key == "pip")
-                        {
-                            std::string yaml_parent_path;
-                            if (tmp_yaml_file)  // yaml file is fetched remotely
-                            {
-                                yaml_parent_path = yaml_file;
-                            }
-                            else
-                            {
-                                yaml_parent_path = fs::absolute(yaml_file).parent_path().string();
-                            }
-                            result.others_pkg_mgrs_specs.push_back(
-                                {
-                                    use_uv ? "uv" : "pip",
-                                    map_el.second.as<std::vector<std::string>>(),
-                                    yaml_parent_path,
-                                }
-                            );
-                            has_pip_deps = true;
-                        }
-                    }
-                }
-            }
-
-            std::vector<std::string> dependencies;
-            try
-            {
-                if (final_deps.IsNull())
-                {
-                    dependencies = {};
-                }
-                else
-                {
-                    dependencies = final_deps.as<std::vector<std::string>>();
-                }
-            }
-            catch (const YAML::Exception& e)
-            {
-                LOG_ERROR << "Bad conversion of 'dependencies' to a vector of string: " << final_deps;
-                throw e;
-            }
-
-            if (has_pip_deps && use_uv && !std::count(dependencies.begin(), dependencies.end(), "uv"))
-            {
-                dependencies.push_back("uv");
-            }
-            else if (has_pip_deps && std::count(dependencies.begin(), dependencies.end(), "uv"))
-            {
-                for (auto& spec : result.others_pkg_mgrs_specs)
-                {
-                    if (spec.pkg_mgr == "pip")
-                    {
-                        spec.pkg_mgr = "uv";
-                    }
-                }
-            }
-            else if (has_pip_deps && !std::count(dependencies.begin(), dependencies.end(), "pip"))
-            {
-                dependencies.push_back("pip");
-            }
-
-            result.dependencies = dependencies;
-
-            if (f["channels"])
-            {
-                try
-                {
-                    result.channels = f["channels"].as<std::vector<std::string>>();
-                }
-                catch (YAML::Exception& e)
-                {
-                    LOG_ERROR << "Could not read 'channels' as vector of strings from '"
-                              << file.string() << "'";
-                    throw e;
-                }
-            }
-            else
-            {
-                LOG_DEBUG << "No 'channels' specified in YAML spec file '" << file.string() << "'";
-            }
-
-            if (f["name"])
-            {
-                result.name = f["name"].as<std::string>();
-            }
-            else
-            {
-                LOG_DEBUG << "No env 'name' specified in YAML spec file '" << file.string() << "'";
-            }
-
-            if (f["variables"])
-            {
-                result.variables = f["variables"].as<std::map<std::string, std::string>>();
-            }
-            else
-            {
-                LOG_DEBUG << "No 'variables' specified in YAML spec file '" << file.string() << "'";
-            }
-
-            return result;
         }
 
         bool operator==(const other_pkg_mgr_spec& s1, const other_pkg_mgr_spec& s2)
@@ -1117,7 +936,7 @@ namespace mamba
                 }
                 else if (is_yaml_file_name(file))
                 {
-                    const auto parse_result = read_yaml_file(
+                    const auto parse_result = file_to_yaml_contents(
                         context,
                         file,
                         context.platform,

@@ -4,6 +4,7 @@ dependencies:
   - test1
   - test2
   - test3
+  - pip
   - pip:
       - pytest
       - numpy

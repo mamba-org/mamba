@@ -6,6 +6,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include "mamba/api/environment_yaml.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/util/build.hpp"
 
@@ -47,9 +48,9 @@ namespace mamba
         {
             const auto& context = mambatests::context();
             using V = std::vector<std::string>;
-            auto res = detail::read_yaml_file(
+            auto res = file_to_yaml_contents(
                 context,
-                mambatests::test_data_dir / "env_file/env_1.yaml",
+                (mambatests::test_data_dir / "env_file/env_1.yaml").string(),
                 context.platform,
                 false
             );
@@ -58,9 +59,9 @@ namespace mamba
             REQUIRE(res.dependencies == V({ "test1", "test2", "test3" }));
             REQUIRE_FALSE(res.others_pkg_mgrs_specs.size());
 
-            auto res2 = detail::read_yaml_file(
+            auto res2 = file_to_yaml_contents(
                 context,
-                mambatests::test_data_dir / "env_file/env_2.yaml",
+                (mambatests::test_data_dir / "env_file/env_2.yaml").string(),
                 context.platform,
                 false
             );
@@ -80,9 +81,9 @@ namespace mamba
         {
             const auto& context = mambatests::context();
             using V = std::vector<std::string>;
-            auto res = detail::read_yaml_file(
+            auto res = file_to_yaml_contents(
                 context,
-                mambatests::test_data_dir / "env_file/env_3.yaml",
+                (mambatests::test_data_dir / "env_file/env_3.yaml").string(),
                 context.platform,
                 false
             );
@@ -94,7 +95,7 @@ namespace mamba
             auto o = res.others_pkg_mgrs_specs[0];
             REQUIRE(o.pkg_mgr == "pip");
             REQUIRE(o.deps == V({ "pytest", "numpy" }));
-            REQUIRE(o.cwd == fs::absolute(mambatests::test_data_dir / "env_file"));
+            REQUIRE(o.cwd == mamba::fs::absolute(mambatests::test_data_dir / "env_file").string());
         }
 
         TEST_CASE("remote_yaml_file")
@@ -103,7 +104,7 @@ namespace mamba
             {
                 const auto& context = mambatests::context();
                 using V = std::vector<std::string>;
-                auto res = detail::read_yaml_file(
+                auto res = file_to_yaml_contents(
                     context,
                     "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/micromamba/tests/env-create-export.yaml",
                     context.platform,
@@ -118,7 +119,7 @@ namespace mamba
             {
                 const auto& context = mambatests::context();
                 using V = std::vector<std::string>;
-                auto res = detail::read_yaml_file(
+                auto res = file_to_yaml_contents(
                     context,
                     "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_3.yaml",
                     context.platform,
@@ -141,7 +142,7 @@ namespace mamba
             {
                 const auto& context = mambatests::context();
                 using V = std::vector<std::string>;
-                auto res = detail::read_yaml_file(
+                auto res = file_to_yaml_contents(
                     context,
                     "https://raw.githubusercontent.com/iisakkirotko/mamba/refs/heads/yaml-install-uv/libmamba/tests/data/env_file/env_4.yaml",
                     context.platform,
@@ -164,7 +165,7 @@ namespace mamba
             {
                 const auto& context = mambatests::context();
                 using V = std::vector<std::string>;
-                auto res = detail::read_yaml_file(
+                auto res = file_to_yaml_contents(
                     context,
                     "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_3.yaml",
                     context.platform,
@@ -187,7 +188,7 @@ namespace mamba
             {
                 const auto& context = mambatests::context();
                 using V = std::vector<std::string>;
-                auto res = detail::read_yaml_file(
+                auto res = file_to_yaml_contents(
                     context,
                     "https://raw.githubusercontent.com/mamba-org/mamba/refs/heads/main/libmamba/tests/data/env_file/env_2.yaml",
                     context.platform,

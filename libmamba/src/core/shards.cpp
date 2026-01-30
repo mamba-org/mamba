@@ -881,58 +881,44 @@ namespace mamba
                 mamba_error_code::unknown
             );
         }
-
+        std::vector<std::uint8_t> compressed_data;
         if (std::holds_alternative<download::Filename>(success.content))
         {
             std::string filename_value = std::get<download::Filename>(success.content).value;
-            LOG_DEBUG << "Download returned Filename: " << filename_value;
+            LOG_DEBUG << "Shard download returned filename: " << filename_value;
 
             shard_file = filename_value;
             LOG_DEBUG << "Using filename from download result: " << shard_file.string();
 
-            if (!fs::exists(shard_file))
+            std::ifstream file(shard_file.string(), std::ios::binary);
+            if (!file.is_open())
             {
                 return make_unexpected(
-                    "Shard file not found at path: " + shard_file.string(),
+                    "Failed to open downloaded shard file: " + shard_file.string(),
                     mamba_error_code::unknown
                 );
             }
+            LOG_DEBUG << "Reading shard file for package '" << package
+                      << "': " << shard_file.string();
+            compressed_data = std::vector<std::uint8_t>(
+                std::istreambuf_iterator<char>(file),
+                std::istreambuf_iterator<char>()
+            );
+            file.close();
+            LOG_DEBUG << "Done reading shard file for package '" << package
+                      << "': " << compressed_data.size() << " bytes";
         }
         else  // std::holds_alternative<download::Buffer>(success.content)
         {
-            LOG_DEBUG << "Shard download returned buffer, writing to artifact path";
             const auto& buffer = std::get<download::Buffer>(success.content);
-            std::ofstream out_file(shard_file.string(), std::ios::binary);
-            if (!out_file.is_open())
-            {
-                return make_unexpected(
-                    "Failed to create shard file for buffer: " + shard_file.string(),
-                    mamba_error_code::unknown
-                );
-            }
-            out_file.write(buffer.value.data(), static_cast<std::streamsize>(buffer.value.size()));
-            out_file.close();
-            LOG_DEBUG << "Wrote buffer to file: " << shard_file.string() << " ("
-                      << buffer.value.size() << " bytes)";
+            LOG_DEBUG << "Shard download returned buffer";
+            compressed_data.assign(buffer.value.begin(), buffer.value.end());
+            LOG_DEBUG << "Done reading shard buffer for package '" << package
+                      << "': " << compressed_data.size() << " bytes";
         }
 
-        std::ifstream file(shard_file.string(), std::ios::binary);
-        if (!file.is_open())
-        {
-            return make_unexpected(
-                "Failed to open downloaded shard file: " + shard_file.string(),
-                mamba_error_code::unknown
-            );
-        }
-
-        std::vector<std::uint8_t> compressed_data(
-            (std::istreambuf_iterator<char>(file)),
-            std::istreambuf_iterator<char>()
-        );
-        file.close();
-
-        LOG_DEBUG << "Reading shard file for package '" << package << "': " << shard_file.string()
-                  << " (" << compressed_data.size() << " bytes compressed)";
+        LOG_DEBUG << "Processing shard for package '" << package << "': " << compressed_data.size()
+                  << " bytes compressed";
 
         auto decompressed_result = decompress_zstd_shard(compressed_data);
         if (!decompressed_result.has_value())

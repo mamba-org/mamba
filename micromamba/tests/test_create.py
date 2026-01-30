@@ -1984,6 +1984,80 @@ def test_requires_pip_install(tmp_home, tmp_root_prefix, env_file):
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_pip_output_visibility_by_default_and_suppressed_with_json_or_quiet(
+    tmp_home, tmp_root_prefix
+):
+    """pip/uv output is visible by default but suppressed when --json or --quiet is used."""
+    env_file = __this_dir__ / "env-pip-numpy.yaml"
+    umamba = helpers.get_umamba()
+
+    # By default, pip output should be visible (no --quiet flag)
+    env_prefix_1 = tmp_root_prefix / "envs" / "pip_out_vis_1"
+    cmd1 = [
+        umamba,
+        "create",
+        "-p",
+        str(env_prefix_1),
+        "-f",
+        str(env_file),
+        "-y",
+        "--no-rc",
+    ] + helpers.channel
+    result1 = subprocess.run(cmd1, capture_output=True, text=True, check=True)
+    pip_output_present = (
+        "Collecting" in result1.stdout
+        or "Installing" in result1.stdout
+        or "Successfully installed" in result1.stdout
+        or "Downloading" in result1.stdout
+    )
+    assert pip_output_present, "pip output should be visible by default (no --quiet flag)"
+
+    # With --json, pip output should be suppressed (--quiet flag used)
+    env_prefix_2 = tmp_root_prefix / "envs" / "pip_out_vis_2"
+    cmd2 = [
+        umamba,
+        "create",
+        "-p",
+        str(env_prefix_2),
+        "-f",
+        str(env_file),
+        "-y",
+        "--no-rc",
+        "--json",
+    ] + helpers.channel
+    result2 = subprocess.run(cmd2, capture_output=True, text=True, check=True)
+    pip_output_suppressed_json = not (
+        "Collecting" in result2.stdout
+        or "Installing" in result2.stdout
+        or "Successfully installed" in result2.stdout
+        or "Downloading" in result2.stdout
+    )
+    assert pip_output_suppressed_json, "pip output should be suppressed when --json is used"
+
+    # With --quiet, pip output should be suppressed (--quiet flag used)
+    env_prefix_3 = tmp_root_prefix / "envs" / "pip_out_vis_3"
+    cmd3 = [
+        umamba,
+        "create",
+        "-p",
+        str(env_prefix_3),
+        "-f",
+        str(env_file),
+        "-y",
+        "--no-rc",
+        "--quiet",
+    ] + helpers.channel
+    result3 = subprocess.run(cmd3, capture_output=True, text=True, check=True)
+    pip_output_suppressed_quiet = not (
+        "Collecting" in result3.stdout
+        or "Installing" in result3.stdout
+        or "Successfully installed" in result3.stdout
+        or "Downloading" in result3.stdout
+    )
+    assert pip_output_suppressed_quiet, "pip output should be suppressed when --quiet is used"
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("env_file", env_files)
 def test_requires_pip_install_prefix_spaces(tmp_home, tmp_root_prefix, tmp_path, env_file):
     env_prefix = tmp_path / "prefix with space"

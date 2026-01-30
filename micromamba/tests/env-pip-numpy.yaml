@@ -1,0 +1,7 @@
+name: a
+channels:
+  - conda-forge
+dependencies:
+  - pip
+  - pip:
+      - numpy

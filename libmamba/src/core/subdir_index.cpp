@@ -786,7 +786,7 @@ namespace mamba
                 LOG_INFO << "Checked: " << effective_url << " [" << http_status << "]";
                 if (util::ends_with(effective_url, ".zst"))
                 {
-                    m_metadata.set_zst(http_status == 200);
+                    m_metadata.set_zst(http_status >= 200 && http_status < 300);
                 }
                 return expected_t<void>();
             };
@@ -848,7 +848,7 @@ namespace mamba
                 int http_status = success.transfer.http_status;
                 LOG_DEBUG << "Shard index check: " << success.transfer.effective_url << " ["
                           << http_status << "]";
-                m_metadata.set_shards(http_status == 200);
+                m_metadata.set_shards(http_status >= 200 && http_status < 300);
                 return expected_t<void>();
             };
 

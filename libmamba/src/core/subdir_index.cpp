@@ -232,9 +232,14 @@ namespace mamba
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
+    auto SubdirMetadata::has_shards() const -> bool
+    {
+        return m_has_shards.has_value() && m_has_shards.value().value;
+    }
+
     auto SubdirMetadata::has_up_to_date_shards(std::size_t ttl_seconds) const -> bool
     {
-        if (!m_has_shards.has_value() || !m_has_shards.value().value)
+        if (!has_shards())
         {
             return false;
         }

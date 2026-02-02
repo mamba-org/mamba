@@ -72,7 +72,11 @@ namespace mamba
         /** Check if zst is available and freshly checked. */
         [[nodiscard]] auto has_up_to_date_zst() const -> bool;
 
-        /** Check if shards are available and freshly checked. */
+        /** True if we have checked and shards are available (no TTL). */
+        [[nodiscard]] auto has_shards() const -> bool;
+
+        /** True if shards are available and the check is within \a ttl_seconds (or default expiry
+         * when \a ttl_seconds is 0). */
         [[nodiscard]] auto has_up_to_date_shards(std::size_t ttl_seconds = 0) const -> bool;
 
         void set_http_metadata(HttpMetadata data);

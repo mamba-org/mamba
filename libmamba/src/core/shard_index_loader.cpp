@@ -329,13 +329,10 @@ namespace mamba
             return std::nullopt;
         }
 
-        // Check if shards are available (must be true to fetch shard index)
-        // If has_up_to_date_shards() returns false, it means shards are not available
-        // and we should not try to fetch the index
-        // Note: TTL check is done in fetch_and_parse_shard_index, not here
-        if (!subdir.metadata().has_up_to_date_shards())
+        // Caller must have verified shards are available (e.g. via has_up_to_date_shards(ttl));
+        // we only need availability here, so use has_shards().
+        if (!subdir.metadata().has_shards())
         {
-            // Shards are not available (check request returned 404 or hasn't completed)
             return std::nullopt;
         }
 

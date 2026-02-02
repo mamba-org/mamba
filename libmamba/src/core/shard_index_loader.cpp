@@ -6,6 +6,10 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <optional>
+#include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 #include <msgpack.h>
@@ -22,6 +26,116 @@
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
+
+namespace
+{
+    /**
+     * Parse the "shards" map from msgpack (package name -> hash bytes).
+     */
+    void
+    parse_shards_map(const msgpack_object& val_obj, std::map<std::string, std::vector<std::uint8_t>>& shards)
+    {
+        if (val_obj.type != MSGPACK_OBJECT_MAP)
+        {
+            return;
+        }
+        for (std::uint32_t j = 0; j < val_obj.via.map.size; ++j)
+        {
+            const msgpack_object& shard_key_obj = val_obj.via.map.ptr[j].key;
+            const msgpack_object& shard_val_obj = val_obj.via.map.ptr[j].val;
+
+            std::string package_name;
+            if (shard_key_obj.type == MSGPACK_OBJECT_STR)
+            {
+                package_name = std::string(shard_key_obj.via.str.ptr, shard_key_obj.via.str.size);
+            }
+            else if (shard_key_obj.type == MSGPACK_OBJECT_BIN)
+            {
+                package_name = std::string(shard_key_obj.via.bin.ptr, shard_key_obj.via.bin.size);
+            }
+            else
+            {
+                continue;
+            }
+
+            // Hash is stored as binary data
+            if (shard_val_obj.type == MSGPACK_OBJECT_BIN)
+            {
+                std::vector<std::uint8_t> hash_bytes(
+                    reinterpret_cast<const std::uint8_t*>(shard_val_obj.via.bin.ptr),
+                    reinterpret_cast<const std::uint8_t*>(
+                        shard_val_obj.via.bin.ptr + shard_val_obj.via.bin.size
+                    )
+                );
+                shards[package_name] = std::move(hash_bytes);
+            }
+            else if (shard_val_obj.type == MSGPACK_OBJECT_STR)
+            {
+                // Sometimes hash is stored as hex string
+                std::string_view hex_str(shard_val_obj.via.str.ptr, shard_val_obj.via.str.size);
+                std::vector<std::uint8_t> hash_bytes(hex_str.size() / 2);
+                mamba::util::EncodingError error = mamba::util::EncodingError::Ok;
+                mamba::util::hex_to_bytes_to(
+                    hex_str,
+                    reinterpret_cast<std::byte*>(hash_bytes.data()),
+                    error
+                );
+                if (error == mamba::util::EncodingError::Ok)
+                {
+                    shards[package_name] = std::move(hash_bytes);
+                }
+            }
+        }
+    }
+
+    /**
+     * Parse the "info" map from msgpack (RepoMetadata: base_url, shards_base_url, subdir).
+     */
+    std::optional<mamba::RepoMetadata> parse_info_map(const msgpack_object& val_obj)
+    {
+        if (val_obj.type != MSGPACK_OBJECT_MAP)
+        {
+            return std::nullopt;
+        }
+        mamba::RepoMetadata info_dict;
+        for (std::uint32_t j = 0; j < val_obj.via.map.size; ++j)
+        {
+            const msgpack_object& info_key_obj = val_obj.via.map.ptr[j].key;
+            const msgpack_object& info_val_obj = val_obj.via.map.ptr[j].val;
+
+            std::string info_key;
+            if (info_key_obj.type == MSGPACK_OBJECT_STR)
+            {
+                info_key = std::string(info_key_obj.via.str.ptr, info_key_obj.via.str.size);
+            }
+            else if (info_key_obj.type == MSGPACK_OBJECT_BIN)
+            {
+                info_key = std::string(info_key_obj.via.bin.ptr, info_key_obj.via.bin.size);
+            }
+            else
+            {
+                continue;
+            }
+
+            if (info_key == "base_url")
+            {
+                info_dict.base_url = std::string(info_val_obj.via.str.ptr, info_val_obj.via.str.size);
+            }
+            else if (info_key == "shards_base_url")
+            {
+                info_dict.shards_base_url = std::string(
+                    info_val_obj.via.str.ptr,
+                    info_val_obj.via.str.size
+                );
+            }
+            else if (info_key == "subdir")
+            {
+                info_dict.subdir = std::string(info_val_obj.via.str.ptr, info_val_obj.via.str.size);
+            }
+        }
+        return info_dict;
+    }
+}
 
 namespace mamba
 {
@@ -250,58 +364,9 @@ namespace mamba
                     {
                         if (key == "info")
                         {
-                            // Manually parse RepoMetadata to handle structure variations
-                            if (val_obj.type == MSGPACK_OBJECT_MAP)
+                            if (auto info_opt = parse_info_map(val_obj))
                             {
-                                RepoMetadata info_dict;
-                                for (std::uint32_t j = 0; j < val_obj.via.map.size; ++j)
-                                {
-                                    const msgpack_object& info_key_obj = val_obj.via.map.ptr[j].key;
-                                    const msgpack_object& info_val_obj = val_obj.via.map.ptr[j].val;
-
-                                    std::string info_key;
-                                    if (info_key_obj.type == MSGPACK_OBJECT_STR)
-                                    {
-                                        info_key = std::string(
-                                            info_key_obj.via.str.ptr,
-                                            info_key_obj.via.str.size
-                                        );
-                                    }
-                                    else if (info_key_obj.type == MSGPACK_OBJECT_BIN)
-                                    {
-                                        info_key = std::string(
-                                            info_key_obj.via.bin.ptr,
-                                            info_key_obj.via.bin.size
-                                        );
-                                    }
-                                    else
-                                    {
-                                        continue;
-                                    }
-
-                                    if (info_key == "base_url")
-                                    {
-                                        info_dict.base_url = std::string(
-                                            info_val_obj.via.str.ptr,
-                                            info_val_obj.via.str.size
-                                        );
-                                    }
-                                    else if (info_key == "shards_base_url")
-                                    {
-                                        info_dict.shards_base_url = std::string(
-                                            info_val_obj.via.str.ptr,
-                                            info_val_obj.via.str.size
-                                        );
-                                    }
-                                    else if (info_key == "subdir")
-                                    {
-                                        info_dict.subdir = std::string(
-                                            info_val_obj.via.str.ptr,
-                                            info_val_obj.via.str.size
-                                        );
-                                    }
-                                }
-                                index.info = info_dict;
+                                index.info = *info_opt;
                                 has_info = true;
                             }
                         }
@@ -321,71 +386,7 @@ namespace mamba
                         }
                         else if (key == "shards")
                         {
-                            // Parse shards map: package name -> hash bytes
-                            if (val_obj.type == MSGPACK_OBJECT_MAP)
-                            {
-                                for (std::uint32_t j = 0; j < val_obj.via.map.size; ++j)
-                                {
-                                    const msgpack_object& shard_key_obj = val_obj.via.map.ptr[j].key;
-                                    const msgpack_object& shard_val_obj = val_obj.via.map.ptr[j].val;
-
-                                    std::string package_name;
-                                    if (shard_key_obj.type == MSGPACK_OBJECT_STR)
-                                    {
-                                        package_name = std::string(
-                                            shard_key_obj.via.str.ptr,
-                                            shard_key_obj.via.str.size
-                                        );
-                                    }
-                                    else if (shard_key_obj.type == MSGPACK_OBJECT_BIN)
-                                    {
-                                        package_name = std::string(
-                                            shard_key_obj.via.bin.ptr,
-                                            shard_key_obj.via.bin.size
-                                        );
-                                    }
-                                    else
-                                    {
-                                        continue;
-                                    }
-
-                                    // Hash is stored as binary data
-                                    if (shard_val_obj.type == MSGPACK_OBJECT_BIN)
-                                    {
-                                        std::vector<std::uint8_t> hash_bytes(
-                                            reinterpret_cast<const std::uint8_t*>(
-                                                shard_val_obj.via.bin.ptr
-                                            ),
-                                            reinterpret_cast<const std::uint8_t*>(
-                                                shard_val_obj.via.bin.ptr + shard_val_obj.via.bin.size
-                                            )
-                                        );
-                                        index.shards[package_name] = hash_bytes;
-                                    }
-                                    else if (shard_val_obj.type == MSGPACK_OBJECT_STR)
-                                    {
-                                        // Sometimes hash is stored as hex string
-                                        std::string_view hex_str(
-                                            shard_val_obj.via.str.ptr,
-                                            shard_val_obj.via.str.size
-                                        );
-                                        // Convert hex string to bytes using utility function
-                                        std::vector<std::uint8_t> hash_bytes(hex_str.size() / 2);
-                                        util::EncodingError error = util::EncodingError::Ok;
-                                        util::hex_to_bytes_to(
-                                            hex_str,
-                                            reinterpret_cast<std::byte*>(hash_bytes.data()),
-                                            error
-                                        );
-                                        if (error == util::EncodingError::Ok)
-                                        {
-                                            index.shards[package_name] = std::move(hash_bytes);
-                                        }
-                                        // If error, hash_bytes will be empty and won't be added to
-                                        // index
-                                    }
-                                }
-                            }
+                            parse_shards_map(val_obj, index.shards);
                             has_shards = true;
                         }
                     }

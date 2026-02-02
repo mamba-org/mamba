@@ -189,6 +189,9 @@ namespace mamba
         [[nodiscard]] auto valid_json_cache_path() const -> expected_t<fs::u8path>;
         [[nodiscard]] auto shard_index_url_path() const -> std::string;
 
+        /** Update shards availability from a HEAD check (for TTL). */
+        void set_shards_availability(bool value);
+
         void clear_valid_cache_files();
 
     private:

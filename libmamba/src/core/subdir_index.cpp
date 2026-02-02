@@ -13,6 +13,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/shard_index_loader.hpp"
 #include "mamba/core/subdir_index.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -500,6 +501,11 @@ namespace mamba
         return m_valid_cache_found;
     }
 
+    void SubdirIndexLoader::set_shards_availability(bool value)
+    {
+        m_metadata.set_shards(value);
+    }
+
     void SubdirIndexLoader::clear_valid_cache_files()
     {
         if (auto json_path = valid_json_cache_path_unchecked(); fs::is_regular_file(json_path))
@@ -812,39 +818,11 @@ namespace mamba
             };
         }
 
-        // Check for sharded repodata availability
+        // Add shards HEAD check only when we may use the network (not offline, or cache forbidden
+        // e.g. local channel) and we don't yet have up-to-date shards metadata.
         if ((!params.offline || caching_is_forbidden()) && !m_metadata.has_up_to_date_shards())
         {
-            // Download shard index
-            request.push_back(
-                download::Request(
-                    name() + " (check shards)",
-                    download::MirrorName(channel_id()),
-                    shard_index_url_path(),
-                    "",
-                    /* lhead_only = */ true,
-                    /* lignore_failure = */ true
-                )
-            );
-
-            request.back().on_success = [this](const download::Success& success)
-            {
-                int http_status = success.transfer.http_status;
-                LOG_DEBUG << "Shard index check: " << success.transfer.effective_url << " ["
-                          << http_status << "]";
-                m_metadata.set_shards(http_status >= 200 && http_status < 300);
-                return expected_t<void>();
-            };
-
-            request.back().on_failure = [this](const download::Error& error)
-            {
-                if (error.transfer.has_value())
-                {
-                    LOG_DEBUG << "Shard index check failed: " << error.transfer.value().effective_url
-                              << " [" << error.transfer.value().http_status << "]";
-                }
-                m_metadata.set_shards(false);
-            };
+            request.push_back(ShardIndexLoader::build_shards_availability_check_request(*this));
         }
         return request;
     }

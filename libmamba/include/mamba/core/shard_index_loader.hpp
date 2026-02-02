@@ -45,7 +45,7 @@ namespace mamba
          * @return Parsed shard index, or nullopt if shards not available.
          */
         static auto fetch_and_parse_shard_index(
-            const SubdirIndexLoader& subdir,
+            SubdirIndexLoader& subdir,
             const SubdirDownloadParams& params,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
@@ -53,6 +53,28 @@ namespace mamba
             const download::RemoteFetchParams& remote_fetch_params,
             std::size_t shards_ttl = 0
         ) -> expected_t<std::optional<ShardsIndexDict>>;
+
+        /**
+         * Build HEAD request to check shard index availability and update subdir metadata on
+         * completion. Used for TTL: run this (e.g. in a batch or via refresh_shards_availability),
+         * then has_up_to_date_shards(ttl) reflects the result.
+         */
+        static auto build_shards_availability_check_request(SubdirIndexLoader& subdir)
+            -> download::Request;
+
+        /**
+         * Run the shards availability HEAD check and update subdir metadata. Use when metadata may
+         * be stale (e.g. before fetch_and_parse_shard_index when has_up_to_date_shards(ttl) is
+         * false).
+         */
+        static void refresh_shards_availability(
+            SubdirIndexLoader& subdir,
+            const SubdirDownloadParams& params,
+            const specs::AuthenticationDataBase& auth_info,
+            const download::mirror_map& mirrors,
+            const download::Options& download_options,
+            const download::RemoteFetchParams& remote_fetch_params
+        );
 
         /**
          * Parse downloaded shard index file.

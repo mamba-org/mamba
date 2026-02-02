@@ -382,6 +382,69 @@ namespace mamba
         return { std::move(request) };
     }
 
+    auto ShardIndexLoader::build_shards_availability_check_request(SubdirIndexLoader& subdir)
+        -> download::Request
+    {
+        download::Request request(
+            subdir.name() + " (check shards)",
+            download::MirrorName(subdir.channel_id()),
+            subdir.shard_index_url_path(),
+            "",
+            /*head_only*/ true,
+            /*ignore_failure*/ true
+        );
+
+        request.on_success = [&subdir](const download::Success& success)
+        {
+            int http_status = success.transfer.http_status;
+            LOG_DEBUG << "Shard index check: " << success.transfer.effective_url << " ["
+                      << http_status << "]";
+            subdir.set_shards_availability(http_status >= 200 && http_status < 300);
+            return expected_t<void>();
+        };
+
+        request.on_failure = [&subdir](const download::Error& error)
+        {
+            if (error.transfer.has_value())
+            {
+                LOG_DEBUG << "Shard index check failed: " << error.transfer.value().effective_url
+                          << " [" << error.transfer.value().http_status << "]";
+            }
+            subdir.set_shards_availability(false);
+        };
+
+        return request;
+    }
+
+    void ShardIndexLoader::refresh_shards_availability(
+        SubdirIndexLoader& subdir,
+        const SubdirDownloadParams& params,
+        const specs::AuthenticationDataBase& auth_info,
+        const download::mirror_map& mirrors,
+        const download::Options& download_options,
+        const download::RemoteFetchParams& remote_fetch_params
+    )
+    {
+        // Skip HEAD check only when offline and cache is allowed (same condition as
+        // SubdirIndexLoader::build_check_requests for adding the shards check).
+        if (params.offline && !subdir.caching_is_forbidden())
+        {
+            return;
+        }
+
+        download::MultiRequest requests;
+        requests.push_back(build_shards_availability_check_request(subdir));
+
+        download::download(
+            std::move(requests),
+            mirrors,
+            remote_fetch_params,
+            auth_info,
+            download_options,
+            nullptr  // monitor
+        );
+    }
+
     auto ShardIndexLoader::parse_shard_index(const fs::u8path& file_path)
         -> expected_t<ShardsIndexDict>
     {
@@ -442,7 +505,7 @@ namespace mamba
     }
 
     auto ShardIndexLoader::fetch_and_parse_shard_index(
-        const SubdirIndexLoader& subdir,
+        SubdirIndexLoader& subdir,
         const SubdirDownloadParams& params,
         const specs::AuthenticationDataBase& auth_info,
         const download::mirror_map& mirrors,
@@ -451,12 +514,33 @@ namespace mamba
         std::size_t shards_ttl
     ) -> expected_t<std::optional<ShardsIndexDict>>
     {
-        // Check if shards are available (using TTL if provided)
+        // Refresh shards availability (HEAD check) if metadata is stale for TTL, then re-check.
         if (!subdir.metadata().has_up_to_date_shards(shards_ttl))
         {
-            // Shards are not available (check request returned 404 or hasn't completed, or TTL
-            // expired)
-            return std::nullopt;
+            LOG_DEBUG << "Shard index metadata stale or missing for " << subdir.name()
+                      << ", running HEAD check";
+            refresh_shards_availability(
+                subdir,
+                params,
+                auth_info,
+                mirrors,
+                download_options,
+                remote_fetch_params
+            );
+            if (!subdir.metadata().has_up_to_date_shards(shards_ttl))
+            {
+                if (!subdir.metadata().has_shards())
+                {
+                    LOG_DEBUG << "Shards not present for " << subdir.name()
+                              << " (HEAD check returned non-2xx status or failed)";
+                }
+                else
+                {
+                    LOG_DEBUG << "Shard index still not up to date for " << subdir.name()
+                              << " after refresh (TTL or check failure)";
+                }
+                return std::nullopt;
+            }
         }
 
         // Check cache first

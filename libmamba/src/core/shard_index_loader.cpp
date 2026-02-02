@@ -16,6 +16,7 @@
 #include <msgpack/zone.h>
 #include <zstd.h>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shard_index_loader.hpp"
@@ -135,6 +136,175 @@ namespace
         }
         return info_dict;
     }
+
+    /**
+     * Read shard index file into a byte vector.
+     */
+    mamba::expected_t<std::vector<std::uint8_t>>
+    read_shard_index_file(const mamba::fs::u8path& file_path)
+    {
+        if (!mamba::fs::exists(file_path))
+        {
+            return mamba::make_unexpected(
+                "Shard index file does not exist",
+                mamba::mamba_error_code::cache_not_loaded
+            );
+        }
+        std::ifstream file(file_path.string(), std::ios::binary);
+        if (!file.is_open())
+        {
+            return mamba::make_unexpected(
+                "Failed to open shard index file",
+                mamba::mamba_error_code::cache_not_loaded
+            );
+        }
+        std::vector<std::uint8_t> data(
+            (std::istreambuf_iterator<char>(file)),
+            std::istreambuf_iterator<char>()
+        );
+        file.close();
+        if (data.empty())
+        {
+            return mamba::make_unexpected(
+                "Shard index file is empty",
+                mamba::mamba_error_code::cache_not_loaded
+            );
+        }
+        return data;
+    }
+
+    /**
+     * Decompress zstd-compressed shard index data.
+     */
+    mamba::expected_t<std::vector<std::uint8_t>>
+    decompress_shard_index_zstd(const std::vector<std::uint8_t>& compressed_data)
+    {
+        ZSTD_DCtx* dctx = ZSTD_createDCtx();
+        if (dctx == nullptr)
+        {
+            return mamba::make_unexpected(
+                "Failed to create zstd decompression context",
+                mamba::mamba_error_code::unknown
+            );
+        }
+        std::vector<std::uint8_t> decompressed_data(ZSTD_DStreamOutSize());
+        ZSTD_inBuffer input = { compressed_data.data(), compressed_data.size(), 0 };
+        ZSTD_outBuffer output = { decompressed_data.data(), decompressed_data.size(), 0 };
+        std::vector<std::uint8_t> full_decompressed;
+        constexpr std::size_t max_size = 100 * 1024 * 1024;  // 100 MB
+
+        while (input.pos < input.size)
+        {
+            std::size_t ret = ZSTD_decompressStream(dctx, &output, &input);
+            if (ZSTD_isError(ret))
+            {
+                ZSTD_freeDCtx(dctx);
+                return mamba::make_unexpected(
+                    "Zstd decompression error: " + std::string(ZSTD_getErrorName(ret)),
+                    mamba::mamba_error_code::unknown
+                );
+            }
+            full_decompressed.insert(
+                full_decompressed.end(),
+                decompressed_data.begin(),
+                decompressed_data.begin() + static_cast<std::ptrdiff_t>(output.pos)
+            );
+            output.pos = 0;
+            if (full_decompressed.size() > max_size)
+            {
+                ZSTD_freeDCtx(dctx);
+                return mamba::make_unexpected(
+                    "Decompressed shard index exceeds maximum size",
+                    mamba::mamba_error_code::unknown
+                );
+            }
+        }
+        ZSTD_freeDCtx(dctx);
+        return full_decompressed;
+    }
+
+    /**
+     * Parse the root msgpack map into ShardsIndexDict (info, version, shards).
+     */
+    mamba::ShardsIndexDict parse_shard_index_map(const msgpack_object& obj)
+    {
+        mamba::ShardsIndexDict index;
+        if (obj.type != MSGPACK_OBJECT_MAP)
+        {
+            return index;
+        }
+        bool has_info = false;
+        bool has_version = false;
+        bool has_shards = false;
+
+        for (std::uint32_t i = 0; i < obj.via.map.size; ++i)
+        {
+            const msgpack_object& key_obj = obj.via.map.ptr[i].key;
+            const msgpack_object& val_obj = obj.via.map.ptr[i].val;
+
+            std::string key;
+            try
+            {
+                if (key_obj.type == MSGPACK_OBJECT_STR)
+                {
+                    key = std::string(key_obj.via.str.ptr, key_obj.via.str.size);
+                }
+                else if (key_obj.type == MSGPACK_OBJECT_BIN)
+                {
+                    key = std::string(key_obj.via.bin.ptr, key_obj.via.bin.size);
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            catch (const std::exception&)
+            {
+                continue;
+            }
+
+            try
+            {
+                if (key == "info")
+                {
+                    if (auto info_opt = parse_info_map(val_obj))
+                    {
+                        index.info = *info_opt;
+                        has_info = true;
+                    }
+                }
+                else if (key == "version" || key == "repodata_version")
+                {
+                    if (val_obj.type == MSGPACK_OBJECT_POSITIVE_INTEGER)
+                    {
+                        index.version = static_cast<std::size_t>(val_obj.via.u64);
+                    }
+                    else if (val_obj.type == MSGPACK_OBJECT_NEGATIVE_INTEGER)
+                    {
+                        index.version = static_cast<std::size_t>(val_obj.via.i64);
+                    }
+                    has_version = true;
+                }
+                else if (key == "shards")
+                {
+                    parse_shards_map(val_obj, index.shards);
+                    has_shards = true;
+                }
+            }
+            catch (const std::exception& e)
+            {
+                LOG_WARNING << "Failed to parse field '" << key
+                            << "' (type=" << static_cast<int>(val_obj.type) << "): " << e.what();
+            }
+        }
+
+        if (!has_info || !has_shards)
+        {
+            LOG_WARNING << "Missing required fields in shard index (has_info=" << has_info
+                        << ", has_version=" << has_version << ", has_shards=" << has_shards << ")";
+        }
+        return index;
+    }
 }
 
 namespace mamba
@@ -227,86 +397,26 @@ namespace mamba
     auto ShardIndexLoader::parse_shard_index(const fs::u8path& file_path)
         -> expected_t<ShardsIndexDict>
     {
-        if (!fs::exists(file_path))
+        auto compressed = read_shard_index_file(file_path);
+        if (!compressed.has_value())
         {
-            return make_unexpected("Shard index file does not exist", mamba_error_code::cache_not_loaded);
+            return make_unexpected(compressed.error().what(), compressed.error().error_code());
         }
 
-        // Read compressed data
-        // Explicitly convert fs::u8path to string to avoid ambiguity
-        // between string and wstring on Windows.
-        std::ifstream file(file_path.string(), std::ios::binary);
-        if (!file.is_open())
+        auto decompressed = decompress_shard_index_zstd(compressed.value());
+        if (!decompressed.has_value())
         {
-            return make_unexpected("Failed to open shard index file", mamba_error_code::cache_not_loaded);
+            return make_unexpected(decompressed.error().what(), decompressed.error().error_code());
         }
 
-        std::vector<std::uint8_t> compressed_data(
-            (std::istreambuf_iterator<char>(file)),
-            std::istreambuf_iterator<char>()
-        );
-        file.close();
-
-        if (compressed_data.empty())
-        {
-            return make_unexpected("Shard index file is empty", mamba_error_code::cache_not_loaded);
-        }
-
-        // Decompress zstd
-        ZSTD_DCtx* dctx = ZSTD_createDCtx();
-        if (dctx == nullptr)
-        {
-            return make_unexpected(
-                "Failed to create zstd decompression context",
-                mamba_error_code::unknown
-            );
-        }
-
-        std::vector<std::uint8_t> decompressed_data(ZSTD_DStreamOutSize());
-        ZSTD_inBuffer input = { compressed_data.data(), compressed_data.size(), 0 };
-        ZSTD_outBuffer output = { decompressed_data.data(), decompressed_data.size(), 0 };
-
-        std::vector<std::uint8_t> full_decompressed;
-        while (input.pos < input.size)
-        {
-            std::size_t ret = ZSTD_decompressStream(dctx, &output, &input);
-            if (ZSTD_isError(ret))
-            {
-                ZSTD_freeDCtx(dctx);
-                return make_unexpected(
-                    "Zstd decompression error: " + std::string(ZSTD_getErrorName(ret)),
-                    mamba_error_code::unknown
-                );
-            }
-
-            full_decompressed.insert(
-                full_decompressed.end(),
-                decompressed_data.begin(),
-                decompressed_data.begin() + static_cast<std::ptrdiff_t>(output.pos)
-            );
-            output.pos = 0;
-            // Reasonable limit for shard index (should be much smaller than individual shards)
-            if (full_decompressed.size() > 100 * 1024 * 1024)  // 100 MB
-            {
-                ZSTD_freeDCtx(dctx);
-                return make_unexpected(
-                    "Decompressed shard index exceeds maximum size",
-                    mamba_error_code::unknown
-                );
-            }
-        }
-
-        ZSTD_freeDCtx(dctx);
-
-        // Parse msgpack
         msgpack_unpacked unpacked = {};
         try
         {
             size_t offset = 0;
             msgpack_unpack_return ret = msgpack_unpack_next(
                 &unpacked,
-                reinterpret_cast<const char*>(full_decompressed.data()),
-                full_decompressed.size(),
+                reinterpret_cast<const char*>(decompressed->data()),
+                decompressed->size(),
                 &offset
             );
 
@@ -320,92 +430,7 @@ namespace mamba
                 throw std::runtime_error("Failed to unpack msgpack data");
             }
 
-            const msgpack_object& obj = unpacked.data;
-
-            // Handle both 'version' and 'repodata_version' field names (conda-index uses
-            // 'repodata_version')
-            ShardsIndexDict index;
-
-            // Manual parsing to handle field name variations
-            if (obj.type == MSGPACK_OBJECT_MAP)
-            {
-                bool has_info = false;
-                bool has_version = false;
-                bool has_shards = false;
-
-                for (std::uint32_t i = 0; i < obj.via.map.size; ++i)
-                {
-                    const msgpack_object& key_obj = obj.via.map.ptr[i].key;
-                    const msgpack_object& val_obj = obj.via.map.ptr[i].val;
-
-                    std::string key;
-                    try
-                    {
-                        if (key_obj.type == MSGPACK_OBJECT_STR)
-                        {
-                            key = std::string(key_obj.via.str.ptr, key_obj.via.str.size);
-                        }
-                        else if (key_obj.type == MSGPACK_OBJECT_BIN)
-                        {
-                            key = std::string(key_obj.via.bin.ptr, key_obj.via.bin.size);
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                    }
-                    catch (const std::exception&)
-                    {
-                        // Skip if key conversion fails
-                        continue;
-                    }
-
-                    try
-                    {
-                        if (key == "info")
-                        {
-                            if (auto info_opt = parse_info_map(val_obj))
-                            {
-                                index.info = *info_opt;
-                                has_info = true;
-                            }
-                        }
-                        else if (key == "version" || key == "repodata_version")
-                        {
-                            // Handle both field names (conda-index uses 'repodata_version')
-                            // Try different integer types
-                            if (val_obj.type == MSGPACK_OBJECT_POSITIVE_INTEGER)
-                            {
-                                index.version = static_cast<std::size_t>(val_obj.via.u64);
-                            }
-                            else if (val_obj.type == MSGPACK_OBJECT_NEGATIVE_INTEGER)
-                            {
-                                index.version = static_cast<std::size_t>(val_obj.via.i64);
-                            }
-                            has_version = true;
-                        }
-                        else if (key == "shards")
-                        {
-                            parse_shards_map(val_obj, index.shards);
-                            has_shards = true;
-                        }
-                    }
-                    catch (const std::exception& e)
-                    {
-                        LOG_WARNING << "Failed to parse field '" << key
-                                    << "' (type=" << static_cast<int>(val_obj.type)
-                                    << "): " << e.what();
-                        // Continue with other fields
-                    }
-                }
-
-                if (!has_info || !has_shards)
-                {
-                    LOG_WARNING << "Missing required fields in shard index (has_info=" << has_info
-                                << ", has_version=" << has_version << ", has_shards=" << has_shards
-                                << ")";
-                }
-            }
+            ShardsIndexDict index = parse_shard_index_map(unpacked.data);
 
             if (unpacked.zone != nullptr)
             {
@@ -416,7 +441,6 @@ namespace mamba
         }
         catch (const std::exception& e)
         {
-            // Ensure zone is cleaned up even if exception occurs
             if (unpacked.zone != nullptr)
             {
                 msgpack_zone_destroy(unpacked.zone);

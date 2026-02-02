@@ -627,6 +627,11 @@ namespace mamba
         return util::url_concat(m_platform, "/", m_repodata_filename);
     }
 
+    auto SubdirIndexLoader::shard_index_url_path() const -> std::string
+    {
+        return util::url_concat(m_platform, "/", "repodata_shards.msgpack.zst");
+    }
+
     auto SubdirIndexLoader::valid_json_cache_path_unchecked() const -> fs::u8path
     {
         return get_cache_dir(m_valid_cache_path) / m_json_filename;
@@ -805,38 +810,12 @@ namespace mamba
         // Check for sharded repodata availability
         if ((!params.offline || caching_is_forbidden()) && !m_metadata.has_up_to_date_shards())
         {
-            // Construct shard index path by replacing `repodata.json` with
-            // `repodata_shards.msgpack.zst`.
-
-            // Use `repodata_url_path()` to get just the path component;
-            // mirror system will prepend the base URL.
-            std::string shard_index_path = repodata_url_path();
-
-            constexpr std::string_view shard_index_filename = "repodata_shards.msgpack.zst";
-            if (util::ends_with(shard_index_path, "/" + m_repodata_filename))
-            {
-                shard_index_path = util::concat(
-                    util::remove_suffix(shard_index_path, "/" + m_repodata_filename),
-                    shard_index_filename
-                );
-            }
-            else if (util::ends_with(shard_index_path, m_repodata_filename))
-            {
-                shard_index_path = util::concat(
-                    util::remove_suffix(shard_index_path, m_repodata_filename),
-                    shard_index_filename
-                );
-            }
-            else
-            {
-                // Fallback: append if filename doesn't match
-                shard_index_path = util::url_concat(shard_index_path, "/repodata_shards.msgpack.zst");
-            }
+            // Download shard index
             request.push_back(
                 download::Request(
                     name() + " (check shards)",
                     download::MirrorName(channel_id()),
-                    shard_index_path,
+                    shard_index_url_path(),
                     "",
                     /* lhead_only = */ true,
                     /* lignore_failure = */ true

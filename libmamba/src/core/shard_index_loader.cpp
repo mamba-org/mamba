@@ -356,17 +356,10 @@ namespace mamba
         // failed or partial download does not corrupt the cached shard index.
         auto artifact = std::make_shared<TemporaryFile>("mambashard", "", writable_cache_dir);
 
-        // Build path for repodata_shards.msgpack.zst
-        // Construct path component manually (mirror system will prepend base URL)
-        // Format: platform/repodata_shards.msgpack.zst
-        std::string platform_str = subdir.platform();
-        std::string shard_index_path = util::url_concat(platform_str, "/repodata_shards.msgpack.zst");
-        std::string shard_index_url = shard_index_path;
-
         download::Request request(
             subdir.name() + "-shards",
             download::MirrorName(subdir.channel_id()),
-            shard_index_url,
+            subdir.shard_index_url_path(),
             artifact->path().string(),
             /*head_only*/ false,
             /*ignore_failure*/ !subdir.is_noarch()

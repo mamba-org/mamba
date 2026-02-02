@@ -805,21 +805,20 @@ namespace mamba
             // (mirror system will prepend base URL)
             std::string shard_index_path = repodata_url_path();
             // Replace the filename (repodata.json) with repodata_shards.msgpack.zst
+            constexpr std::string_view shard_index_filename = "repodata_shards.msgpack.zst";
             if (util::ends_with(shard_index_path, "/" + m_repodata_filename))
             {
-                shard_index_path = shard_index_path.substr(
-                                       0,
-                                       shard_index_path.size() - m_repodata_filename.size()
-                                   )
-                                   + "repodata_shards.msgpack.zst";
+                shard_index_path = util::concat(
+                    util::remove_suffix(shard_index_path, "/" + m_repodata_filename),
+                    shard_index_filename
+                );
             }
             else if (util::ends_with(shard_index_path, m_repodata_filename))
             {
-                shard_index_path = shard_index_path.substr(
-                                       0,
-                                       shard_index_path.size() - m_repodata_filename.size()
-                                   )
-                                   + "repodata_shards.msgpack.zst";
+                shard_index_path = util::concat(
+                    util::remove_suffix(shard_index_path, m_repodata_filename),
+                    shard_index_filename
+                );
             }
             else
             {

@@ -143,13 +143,6 @@ namespace
     mamba::expected_t<std::vector<std::uint8_t>>
     read_shard_index_file(const mamba::fs::u8path& file_path)
     {
-        if (!mamba::fs::exists(file_path))
-        {
-            return mamba::make_unexpected(
-                "Shard index file does not exist",
-                mamba::mamba_error_code::cache_not_loaded
-            );
-        }
         std::ifstream file(file_path.string(), std::ios::binary);
         if (!file.is_open())
         {

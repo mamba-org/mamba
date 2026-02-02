@@ -805,11 +805,13 @@ namespace mamba
         // Check for sharded repodata availability
         if ((!params.offline || caching_is_forbidden()) && !m_metadata.has_up_to_date_shards())
         {
-            // Construct shard index path by replacing repodata.json with
-            // repodata_shards.msgpack.zst Use repodata_url_path() to get just the path component
-            // (mirror system will prepend base URL)
+            // Construct shard index path by replacing `repodata.json` with
+            // `repodata_shards.msgpack.zst`.
+
+            // Use `repodata_url_path()` to get just the path component;
+            // mirror system will prepend the base URL.
             std::string shard_index_path = repodata_url_path();
-            // Replace the filename (repodata.json) with repodata_shards.msgpack.zst
+
             constexpr std::string_view shard_index_filename = "repodata_shards.msgpack.zst";
             if (util::ends_with(shard_index_path, "/" + m_repodata_filename))
             {

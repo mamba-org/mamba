@@ -339,7 +339,7 @@ namespace mamba
         // Check if shards are available (must be true to fetch shard index)
         // If has_up_to_date_shards() returns false, it means shards are not available
         // and we should not try to fetch the index
-        // Note: TTL check is done in fetch_shards_index, not here
+        // Note: TTL check is done in fetch_and_parse_shard_index, not here
         if (!subdir.metadata().has_up_to_date_shards())
         {
             // Shards are not available (check request returned 404 or hasn't completed)
@@ -451,7 +451,7 @@ namespace mamba
         }
     }
 
-    auto ShardIndexLoader::fetch_shards_index(
+    auto ShardIndexLoader::fetch_and_parse_shard_index(
         const SubdirIndexLoader& subdir,
         const SubdirDownloadParams& params,
         const specs::AuthenticationDataBase& auth_info,

@@ -44,7 +44,7 @@ namespace mamba
          * expiration).
          * @return Parsed shard index, or nullopt if shards not available.
          */
-        static auto fetch_shards_index(
+        static auto fetch_and_parse_shard_index(
             const SubdirIndexLoader& subdir,
             const SubdirDownloadParams& params,
             const specs::AuthenticationDataBase& auth_info,

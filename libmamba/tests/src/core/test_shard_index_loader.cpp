@@ -358,7 +358,7 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard"
         download::Options download_options;
         download::RemoteFetchParams remote_fetch_params;
 
-        auto shard_index_result = ShardIndexLoader::fetch_shards_index(
+        auto shard_index_result = ShardIndexLoader::fetch_and_parse_shard_index(
             subdirs[0],
             {},
             auth_info,
@@ -429,7 +429,8 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard"
     }
 }
 
-// Note: shard_index_cache_path is private, so we test it indirectly through fetch_shards_index
+// Note: shard_index_cache_path is private, so we test it indirectly through
+// fetch_and_parse_shard_index
 
 TEST_CASE("ShardIndexLoader::parse_shard_index - Edge cases")
 {
@@ -741,9 +742,10 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Edge cases")
     }
 }
 
-// Note: build_shard_index_request is private, so we test it indirectly through fetch_shards_index
+// Note: build_shard_index_request is private, so we test it indirectly through
+// fetch_and_parse_shard_index
 
-TEST_CASE("ShardIndexLoader::fetch_shards_index")
+TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
 {
     const auto resolve_params = ChannelContext::ChannelResolveParams{
         { "linux-64", "noarch" },
@@ -775,7 +777,7 @@ TEST_CASE("ShardIndexLoader::fetch_shards_index")
         params.offline = false;
 
         // Metadata doesn't have shards set
-        auto result = ShardIndexLoader::fetch_shards_index(
+        auto result = ShardIndexLoader::fetch_and_parse_shard_index(
             subdir.value(),
             params,
             auth_info,
@@ -834,7 +836,7 @@ TEST_CASE("ShardIndexLoader::fetch_shards_index")
         SubdirDownloadParams params;
         params.offline = false;
 
-        auto result = ShardIndexLoader::fetch_shards_index(
+        auto result = ShardIndexLoader::fetch_and_parse_shard_index(
             subdir.value(),
             params,
             auth_info,
@@ -892,7 +894,7 @@ TEST_CASE("ShardIndexLoader::fetch_shards_index")
         // Use a very short TTL (1 second) - wait for it to expire
         std::this_thread::sleep_for(std::chrono::milliseconds(1100));
 
-        auto result = ShardIndexLoader::fetch_shards_index(
+        auto result = ShardIndexLoader::fetch_and_parse_shard_index(
             subdir.value(),
             params,
             auth_info,

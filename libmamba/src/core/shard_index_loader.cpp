@@ -326,6 +326,7 @@ namespace mamba
     {
         if (params.offline)
         {
+            LOG_DEBUG << "Skipping shard index request for " << subdir.name() << " (offline)";
             return std::nullopt;
         }
 
@@ -333,8 +334,13 @@ namespace mamba
         // we only need availability here, so use has_shards().
         if (!subdir.metadata().has_shards())
         {
+            LOG_DEBUG << "Skipping shard index request for " << subdir.name()
+                      << " (shards not available)";
             return std::nullopt;
         }
+
+        LOG_DEBUG << "Building shard index download request for " << subdir.name() << " ("
+                  << subdir.shard_index_url_path() << ")";
 
         fs::u8path writable_cache_dir = create_cache_dir(cache_dir);
         // Lock the cache dir so concurrent downloads for the same subdir do not overwrite each

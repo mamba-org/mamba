@@ -322,7 +322,7 @@ namespace mamba
         {
             cache_name += ".msgpack.zst";
         }
-        return subdir.writable_libsolv_cache_path().parent_path() / cache_name;
+        return subdir.writable_cache_dir() / cache_name;
     }
 
     auto ShardIndexLoader::build_shard_index_request(
@@ -347,8 +347,13 @@ namespace mamba
         }
 
         fs::u8path writable_cache_dir = create_cache_dir(cache_dir);
+        // Lock the cache dir so concurrent downloads for the same subdir do not overwrite each
+        // other; the temporary file path is then copied into the request and used as download
+        // target.
         auto lock = LockFile(writable_cache_dir);
 
+        // Unique path for this download; we copy to the final cache path only on success, so a
+        // failed or partial download does not corrupt the cached shard index.
         auto artifact = std::make_shared<TemporaryFile>("mambashard", "", writable_cache_dir);
 
         // Build path for repodata_shards.msgpack.zst
@@ -501,7 +506,7 @@ namespace mamba
         auto request_opt = build_shard_index_request(
             subdir,
             params,
-            subdir.writable_libsolv_cache_path().parent_path()
+            subdir.writable_cache_dir().parent_path()
         );
         if (!request_opt.has_value())
         {

@@ -543,9 +543,14 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
+    auto SubdirIndexLoader::writable_cache_dir() const -> fs::u8path
+    {
+        return m_writable_pkgs_dir / "cache";
+    }
+
     auto SubdirIndexLoader::writable_libsolv_cache_path() const -> fs::u8path
     {
-        return m_writable_pkgs_dir / "cache" / m_solv_filename;
+        return writable_cache_dir() / m_solv_filename;
     }
 
     auto SubdirIndexLoader::valid_json_cache_path() const -> expected_t<fs::u8path>

@@ -817,7 +817,7 @@ TEST_CASE("ShardIndexLoader::fetch_shards_index")
         {
             cache_name += ".msgpack.zst";
         }
-        auto cache_path = subdir.value().writable_libsolv_cache_path().parent_path() / cache_name;
+        auto cache_path = subdir.value().writable_cache_dir() / cache_name;
         fs::create_directories(cache_path.parent_path());
         std::ofstream cache_file(cache_path.string(), std::ios::binary);
         cache_file.write(
@@ -880,7 +880,7 @@ TEST_CASE("ShardIndexLoader::fetch_shards_index")
         {
             cache_name += ".msgpack.zst";
         }
-        auto cache_path = subdir.value().writable_libsolv_cache_path().parent_path() / cache_name;
+        auto cache_path = subdir.value().writable_cache_dir() / cache_name;
         fs::create_directories(cache_path.parent_path());
         std::ofstream cache_file(cache_path.string(), std::ios::binary);
         cache_file.write(

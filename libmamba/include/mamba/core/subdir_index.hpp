@@ -181,6 +181,7 @@ namespace mamba
         [[nodiscard]] auto valid_cache_found() const -> bool;
         [[nodiscard]] auto valid_libsolv_cache_path() const -> expected_t<fs::u8path>;
         [[nodiscard]] auto writable_libsolv_cache_path() const -> fs::u8path;
+        [[nodiscard]] auto writable_cache_dir() const -> fs::u8path;
         [[nodiscard]] auto valid_json_cache_path() const -> expected_t<fs::u8path>;
 
         void clear_valid_cache_files();

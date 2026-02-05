@@ -72,8 +72,16 @@ namespace mamba
         /** Check if zst is available and freshly checked. */
         [[nodiscard]] auto has_up_to_date_zst() const -> bool;
 
+        /** True if we have checked and shards are available (no TTL). */
+        [[nodiscard]] auto has_shards() const -> bool;
+
+        /** True if shards are available and the check is within \a ttl_seconds (or default expiry
+         * when \a ttl_seconds is 0). */
+        [[nodiscard]] auto has_up_to_date_shards(std::size_t ttl_seconds = 0) const -> bool;
+
         void set_http_metadata(HttpMetadata data);
         void set_zst(bool value);
+        void set_shards(bool value);
         void store_file_metadata(const fs::u8path& file);
 
         /** Write the metadata to a lightweight file. */
@@ -100,6 +108,7 @@ namespace mamba
 
         HttpMetadata m_http;
         std::optional<CheckedAt> m_has_zst;
+        std::optional<CheckedAt> m_has_shards;
         time_type m_stored_mtime;
         std::size_t m_stored_file_size;
 
@@ -176,7 +185,12 @@ namespace mamba
         [[nodiscard]] auto valid_cache_found() const -> bool;
         [[nodiscard]] auto valid_libsolv_cache_path() const -> expected_t<fs::u8path>;
         [[nodiscard]] auto writable_libsolv_cache_path() const -> fs::u8path;
+        [[nodiscard]] auto writable_cache_dir() const -> fs::u8path;
         [[nodiscard]] auto valid_json_cache_path() const -> expected_t<fs::u8path>;
+        [[nodiscard]] auto shard_index_url_path() const -> std::string;
+
+        /** Update shards availability from a HEAD check (for TTL). */
+        void set_shards_availability(bool value);
 
         void clear_valid_cache_files();
 

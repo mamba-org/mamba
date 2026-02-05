@@ -172,8 +172,10 @@ namespace
     mamba::expected_t<std::vector<std::uint8_t>>
     decompress_shard_index_zstd(const std::vector<std::uint8_t>& compressed_data)
     {
-        ZSTD_DCtx* dctx = ZSTD_createDCtx();
-        if (dctx == nullptr)
+        // Deleter based on `ZSTD_freeDCtx`
+        using DctxDeleter = decltype(&ZSTD_freeDCtx);
+        std::unique_ptr<ZSTD_DCtx, DctxDeleter> scope_ctx(ZSTD_createDCtx(), &ZSTD_freeDCtx);
+        if (scope_ctx == nullptr)
         {
             return mamba::make_unexpected(
                 "Failed to create zstd decompression context",
@@ -188,10 +190,9 @@ namespace
 
         while (input.pos < input.size)
         {
-            std::size_t ret = ZSTD_decompressStream(dctx, &output, &input);
+            std::size_t ret = ZSTD_decompressStream(scope_ctx.get(), &output, &input);
             if (ZSTD_isError(ret))
             {
-                ZSTD_freeDCtx(dctx);
                 return mamba::make_unexpected(
                     "Zstd decompression error: " + std::string(ZSTD_getErrorName(ret)),
                     mamba::mamba_error_code::unknown
@@ -205,14 +206,12 @@ namespace
             output.pos = 0;
             if (full_decompressed.size() > max_size)
             {
-                ZSTD_freeDCtx(dctx);
                 return mamba::make_unexpected(
                     "Decompressed shard index exceeds maximum size",
                     mamba::mamba_error_code::unknown
                 );
             }
         }
-        ZSTD_freeDCtx(dctx);
         return full_decompressed;
     }
 

@@ -322,6 +322,7 @@ def umamba_list(*args, **kwargs):
     res = subprocess_run(*cmd, **kwargs)
 
     if "--json" in args:
+        print("json result will be parsed to python object, original res: \n", res)
         j = json.loads(res)
         return j
 

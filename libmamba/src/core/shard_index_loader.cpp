@@ -50,12 +50,9 @@ namespace
             {
                 package_name = std::string(shard_key_obj.via.str.ptr, shard_key_obj.via.str.size);
             }
-            else if (shard_key_obj.type == MSGPACK_OBJECT_BIN)
-            {
-                package_name = std::string(shard_key_obj.via.bin.ptr, shard_key_obj.via.bin.size);
-            }
             else
             {
+                LOG_DEBUG << "Invalid shard key type: " << static_cast<int>(shard_key_obj.type);
                 continue;
             }
 
@@ -70,21 +67,10 @@ namespace
                 );
                 shards[package_name] = std::move(hash_bytes);
             }
-            else if (shard_val_obj.type == MSGPACK_OBJECT_STR)
+            else
             {
-                // Sometimes hash is stored as hex string
-                std::string_view hex_str(shard_val_obj.via.str.ptr, shard_val_obj.via.str.size);
-                std::vector<std::uint8_t> hash_bytes(hex_str.size() / 2);
-                mamba::util::EncodingError error = mamba::util::EncodingError::Ok;
-                mamba::util::hex_to_bytes_to(
-                    hex_str,
-                    reinterpret_cast<std::byte*>(hash_bytes.data()),
-                    error
-                );
-                if (error == mamba::util::EncodingError::Ok)
-                {
-                    shards[package_name] = std::move(hash_bytes);
-                }
+                LOG_DEBUG << "Invalid shard value type: " << static_cast<int>(shard_val_obj.type);
+                continue;
             }
         }
     }
@@ -109,12 +95,9 @@ namespace
             {
                 info_key = std::string(info_key_obj.via.str.ptr, info_key_obj.via.str.size);
             }
-            else if (info_key_obj.type == MSGPACK_OBJECT_BIN)
-            {
-                info_key = std::string(info_key_obj.via.bin.ptr, info_key_obj.via.bin.size);
-            }
             else
             {
+                LOG_DEBUG << "Invalid info key type: " << static_cast<int>(info_key_obj.type);
                 continue;
             }
 

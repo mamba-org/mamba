@@ -22,6 +22,7 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/specs/version.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -294,6 +295,17 @@ namespace mamba
     namespace
     {
         /**
+         * Compare two version strings using proper version comparison.
+         * Returns true if lhs < rhs according to version ordering.
+         */
+        auto compare_versions(std::string_view lhs, std::string_view rhs) -> bool
+        {
+            auto lhs_version = specs::Version::parse(lhs).value_or(specs::Version());
+            auto rhs_version = specs::Version::parse(rhs).value_or(specs::Version());
+            return lhs_version < rhs_version;
+        }
+
+        /**
          * Prints metadata for a given package.
          */
         auto print_metadata(std::ostream& out, const specs::PackageInfo& pkg)
@@ -355,10 +367,11 @@ namespace mamba
         /**
          * Prints all other versions/builds in a table format for a given package.
          */
+        template <typename MapType>
         auto print_other_builds(
             std::ostream& out,
             const specs::PackageInfo&,
-            const std::map<std::string, std::vector<specs::PackageInfo>> groupedOtherBuilds,
+            const MapType& groupedOtherBuilds,
             bool showAllBuilds
         )
         {
@@ -435,7 +448,38 @@ namespace mamba
         )
         {
             // Filter and group builds/versions.
-            std::map<std::string, std::vector<specs::PackageInfo>> groupedOtherBuilds;
+            // Use custom comparator for version map to ensure proper version ordering
+            auto version_compare = [showAllBuilds](const std::string& lhs, const std::string& rhs)
+            {
+                if (showAllBuilds)
+                {
+                    // When showing all builds, key is version+sha256 (sha256 is always 64 hex
+                    // chars) Extract version part and compare, then sha256 if versions are equal
+                    constexpr std::size_t sha256_len = 64;
+                    if (lhs.size() > sha256_len && rhs.size() > sha256_len)
+                    {
+                        auto lhs_version = lhs.substr(0, lhs.size() - sha256_len);
+                        auto rhs_version = rhs.substr(0, rhs.size() - sha256_len);
+                        auto version_cmp = compare_versions(lhs_version, rhs_version);
+                        if (lhs_version != rhs_version)
+                        {
+                            return version_cmp;
+                        }
+                        // Versions are equal, compare by sha256 (last 64 chars)
+                        return lhs.substr(lhs.size() - sha256_len)
+                               < rhs.substr(rhs.size() - sha256_len);
+                    }
+                    // Fallback to string comparison if format is unexpected
+                    return lhs < rhs;
+                }
+                else
+                {
+                    // When showing only versions, key is just the version string
+                    return compare_versions(lhs, rhs);
+                }
+            };
+            std::map<std::string, std::vector<specs::PackageInfo>, decltype(version_compare)>
+                groupedOtherBuilds(version_compare);
             auto numOtherBuildsForLatestVersion = 0;
             if (showAllBuilds)
             {
@@ -509,7 +553,16 @@ namespace mamba
     auto QueryResult::sort(std::string_view field) -> QueryResult&
     {
         auto compare_ids = [&](node_id lhs, node_id rhs)
-        { return m_dep_graph.node(lhs).field(field) < m_dep_graph.node(rhs).field(field); };
+        {
+            auto lhs_field = m_dep_graph.node(lhs).field(field);
+            auto rhs_field = m_dep_graph.node(rhs).field(field);
+            // Use proper version comparison for version field
+            if (field == "version")
+            {
+                return compare_versions(lhs_field, rhs_field);
+            }
+            return lhs_field < rhs_field;
+        };
 
         if (!m_ordered_pkg_id_list.empty())
         {
@@ -696,8 +749,11 @@ namespace mamba
 
         if (!m_ordered_pkg_id_list.empty())
         {
-            std::map<std::string, std::map<std::string, std::vector<specs::PackageInfo>>>
-                packageBuildsByVersion;
+            // Use custom comparator for version map to ensure proper version ordering
+            auto version_compare = [](const std::string& lhs, const std::string& rhs)
+            { return compare_versions(lhs, rhs); };
+            using VersionMap = std::map<std::string, std::vector<specs::PackageInfo>, decltype(version_compare)>;
+            std::map<std::string, VersionMap> packageBuildsByVersion;
             std::unordered_set<std::string> distinctBuildSHAs;
             for (auto& entry : m_ordered_pkg_id_list)
             {
@@ -706,7 +762,15 @@ namespace mamba
                     auto package = m_dep_graph.node(id);
                     if (distinctBuildSHAs.insert(package.sha256).second)
                     {
-                        packageBuildsByVersion[package.name][package.version].push_back(package);
+                        // Ensure the version map is initialized with the comparator
+                        auto name_it = packageBuildsByVersion.find(package.name);
+                        if (name_it == packageBuildsByVersion.end())
+                        {
+                            name_it = packageBuildsByVersion
+                                          .emplace(package.name, VersionMap(version_compare))
+                                          .first;
+                        }
+                        name_it->second[package.version].push_back(package);
                     }
                 }
             }

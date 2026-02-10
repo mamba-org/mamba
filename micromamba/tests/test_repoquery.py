@@ -262,3 +262,72 @@ def test_remote_search_python_site_packages_path(yaml_env: Path):
     assert package_info["version"] == "3.13.1"
     assert package_info["track_features"] == "py_freethreading"
     assert package_info["python_site_packages_path"] == "lib/python3.13t/site-packages"
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_search_version_sorting_numerical(yaml_env: Path):
+    """
+    Test that search results sort versions numerically, not alphabetically.
+
+    This test verifies fix for issue #4116 where versions were sorted
+    alphabetically (e.g., 25.9 < 4.1) instead of numerically (4.1 < 25.9).
+    """
+    import libmambapy.specs as specs
+
+    # Search for conda package which has multiple versions
+    res = helpers.umamba_repoquery("search", "-c", "conda-forge", "conda", "--json")
+
+    assert res["query"]["query"] == "conda"
+    assert res["query"]["type"] == "search"
+
+    pkgs = res["result"]["pkgs"]
+    assert len(pkgs) > 0
+
+    # Filter to get only conda packages (not conda-build, conda-pack, etc.)
+    conda_pkgs = [pkg for pkg in pkgs if pkg["name"] == "conda"]
+
+    # We need at least a few versions to test sorting
+    assert len(conda_pkgs) >= 2, "Need at least 2 conda versions to test sorting"
+
+    # Extract and parse versions for comparison
+    parsed_versions = []
+    for pkg in conda_pkgs:
+        version_str = pkg["version"]
+        version_obj = specs.Version.parse(version_str)
+        if version_obj.has_value():
+            parsed_versions.append(version_obj.value())
+
+    # Verify that versions are in correct numerical order (descending, newest first)
+    # This ensures that 4.1 < 4.9 < 22.9 < 22.11 < 25.7 < 25.9 (not alphabetical)
+    for i in range(len(parsed_versions) - 1):
+        assert parsed_versions[i] >= parsed_versions[i + 1], (
+            f"Versions not sorted numerically: "
+            f"{parsed_versions[i]} should be >= {parsed_versions[i + 1]} "
+            f"(alphabetical sorting would be incorrect)"
+        )
+
+    # Also test with table output (non-JSON) to verify the displayed order
+    res_table = helpers.umamba_repoquery("search", "-c", "conda-forge", "conda")
+    res_table = helpers.remove_whitespaces(res_table)
+
+    # Extract version numbers from table output
+    # The table format is: "Name Version Build Channel Subdir"
+    lines = res_table.split("\n")
+    conda_lines = [line for line in lines if line.startswith("conda ") and len(line.split()) >= 2]
+
+    if len(conda_lines) >= 2:
+        # Parse versions from table lines
+        table_parsed_versions = []
+        for line in conda_lines:
+            parts = line.split()
+            version_str = parts[1]
+            version_obj = specs.Version.parse(version_str)
+            if version_obj.has_value():
+                table_parsed_versions.append(version_obj.value())
+
+        # Verify table versions are also sorted correctly (descending)
+        for i in range(len(table_parsed_versions) - 1):
+            assert table_parsed_versions[i] >= table_parsed_versions[i + 1], (
+                f"Table versions not sorted numerically: "
+                f"{table_parsed_versions[i]} should be >= {table_parsed_versions[i + 1]}"
+            )

@@ -16,6 +16,7 @@
 
 #include "mamba/download/mirror.hpp"
 #include "mamba/util/iterator.hpp"
+#include "mamba/specs/channel.hpp"
 
 namespace mamba::download
 {
@@ -47,7 +48,11 @@ namespace mamba::download
 
         // Stores a provided Mirror IFF no other mirror is already registered with the same id for
         // the specified mirror name. Returns true if the mirror has been stored, false otherwise.
-        bool add_unique_mirror(std::string_view mirror_name, mirror_ptr mirror);
+        bool add_unique_mirror(
+            std::string_view mirror_name,
+            mirror_ptr mirror,
+            specs::Channel::UrlPriorty priority = specs::Channel::UrlPriorty::low
+        );
 
         // Copy mirrors for a given mirror name from another map. Used when building extended
         // mirror maps (e.g. for shard downloads) that need to include channel mirrors.

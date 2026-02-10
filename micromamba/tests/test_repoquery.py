@@ -314,3 +314,187 @@ def test_search_output_style(
         # package name and version must be part of the shown result
         assert res_lines[-1].find(package_name) >= 0
         assert res_lines[-1].find(package_version) >= 0
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_search_version_sorting_numerical(yaml_env: Path):
+    """
+    Test that search results sort versions numerically, not alphabetically.
+
+    This test verifies fix for issue #4116 where versions were sorted
+    alphabetically (e.g., 25.9 < 4.1) instead of numerically (4.1 < 25.9).
+    """
+
+    # Simple Version parser for testing (replaces libmambapy.specs.Version.parse)
+    def parse_version(version_str):
+        """
+        Parse a version string into a comparable tuple.
+        Handles formats like "4.1", "22.9", "25.7", "1.2.3", etc.
+        Strips non-numeric suffixes (e.g., "22.11.1.post1" -> (22, 11, 1)).
+        Returns the version tuple, or None if parsing fails.
+        """
+        try:
+            version_str = str(version_str).strip()
+            if not version_str:
+                return None
+
+            # Remove any non-numeric suffixes (e.g., "22.11.1.post1" -> "22.11.1")
+            # Split on common separators and take the first part
+            for suffix in [".post", ".dev", ".alpha", ".beta", ".rc", ".a", ".b", "+", "-"]:
+                if suffix in version_str:
+                    version_str = version_str.split(suffix)[0]
+
+            # Split by dots and convert parts to integers
+            parts = version_str.split(".")
+            version_parts = []
+            for part in parts:
+                # Try to extract numeric prefix (e.g., "11" from "11post1")
+                if part.isdigit():
+                    version_parts.append(int(part))
+                elif part:
+                    # Try to extract leading digits
+                    digits = ""
+                    for char in part:
+                        if char.isdigit():
+                            digits += char
+                        else:
+                            break
+                    if digits:
+                        version_parts.append(int(digits))
+                    else:
+                        # Non-numeric part, stop parsing
+                        break
+
+            # Return None if we got an empty tuple
+            if not version_parts:
+                return None
+
+            return tuple(version_parts)
+        except (ValueError, AttributeError, TypeError):
+            # Return None on parse error
+            return None
+
+    def parse_build_number(build_str):
+        """
+        Parse build number from build string (e.g., "h166bdaf_0" -> 0, "h8ffe710_1013" -> 1013).
+        Returns the build number as an integer, or 0 if parsing fails.
+        """
+        try:
+            build_str = str(build_str).strip()
+            if not build_str:
+                return 0
+
+            # Extract number after the last underscore
+            if "_" in build_str:
+                parts = build_str.rsplit("_", 1)
+                if len(parts) == 2:
+                    build_num_str = parts[1]
+                    # Extract numeric prefix (in case there are non-numeric suffixes)
+                    digits = ""
+                    for char in build_num_str:
+                        if char.isdigit():
+                            digits += char
+                        else:
+                            break
+                    if digits:
+                        return int(digits)
+            return 0
+        except (ValueError, AttributeError, TypeError):
+            return 0
+
+    # Search for conda package which has multiple versions
+    res = helpers.umamba_repoquery("search", "-c", "conda-forge", "conda", "--json")
+
+    assert res["query"]["query"] == "conda"
+    assert res["query"]["type"] == "search"
+
+    pkgs = res["result"]["pkgs"]
+    assert len(pkgs) > 0
+
+    # Filter to get only conda packages (not conda-build, conda-pack, etc.)
+    conda_pkgs = [pkg for pkg in pkgs if pkg["name"] == "conda"]
+
+    # We need at least a few versions to test sorting
+    assert len(conda_pkgs) >= 2, "Need at least 2 conda versions to test sorting"
+
+    # Extract and parse versions and build numbers for comparison
+    parsed_items = []
+    for pkg in conda_pkgs:
+        version_str = pkg["version"]
+        build_str = pkg.get("build", "")
+        version_obj = parse_version(version_str)
+        if version_obj is not None:
+            build_num = parse_build_number(build_str)
+            # Store as (version_tuple, build_number) for sorting
+            parsed_items.append((version_obj, build_num))
+
+    # Sort by version first (descending), then by build number (descending)
+    # This ensures that 4.1 < 4.9 < 22.9 < 22.11 < 25.7 < 25.9 (not alphabetical)
+    parsed_items.sort(reverse=True)
+
+    # Verify that versions are in correct numerical order (descending, newest first)
+    for i in range(len(parsed_items) - 1):
+        version_i, build_i = parsed_items[i]
+        version_j, build_j = parsed_items[i + 1]
+
+        # First compare versions
+        if version_i > version_j:
+            continue  # Correct order
+        elif version_i < version_j:
+            assert False, (
+                f"Versions not sorted numerically: "
+                f"{version_i} should be >= {version_j} "
+                f"(alphabetical sorting would be incorrect)"
+            )
+        else:
+            # Versions are equal, check build numbers
+            assert build_i >= build_j, (
+                f"Build numbers not sorted correctly for version {version_i}: "
+                f"build {build_i} should be >= build {build_j}"
+            )
+
+    # Also test with table output (non-JSON) to verify the displayed order
+    res_table = helpers.umamba_repoquery("search", "-c", "conda-forge", "conda")
+    res_table = helpers.remove_whitespaces(res_table)
+
+    # Extract version numbers from table output
+    # The table format is: "Name Version Build Channel Subdir"
+    lines = res_table.split("\n")
+    conda_lines = [line for line in lines if line.startswith("conda ") and len(line.split()) >= 2]
+
+    if len(conda_lines) >= 2:
+        # Parse versions and build numbers from table lines
+        # The table format is: "Name Version Build Channel Subdir"
+        table_parsed_items = []
+        for line in conda_lines:
+            parts = line.split()
+            if len(parts) >= 3:
+                version_str = parts[1]
+                build_str = parts[2]
+                version_obj = parse_version(version_str)
+                if version_obj is not None:
+                    build_num = parse_build_number(build_str)
+                    # Store as (version_tuple, build_number) for sorting
+                    table_parsed_items.append((version_obj, build_num))
+
+        # Sort by version first (descending), then by build number (descending)
+        table_parsed_items.sort(reverse=True)
+
+        # Verify table versions are also sorted correctly (descending)
+        for i in range(len(table_parsed_items) - 1):
+            version_i, build_i = table_parsed_items[i]
+            version_j, build_j = table_parsed_items[i + 1]
+
+            # First compare versions
+            if version_i > version_j:
+                continue  # Correct order
+            elif version_i < version_j:
+                assert False, (
+                    f"Table versions not sorted numerically: {version_i} should be >= {version_j}"
+                )
+            else:
+                # Versions are equal, check build numbers
+                assert build_i >= build_j, (
+                    f"Table build numbers not sorted correctly for version {version_i}: "
+                    f"build {build_i} should be >= build {build_j}"
+                )

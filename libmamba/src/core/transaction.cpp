@@ -505,7 +505,7 @@ namespace mamba
             }
         };
 
-        
+
         if (ctx.output_params.json)
         {
             log_json();
@@ -1403,11 +1403,18 @@ namespace mamba
                 );
                 // TODO c++23:  use .append
                 auto& context_mirrors = ctx.mirrored_channels[channel_info.name];
-                context_mirrors
-                    .insert(context_mirrors.begin(), channel_info.urls.begin(), channel_info.urls.end());
+                context_mirrors.insert(
+                    context_mirrors.begin(),
+                    channel_info.urls.begin(),
+                    channel_info.urls.end()
+                );
             }
 
-            init_channels(ctx, channel_context); // makes sure the new mirrors are taken into account
+            init_channels(ctx, channel_context, specs::Channel::UrlPriorty::high);  // makes sure
+                                                                                    // the new
+                                                                                    // mirrors are
+                                                                                    // taken into
+                                                                                    // account
         }
 
         std::vector<specs::PackageInfo> conda_packages = {};
@@ -1436,9 +1443,8 @@ namespace mamba
                   .platform = ctx.platform,
                   .manager = "pip",
                   // NOTE: sometime python packages can have no platform specified (mambajs lockfile
-                  // for
-                  //       example) in this case we just take the package if not specified, but if
-                  //       specified we filter to the current platform.
+                  // for example) in this case we just take the package if not specified, but if
+                  // specified we filter to the current platform.
                   .allow_no_platform = true }
             );
             std::copy(

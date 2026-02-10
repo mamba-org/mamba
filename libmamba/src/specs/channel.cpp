@@ -576,13 +576,13 @@ namespace mamba::specs
         return resolve(
             std::move(uc),
             ChannelResolveParamsView{
-                /* .platforms= */ params.platforms,
-                /* .channel_alias= */ params.channel_alias,
-                /* .custom_channels= */ params.custom_channels,
-                /* .custom_multichannels= */ params.custom_multichannels,
-                /* .authentication_db= */ params.authentication_db,
-                /* .home_dir= */ params.home_dir,
-                /* .current_working_dir= */ params.current_working_dir,
+                .platforms= params.platforms,
+                .channel_alias= params.channel_alias,
+                .custom_channels= params.custom_channels,
+                .custom_multichannels= params.custom_multichannels,
+                .authentication_db= params.authentication_db,
+                .home_dir= params.home_dir,
+                .current_working_dir= params.current_working_dir,
             }
         );
     }

@@ -7,6 +7,7 @@
 #include "mamba/download/mirror_map.hpp"
 
 #include "mirror_impl.hpp"
+#include "mamba/specs/channel.hpp"
 
 namespace mamba::download
 {
@@ -43,8 +44,19 @@ namespace mamba::download
         }
     }
 
-    bool mirror_map::add_unique_mirror(std::string_view mirror_name, mirror_ptr mirror)
+    bool mirror_map::add_unique_mirror(
+        std::string_view mirror_name,
+        mirror_ptr mirror,
+        specs::Channel::UrlPriorty priority
+    )
     {
+        auto insert_mirror = [&](auto& mirror_list) // assuming std::vector here
+            {
+                auto insert_it = priority == specs::Channel::UrlPriorty::high ? mirror_list.begin()
+                                                                              : mirror_list.end();
+                mirror_list.insert(insert_it, std::move(mirror));
+            };
+
         auto find_it = m_mirrors.find(std::string(mirror_name));
         if (find_it != m_mirrors.end())
         {
@@ -53,11 +65,12 @@ namespace mamba::download
             {
                 return false;
             }
-            mirrors.push_back(std::move(mirror));
+
+            insert_mirror(mirrors);
         }
         else
         {
-            m_mirrors[std::string(mirror_name)].push_back(std::move(mirror));
+            insert_mirror(m_mirrors[std::string(mirror_name)]);
         }
         return true;
     }

@@ -55,16 +55,15 @@ namespace mamba
         auto make_simple_params_base(const Context& ctx) -> specs::ChannelResolveParams
         {
             return specs::ChannelResolveParams{
-                /* .platform= */ create_platforms(ctx.platforms()),
-                /* .channel_alias= */
-                specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias))
-                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                    .value(),
-                /* .custom_channels= */ {},
-                /* .custom_multichannels= */ {},
-                /* .authentication_db= */ ctx.authentication_info(),
-                /* .home_dir= */ util::user_home_dir(),
-                /* .current_working_dir= */ fs::current_path(),
+                .platforms = create_platforms(ctx.platforms()),
+                .channel_alias = specs::CondaURL::parse(util::path_or_url_to_url(ctx.channel_alias))
+                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                     .value(),
+                .custom_channels = {},
+                .custom_multichannels = {},
+                .authentication_db = ctx.authentication_info(),
+                .home_dir = util::user_home_dir(),
+                .current_working_dir = fs::current_path(),
             };
         }
 
@@ -278,18 +277,17 @@ namespace mamba
         std::string_view name,
         const std::vector<std::string>& mirrors,
         specs::Channel::UrlPriorty new_mirrors_priority
-    )
-        -> const channel_list&
+    ) -> const channel_list&
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
             // inject additional mirrors if not already existing in current channels
-            for(auto& channel : it->second)
+            for (auto& channel : it->second)
             {
                 // TODO C++23: replace all this by  std::vector(from_range_t, ...)
                 auto urls_view = specs::as_conda_urls(mirrors);
                 std::vector<specs::CondaURL> urls(urls_view.begin(), urls_view.end());
-                
+
                 channel.add_mirror_urls(urls, new_mirrors_priority);
             }
             return it->second;

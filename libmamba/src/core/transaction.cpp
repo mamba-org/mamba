@@ -488,15 +488,10 @@ namespace mamba
 
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel)
-                                                    .value();
-            const auto pkg_channel = mamba::specs::Channel::resolve(
-                                         unresolved_pkg_channel,
-                                         channel_context.params()
-            )
-                                         .value();
-            assert(not pkg_channel.empty());
-            const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
+            const auto& channels = channel_context.make_channel(pkg.channel);
+            assert(not channels.empty());
+
+            const auto channel_url = channels.front().platform_url(pkg.platform).str();
             pkg.channel = channel_url;
 
             if (pkg.package_url.empty())

@@ -44,7 +44,7 @@ namespace mamba
     void init_channels(
         Context& context,
         ChannelContext& channel_context,
-        specs::Channel::UrlPriorty priority = specs::Channel::UrlPriorty::low
+        specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
     );
     void init_channels_from_package_urls(
         Context& context,

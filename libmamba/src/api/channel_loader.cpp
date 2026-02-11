@@ -117,7 +117,7 @@ namespace mamba
         void create_mirrors(
             const specs::Channel& channel,
             download::mirror_map& mirrors,
-            specs::Channel::UrlPriorty priority = specs::Channel::UrlPriorty::low
+            specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
         )
         {
             for (const specs::CondaURL& url : channel.mirror_urls())
@@ -323,7 +323,7 @@ namespace mamba
     }
 
     void
-    init_channels(Context& context, ChannelContext& channel_context, specs::Channel::UrlPriorty priority)
+    init_channels(Context& context, ChannelContext& channel_context, specs::Channel::UrlPriority priority)
     {
         for (const auto& mirror : context.mirrored_channels)
         {

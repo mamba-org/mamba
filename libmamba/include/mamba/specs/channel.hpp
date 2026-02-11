@@ -32,7 +32,7 @@ namespace mamba::specs
         using platform_list = util::flat_set<std::string>;
         using channel_list = std::vector<Channel>;
 
-        enum class UrlPriorty
+        enum class UrlPriority
         {
             high,  ///< associated urls will be placed in the front the list of urls
             low    ///< associated urls will be placed in the back the list of urls
@@ -84,7 +84,7 @@ namespace mamba::specs
         // list.
         void add_mirror_urls(
             const std::vector<CondaURL>& additional_mirrors,
-            UrlPriorty priority = UrlPriorty::low
+            UrlPriority priority = UrlPriority::low
         );
 
         enum struct Match

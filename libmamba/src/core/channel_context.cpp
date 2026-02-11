@@ -276,7 +276,7 @@ namespace mamba
     auto ChannelContext::make_channel(
         std::string_view name,
         const std::vector<std::string>& mirrors,
-        specs::Channel::UrlPriorty new_mirrors_priority
+        specs::Channel::UrlPriority new_mirrors_priority
     ) -> const channel_list&
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())

@@ -47,12 +47,12 @@ namespace mamba::download
     bool mirror_map::add_unique_mirror(
         std::string_view mirror_name,
         mirror_ptr mirror,
-        specs::Channel::UrlPriorty priority
+        specs::Channel::UrlPriority priority
     )
     {
         auto insert_mirror = [&](auto& mirror_list) // assuming std::vector here
             {
-                auto insert_it = priority == specs::Channel::UrlPriorty::high ? mirror_list.begin()
+                auto insert_it = priority == specs::Channel::UrlPriority::high ? mirror_list.begin()
                                                                               : mirror_list.end();
                 mirror_list.insert(insert_it, std::move(mirror));
             };

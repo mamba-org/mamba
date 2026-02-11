@@ -75,7 +75,7 @@ namespace mamba::specs
     }
 
     void
-    Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriorty priority)
+    Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriority priority)
     {
         auto all_urls = m_mirror_urls;
 
@@ -91,11 +91,11 @@ namespace mamba::specs
         {
             switch (priority)
             {
-                case UrlPriorty::high:
+                case UrlPriority::high:
                     return all_urls.begin();
 
                 default:
-                case UrlPriorty::low:
+                case UrlPriority::low:
                     return all_urls.end();
             }
         }();

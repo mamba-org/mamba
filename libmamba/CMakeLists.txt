@@ -462,7 +462,7 @@ macro(libmamba_create_target target_name linkage output_name)
     )
 
     # Header only libraries are always linked the same way
-    target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json msgpack-c)
+    target_link_libraries(${target_name} PUBLIC tl::expected nlohmann_json::nlohmann_json)
 
     target_compile_features(${target_name} PUBLIC cxx_std_20)
     set_target_properties(
@@ -479,13 +479,19 @@ macro(libmamba_create_target target_name linkage output_name)
     if(${linkage_upper} STREQUAL "STATIC")
         message("   -> Statically linking against libmamba (static) dependencies")
 
+        if(TARGET msgpack-c-static)
+            set(MSGPACK_TARGET msgpack-c-static)
+        else()
+            set(MSGPACK_TARGET msgpack-c)
+        endif()
         mamba_target_check_type(yaml-cpp::yaml-cpp STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc STATIC_LIBRARY FATAL_ERROR)
         mamba_target_check_type(reproc++ STATIC_LIBRARY FATAL_ERROR)
+        mamba_target_check_type(${MSGPACK_TARGET} STATIC_LIBRARY FATAL_ERROR)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp msgpack-c
+            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp ${MSGPACK_TARGET}
             PRIVATE
                 reproc
                 reproc++
@@ -516,6 +522,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 libz.a
                 liblzma.a
                 libnghttp2.a
+                libmsgpack-c.a
             )
             if(APPLE)
                 set(REQUIRED_STATIC_DEPS ${REQUIRED_STATIC_DEPS} libc++.a)

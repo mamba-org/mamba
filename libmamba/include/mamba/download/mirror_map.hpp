@@ -51,7 +51,7 @@ namespace mamba::download
         bool add_unique_mirror(
             std::string_view mirror_name,
             mirror_ptr mirror,
-            specs::Channel::UrlPriorty priority = specs::Channel::UrlPriorty::low
+            specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
         );
 
         // Copy mirrors for a given mirror name from another map. Used when building extended

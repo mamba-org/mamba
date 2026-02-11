@@ -1393,7 +1393,7 @@ namespace mamba
                 auto channels [[maybe_unused]] = channel_context.make_channel(
                     channel_info.name,
                     channel_info.urls,
-                    specs::Channel::UrlPriorty::high  // put the urls coming form this file on top
+                    specs::Channel::UrlPriority::high  // put the urls coming form this file on top
                                                       // of the mirrors list
                 );
                 // TODO c++23:  use .append
@@ -1405,7 +1405,7 @@ namespace mamba
                 );
             }
 
-            init_channels(ctx, channel_context, specs::Channel::UrlPriorty::high);  // makes sure
+            init_channels(ctx, channel_context, specs::Channel::UrlPriority::high);  // makes sure
                                                                                     // the new
                                                                                     // mirrors are
                                                                                     // taken into

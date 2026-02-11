@@ -208,13 +208,11 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     shutil.copyfile(lockfile_to_use, spec_file)
 
     res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel = False)
-    print("create result:", res)
+    print("create result:\n", res)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    print("packages installed:", packages)
-    print("pkgs: ", os.listdir( tmp_root_prefix))
-    print("conda-meta: ", os.listdir( env_prefix / "conda-meta"))
+    print("packages installed:\n", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 

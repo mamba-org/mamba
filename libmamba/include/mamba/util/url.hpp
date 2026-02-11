@@ -9,9 +9,9 @@
 
 #include <array>
 #include <functional>
+#include <ranges>
 #include <string>
 #include <string_view>
-#include <ranges>
 
 #include <tl/expected.hpp>
 
@@ -295,10 +295,14 @@ namespace mamba::util
     auto operator/(URL const& url, std::string_view subpath) -> URL;
     auto operator/(URL&& url, std::string_view subpath) -> URL;
 
-    template<std::ranges::input_range StringRange> 
+    /** Converts any range of string-like values into a view-range of `URL` values. */
+    template <std::ranges::input_range StringRange>
     auto as_urls(StringRange&& values)
     {
-        return std::views::transform(std::forward<StringRange>(values), [](const auto& url){ return *URL::parse(url); });
+        return std::views::transform(
+            std::forward<StringRange>(values),
+            [](const auto& url) { return *URL::parse(url); }
+        );
     }
 
 }

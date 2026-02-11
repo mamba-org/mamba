@@ -297,6 +297,7 @@ set(
     # Filesystem library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/fs/filesystem.hpp
     # Utility library
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/algorithm.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cfile.hpp

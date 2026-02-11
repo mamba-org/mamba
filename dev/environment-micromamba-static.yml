@@ -24,6 +24,7 @@ dependencies:
   - reproc-cpp-static >=14.2.4.post0
   - libcurl >=8.4.0
   - libcurl-static >=8.4.0
+  - libmsgpack-c-static
   - xz-static
   - libssh2-static
   # As of libarchive 3.8, builds of libarchive for different licenses

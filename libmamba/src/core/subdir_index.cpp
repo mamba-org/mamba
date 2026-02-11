@@ -13,6 +13,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/shard_index_loader.hpp"
 #include "mamba/core/subdir_index.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
@@ -145,6 +146,7 @@ namespace mamba
         );
         j["mtime_ns"] = nsecs.count();
         j["has_zst"] = data.m_has_zst;
+        j["has_shards"] = data.m_has_shards;
     }
 
     void from_json(const nlohmann::json& j, SubdirMetadata& data)
@@ -162,6 +164,7 @@ namespace mamba
             )
         );
         util::deserialize_maybe_missing(j, "has_zst", data.m_has_zst);
+        util::deserialize_maybe_missing(j, "has_shards", data.m_has_shards);
     }
 
     auto SubdirMetadata::read(const fs::u8path& file) -> expected_subdir_metadata
@@ -230,6 +233,26 @@ namespace mamba
         return m_has_zst.has_value() && m_has_zst.value().value && !m_has_zst.value().has_expired();
     }
 
+    auto SubdirMetadata::has_shards() const -> bool
+    {
+        return m_has_shards.has_value() && m_has_shards.value().value;
+    }
+
+    auto SubdirMetadata::has_up_to_date_shards(std::size_t ttl_seconds) const -> bool
+    {
+        if (!has_shards())
+        {
+            return false;
+        }
+        // If TTL is provided, use it; otherwise use default expiration check
+        if (ttl_seconds > 0)
+        {
+            return std::difftime(std::time(nullptr), m_has_shards.value().last_checked)
+                   <= static_cast<double>(ttl_seconds);
+        }
+        return !m_has_shards.value().has_expired();
+    }
+
     void SubdirMetadata::set_http_metadata(HttpMetadata data)
     {
         m_http = std::move(data);
@@ -249,6 +272,12 @@ namespace mamba
     void SubdirMetadata::set_zst(bool value)
     {
         m_has_zst = { value, std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
+    }
+
+    void SubdirMetadata::set_shards(bool value)
+    {
+        m_has_shards = { value,
+                         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
     }
 
     auto
@@ -472,6 +501,11 @@ namespace mamba
         return m_valid_cache_found;
     }
 
+    void SubdirIndexLoader::set_shards_availability(bool value)
+    {
+        m_metadata.set_shards(value);
+    }
+
     void SubdirIndexLoader::clear_valid_cache_files()
     {
         if (auto json_path = valid_json_cache_path_unchecked(); fs::is_regular_file(json_path))
@@ -520,9 +554,14 @@ namespace mamba
         return make_unexpected("Cache not loaded", mamba_error_code::cache_not_loaded);
     }
 
+    auto SubdirIndexLoader::writable_cache_dir() const -> fs::u8path
+    {
+        return m_writable_pkgs_dir / "cache";
+    }
+
     auto SubdirIndexLoader::writable_libsolv_cache_path() const -> fs::u8path
     {
-        return m_writable_pkgs_dir / "cache" / m_solv_filename;
+        return writable_cache_dir() / m_solv_filename;
     }
 
     auto SubdirIndexLoader::valid_json_cache_path() const -> expected_t<fs::u8path>
@@ -597,6 +636,11 @@ namespace mamba
     auto SubdirIndexLoader::repodata_url_path() const -> std::string
     {
         return util::url_concat(m_platform, "/", m_repodata_filename);
+    }
+
+    auto SubdirIndexLoader::shard_index_url_path() const -> std::string
+    {
+        return util::url_concat(m_platform, "/", "repodata_shards.msgpack.zst");
     }
 
     auto SubdirIndexLoader::valid_json_cache_path_unchecked() const -> fs::u8path
@@ -772,6 +816,13 @@ namespace mamba
                 }
                 m_metadata.set_zst(false);
             };
+        }
+
+        // Add shards HEAD check only when we may use the network (not offline, or cache forbidden
+        // e.g. local channel) and we don't yet have up-to-date shards metadata.
+        if ((!params.offline || caching_is_forbidden()) && !m_metadata.has_up_to_date_shards())
+        {
+            request.push_back(ShardIndexLoader::build_shards_availability_check_request(*this));
         }
         return request;
     }

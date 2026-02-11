@@ -61,6 +61,12 @@ jobs:
             ccache-libmamba-${{ github.runner.os }}
       - name: Build mamba with coverage
         run: |
+          # Ensure ar/ranlib are found: conda compiler activation may not set AR when
+          # mixing envs (dev + micromamba-static); CMAKE_AR from preset uses $env{AR}
+          # which can resolve to a bare name, causing "x86_64-conda-linux-gnu-ar: not found"
+          # when building the static libmamba (micromamba requires BUILD_STATIC).
+          export AR="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-ar"
+          export RANLIB="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-ranlib"
           cmake -B build/ -G Ninja \
             --preset mamba-unix-shared-debug \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \

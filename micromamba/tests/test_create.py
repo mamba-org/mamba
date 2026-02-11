@@ -207,7 +207,7 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
 
     shutil.copyfile(lockfile_to_use, spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel = False)
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     print("create result:\n", res)
     assert res["success"]
 
@@ -215,7 +215,7 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     print("packages installed:\n", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
-    assert False # Triggered to check print output
+    assert False  # Triggered to check print output
 
 
 @pytest.mark.skipif(
@@ -230,7 +230,7 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
 
     shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel = False)
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -268,7 +268,7 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_fo
 
     shutil.copyfile(pip_git_https_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel = False)
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -295,7 +295,7 @@ def test_lockfile_online(
     env_prefix = tmp_path / "myenv"
     spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/env_lockfiles/test-env-lock.yaml"
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel = False)
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -318,11 +318,11 @@ def test_env_lockfile_different_install_after_create(
         _base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file
     )
 
-    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json", default_channel = False)
+    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json", default_channel=False)
     assert res["success"]
 
     # Must not crash
-    helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json", default_channel = False)
+    helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json", default_channel=False)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

@@ -15,8 +15,8 @@
 #include <unordered_map>
 
 #include "mamba/download/mirror.hpp"
-#include "mamba/util/iterator.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/util/iterator.hpp"
 
 namespace mamba::download
 {

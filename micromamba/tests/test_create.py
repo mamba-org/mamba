@@ -316,11 +316,15 @@ def test_env_lockfile_different_install_after_create(
         _base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file
     )
 
-    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json", default_channel=False)
+    res = helpers.create(
+        "-p", env_prefix, "-f", create_spec_file, "-y", "--json", default_channel=False
+    )
     assert res["success"]
 
     # Must not crash
-    helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json", default_channel=False)
+    helpers.install(
+        "-p", env_prefix, "-f", install_spec_file, "-y", "--json", default_channel=False
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

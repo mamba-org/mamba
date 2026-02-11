@@ -1394,7 +1394,7 @@ namespace mamba
                     channel_info.name,
                     channel_info.urls,
                     specs::Channel::UrlPriority::high  // put the urls coming form this file on top
-                                                      // of the mirrors list
+                                                       // of the mirrors list
                 );
                 // TODO c++23:  use .append
                 auto& context_mirrors = ctx.mirrored_channels[channel_info.name];
@@ -1406,10 +1406,10 @@ namespace mamba
             }
 
             init_channels(ctx, channel_context, specs::Channel::UrlPriority::high);  // makes sure
-                                                                                    // the new
-                                                                                    // mirrors are
-                                                                                    // taken into
-                                                                                    // account
+                                                                                     // the new
+                                                                                     // mirrors are
+                                                                                     // taken into
+                                                                                     // account
         }
 
         std::vector<specs::PackageInfo> conda_packages = {};

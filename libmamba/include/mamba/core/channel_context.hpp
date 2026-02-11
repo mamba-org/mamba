@@ -57,8 +57,7 @@ namespace mamba
             std::string_view name,
             const std::vector<std::string>& mirrors,
             specs::Channel::UrlPriority new_mirrors_priority = specs::Channel::UrlPriority::low
-        )
-            -> const channel_list&;
+        ) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
 

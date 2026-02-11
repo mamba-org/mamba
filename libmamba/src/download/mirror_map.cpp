@@ -5,9 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include "mamba/download/mirror_map.hpp"
+#include "mamba/specs/channel.hpp"
 
 #include "mirror_impl.hpp"
-#include "mamba/specs/channel.hpp"
 
 namespace mamba::download
 {
@@ -50,12 +50,12 @@ namespace mamba::download
         specs::Channel::UrlPriority priority
     )
     {
-        auto insert_mirror = [&](auto& mirror_list) // assuming std::vector here
-            {
-                auto insert_it = priority == specs::Channel::UrlPriority::high ? mirror_list.begin()
-                                                                              : mirror_list.end();
-                mirror_list.insert(insert_it, std::move(mirror));
-            };
+        auto insert_mirror = [&](auto& mirror_list)  // assuming std::vector here
+        {
+            auto insert_it = priority == specs::Channel::UrlPriority::high ? mirror_list.begin()
+                                                                           : mirror_list.end();
+            mirror_list.insert(insert_it, std::move(mirror));
+        };
 
         auto find_it = m_mirrors.find(std::string(mirror_name));
         if (find_it != m_mirrors.end())

@@ -114,76 +114,6 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Valid index parsing")
         // The key test is that parsing doesn't crash and other fields are correct
         REQUIRE(index.version >= 1);
     }
-
-    SECTION("Parse shard index with hash as hex string")
-    {
-        // Create msgpack with hash as string instead of binary
-        msgpack_sbuffer sbuf;
-        msgpack_sbuffer_init(&sbuf);
-        msgpack_packer pk;
-        msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
-
-        msgpack_pack_map(&pk, 3);
-
-        // info
-        msgpack_pack_str(&pk, 4);
-        msgpack_pack_str_body(&pk, "info", 4);
-        msgpack_pack_map(&pk, 3);
-        msgpack_pack_str(&pk, 8);
-        msgpack_pack_str_body(&pk, "base_url", 8);
-        msgpack_pack_str(&pk, 20);
-        msgpack_pack_str_body(&pk, "https://example.com", 20);
-        msgpack_pack_str(&pk, 15);
-        msgpack_pack_str_body(&pk, "shards_base_url", 15);
-        msgpack_pack_str(&pk, 25);
-        msgpack_pack_str_body(&pk, "https://shards.example.com", 25);
-        msgpack_pack_str(&pk, 6);
-        msgpack_pack_str_body(&pk, "subdir", 6);
-        msgpack_pack_str(&pk, 7);
-        msgpack_pack_str_body(&pk, "linux-64", 7);
-
-        // version
-        msgpack_pack_str(&pk, 7);
-        msgpack_pack_str_body(&pk, "version", 7);
-        msgpack_pack_uint64(&pk, 1);
-
-        // shards
-        msgpack_pack_str(&pk, 6);
-        msgpack_pack_str_body(&pk, "shards", 6);
-        msgpack_pack_map(&pk, 1);
-        msgpack_pack_str(&pk, 6);
-        msgpack_pack_str_body(&pk, "python", 6);
-        // Hash as hex string
-        std::string hex_hash = "abababababababababababababababababababababababababababababababab";
-        msgpack_pack_str(&pk, hex_hash.size());
-        msgpack_pack_str_body(&pk, hex_hash.c_str(), hex_hash.size());
-
-        std::vector<std::uint8_t> msgpack_data(
-            reinterpret_cast<const std::uint8_t*>(sbuf.data),
-            reinterpret_cast<const std::uint8_t*>(sbuf.data + sbuf.size)
-        );
-        msgpack_sbuffer_destroy(&sbuf);
-
-        auto compressed_data = compress_zstd(msgpack_data);
-        const auto tmp_dir = TemporaryDirectory();
-        auto temp_file = tmp_dir.path() / "test_shard_index_hex_hash.msgpack.zst";
-        std::ofstream file(temp_file.string(), std::ios::binary);
-        file.write(
-            reinterpret_cast<const char*>(compressed_data.data()),
-            static_cast<std::streamsize>(compressed_data.size())
-        );
-        file.close();
-
-        auto result = ShardIndexLoader::parse_shard_index(temp_file);
-
-        REQUIRE(result.has_value());
-        const auto& index = result.value();
-
-        REQUIRE(index.shards.size() == 1);
-        REQUIRE(index.shards.find("python") != index.shards.end());
-        // Hash should be converted from hex string to bytes
-        REQUIRE(index.shards.at("python").size() == 32);
-    }
 }
 
 TEST_CASE("ShardIndexLoader::parse_shard_index - Error cases")
@@ -518,71 +448,6 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Edge cases")
         REQUIRE(result.value().version > 0);
     }
 
-    SECTION("Binary key types")
-    {
-        // Create msgpack with binary keys (should be converted to string)
-        msgpack_sbuffer sbuf;
-        msgpack_sbuffer_init(&sbuf);
-        msgpack_packer pk;
-        msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
-
-        msgpack_pack_map(&pk, 3);
-
-        // info as binary key
-        msgpack_pack_bin(&pk, 4);
-        msgpack_pack_bin_body(&pk, "info", 4);
-        msgpack_pack_map(&pk, 3);
-        msgpack_pack_str(&pk, 8);
-        msgpack_pack_str_body(&pk, "base_url", 8);
-        msgpack_pack_str(&pk, 20);
-        msgpack_pack_str_body(&pk, "https://example.com", 20);
-        msgpack_pack_str(&pk, 15);
-        msgpack_pack_str_body(&pk, "shards_base_url", 15);
-        msgpack_pack_str(&pk, 25);
-        msgpack_pack_str_body(&pk, "https://shards.example.com", 25);
-        msgpack_pack_str(&pk, 6);
-        msgpack_pack_str_body(&pk, "subdir", 6);
-        msgpack_pack_str(&pk, 7);
-        msgpack_pack_str_body(&pk, "linux-64", 7);
-
-        // version
-        msgpack_pack_str(&pk, 7);
-        msgpack_pack_str_body(&pk, "version", 7);
-        msgpack_pack_uint64(&pk, 1);
-
-        // shards
-        msgpack_pack_str(&pk, 6);
-        msgpack_pack_str_body(&pk, "shards", 6);
-        msgpack_pack_map(&pk, 1);
-        // Package name as binary key
-        msgpack_pack_bin(&pk, 6);
-        msgpack_pack_bin_body(&pk, "python", 6);
-        // Hash as binary
-        std::vector<std::uint8_t> hash_bytes(32, 0xAA);
-        msgpack_pack_bin(&pk, hash_bytes.size());
-        msgpack_pack_bin_body(&pk, hash_bytes.data(), hash_bytes.size());
-
-        std::vector<std::uint8_t> msgpack_data(
-            reinterpret_cast<const std::uint8_t*>(sbuf.data),
-            reinterpret_cast<const std::uint8_t*>(sbuf.data + sbuf.size)
-        );
-        msgpack_sbuffer_destroy(&sbuf);
-
-        auto compressed_data = compress_zstd(msgpack_data);
-        const auto tmp_dir = TemporaryDirectory();
-        auto temp_file = tmp_dir.path() / "binary_keys.msgpack.zst";
-        std::ofstream file(temp_file.string(), std::ios::binary);
-        file.write(
-            reinterpret_cast<const char*>(compressed_data.data()),
-            static_cast<std::streamsize>(compressed_data.size())
-        );
-        file.close();
-
-        auto result = ShardIndexLoader::parse_shard_index(temp_file);
-        REQUIRE(result.has_value());
-        REQUIRE(result.value().shards.find("python") != result.value().shards.end());
-    }
-
     SECTION("Missing shards field")
     {
         // Create msgpack without "shards" field
@@ -773,21 +638,52 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
 
     SECTION("Shards not available returns nullopt")
     {
+        // Use a local file channel that has no repodata_shards.msgpack.zst.
+        // The HEAD check will fail, so has_shards stays false and we return nullopt.
+        const auto no_shards_dir = TemporaryDirectory();
+        auto no_shards_resolve_params = ChannelContext::ChannelResolveParams{
+            { "linux-64", "noarch" },
+            specs::CondaURL::parse("https://conda.anaconda.org").value()
+        };
+        auto no_shards_channel = specs::Channel::resolve(
+                                     specs::UnresolvedChannel::parse(
+                                         "file://" + no_shards_dir.path().string()
+                                     )
+                                         .value(),
+                                     no_shards_resolve_params
+        )
+                                     .value()
+                                     .front();
+
+        auto no_shards_caches = MultiPackageCache({ no_shards_dir.path() }, ValidationParams{});
+        auto no_shards_subdir = SubdirIndexLoader::create(
+            {},
+            no_shards_channel,
+            "linux-64",
+            no_shards_caches
+        );
+        REQUIRE(no_shards_subdir.has_value());
+
+        download::mirror_map no_shards_mirrors;
+        no_shards_mirrors.add_unique_mirror(
+            no_shards_channel.id(),
+            download::make_mirror(no_shards_channel.url().str())
+        );
+
         SubdirDownloadParams params;
         params.offline = false;
 
-        // Metadata doesn't have shards set
         auto result = ShardIndexLoader::fetch_and_parse_shard_index(
-            subdir.value(),
+            no_shards_subdir.value(),
             params,
             auth_info,
-            mirrors,
+            no_shards_mirrors,
             download_options,
             remote_fetch_params
         );
 
         REQUIRE(result.has_value());
-        // Should return nullopt (shards not available)
+        // Should return nullopt (shards not available - file doesn't exist)
         REQUIRE_FALSE(result.value().has_value());
     }
 

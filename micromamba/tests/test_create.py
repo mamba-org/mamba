@@ -215,8 +215,6 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     print("packages installed:\n", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
-    assert False  # Triggered to check print output
-
 
 @pytest.mark.skipif(
     platform.system() != "Linux",

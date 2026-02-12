@@ -182,6 +182,25 @@ namespace mamba
 
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
 
+        // Sharded repodata often omits checksums and uses different URLs per mirror;
+        // temporarily disable safety checks for the duration of this operation.
+        const auto saved_safety_checks = ctx.validation_params.safety_checks;
+        if (ctx.repodata_use_shards)
+        {
+            ctx.validation_params.safety_checks = VerificationLevel::Disabled;
+        }
+
+        struct RestoreSafetyChecks
+        {
+            Context& ctx;
+            VerificationLevel saved;
+
+            ~RestoreSafetyChecks()
+            {
+                ctx.validation_params.safety_checks = saved;
+            }
+        } restore_guard{ ctx, saved_safety_checks };
+
         populate_context_channels_from_specs(raw_update_specs, ctx);
 
         solver::libsolv::Database db{

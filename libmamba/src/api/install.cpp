@@ -613,6 +613,25 @@ namespace mamba
         {
             assert(&config.context() == &ctx);
 
+            // Sharded repodata often omits checksums and uses different URLs per mirror;
+            // temporarily disable safety checks for the duration of this operation.
+            const auto saved_safety_checks = ctx.validation_params.safety_checks;
+            if (ctx.repodata_use_shards)
+            {
+                ctx.validation_params.safety_checks = VerificationLevel::Disabled;
+            }
+
+            struct RestoreSafetyChecks
+            {
+                Context& ctx;
+                VerificationLevel saved;
+
+                ~RestoreSafetyChecks()
+                {
+                    ctx.validation_params.safety_checks = saved;
+                }
+            } restore_guard{ ctx, saved_safety_checks };
+
             auto& no_pin = config.at("no_pin").value<bool>();
             auto& no_py_pin = config.at("no_py_pin").value<bool>();
             auto& freeze_installed = config.at("freeze_installed").value<bool>();
@@ -1343,6 +1362,23 @@ namespace mamba
         void
         install_revision(Context& ctx, ChannelContext& channel_context, std::size_t target_revision)
         {
+            const auto saved_safety_checks = ctx.validation_params.safety_checks;
+            if (ctx.repodata_use_shards)
+            {
+                ctx.validation_params.safety_checks = VerificationLevel::Disabled;
+            }
+
+            struct RestoreSafetyChecks
+            {
+                Context& ctx;
+                VerificationLevel saved;
+
+                ~RestoreSafetyChecks()
+                {
+                    ctx.validation_params.safety_checks = saved;
+                }
+            } restore_guard{ ctx, saved_safety_checks };
+
             auto maybe_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!maybe_prefix_data)
             {

@@ -309,6 +309,11 @@ namespace mamba
 #undef PRINT_CTX_VEC
     }
 
+    bool Context::can_report_status()
+    {
+        return Console::is_available() && !Console::instance().context().output_params.json;
+    }
+
     void Context::dump_backtrace_no_guards()
     {
         logging::log_backtrace_no_guards();

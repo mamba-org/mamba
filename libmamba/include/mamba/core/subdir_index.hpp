@@ -194,6 +194,23 @@ namespace mamba
 
         void clear_valid_cache_files();
 
+        template <typename First, typename End>
+        static auto
+        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
+            -> download::MultiRequest;
+        template <typename First, typename End>
+        static auto
+        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
+            -> download::MultiRequest;
+        [[nodiscard]] static auto download_requests(
+            download::MultiRequest index_requests,
+            const specs::AuthenticationDataBase& auth_info,
+            const download::mirror_map& mirrors,
+            const download::Options& download_options,
+            const download::RemoteFetchParams& remote_fetch_params,
+            download::Monitor* download_monitor
+        ) -> expected_t<void>;
+
     private:
 
         // This paths are pointing to what is found when iterating over the cache directories.
@@ -245,27 +262,9 @@ namespace mamba
             -> expected_t<void>;
         void refresh_last_write_time(const fs::u8path& json_file, const fs::u8path& solv_file);
 
-        template <typename First, typename End>
-        static auto
-        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
-            -> download::MultiRequest;
         auto build_check_requests(const SubdirDownloadParams& params) -> download::MultiRequest;
-
-        template <typename First, typename End>
-        static auto
-        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
-            -> download::MultiRequest;
         auto build_index_request(const SubdirDownloadParams& params)
             -> std::optional<download::Request>;
-
-        [[nodiscard]] static auto download_requests(
-            download::MultiRequest index_requests,
-            const specs::AuthenticationDataBase& auth_info,
-            const download::mirror_map& mirrors,
-            const download::Options& download_options,
-            const download::RemoteFetchParams& remote_fetch_params,
-            download::Monitor* download_monitor
-        ) -> expected_t<void>;
     };
 
     /**

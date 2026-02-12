@@ -77,7 +77,7 @@ namespace mamba
                 {
                     Console::stream() << "Getting repodata from channels..." << std::endl;
                 }
-                auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+                auto exp_load = load_channels(ctx, channel_context, db, package_caches, {});
                 if (!exp_load)
                 {
                     throw std::runtime_error(exp_load.error().what());

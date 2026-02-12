@@ -306,29 +306,6 @@ namespace mamba
         }
 
         /**
-         * Compare two packages by version first, then by build number.
-         * Returns true if lhs should come before rhs (lhs < rhs).
-         */
-        auto
-        compare_packages_by_version_and_build(const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-            -> bool
-        {
-            // First compare by version
-            auto lhs_version = specs::Version::parse(lhs.version).value_or(specs::Version());
-            auto rhs_version = specs::Version::parse(rhs.version).value_or(specs::Version());
-            if (lhs_version < rhs_version)
-            {
-                return true;
-            }
-            if (rhs_version < lhs_version)
-            {
-                return false;
-            }
-            // Versions are equal, compare by build number
-            return lhs.build_number < rhs.build_number;
-        }
-
-        /**
          * Prints metadata for a given package.
          */
         auto print_metadata(std::ostream& out, const specs::PackageInfo& pkg)
@@ -955,7 +932,7 @@ namespace mamba
                 [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
                 {
                     // Compare in reverse order for descending sort
-                    return compare_packages_by_version_and_build(rhs, lhs);
+                    return specs::compare_packages_by_version_and_build(rhs, lhs);
                 }
             );
 
@@ -1033,7 +1010,7 @@ namespace mamba
                     [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
                     {
                         // Compare in reverse order for descending sort (newest first)
-                        return compare_packages_by_version_and_build(rhs, lhs);
+                        return specs::compare_packages_by_version_and_build(rhs, lhs);
                     }
                 );
 

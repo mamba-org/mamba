@@ -93,6 +93,13 @@ namespace mamba::specs
     void to_json(nlohmann::json& j, const PackageInfo& pkg);
 
     void from_json(const nlohmann::json& j, PackageInfo& pkg);
+
+    /**
+     * Compare two packages by version first, then by build number.
+     * Returns true if lhs should come before rhs (lhs < rhs).
+     */
+    auto compare_packages_by_version_and_build(const PackageInfo& lhs, const PackageInfo& rhs)
+        -> bool;
 }
 
 template <>

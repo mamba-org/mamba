@@ -475,7 +475,7 @@ TEST_CASE("RepodataSubset package not in any shard", "[mamba::core][mamba::core:
     REQUIRE(subset.nodes().empty());
 }
 
-TEST_CASE("RepodataSubset default strategy is pipelined", "[mamba::core][mamba::core::shard_traversal]")
+TEST_CASE("RepodataSubset default strategy is bfs", "[mamba::core][mamba::core::shard_traversal]")
 {
     ShardDict python_shard;
     ShardPackageRecord python_rec;

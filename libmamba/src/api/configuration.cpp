@@ -1514,6 +1514,23 @@ namespace mamba
                    .set_rc_configurable()
                    .description("Channels that have zstd encoded repodata (saves a HEAD request)"));
 
+        insert(Configurable("repodata_use_shards", &m_context.repodata_use_shards)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description(
+                       "Use sharded repodata when available for faster dependency resolution (default: false)"
+                   ));
+
+        insert(Configurable("repodata_shards_ttl", &m_context.repodata_shards_ttl)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description("TTL in seconds for shard availability check (default: 86400)"));
+
+        insert(Configurable("repodata_shards_threads", &m_context.repodata_shards_threads)
+                   .group("Repodata")
+                   .set_rc_configurable()
+                   .description("Number of threads for parallel shard fetching (default: 10)"));
+
         // Network
         insert(Configurable("cacert_path", std::string(""))
                    .group("Network")

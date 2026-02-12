@@ -1,0 +1,368 @@
+// Copyright (c) 2024, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include <algorithm>
+#include <queue>
+#include <set>
+
+#include "mamba/core/logging.hpp"
+#include "mamba/core/shard_traversal.hpp"
+#include "mamba/specs/match_spec.hpp"
+
+namespace mamba
+{
+    auto NodeId::operator==(const NodeId& other) const -> bool
+    {
+        return package == other.package && channel == other.channel && shard_url == other.shard_url;
+    }
+
+    auto NodeId::operator<(const NodeId& other) const -> bool
+    {
+        if (package != other.package)
+        {
+            return package < other.package;
+        }
+        if (channel != other.channel)
+        {
+            return channel < other.channel;
+        }
+        return shard_url < other.shard_url;
+    }
+
+    auto Node::to_id() const -> NodeId
+    {
+        return NodeId{ package, channel, shard_url };
+    }
+
+    namespace
+    {
+        auto add_names_from_specs(const std::vector<std::string>& specs, std::set<std::string>& names)
+            -> void
+        {
+            for (const auto& spec : specs)
+            {
+                auto parsed = specs::MatchSpec::parse(spec);
+                if (parsed)
+                {
+                    auto name = parsed->name().to_string();
+                    if (!name.empty() && !parsed->name().is_free())
+                    {
+                        names.insert(std::move(name));
+                    }
+                }
+            }
+        }
+
+        auto add_names_from_record(const ShardPackageRecord& record, std::set<std::string>& names)
+            -> void
+        {
+            add_names_from_specs(record.depends, names);
+            add_names_from_specs(record.constrains, names);
+        }
+
+        auto extract_dependencies_impl(const ShardDict& shard) -> std::vector<std::string>
+        {
+            std::set<std::string> names;
+            for (const auto& [_, record] : shard.packages)
+            {
+                add_names_from_record(record, names);
+            }
+            for (const auto& [_, record] : shard.conda_packages)
+            {
+                add_names_from_record(record, names);
+            }
+            return std::vector<std::string>(names.begin(), names.end());
+        }
+    }  // namespace
+
+    auto shard_mentioned_packages(const ShardDict& shard) -> std::vector<std::string>
+    {
+        return extract_dependencies_impl(shard);
+    }
+
+    /******************
+     * RepodataSubset *
+     ******************/
+
+    RepodataSubset::RepodataSubset(std::vector<std::shared_ptr<Shards>> shards)
+        : m_shards(std::move(shards))
+    {
+        for (const auto& s : m_shards)
+        {
+            m_shards_by_url[s->url()] = s;
+        }
+    }
+
+    void RepodataSubset::reachable(
+        const std::vector<std::string>& root_packages,
+        const std::string& strategy,
+        const std::set<std::string>* root_shards
+    )
+    {
+        if (root_packages.empty())
+        {
+            return;
+        }
+        if (strategy == "bfs")
+        {
+            reachable_bfs(root_packages, root_shards);
+        }
+        else
+        {
+            reachable_pipelined(root_packages, root_shards);
+        }
+    }
+
+    auto RepodataSubset::nodes() const -> const std::map<NodeId, Node>&
+    {
+        return m_nodes;
+    }
+
+    auto RepodataSubset::shards() const -> const std::vector<std::shared_ptr<Shards>>&
+    {
+        return m_shards;
+    }
+
+    void RepodataSubset::reachable_bfs(
+        const std::vector<std::string>& root_packages,
+        const std::set<std::string>* root_shards
+    )
+    {
+        std::queue<NodeId> pending;
+        for (const auto& pkg : root_packages)
+        {
+            for (const auto& [url, shards_ptr] : m_shards_by_url)
+            {
+                if (!shards_ptr->contains(pkg))
+                {
+                    continue;
+                }
+                std::string shard_url = shards_ptr->shard_url(pkg);
+                if (root_shards && root_shards->find(shard_url) == root_shards->end())
+                {
+                    continue;
+                }
+                NodeId id{ pkg, url, shard_url };
+                if (m_nodes.find(id) != m_nodes.end())
+                {
+                    continue;
+                }
+                m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
+                pending.push(id);
+            }
+        }
+
+        while (!pending.empty())
+        {
+            std::vector<NodeId> batch;
+            while (!pending.empty())
+            {
+                batch.push_back(pending.front());
+                pending.pop();
+            }
+
+            std::map<std::string, std::vector<std::string>> to_fetch_by_channel;
+            for (const auto& id : batch)
+            {
+                auto it = m_shards_by_url.find(id.channel);
+                if (it == m_shards_by_url.end())
+                {
+                    continue;
+                }
+                auto& shards_ptr = it->second;
+                if (!shards_ptr->is_shard_present(id.package))
+                {
+                    to_fetch_by_channel[id.channel].push_back(id.package);
+                }
+            }
+            for (auto& [channel, to_fetch] : to_fetch_by_channel)
+            {
+                std::sort(to_fetch.begin(), to_fetch.end());
+                to_fetch.erase(std::unique(to_fetch.begin(), to_fetch.end()), to_fetch.end());
+                if (!to_fetch.empty())
+                {
+                    auto it = m_shards_by_url.find(channel);
+                    if (it != m_shards_by_url.end())
+                    {
+                        auto result = it->second->fetch_shards(to_fetch);
+                        if (result)
+                        {
+                            for (const auto& [pkg, shard] : result.value())
+                            {
+                                it->second->process_fetched_shard(pkg, shard);
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (const auto& id : batch)
+            {
+                auto& node = m_nodes[id];
+                node.visited = true;
+                for (const auto& neighbor_id : neighbors(id))
+                {
+                    if (m_nodes.find(neighbor_id) == m_nodes.end())
+                    {
+                        m_nodes[neighbor_id] = Node{
+                            node.distance + 1,
+                            neighbor_id.package,
+                            neighbor_id.channel,
+                            neighbor_id.shard_url,
+                            false,
+                        };
+                        pending.push(neighbor_id);
+                    }
+                }
+            }
+        }
+    }
+
+    void RepodataSubset::reachable_pipelined(
+        const std::vector<std::string>& root_packages,
+        const std::set<std::string>* root_shards
+    )
+    {
+        std::queue<NodeId> pending;
+        for (const auto& pkg : root_packages)
+        {
+            for (const auto& [url, shards_ptr] : m_shards_by_url)
+            {
+                if (!shards_ptr->contains(pkg))
+                {
+                    continue;
+                }
+                std::string shard_url = shards_ptr->shard_url(pkg);
+                if (root_shards && root_shards->find(shard_url) == root_shards->end())
+                {
+                    continue;
+                }
+                NodeId id{ pkg, url, shard_url };
+                if (m_nodes.find(id) != m_nodes.end())
+                {
+                    continue;
+                }
+                m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
+                pending.push(id);
+            }
+        }
+
+        drain_pending(pending);
+    }
+
+    void RepodataSubset::visit_node(const NodeId& node_id, std::queue<NodeId>& pending)
+    {
+        auto it = m_shards_by_url.find(node_id.channel);
+        if (it == m_shards_by_url.end())
+        {
+            return;
+        }
+        auto& shards_ptr = it->second;
+
+        if (!shards_ptr->is_shard_present(node_id.package))
+        {
+            auto result = shards_ptr->fetch_shards({ node_id.package });
+            if (!result)
+            {
+                LOG_WARNING << "Failed to fetch shard for " << node_id.package << ": "
+                            << result.error().what();
+                return;
+            }
+            auto shard_it = result.value().find(node_id.package);
+            if (shard_it != result.value().end())
+            {
+                shards_ptr->process_fetched_shard(node_id.package, shard_it->second);
+            }
+        }
+
+        auto& node = m_nodes[node_id];
+        node.visited = true;
+
+        ShardDict shard;
+        try
+        {
+            shard = shards_ptr->visit_package(node_id.package);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_WARNING << "Could not visit shard for " << node_id.package << ": " << e.what();
+            return;
+        }
+
+        for (const auto& dep : extract_dependencies_impl(shard))
+        {
+            for (const auto& [url, dep_shards] : m_shards_by_url)
+            {
+                if (!dep_shards->contains(dep))
+                {
+                    continue;
+                }
+                NodeId neighbor_id{ dep, url, dep_shards->shard_url(dep) };
+                if (m_nodes.find(neighbor_id) == m_nodes.end())
+                {
+                    m_nodes[neighbor_id] = Node{
+                        node.distance + 1, dep, url, neighbor_id.shard_url, false,
+                    };
+                    pending.push(neighbor_id);
+                }
+            }
+        }
+    }
+
+    void RepodataSubset::drain_pending(std::queue<NodeId>& pending)
+    {
+        while (!pending.empty())
+        {
+            NodeId id = pending.front();
+            pending.pop();
+            if (m_nodes[id].visited)
+            {
+                continue;
+            }
+            visit_node(id, pending);
+        }
+    }
+
+    auto RepodataSubset::neighbors(const NodeId& node_id) -> std::vector<NodeId>
+    {
+        auto it = m_shards_by_url.find(node_id.channel);
+        if (it == m_shards_by_url.end())
+        {
+            return {};
+        }
+        auto& shards_ptr = it->second;
+
+        if (!shards_ptr->is_shard_present(node_id.package))
+        {
+            return {};
+        }
+
+        ShardDict shard;
+        try
+        {
+            shard = shards_ptr->visit_package(node_id.package);
+        }
+        catch (const std::exception&)
+        {
+            return {};
+        }
+
+        std::vector<NodeId> result;
+        for (const auto& dep : extract_dependencies_impl(shard))
+        {
+            for (const auto& [url, dep_shards] : m_shards_by_url)
+            {
+                if (!dep_shards->contains(dep))
+                {
+                    continue;
+                }
+                result.push_back({ dep, url, dep_shards->shard_url(dep) });
+            }
+        }
+        return result;
+    }
+
+}

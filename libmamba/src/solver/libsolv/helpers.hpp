@@ -72,10 +72,16 @@ namespace mamba::solver::libsolv
         bool expected_pip_added
     ) -> expected_t<solv::ObjRepoView>;
 
+    /**
+     * Write repo to solv file.
+     * @param already_internalized When true, skip repo.internalize() (repo was created from
+     *        packages or already internalized; calling internalize twice can cause corruption).
+     */
     [[nodiscard]] auto write_solv(  //
         solv::ObjRepoView repo,
         fs::u8path filename,
-        const RepodataOrigin& metadata
+        const RepodataOrigin& metadata,
+        bool already_internalized = false
     ) -> expected_t<solv::ObjRepoView>;
 
     void

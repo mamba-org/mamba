@@ -49,6 +49,10 @@ namespace mamba::download
         // the specified mirror name. Returns true if the mirror has been stored, false otherwise.
         bool add_unique_mirror(std::string_view mirror_name, mirror_ptr mirror);
 
+        // Copy mirrors for a given mirror name from another map. Used when building extended
+        // mirror maps (e.g. for shard downloads) that need to include channel mirrors.
+        void add_mirrors_from(const mirror_map& other, std::string_view mirror_name);
+
         // Creates, stores and returns a new instance of `MirrorType` created with `args` IFF no
         // other mirror is already registered with the same id for the specified mirror name,
         // returns null otherwise.

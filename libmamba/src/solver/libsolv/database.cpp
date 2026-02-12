@@ -281,7 +281,12 @@ namespace mamba::solver::libsolv
     ) -> expected_t<RepoInfo>
     {
         assert(repo.m_ptr != nullptr);
-        return write_solv(solv::ObjRepoView(*repo.m_ptr), path, metadata)
+        return write_solv(
+                   solv::ObjRepoView(*repo.m_ptr),
+                   path,
+                   metadata,
+                   /* already_internalized= */ true
+        )
             .transform([](solv::ObjRepoView solv_repo) { return RepoInfo(solv_repo.raw()); });
     }
 

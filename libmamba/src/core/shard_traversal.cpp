@@ -8,7 +8,10 @@
 #include <set>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include "mamba/core/logging.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/shard_traversal.hpp"
 #include "mamba/specs/match_spec.hpp"
 
@@ -104,6 +107,9 @@ namespace mamba
         {
             return;
         }
+        Console::instance().print(
+            fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "⧖ Starting")
+        );
         if (strategy == "bfs")
         {
             reachable_bfs(root_packages, root_shards);
@@ -112,6 +118,9 @@ namespace mamba
         {
             reachable_pipelined(root_packages, root_shards);
         }
+        Console::instance().print(
+            fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "✔ Done")
+        );
     }
 
     const NodeMap& RepodataSubset::nodes() const

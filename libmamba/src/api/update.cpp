@@ -4,12 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fmt/format.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
@@ -17,6 +19,7 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
+#include "mamba/specs/match_spec.hpp"
 
 #include "utils.hpp"
 
@@ -25,6 +28,25 @@ namespace mamba
     namespace
     {
         using command_args = std::vector<std::string>;
+
+        auto extract_package_names_from_specs(const std::vector<std::string>& specs)
+            -> std::vector<std::string>
+        {
+            std::vector<std::string> names;
+            for (const auto& s : specs)
+            {
+                auto parsed = specs::MatchSpec::parse(s);
+                if (parsed && !parsed->name().is_free())
+                {
+                    auto name = parsed->name().to_string();
+                    if (!name.empty())
+                    {
+                        names.push_back(std::move(name));
+                    }
+                }
+            }
+            return names;
+        }
 
         auto create_update_request(
             PrefixData& prefix_data,
@@ -173,7 +195,8 @@ namespace mamba
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches);
+        auto root_packages = extract_package_names_from_specs(raw_update_specs);
+        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches, root_packages);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());
@@ -207,6 +230,7 @@ namespace mamba
             // Console stream prints on destruction
         }
 
+        Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting"));
         auto outcome = solver::libsolv::Solver()
                            .solve(
                                db,
@@ -216,6 +240,7 @@ namespace mamba
                                    : solver::libsolv::MatchSpecParser::Mixed
                            )
                            .value();
+        Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
             unsolvable->explain_problems_to(

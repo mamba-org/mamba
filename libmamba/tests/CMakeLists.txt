@@ -88,6 +88,7 @@ set(
     src/core/test_activation.cpp
     src/core/test_channel_context.cpp
     src/core/test_channel_loader.cpp
+    src/core/test_channel_loader_shards.cpp
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
     src/core/test_env_file_reading.cpp
@@ -110,6 +111,7 @@ set(
     src/core/test_shard_traversal.cpp
     src/core/test_shard_types.cpp
     src/core/test_shard_utils.cpp
+    src/core/test_sharded_repodata_integration.cpp
     src/core/test_subdir_index.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp

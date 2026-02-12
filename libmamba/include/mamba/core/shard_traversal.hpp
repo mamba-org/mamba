@@ -79,7 +79,7 @@ namespace mamba
          */
         void reachable(
             const std::vector<std::string>& root_packages,
-            const std::string& strategy = "pipelined",
+            const std::string& strategy = "bfs",
             std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards = std::nullopt
         );
 

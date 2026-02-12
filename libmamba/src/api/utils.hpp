@@ -42,6 +42,12 @@ namespace mamba
     void
     populate_context_channels_from_specs(const std::vector<std::string>& raw_matchspecs, Context& context);
 
+    /**
+     * Extract package names from matchspec strings.
+     * Only extracts exact name matches (no version constraints).
+     */
+    std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
+
 }
 
 #endif  // MAMBA_UTILS_HPP

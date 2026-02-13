@@ -407,26 +407,11 @@ namespace mamba
         }
 
         Console::stream() << "\nTransaction starting";
-        fetch_extract_packages(ctx, channel_context);
-
-        if (is_sig_interrupted())
-        {
-            Console::stream() << "Interrupted by user - transaction stopped.";
-            return true;
-        }
-
-        if (ctx.download_only)
-        {
-            Console::stream()
-                << "Download only - packages download and extraction is done. Skipping the linking phase.";
-            return true;
-        }
 
         // Channels coming from the repodata (packages to install) don't have the same channel
         // format than packages coming from the prefix (packages to remove). We set all the channels
-        // to be URL like (i.e. explicit). Below is a loop to fix the channel of the linked
-        // packages (fix applied to the unlinked packages to avoid potential bugs). Ideally, this
-        // should be normalised when reading the data.
+        // to be URL like (i.e. explicit). This must happen BEFORE fetch_extract so that extraction
+        // and linking use the same cache path format (package_cache_channel_id uses pkg.channel).
 
         // Store which packages are pip packages before channel normalization
         // (pip packages have channel == "pypi" before normalization)
@@ -498,7 +483,22 @@ namespace mamba
             {
                 pkg.package_url = pkg.url_for_channel_platform(channel_url);
             }
-        };
+        }
+
+        fetch_extract_packages(ctx, channel_context);
+
+        if (is_sig_interrupted())
+        {
+            Console::stream() << "Interrupted by user - transaction stopped.";
+            return true;
+        }
+
+        if (ctx.download_only)
+        {
+            Console::stream()
+                << "Download only - packages download and extraction is done. Skipping the linking phase.";
+            return true;
+        }
 
         TransactionRollback rollback;
         TransactionContext transaction_context(
@@ -811,7 +811,9 @@ namespace mamba
                         assert(channels.size() == 1);  // A URL can only resolve to one channel
                         const auto& channel = channels.front();
 
-                        l_pkg.channel = channel.id();
+                        // Keep pkg.channel as-is for cache path consistency
+                        // (package_cache_channel_id uses it; extraction and linking must use the
+                        // same format).
 
                         if (l_pkg.package_url.empty())
                         {

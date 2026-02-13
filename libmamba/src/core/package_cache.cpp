@@ -5,7 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <mutex>
 #include <sstream>
+#include <unordered_map>
 
 #include <nlohmann/json.hpp>
 
@@ -22,8 +24,37 @@ namespace mamba
 {
     auto package_cache_channel_id(const specs::PackageInfo& s) -> std::string
     {
+        static std::unordered_map<std::string, std::string> cache;
+        static std::mutex cache_mutex;
+
         std::string channel = s.channel.empty() ? "no_channel" : s.channel;
+        const auto subdir = package_cache_subdir(s);
+        const std::string key = channel + '\0' + subdir;
+
+        {
+            std::lock_guard<std::mutex> lock(cache_mutex);
+            if (auto it = cache.find(key); it != cache.end())
+            {
+                return it->second;
+            }
+        }
+
+        // Strip trailing subdir from channel URL so "https://x/conda-forge/noarch" and
+        // "https://x/conda-forge" produce the same cache path
+        if (!subdir.empty())
+        {
+            const std::string suffix = "/" + subdir;
+            if (util::ends_with(channel, suffix))
+            {
+                channel.resize(channel.size() - suffix.size());
+            }
+        }
         std::ranges::replace_if(channel, [](char c) { return c == '/' || c == ':' || c == '\\'; }, '_');
+
+        {
+            std::lock_guard<std::mutex> lock(cache_mutex);
+            cache[key] = channel;
+        }
         return channel;
     }
 

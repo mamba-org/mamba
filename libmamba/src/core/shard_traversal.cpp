@@ -14,12 +14,12 @@
 
 namespace mamba
 {
-    auto NodeId::operator==(const NodeId& other) const -> bool
+    bool NodeId::operator==(const NodeId& other) const
     {
         return package == other.package && channel == other.channel && shard_url == other.shard_url;
     }
 
-    auto NodeId::operator<(const NodeId& other) const -> bool
+    bool NodeId::operator<(const NodeId& other) const
     {
         if (package != other.package)
         {
@@ -32,15 +32,14 @@ namespace mamba
         return shard_url < other.shard_url;
     }
 
-    auto Node::to_id() const -> NodeId
+    NodeId Node::to_id() const
     {
         return NodeId{ package, channel, shard_url };
     }
 
     namespace
     {
-        auto add_names_from_specs(const std::vector<std::string>& specs, std::set<std::string>& names)
-            -> void
+        void add_names_from_specs(const std::vector<std::string>& specs, std::set<std::string>& names)
         {
             for (const auto& spec : specs)
             {
@@ -56,14 +55,13 @@ namespace mamba
             }
         }
 
-        auto add_names_from_record(const ShardPackageRecord& record, std::set<std::string>& names)
-            -> void
+        void add_names_from_record(const ShardPackageRecord& record, std::set<std::string>& names)
         {
             add_names_from_specs(record.depends, names);
             add_names_from_specs(record.constrains, names);
         }
 
-        auto extract_dependencies_impl(const ShardDict& shard) -> std::vector<std::string>
+        std::vector<std::string> extract_dependencies_impl(const ShardDict& shard)
         {
             std::set<std::string> names;
             for (const auto& [_, record] : shard.packages)
@@ -78,7 +76,7 @@ namespace mamba
         }
     }  // namespace
 
-    auto shard_mentioned_packages(const ShardDict& shard) -> std::vector<std::string>
+    std::vector<std::string> shard_mentioned_packages(const ShardDict& shard)
     {
         return extract_dependencies_impl(shard);
     }
@@ -116,12 +114,12 @@ namespace mamba
         }
     }
 
-    auto RepodataSubset::nodes() const -> const NodeMap&
+    const NodeMap& RepodataSubset::nodes() const
     {
         return m_nodes;
     }
 
-    auto RepodataSubset::shards() const -> const ShardsPtrVector&
+    const ShardsPtrVector& RepodataSubset::shards() const
     {
         return m_shards;
     }
@@ -328,7 +326,7 @@ namespace mamba
         }
     }
 
-    auto RepodataSubset::neighbors(const NodeId& node_id) -> std::vector<NodeId>
+    std::vector<NodeId> RepodataSubset::neighbors(const NodeId& node_id)
     {
         auto it = m_shards_by_url.find(node_id.channel);
         if (it == m_shards_by_url.end())

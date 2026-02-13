@@ -144,12 +144,11 @@ namespace mamba
                     continue;
                 }
                 NodeId id{ pkg, url, shard_url };
-                if (m_nodes.contains(id))
+                if (!m_nodes.contains(id))
                 {
-                    continue;
+                    m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
+                    pending.push(id);
                 }
-                m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
-                pending.push(id);
             }
         }
 
@@ -239,12 +238,11 @@ namespace mamba
                     continue;
                 }
                 NodeId id{ pkg, url, shard_url };
-                if (m_nodes.contains(id))
+                if (!m_nodes.contains(id))
                 {
-                    continue;
+                    m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
+                    pending.push(id);
                 }
-                m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
-                pending.push(id);
             }
         }
 
@@ -316,11 +314,10 @@ namespace mamba
         {
             NodeId id = pending.front();
             pending.pop();
-            if (m_nodes[id].visited)
+            if (!m_nodes[id].visited)
             {
-                continue;
+                visit_node(id, pending);
             }
-            visit_node(id, pending);
         }
     }
 
@@ -353,11 +350,10 @@ namespace mamba
         {
             for (const auto& [url, dep_shards] : m_shards_by_url)
             {
-                if (!dep_shards->contains(dep))
+                if (dep_shards->contains(dep))
                 {
-                    continue;
+                    result.push_back({ dep, url, dep_shards->shard_url(dep) });
                 }
-                result.push_back({ dep, url, dep_shards->shard_url(dep) });
             }
         }
         return result;

@@ -104,9 +104,17 @@ namespace mamba
             const std::vector<std::string>& root_packages,
             std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
         );
+        void init_pending_with_roots(
+            const std::vector<std::string>& root_packages,
+            std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards,
+            std::queue<NodeId>& pending
+        );
+        std::vector<NodeId> pop_batch(std::queue<NodeId>& pending);
+        void fetch_missing_shards_for_batch(const std::vector<NodeId>& batch);
+        void process_bfs_batch(const std::vector<NodeId>& batch, std::queue<NodeId>& pending);
         void visit_node(const NodeId& node_id, std::queue<NodeId>& pending);
         void drain_pending(std::queue<NodeId>& pending);
-        auto neighbors(const NodeId& node_id) -> std::vector<NodeId>;
+        std::vector<NodeId> neighbors(const NodeId& node_id);
     };
 
 }

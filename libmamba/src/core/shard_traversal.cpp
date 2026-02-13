@@ -124,12 +124,12 @@ namespace mamba
         return m_shards;
     }
 
-    void RepodataSubset::reachable_bfs(
+    void RepodataSubset::init_pending_with_roots(
         const std::vector<std::string>& root_packages,
-        std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
+        std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards,
+        std::queue<NodeId>& pending
     )
     {
-        std::queue<NodeId> pending;
         for (const auto& pkg : root_packages)
         {
             for (const auto& [url, shards_ptr] : m_shards_by_url)
@@ -151,70 +151,94 @@ namespace mamba
                 }
             }
         }
+    }
 
+    std::vector<NodeId> RepodataSubset::pop_batch(std::queue<NodeId>& pending)
+    {
+        std::vector<NodeId> batch;
         while (!pending.empty())
         {
-            std::vector<NodeId> batch;
-            while (!pending.empty())
-            {
-                batch.push_back(pending.front());
-                pending.pop();
-            }
+            batch.push_back(pending.front());
+            pending.pop();
+        }
+        return batch;
+    }
 
-            std::map<std::string, std::vector<std::string>> to_fetch_by_channel;
-            for (const auto& id : batch)
+    void RepodataSubset::fetch_missing_shards_for_batch(const std::vector<NodeId>& batch)
+    {
+        std::map<std::string, std::vector<std::string>> to_fetch_by_channel;
+        for (const auto& id : batch)
+        {
+            auto it = m_shards_by_url.find(id.channel);
+            if (it == m_shards_by_url.end())
             {
-                auto it = m_shards_by_url.find(id.channel);
-                if (it == m_shards_by_url.end())
-                {
-                    continue;
-                }
-                auto& shards_ptr = it->second;
-                if (!shards_ptr->is_shard_present(id.package))
-                {
-                    to_fetch_by_channel[id.channel].push_back(id.package);
-                }
+                continue;
             }
-            for (auto& [channel, to_fetch] : to_fetch_by_channel)
+            auto& shards_ptr = it->second;
+            if (!shards_ptr->is_shard_present(id.package))
             {
-                std::sort(to_fetch.begin(), to_fetch.end());
-                to_fetch.erase(std::unique(to_fetch.begin(), to_fetch.end()), to_fetch.end());
-                if (!to_fetch.empty())
+                to_fetch_by_channel[id.channel].push_back(id.package);
+            }
+        }
+        for (auto& [channel, to_fetch] : to_fetch_by_channel)
+        {
+            std::sort(to_fetch.begin(), to_fetch.end());
+            to_fetch.erase(std::unique(to_fetch.begin(), to_fetch.end()), to_fetch.end());
+            if (!to_fetch.empty())
+            {
+                auto it = m_shards_by_url.find(channel);
+                if (it != m_shards_by_url.end())
                 {
-                    auto it = m_shards_by_url.find(channel);
-                    if (it != m_shards_by_url.end())
+                    auto result = it->second->fetch_shards(to_fetch);
+                    if (result)
                     {
-                        auto result = it->second->fetch_shards(to_fetch);
-                        if (result)
+                        for (const auto& [pkg, shard] : result.value())
                         {
-                            for (const auto& [pkg, shard] : result.value())
-                            {
-                                it->second->process_fetched_shard(pkg, shard);
-                            }
+                            it->second->process_fetched_shard(pkg, shard);
                         }
                     }
                 }
             }
+        }
+    }
 
-            for (const auto& id : batch)
+    void
+    RepodataSubset::process_bfs_batch(const std::vector<NodeId>& batch, std::queue<NodeId>& pending)
+    {
+        for (const auto& id : batch)
+        {
+            auto& node = m_nodes[id];
+            node.visited = true;
+            for (const auto& neighbor_id : neighbors(id))
             {
-                auto& node = m_nodes[id];
-                node.visited = true;
-                for (const auto& neighbor_id : neighbors(id))
+                if (!m_nodes.contains(neighbor_id))
                 {
-                    if (!m_nodes.contains(neighbor_id))
-                    {
-                        m_nodes[neighbor_id] = Node{
-                            node.distance + 1,
-                            neighbor_id.package,
-                            neighbor_id.channel,
-                            neighbor_id.shard_url,
-                            false,
-                        };
-                        pending.push(neighbor_id);
-                    }
+                    m_nodes[neighbor_id] = Node{
+                        node.distance + 1,
+                        neighbor_id.package,
+                        neighbor_id.channel,
+                        neighbor_id.shard_url,
+                        false,
+                    };
+                    pending.push(neighbor_id);
                 }
             }
+        }
+    }
+
+    void RepodataSubset::reachable_bfs(
+        const std::vector<std::string>& root_packages,
+        std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
+    )
+    {
+        std::queue<NodeId> pending;
+        init_pending_with_roots(root_packages, root_shards, pending);
+
+        while (!pending.empty())
+        {
+            std::vector<NodeId> batch = pop_batch(pending);
+            fetch_missing_shards_for_batch(batch);
+            process_bfs_batch(batch, pending);
         }
     }
 
@@ -224,28 +248,7 @@ namespace mamba
     )
     {
         std::queue<NodeId> pending;
-        for (const auto& pkg : root_packages)
-        {
-            for (const auto& [url, shards_ptr] : m_shards_by_url)
-            {
-                if (!shards_ptr->contains(pkg))
-                {
-                    continue;
-                }
-                std::string shard_url = shards_ptr->shard_url(pkg);
-                if (root_shards.has_value() && !root_shards->get().contains(shard_url))
-                {
-                    continue;
-                }
-                NodeId id{ pkg, url, shard_url };
-                if (!m_nodes.contains(id))
-                {
-                    m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
-                    pending.push(id);
-                }
-            }
-        }
-
+        init_pending_with_roots(root_packages, root_shards, pending);
         drain_pending(pending);
     }
 

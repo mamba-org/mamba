@@ -153,13 +153,6 @@ namespace mamba
         }
     }
 
-    std::vector<NodeId> RepodataSubset::pop_batch(std::vector<NodeId>& pending)
-    {
-        std::vector<NodeId> batch;
-        std::swap(batch, pending);
-        return batch;
-    }
-
     void RepodataSubset::fetch_missing_shards_for_batch(const std::vector<NodeId>& batch)
     {
         std::map<std::string, std::vector<std::string>> to_fetch_by_channel;
@@ -232,7 +225,8 @@ namespace mamba
 
         while (!pending.empty())
         {
-            std::vector<NodeId> batch = pop_batch(pending);
+            std::vector<NodeId> batch;
+            std::swap(batch, pending);
             fetch_missing_shards_for_batch(batch);
             process_bfs_batch(batch, pending);
         }

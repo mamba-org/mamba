@@ -108,7 +108,6 @@ namespace mamba
             std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards,
             std::vector<NodeId>& pending
         );
-        std::vector<NodeId> pop_batch(std::vector<NodeId>& pending);
         void fetch_missing_shards_for_batch(const std::vector<NodeId>& batch);
         void process_bfs_batch(const std::vector<NodeId>& batch, std::vector<NodeId>& pending);
         void visit_node(const NodeId& node_id, std::vector<NodeId>& pending);

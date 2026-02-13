@@ -87,7 +87,7 @@ namespace mamba
      * RepodataSubset *
      ******************/
 
-    RepodataSubset::RepodataSubset(std::vector<std::shared_ptr<Shards>> shards)
+    RepodataSubset::RepodataSubset(ShardsPtrVector shards)
         : m_shards(std::move(shards))
     {
         for (const auto& s : m_shards)
@@ -116,12 +116,12 @@ namespace mamba
         }
     }
 
-    auto RepodataSubset::nodes() const -> const std::map<NodeId, Node>&
+    auto RepodataSubset::nodes() const -> const NodeMap&
     {
         return m_nodes;
     }
 
-    auto RepodataSubset::shards() const -> const std::vector<std::shared_ptr<Shards>>&
+    auto RepodataSubset::shards() const -> const ShardsPtrVector&
     {
         return m_shards;
     }

@@ -49,6 +49,9 @@ namespace mamba
         [[nodiscard]] auto to_id() const -> NodeId;
     };
 
+    using NodeMap = std::map<NodeId, Node>;
+    using ShardsPtrVector = std::vector<std::shared_ptr<Shards>>;
+
     /**
      * Extracts package names from dependency specs in a shard.
      *
@@ -66,7 +69,7 @@ namespace mamba
     {
     public:
 
-        explicit RepodataSubset(std::vector<std::shared_ptr<Shards>> shards);
+        explicit RepodataSubset(ShardsPtrVector shards);
 
         /**
          * Compute reachable packages from root_packages.
@@ -82,16 +85,16 @@ namespace mamba
         );
 
         /** Return visited nodes. */
-        [[nodiscard]] auto nodes() const -> const std::map<NodeId, Node>&;
+        [[nodiscard]] auto nodes() const -> const NodeMap&;
 
         /** Return the shards collection. */
-        [[nodiscard]] auto shards() const -> const std::vector<std::shared_ptr<Shards>>&;
+        [[nodiscard]] auto shards() const -> const ShardsPtrVector&;
 
     private:
 
-        std::vector<std::shared_ptr<Shards>> m_shards;
+        ShardsPtrVector m_shards;
         std::map<std::string, std::shared_ptr<Shards>> m_shards_by_url;
-        std::map<NodeId, Node> m_nodes;
+        NodeMap m_nodes;
 
         void reachable_bfs(
             const std::vector<std::string>& root_packages,

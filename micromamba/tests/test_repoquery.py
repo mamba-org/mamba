@@ -262,3 +262,55 @@ def test_remote_search_python_site_packages_path(yaml_env: Path):
     assert package_info["version"] == "3.13.1"
     assert package_info["track_features"] == "py_freethreading"
     assert package_info["python_site_packages_path"] == "lib/python3.13t/site-packages"
+
+
+@pytest.mark.parametrize("wildcard", [False, True])
+@pytest.mark.parametrize("pretty_print", ["", "--pretty"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_search_output_style(
+    tmp_home, tmp_root_prefix, tmp_env_name, tmp_xtensor_env, wildcard, pretty_print
+):
+    package_name = "xtensor"
+    package_version = "0.24.5"
+    if wildcard:
+        search_term = (
+            f"{package_name}*={package_version}"  # search with package name with * wildcard
+        )
+    else:
+        search_term = f"{package_name}={package_version}"  # search exact package name
+    res = helpers.umamba_repoquery(
+        "search", "--quiet", "-c", "conda-forge", pretty_print, search_term
+    )
+
+    assert len(res) >= 3
+    assert "xtensor" in res
+
+    res_lines = res.rstrip("\n").split("\n")
+    expect_pretty = (pretty_print != "") or (not wildcard)
+    if expect_pretty:
+        # pretty printed output looks like this:
+        #        xtensor 0.24.5 hf52228f_0
+        # ────────────────────────────────────────
+        #
+        #  Name            xtensor
+        #  Version         0.24.5
+        #  Build           hf52228f_0
+        # [...]
+        assert len(res_lines) >= 10
+        # The package name and version must be on the first line.
+        assert res_lines[0].find(package_name) >= 0
+        assert res_lines[0].find(package_version) >= 0
+        # Somewhere in the returned string, there needs to be "Name" and "Version" rows.
+        assert res.find("Name") >= 0
+        assert res.find("Version") >= 0
+    else:
+        # standard output has a table layout:
+        #  Name    Version Build        Channel     Subdir
+        # ───────────────────────────────────────────────────
+        #  xtensor 0.24.5  hf52228f_0   conda-forge linux-64
+        # check "Name" and "Version" of the table header
+        assert res_lines[0].find("Name") >= 0
+        assert res_lines[0].find("Version") >= 0
+        # package name and version must be part of the shown result
+        assert res_lines[-1].find(package_name) >= 0
+        assert res_lines[-1].find(package_version) >= 0

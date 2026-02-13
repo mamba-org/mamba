@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_SHARD_TRAVERSAL_HPP
 #define MAMBA_CORE_SHARD_TRAVERSAL_HPP
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -77,7 +78,7 @@ namespace mamba
         void reachable(
             const std::vector<std::string>& root_packages,
             const std::string& strategy = "pipelined",
-            const std::set<std::string>* root_shards = nullptr
+            std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards = std::nullopt
         );
 
         /** Return visited nodes. */
@@ -94,11 +95,11 @@ namespace mamba
 
         void reachable_bfs(
             const std::vector<std::string>& root_packages,
-            const std::set<std::string>* root_shards
+            std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
         );
         void reachable_pipelined(
             const std::vector<std::string>& root_packages,
-            const std::set<std::string>* root_shards
+            std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
         );
         void visit_node(const NodeId& node_id, std::queue<NodeId>& pending);
         void drain_pending(std::queue<NodeId>& pending);

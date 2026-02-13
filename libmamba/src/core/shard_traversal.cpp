@@ -99,7 +99,7 @@ namespace mamba
     void RepodataSubset::reachable(
         const std::vector<std::string>& root_packages,
         const std::string& strategy,
-        const std::set<std::string>* root_shards
+        std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
     )
     {
         if (root_packages.empty())
@@ -128,7 +128,7 @@ namespace mamba
 
     void RepodataSubset::reachable_bfs(
         const std::vector<std::string>& root_packages,
-        const std::set<std::string>* root_shards
+        std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
     )
     {
         std::queue<NodeId> pending;
@@ -141,7 +141,8 @@ namespace mamba
                     continue;
                 }
                 std::string shard_url = shards_ptr->shard_url(pkg);
-                if (root_shards && root_shards->find(shard_url) == root_shards->end())
+                if (root_shards.has_value()
+                    && root_shards->get().find(shard_url) == root_shards->get().end())
                 {
                     continue;
                 }
@@ -223,7 +224,7 @@ namespace mamba
 
     void RepodataSubset::reachable_pipelined(
         const std::vector<std::string>& root_packages,
-        const std::set<std::string>* root_shards
+        std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
     )
     {
         std::queue<NodeId> pending;
@@ -236,7 +237,8 @@ namespace mamba
                     continue;
                 }
                 std::string shard_url = shards_ptr->shard_url(pkg);
-                if (root_shards && root_shards->find(shard_url) == root_shards->end())
+                if (root_shards.has_value()
+                    && root_shards->get().find(shard_url) == root_shards->get().end())
                 {
                     continue;
                 }

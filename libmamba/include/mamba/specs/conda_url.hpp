@@ -7,6 +7,7 @@
 #ifndef MAMBA_SPECS_CONDA_URL_HPP
 #define MAMBA_SPECS_CONDA_URL_HPP
 
+#include <concepts>
 #include <functional>
 #include <string_view>
 
@@ -251,6 +252,29 @@ namespace mamba::specs
     {
         auto operator""_cu(const char* str, std::size_t len) -> CondaURL;
     }
+
+    /** Converts any range of `URL` into a view-range of `CondaURL` values. */
+    template <std::ranges::input_range URLRange>
+        requires std::same_as<std::ranges::range_value_t<URLRange>, util::URL>
+    auto as_conda_urls(URLRange&& values)
+    {
+        return std::views::transform(
+            std::forward<URLRange>(values),
+            [](const util::URL& url) { return CondaURL{ url }; }
+        );
+    }
+
+    /** Converts any range of string-like values into a view-range of `CondaURL` values based on
+     * it's constructor. */
+    template <std::ranges::input_range StringRange>
+        requires(
+            not std::same_as<std::ranges::range_value_t<StringRange>, util::URL>
+        )  // TODO: or only string-like types?
+    auto as_conda_urls(StringRange&& values)
+    {
+        return as_conda_urls(util::as_urls(std::forward<StringRange>(values)));
+    }
+
 }
 
 template <>

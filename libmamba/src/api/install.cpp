@@ -860,11 +860,6 @@ namespace mamba
                 lock_pkgs.push_back(LockFile(c));
             }
 
-            if (ctx.output_params.json)
-            {
-                transaction.log_json();
-            }
-
             if (transaction.prompt(ctx, channel_context))
             {
                 if (create_env && !ctx.dry_run)
@@ -892,6 +887,11 @@ namespace mamba
             }
             else
             {
+                if (ctx.output_params.json)
+                {
+                    transaction.log_json();
+                }
+
                 // Aborting new env creation
                 // but the directory was already created because of `store_platform_config` call
                 // => Remove the created directory
@@ -951,6 +951,7 @@ namespace mamba
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,
+                    channel_context,
                     db,
                     file,
                     categories,

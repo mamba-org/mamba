@@ -114,17 +114,19 @@ namespace mamba
             }
         }
 
-        void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors)
+        void create_mirrors(
+            const specs::Channel& channel,
+            download::mirror_map& mirrors,
+            specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
+        )
         {
-            if (!mirrors.has_mirrors(channel.id()))
+            for (const specs::CondaURL& url : channel.mirror_urls())
             {
-                for (const specs::CondaURL& url : channel.mirror_urls())
-                {
-                    mirrors.add_unique_mirror(
-                        channel.id(),
-                        download::make_mirror(url.str(specs::CondaURL::Credentials::Show))
-                    );
-                }
+                mirrors.add_unique_mirror(
+                    channel.id(),
+                    download::make_mirror(url.str(specs::CondaURL::Credentials::Show)),
+                    priority
+                );
             }
         }
 
@@ -320,13 +322,14 @@ namespace mamba
         return load_channels_impl(ctx, channel_context, database, package_caches, retry);
     }
 
-    void init_channels(Context& context, ChannelContext& channel_context)
+    void
+    init_channels(Context& context, ChannelContext& channel_context, specs::Channel::UrlPriority priority)
     {
         for (const auto& mirror : context.mirrored_channels)
         {
             for (auto channel : channel_context.make_channel(mirror.first, mirror.second))
             {
-                create_mirrors(channel, context.mirrors);
+                create_mirrors(channel, context.mirrors, priority);
             }
         }
 
@@ -337,7 +340,7 @@ namespace mamba
             {
                 for (auto channel : channel_context.make_channel(location))
                 {
-                    create_mirrors(channel, context.mirrors);
+                    create_mirrors(channel, context.mirrors, priority);
                 }
             }
         }

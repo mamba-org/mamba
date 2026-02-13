@@ -19,6 +19,7 @@
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
+#include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
@@ -385,6 +386,10 @@ namespace mamba
 
         if (ctx.dry_run)
         {
+            if (ctx.output_params.json)
+            {
+                log_json();
+            }
             Console::stream() << "Dry run. Not executing the transaction.";
             return true;
         }
@@ -483,15 +488,10 @@ namespace mamba
 
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel)
-                                                    .value();
-            const auto pkg_channel = mamba::specs::Channel::resolve(
-                                         unresolved_pkg_channel,
-                                         channel_context.params()
-            )
-                                         .value();
-            assert(not pkg_channel.empty());
-            const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
+            const auto& channels = channel_context.make_channel(pkg.channel);
+            assert(not channels.empty());
+
+            const auto channel_url = channels.front().platform_url(pkg.platform).str();
             pkg.channel = channel_url;
 
             if (pkg.package_url.empty())
@@ -499,6 +499,12 @@ namespace mamba
                 pkg.package_url = pkg.url_for_channel_platform(channel_url);
             }
         };
+
+
+        if (ctx.output_params.json)
+        {
+            log_json();
+        }
 
         TransactionRollback rollback;
         TransactionContext transaction_context(
@@ -1352,7 +1358,8 @@ namespace mamba
     }
 
     MTransaction create_explicit_transaction_from_lockfile(
-        const Context& ctx,
+        Context& ctx,
+        ChannelContext& channel_context,
         solver::libsolv::Database& database,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
@@ -1377,7 +1384,33 @@ namespace mamba
             LOG_DEBUG << "  manager = " << package.manager;
         }
 
-        // TODO: FIXME: inject channel info coming from the lockfile!
+        if (lockfile_data.get_metadata().enable_channels)
+        {
+            // create or add mirrors to additional channels
+            for (const EnvironmentLockFile::Channel& channel_info :
+                 lockfile_data.get_metadata().channels)
+            {
+                auto channels [[maybe_unused]] = channel_context.make_channel(
+                    channel_info.name,
+                    channel_info.urls,
+                    specs::Channel::UrlPriority::high  // put the urls coming form this file on top
+                                                       // of the mirrors list
+                );
+                // TODO c++23:  use .append
+                auto& context_mirrors = ctx.mirrored_channels[channel_info.name];
+                context_mirrors.insert(
+                    context_mirrors.begin(),
+                    channel_info.urls.begin(),
+                    channel_info.urls.end()
+                );
+            }
+
+            init_channels(ctx, channel_context, specs::Channel::UrlPriority::high);  // makes sure
+                                                                                     // the new
+                                                                                     // mirrors are
+                                                                                     // taken into
+                                                                                     // account
+        }
 
         std::vector<specs::PackageInfo> conda_packages = {};
         std::vector<specs::PackageInfo> pip_packages = {};
@@ -1405,9 +1438,8 @@ namespace mamba
                   .platform = ctx.platform,
                   .manager = "pip",
                   // NOTE: sometime python packages can have no platform specified (mambajs lockfile
-                  // for
-                  //       example) in this case we just take the package if not specified, but if
-                  //       specified we filter to the current platform.
+                  // for example) in this case we just take the package if not specified, but if
+                  // specified we filter to the current platform.
                   .allow_no_platform = true }
             );
             std::copy(

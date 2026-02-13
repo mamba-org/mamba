@@ -15,6 +15,7 @@
 #include <unordered_map>
 
 #include "mamba/download/mirror.hpp"
+#include "mamba/specs/channel.hpp"
 #include "mamba/util/iterator.hpp"
 
 namespace mamba::download
@@ -47,7 +48,11 @@ namespace mamba::download
 
         // Stores a provided Mirror IFF no other mirror is already registered with the same id for
         // the specified mirror name. Returns true if the mirror has been stored, false otherwise.
-        bool add_unique_mirror(std::string_view mirror_name, mirror_ptr mirror);
+        bool add_unique_mirror(
+            std::string_view mirror_name,
+            mirror_ptr mirror,
+            specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
+        );
 
         // Creates, stores and returns a new instance of `MirrorType` created with `args` IFF no
         // other mirror is already registered with the same id for the specified mirror name,

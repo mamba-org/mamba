@@ -5,8 +5,8 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
-#include <queue>
 #include <set>
+#include <vector>
 
 #include "mamba/core/logging.hpp"
 #include "mamba/core/shard_traversal.hpp"
@@ -127,7 +127,7 @@ namespace mamba
     void RepodataSubset::init_pending_with_roots(
         const std::vector<std::string>& root_packages,
         std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards,
-        std::queue<NodeId>& pending
+        std::vector<NodeId>& pending
     )
     {
         for (const auto& pkg : root_packages)
@@ -147,20 +147,16 @@ namespace mamba
                 if (!m_nodes.contains(id))
                 {
                     m_nodes[id] = Node{ 0, pkg, url, shard_url, false };
-                    pending.push(id);
+                    pending.push_back(id);
                 }
             }
         }
     }
 
-    std::vector<NodeId> RepodataSubset::pop_batch(std::queue<NodeId>& pending)
+    std::vector<NodeId> RepodataSubset::pop_batch(std::vector<NodeId>& pending)
     {
         std::vector<NodeId> batch;
-        while (!pending.empty())
-        {
-            batch.push_back(pending.front());
-            pending.pop();
-        }
+        std::swap(batch, pending);
         return batch;
     }
 
@@ -203,7 +199,7 @@ namespace mamba
     }
 
     void
-    RepodataSubset::process_bfs_batch(const std::vector<NodeId>& batch, std::queue<NodeId>& pending)
+    RepodataSubset::process_bfs_batch(const std::vector<NodeId>& batch, std::vector<NodeId>& pending)
     {
         for (const auto& id : batch)
         {
@@ -220,7 +216,7 @@ namespace mamba
                         neighbor_id.shard_url,
                         false,
                     };
-                    pending.push(neighbor_id);
+                    pending.push_back(neighbor_id);
                 }
             }
         }
@@ -231,7 +227,7 @@ namespace mamba
         std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
     )
     {
-        std::queue<NodeId> pending;
+        std::vector<NodeId> pending;
         init_pending_with_roots(root_packages, root_shards, pending);
 
         while (!pending.empty())
@@ -247,12 +243,12 @@ namespace mamba
         std::optional<std::reference_wrapper<const std::set<std::string>>> root_shards
     )
     {
-        std::queue<NodeId> pending;
+        std::vector<NodeId> pending;
         init_pending_with_roots(root_packages, root_shards, pending);
         drain_pending(pending);
     }
 
-    void RepodataSubset::visit_node(const NodeId& node_id, std::queue<NodeId>& pending)
+    void RepodataSubset::visit_node(const NodeId& node_id, std::vector<NodeId>& pending)
     {
         auto it = m_shards_by_url.find(node_id.channel);
         if (it == m_shards_by_url.end())
@@ -300,23 +296,23 @@ namespace mamba
                     continue;
                 }
                 NodeId neighbor_id{ dep, url, dep_shards->shard_url(dep) };
-                if (m_nodes.contains(neighbor_id))
+                if (!m_nodes.contains(neighbor_id))
                 {
                     m_nodes[neighbor_id] = Node{
                         node.distance + 1, dep, url, neighbor_id.shard_url, false,
                     };
-                    pending.push(neighbor_id);
+                    pending.push_back(neighbor_id);
                 }
             }
         }
     }
 
-    void RepodataSubset::drain_pending(std::queue<NodeId>& pending)
+    void RepodataSubset::drain_pending(std::vector<NodeId>& pending)
     {
         while (!pending.empty())
         {
-            NodeId id = pending.front();
-            pending.pop();
+            NodeId id = pending.back();
+            pending.pop_back();
             if (!m_nodes[id].visited)
             {
                 visit_node(id, pending);

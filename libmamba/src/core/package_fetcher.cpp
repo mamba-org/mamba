@@ -452,10 +452,31 @@ namespace mamba
             repodata_record.erase("constrains");
         }
 
+        // Preserve md5/sha256 from repodata record (shards may not have them in index).
+        std::string preserved_md5;
+        std::string preserved_sha256;
+        if (auto it = repodata_record.find("md5"); it != repodata_record.end())
+        {
+            preserved_md5 = it->get<std::string>();
+        }
+        if (auto it = repodata_record.find("sha256"); it != repodata_record.end())
+        {
+            preserved_sha256 = it->get<std::string>();
+        }
+
         // To take correction of packages metadata (e.g. made using repodata patches) into account,
         // we insert the index into the repodata record to only add new fields from the index
         // while keeping the existing fields from the repodata record.
         repodata_record.insert(index.cbegin(), index.cend());
+
+        if (!preserved_md5.empty())
+        {
+            repodata_record["md5"] = preserved_md5;
+        }
+        if (!preserved_sha256.empty())
+        {
+            repodata_record["sha256"] = preserved_sha256;
+        }
 
         if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)
         {

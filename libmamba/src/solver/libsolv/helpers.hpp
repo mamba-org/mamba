@@ -72,6 +72,11 @@ namespace mamba::solver::libsolv
         bool expected_pip_added
     ) -> expected_t<solv::ObjRepoView>;
 
+    /**
+     * Write repo to solv file.
+     * Metadata (url, etag, mod, tool_version) is set and internalize is called so it is
+     * committed and written to the solv file.
+     */
     [[nodiscard]] auto write_solv(  //
         solv::ObjRepoView repo,
         fs::u8path filename,

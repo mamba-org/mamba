@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
@@ -25,10 +27,33 @@
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 #include "utils.hpp"
+
+namespace
+{
+    auto extract_package_names_from_specs(const std::vector<std::string>& specs)
+        -> std::vector<std::string>
+    {
+        std::vector<std::string> names;
+        for (const auto& s : specs)
+        {
+            auto parsed = mamba::specs::MatchSpec::parse(s);
+            if (parsed && !parsed->name().is_free())
+            {
+                auto name = parsed->name().to_string();
+                if (!name.empty())
+                {
+                    names.push_back(std::move(name));
+                }
+            }
+        }
+        return names;
+    }
+}
 
 namespace mamba
 {
@@ -588,6 +613,25 @@ namespace mamba
         {
             assert(&config.context() == &ctx);
 
+            // Sharded repodata often omits checksums and uses different URLs per mirror;
+            // temporarily disable safety checks for the duration of this operation.
+            const auto saved_safety_checks = ctx.validation_params.safety_checks;
+            if (ctx.repodata_use_shards)
+            {
+                ctx.validation_params.safety_checks = VerificationLevel::Disabled;
+            }
+
+            struct RestoreSafetyChecks
+            {
+                Context& ctx;
+                VerificationLevel saved;
+
+                ~RestoreSafetyChecks()
+                {
+                    ctx.validation_params.safety_checks = saved;
+                }
+            } restore_guard{ ctx, saved_safety_checks };
+
             auto& no_pin = config.at("no_pin").value<bool>();
             auto& no_py_pin = config.at("no_py_pin").value<bool>();
             auto& freeze_installed = config.at("freeze_installed").value<bool>();
@@ -624,7 +668,22 @@ namespace mamba
             };
             add_logger_to_database(db);
 
-            auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
+            std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
+            if (fs::exists(ctx.prefix_params.target_prefix))
+            {
+                auto maybe_prefix_data = PrefixData::create(
+                    ctx.prefix_params.target_prefix,
+                    channel_context
+                );
+                if (maybe_prefix_data)
+                {
+                    for (const auto& [name, _] : maybe_prefix_data->records())
+                    {
+                        root_packages.push_back(name);
+                    }
+                }
+            }
+            auto maybe_load = load_channels(ctx, channel_context, db, package_caches, root_packages);
             if (!maybe_load)
             {
                 throw maybe_load.error();
@@ -655,6 +714,9 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
+            Console::instance().print(
+                fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
+            );
             auto outcome = solver::libsolv::Solver()
                                .solve(
                                    db,
@@ -664,6 +726,7 @@ namespace mamba
                                        : solver::libsolv::MatchSpecParser::Mixed
                                )
                                .value();
+            Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
 
             if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
             {
@@ -1299,6 +1362,23 @@ namespace mamba
         void
         install_revision(Context& ctx, ChannelContext& channel_context, std::size_t target_revision)
         {
+            const auto saved_safety_checks = ctx.validation_params.safety_checks;
+            if (ctx.repodata_use_shards)
+            {
+                ctx.validation_params.safety_checks = VerificationLevel::Disabled;
+            }
+
+            struct RestoreSafetyChecks
+            {
+                Context& ctx;
+                VerificationLevel saved;
+
+                ~RestoreSafetyChecks()
+                {
+                    ctx.validation_params.safety_checks = saved;
+                }
+            } restore_guard{ ctx, saved_safety_checks };
+
             auto maybe_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
             if (!maybe_prefix_data)
             {

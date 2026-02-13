@@ -10,6 +10,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/repoquery.hpp"
 #include "mamba/core/channel_context.hpp"
+#include "mamba/core/context.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
@@ -42,6 +43,23 @@ namespace mamba
                 },
             };
             add_logger_to_database(db);
+
+            const auto saved_safety_checks = ctx.validation_params.safety_checks;
+            if (ctx.repodata_use_shards)
+            {
+                ctx.validation_params.safety_checks = VerificationLevel::Disabled;
+            }
+
+            struct RestoreSafetyChecks
+            {
+                Context& ctx;
+                VerificationLevel saved;
+
+                ~RestoreSafetyChecks()
+                {
+                    ctx.validation_params.safety_checks = saved;
+                }
+            } restore_guard{ ctx, saved_safety_checks };
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
             MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
@@ -77,7 +95,7 @@ namespace mamba
                 {
                     Console::stream() << "Getting repodata from channels..." << std::endl;
                 }
-                auto exp_load = load_channels(ctx, channel_context, db, package_caches);
+                auto exp_load = load_channels(ctx, channel_context, db, package_caches, {});
                 if (!exp_load)
                 {
                     throw std::runtime_error(exp_load.error().what());

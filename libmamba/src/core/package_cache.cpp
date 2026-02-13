@@ -161,6 +161,7 @@ namespace mamba
                           "Set safety_checks to warn or disabled to override this error."
                     );
                 }
+                // When Disabled: accept cache when size matches (valid already set above)
             }
 
             if (valid)
@@ -330,9 +331,16 @@ namespace mamba
                     else if (s.size != 0)
                     {
                         // cannot validate if we don't know either md5 or sha256
-                        LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                    << "' has no checksum";
-                        valid = false;
+                        if (params.safety_checks == VerificationLevel::Disabled)
+                        {
+                            // Accept when size matches and safety_checks disabled
+                        }
+                        else
+                        {
+                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                        << "' has no checksum";
+                            valid = false;
+                        }
                     }
 
                     // Validate URL

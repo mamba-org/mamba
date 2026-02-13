@@ -45,6 +45,9 @@ namespace mamba
          * @param auth_info Authentication information.
          * @param remote_fetch_params Remote fetch parameters.
          * @param download_threads Number of threads to use for parallel shard fetching.
+         * @param mirrors Optional base mirrors for channel-based downloads. When provided,
+         *        extend_mirrors in fetch_shards will be initialized from these before adding
+         *        absolute-URL mirrors.
          */
         Shards(
             ShardsIndexDict shards_index,
@@ -52,7 +55,8 @@ namespace mamba
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
-            std::size_t download_threads = 10
+            std::size_t download_threads = 10,
+            const download::mirror_map* mirrors = nullptr
         );
 
         /** Return the names of all packages available in this shard collection. */
@@ -67,11 +71,23 @@ namespace mamba
         /** Return True if the given package's shard is in memory. */
         [[nodiscard]] auto is_shard_present(const std::string& package) const -> bool;
 
+        /** Alias for is_shard_present (patch compatibility). */
+        [[nodiscard]] auto shard_loaded(const std::string& package) const -> bool
+        {
+            return is_shard_present(package);
+        }
+
         /** Return a shard that is already loaded in memory. */
         [[nodiscard]] auto visit_package(const std::string& package) const -> ShardDict;
 
         /** Process a fetched shard and add it to visited shards. */
         void process_fetched_shard(const std::string& package, const ShardDict& shard);
+
+        /** Alias for process_fetched_shard (patch compatibility). */
+        void visit_shard(const std::string& package, const ShardDict& shard)
+        {
+            process_fetched_shard(package, shard);
+        }
 
         /** Fetch an individual shard for the given package. */
         auto fetch_shard(const std::string& package) -> expected_t<ShardDict>;
@@ -88,6 +104,9 @@ namespace mamba
 
         /** Get the URL of this shard collection. */
         [[nodiscard]] auto url() const -> std::string;
+
+        /** Get the subdir (platform) from the shard index. */
+        [[nodiscard]] auto subdir() const -> const std::string&;
 
     private:
 
@@ -109,11 +128,17 @@ namespace mamba
         /** Number of threads to use for parallel shard fetching. */
         std::size_t m_download_threads;
 
+        /** Optional base mirrors for channel-based downloads. */
+        const download::mirror_map* m_mirrors = nullptr;
+
         /** Visited shards, keyed by package name. */
         std::map<std::string, ShardDict> m_visited;
 
         /** Cached shards_base_url. */
         mutable std::optional<std::string> m_shards_base_url;
+
+        /** Cached resolved base_url for packages. */
+        mutable std::optional<std::string> m_base_url_cache;
 
         /**
          * Get the base URL where shards are stored.

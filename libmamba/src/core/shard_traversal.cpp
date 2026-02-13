@@ -139,13 +139,12 @@ namespace mamba
                     continue;
                 }
                 std::string shard_url = shards_ptr->shard_url(pkg);
-                if (root_shards.has_value()
-                    && root_shards->get().find(shard_url) == root_shards->get().end())
+                if (root_shards.has_value() && !root_shards->get().contains(shard_url))
                 {
                     continue;
                 }
                 NodeId id{ pkg, url, shard_url };
-                if (m_nodes.find(id) != m_nodes.end())
+                if (m_nodes.contains(id))
                 {
                     continue;
                 }
@@ -204,7 +203,7 @@ namespace mamba
                 node.visited = true;
                 for (const auto& neighbor_id : neighbors(id))
                 {
-                    if (m_nodes.find(neighbor_id) == m_nodes.end())
+                    if (!m_nodes.contains(neighbor_id))
                     {
                         m_nodes[neighbor_id] = Node{
                             node.distance + 1,
@@ -235,13 +234,12 @@ namespace mamba
                     continue;
                 }
                 std::string shard_url = shards_ptr->shard_url(pkg);
-                if (root_shards.has_value()
-                    && root_shards->get().find(shard_url) == root_shards->get().end())
+                if (root_shards.has_value() && !root_shards->get().contains(shard_url))
                 {
                     continue;
                 }
                 NodeId id{ pkg, url, shard_url };
-                if (m_nodes.find(id) != m_nodes.end())
+                if (m_nodes.contains(id))
                 {
                     continue;
                 }
@@ -301,7 +299,7 @@ namespace mamba
                     continue;
                 }
                 NodeId neighbor_id{ dep, url, dep_shards->shard_url(dep) };
-                if (m_nodes.find(neighbor_id) == m_nodes.end())
+                if (m_nodes.contains(neighbor_id))
                 {
                     m_nodes[neighbor_id] = Node{
                         node.distance + 1, dep, url, neighbor_id.shard_url, false,

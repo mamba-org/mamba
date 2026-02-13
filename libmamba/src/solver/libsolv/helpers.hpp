@@ -74,14 +74,13 @@ namespace mamba::solver::libsolv
 
     /**
      * Write repo to solv file.
-     * @param already_internalized When true, skip repo.internalize() (repo was created from
-     *        packages or already internalized; calling internalize twice can cause corruption).
+     * Metadata (url, etag, mod, tool_version) is set and internalize is called so it is
+     * committed and written to the solv file.
      */
     [[nodiscard]] auto write_solv(  //
         solv::ObjRepoView repo,
         fs::u8path filename,
-        const RepodataOrigin& metadata,
-        bool already_internalized = false
+        const RepodataOrigin& metadata
     ) -> expected_t<solv::ObjRepoView>;
 
     void

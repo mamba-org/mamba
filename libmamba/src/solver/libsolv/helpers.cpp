@@ -827,7 +827,11 @@ namespace mamba::solver::libsolv
                     {
                         repo.clear(/* reuse_ids= */ true);
                         return make_unexpected(
-                            "Metadata from solv are binary incompatible",
+                            fmt::format(
+                                "Metadata from solv are binary incompatible (read: \"{}\", expected: \"{}\")",
+                                read_binary_version,
+                                expected_binary_version
+                            ),
                             mamba_error_code::repodata_not_loaded
                         );
                     }
@@ -877,12 +881,8 @@ namespace mamba::solver::libsolv
             );
     }
 
-    auto write_solv(
-        solv::ObjRepoView repo,
-        fs::u8path filename,
-        const RepodataOrigin& metadata,
-        bool already_internalized
-    ) -> expected_t<solv::ObjRepoView>
+    auto write_solv(solv::ObjRepoView repo, fs::u8path filename, const RepodataOrigin& metadata)
+        -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Writing libsolv solv file " << filename << " for repo " << repo.name();
 
@@ -890,10 +890,9 @@ namespace mamba::solver::libsolv
         repo.set_etag(metadata.etag);
         repo.set_mod(metadata.mod);
         repo.set_tool_version(MAMBA_SOLV_VERSION);
-        if (!already_internalized)
-        {
-            repo.internalize();
-        }
+        // Always internalize after setting metadata: repo-level attributes (url, etag, mod,
+        // tool_version) require internalize to be committed and written to the solv file.
+        repo.internalize();
 
         fs::create_directories(filename.parent_path());
         const auto lock = LockFile(fs::exists(filename) ? filename : filename.parent_path());

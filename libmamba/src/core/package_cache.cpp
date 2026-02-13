@@ -23,13 +23,7 @@ namespace mamba
     auto package_cache_channel_id(const specs::PackageInfo& s) -> std::string
     {
         std::string channel = s.channel.empty() ? "no_channel" : s.channel;
-        for (char& c : channel)
-        {
-            if (c == '/' || c == ':' || c == '\\')
-            {
-                c = '_';
-            }
-        }
+        std::ranges::replace_if(channel, [](char c) { return c == '/' || c == ':' || c == '\\'; }, '_');
         return channel;
     }
 

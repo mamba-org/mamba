@@ -8,6 +8,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
@@ -144,7 +145,10 @@ namespace mamba
         {
             const fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
             auto& cache = caches.first_writable_cache(true);
-            m_cache_path = cache.path();
+            const auto channel_id = package_cache_channel_id(m_package_info);
+            const auto channel_subdir = package_cache_subdir(m_package_info);
+            m_cache_path = cache.path() / channel_id / channel_subdir;
+            fs::create_directories(m_cache_path);
 
             if (!tarball_cache.empty())
             {

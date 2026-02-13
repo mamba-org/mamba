@@ -21,6 +21,12 @@ namespace mamba
 {
     struct ValidationParams;
 
+    /** Return a path-safe channel identifier for the package's channel. */
+    auto package_cache_channel_id(const specs::PackageInfo& s) -> std::string;
+
+    /** Return the package's subdir (platform) for the cache path, e.g. "linux-64", "noarch". */
+    auto package_cache_subdir(const specs::PackageInfo& s) -> std::string;
+
     enum class Writable
     {
         UNKNOWN,

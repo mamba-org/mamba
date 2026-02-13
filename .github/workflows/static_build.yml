@@ -74,7 +74,7 @@ jobs:
         if: ${{ matrix.platform == 'linux' }}
         run: |
           cd micromamba-feedstock/recipe/
-          sed -i 's|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3\.9|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3.13|' meta.yaml
+          sed -i 's|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3\.9|    - micromamba{{ bin_ext }} create -n test --override-channels -c conda-forge --yes python=3.13 -vvv|' meta.yaml
       - name: Uses libcurl 8.14
         if: ${{ matrix.platform == 'linux' }}
         run: |

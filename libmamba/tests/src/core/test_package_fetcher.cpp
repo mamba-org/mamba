@@ -9,6 +9,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/util.hpp"
@@ -114,8 +115,13 @@ namespace
         // Extract base filename without extension for reuse
         const std::string pkg_basename = pkg_info.filename.substr(0, pkg_info.filename.size() - 6);
 
+        // Use the same cache layout as PackageFetcher: {cache_path}/{channel_id}/{subdir}/
+        const auto channel_id = package_cache_channel_id(pkg_info);
+        const auto subdir = package_cache_subdir(pkg_info);
+        const auto cache_subdir = temp_dir.path() / "pkgs" / channel_id / subdir;
+
         // Create a minimal but valid conda package structure
-        auto pkg_extract_dir = temp_dir.path() / "pkgs" / pkg_basename;
+        auto pkg_extract_dir = cache_subdir / pkg_basename;
         auto info_dir = pkg_extract_dir / "info";
         fs::create_directories(info_dir);
 
@@ -141,7 +147,7 @@ namespace
 
         // Create a simple tar.bz2 archive that contains our info directory
         // A .conda file is a zip archive, but let's use .tar.bz2 format for simplicity
-        auto tarball_path = temp_dir.path() / "pkgs" / (pkg_basename + ".tar.bz2");
+        auto tarball_path = cache_subdir / (pkg_basename + ".tar.bz2");
 
         // Use mamba's create_archive function to create a cross-platform tar.bz2 archive
         create_archive(

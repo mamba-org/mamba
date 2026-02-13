@@ -5,7 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <mutex>
 #include <sstream>
+#include <unordered_map>
 
 #include <nlohmann/json.hpp>
 
@@ -20,6 +22,47 @@
 
 namespace mamba
 {
+    auto package_cache_channel_id(const specs::PackageInfo& s) -> std::string
+    {
+        static std::unordered_map<std::string, std::string> cache;
+        static std::mutex cache_mutex;
+
+        std::string channel = s.channel.empty() ? "no_channel" : s.channel;
+        const auto subdir = package_cache_subdir(s);
+        const std::string key = channel + '\0' + subdir;
+
+        {
+            std::lock_guard<std::mutex> lock(cache_mutex);
+            if (auto it = cache.find(key); it != cache.end())
+            {
+                return it->second;
+            }
+        }
+
+        // Strip trailing subdir from channel URL so "https://x/conda-forge/noarch" and
+        // "https://x/conda-forge" produce the same cache path
+        if (!subdir.empty())
+        {
+            const std::string suffix = "/" + subdir;
+            if (util::ends_with(channel, suffix))
+            {
+                channel.resize(channel.size() - suffix.size());
+            }
+        }
+        std::ranges::replace_if(channel, [](char c) { return c == '/' || c == ':' || c == '\\'; }, '_');
+
+        {
+            std::lock_guard<std::mutex> lock(cache_mutex);
+            cache[key] = channel;
+        }
+        return channel;
+    }
+
+    auto package_cache_subdir(const specs::PackageInfo& s) -> std::string
+    {
+        return s.platform.empty() ? "noarch" : s.platform;
+    }
+
     PackageCacheData::PackageCacheData(const fs::u8path& path)
         : m_path(path)
     {
@@ -67,8 +110,8 @@ namespace mamba
 
     void PackageCacheData::clear_query_cache(const specs::PackageInfo& s)
     {
-        m_valid_tarballs.erase(s.str());
-        m_valid_extracted_dir.erase(s.str());
+        m_valid_tarballs.erase(s.long_str());
+        m_valid_extracted_dir.erase(s.long_str());
     }
 
     void PackageCacheData::check_writable()
@@ -117,7 +160,7 @@ namespace mamba
     bool
     PackageCacheData::has_valid_tarball(const specs::PackageInfo& s, const ValidationParams& params)
     {
-        std::string pkg = s.str();
+        const std::string pkg = s.long_str();
         if (m_valid_tarballs.find(pkg) != m_valid_tarballs.end())
         {
             return m_valid_tarballs[pkg];
@@ -125,13 +168,15 @@ namespace mamba
 
         assert(!s.filename.empty());
         const auto pkg_name = specs::strip_archive_extension(s.filename);
+        const auto channel_id = package_cache_channel_id(s);
+        const auto channel_subdir = package_cache_subdir(s);
+        const fs::u8path tarball_path = m_path / channel_id / channel_subdir / s.filename;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '" << pkg_name
                   << "'";
 
         bool valid = false;
-        if (fs::exists(m_path / s.filename))
+        if (fs::exists(tarball_path))
         {
-            fs::u8path tarball_path = m_path / s.filename;
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
             valid = s.size == 0 || validation::file_size(tarball_path, s.size);
@@ -237,14 +282,16 @@ namespace mamba
     {
         bool valid = false, can_validate = false;
 
-        std::string pkg = s.str();
+        const std::string pkg = s.long_str();
         if (m_valid_extracted_dir.find(pkg) != m_valid_extracted_dir.end())
         {
             return m_valid_extracted_dir[pkg];
         }
 
         auto pkg_name = specs::strip_archive_extension(s.filename);
-        fs::u8path extracted_dir = m_path / pkg_name;
+        const auto channel_id = package_cache_channel_id(s);
+        const auto channel_subdir = package_cache_subdir(s);
+        const fs::u8path extracted_dir = m_path / channel_id / channel_subdir / pkg_name;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
                   << pkg_name << "'";
 
@@ -408,6 +455,11 @@ namespace mamba
         {
             m_caches.emplace_back(c);
         }
+        // Ensure root cache directories exist before any operations
+        for (auto& cache : m_caches)
+        {
+            cache.create_directory();
+        }
     }
 
     PackageCacheData& MultiPackageCache::first_writable_cache(bool create)
@@ -462,19 +514,22 @@ namespace mamba
 
     fs::u8path MultiPackageCache::get_tarball_path(const specs::PackageInfo& s, bool return_empty)
     {
-        const std::string pkg(s.str());
+        const std::string pkg(s.long_str());
         const auto cache_iter(m_cached_tarballs.find(pkg));
         if (cache_iter != m_cached_tarballs.end())
         {
             return cache_iter->second;
         }
 
+        const auto channel_id = package_cache_channel_id(s);
+        const auto channel_subdir = package_cache_subdir(s);
         for (PackageCacheData& c : m_caches)
         {
             if (c.has_valid_tarball(s, m_params))
             {
-                m_cached_tarballs[pkg] = c.path();
-                return c.path();
+                const fs::u8path path = c.path() / channel_id / channel_subdir;
+                m_cached_tarballs[pkg] = path;
+                return path;
             }
         }
 
@@ -492,19 +547,22 @@ namespace mamba
     fs::u8path
     MultiPackageCache::get_extracted_dir_path(const specs::PackageInfo& s, bool return_empty)
     {
-        const std::string pkg(s.str());
+        const std::string pkg(s.long_str());
         const auto cache_iter(m_cached_extracted_dirs.find(pkg));
         if (cache_iter != m_cached_extracted_dirs.end())
         {
             return cache_iter->second;
         }
 
+        const auto channel_id = package_cache_channel_id(s);
+        const auto channel_subdir = package_cache_subdir(s);
         for (auto& c : m_caches)
         {
             if (c.has_valid_extracted_dir(s, m_params))
             {
-                m_cached_extracted_dirs[pkg] = c.path();
-                return c.path();
+                const fs::u8path path = c.path() / channel_id / channel_subdir;
+                m_cached_extracted_dirs[pkg] = path;
+                return path;
             }
         }
 

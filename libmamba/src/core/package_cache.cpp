@@ -455,6 +455,11 @@ namespace mamba
         {
             m_caches.emplace_back(c);
         }
+        // Ensure root cache directories exist before any operations
+        for (auto& cache : m_caches)
+        {
+            cache.create_directory();
+        }
     }
 
     PackageCacheData& MultiPackageCache::first_writable_cache(bool create)

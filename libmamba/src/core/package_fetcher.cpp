@@ -137,8 +137,8 @@ namespace mamba
     };
 
     PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
-
         : m_package_info(pkg_info)
+        , m_multi_cache(&caches)
     {
         const fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
         if (extracted_cache.empty())
@@ -355,12 +355,16 @@ namespace mamba
                 const fs::u8path extract_path = get_extract_path(filename(), m_cache_path);
                 // Be sure the first writable cache doesn't contain invalid extracted package
                 clear_extract_path(extract_path);
+                // Ensure extraction destination exists before subprocess extraction
+                // (helps with QEMU-emulated architectures where subprocess may fail to create it)
+                fs::create_directories(extract_path);
                 extract_impl(m_tarball_path, extract_path, options);
 
                 interruption_point();
                 LOG_DEBUG << "Extracted to '" << extract_path.string() << "'";
                 write_repodata_record(extract_path);
                 update_urls_txt();
+                m_multi_cache->clear_query_cache(m_package_info);
                 update_monitor(cb, PackageExtractEvent::extract_success);
             }
             catch (std::exception& e)

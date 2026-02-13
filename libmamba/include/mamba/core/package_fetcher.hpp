@@ -116,6 +116,7 @@ namespace mamba
         void update_monitor(progress_callback_t* cb, PackageExtractEvent event) const;
 
         specs::PackageInfo m_package_info;
+        MultiPackageCache* m_multi_cache = nullptr;
 
         fs::u8path m_tarball_path;
         fs::u8path m_cache_path;

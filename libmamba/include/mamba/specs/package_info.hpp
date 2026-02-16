@@ -36,7 +36,10 @@ namespace mamba::specs
         std::string build_string = {};
         std::size_t build_number = 0;
         /**
-         * Could contain "conda-forge", "conda-forge/linux-64", or a url.
+         * Channel identifier. Can be a URL ("https://conda.anaconda.org/conda-forge/noarch"),
+         * a slug ("conda-forge"), or a slug with subdir ("conda-forge/linux-64").
+         * Different formats for the same logical channel produce different package cache paths;
+         * the transaction normalizes to URLs before fetch/extract for consistency.
          *
          * @todo need to use a proper type for channels
          */

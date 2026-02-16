@@ -21,11 +21,50 @@ namespace mamba
 {
     struct ValidationParams;
 
-    /** Return a path-safe channel identifier for the package's channel. */
-    auto package_cache_channel_id(const specs::PackageInfo& s) -> std::string;
-
-    /** Return the package's subdir (platform) for the cache path, e.g. "linux-64", "noarch". */
-    auto package_cache_subdir(const specs::PackageInfo& s) -> std::string;
+    // clang-format off
+    /**
+     * Return the relative path for the package cache folder containing a package.
+     *
+     * Cache folder hierarchy
+     * ---------------------
+     *
+     * @code
+     * pkgs/
+     * ├── urls.txt
+     * ├── <channel>/                                   # e.g. conda-forge, http___localhost_8000_mychannel
+     * │   └── <platform>/                              # e.g. linux-64, noarch, osx-64
+     * │       ├── package_name-version-build.tar.bz2   # tarball
+     * │       └── package_name-version-build/          # extracted (same base name)
+     * │           └── info/
+     * │               └── repodata_record.json
+     * @endcode
+     *
+     * - channel: Path-safe channel identifier (e.g. "conda-forge",
+     *   "https___conda.anaconda.org_conda-forge"). Special characters in URLs
+     *   (/, :, \) are replaced with underscores.
+     * - platform: Subdir such as "linux-64", "osx-arm64", "noarch".
+     * - package: Tarball (e.g. "numpy-1.24.0-py310_0.conda") or extracted dir
+     *   (e.g. "numpy-1.24.0-py310_0/").
+     *
+     * Example: pkgs/conda-forge/linux-64/numpy-1.24.0-py310_0.conda
+     *
+     * Motivation
+     * ----------
+     * This hierarchy (unlike conda's flat pkgs/ layout) isolates packages by
+     * channel and platform. It avoids collisions when the same package name
+     * exists in different channels, supports multiple platforms in one cache,
+     * and makes cache structure predictable and easy to reason about.
+     *
+     * Channel format handling
+     * ----------------------
+     * specs::PackageInfo::channel can be a URL ("https://conda.anaconda.org/conda-forge/noarch"),
+     * a slug ("conda-forge"), or a slug with subdir ("conda-forge/linux-64").
+     * Different formats for the same logical channel produce different cache
+     * paths. The transaction normalizes to channel URLs before fetch/extract
+     * so extraction and linking use consistent paths.
+     */
+    // clang-format on
+    auto package_cache_folder_relative_path(const specs::PackageInfo& s) -> fs::u8path;
 
     enum class Writable
     {

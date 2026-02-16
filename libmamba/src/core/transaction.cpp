@@ -408,11 +408,6 @@ namespace mamba
 
         Console::stream() << "\nTransaction starting";
 
-        // Channels coming from the repodata (packages to install) don't have the same channel
-        // format than packages coming from the prefix (packages to remove). We set all the channels
-        // to be URL like (i.e. explicit). This must happen BEFORE fetch_extract so that extraction
-        // and linking use the same cache path format (package_cache_channel_id uses pkg.channel).
-
         // Store which packages are pip packages before channel normalization
         // (pip packages have channel == "pypi" before normalization)
         std::set<std::string> pip_package_names;
@@ -466,6 +461,12 @@ namespace mamba
             }
         }
 
+        // Channels coming from the repodata (packages to install) don't have the same channel
+        // format than packages coming from the prefix (packages to remove). We set all the channels
+        // to be URL like (i.e. explicit).
+        //
+        // This must happen BEFORE `fetch_extract` so that extraction and linking use the same cache
+        // path format (`package_cache_folder_relative_path` uses `pkg.channel`).
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
             const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel)

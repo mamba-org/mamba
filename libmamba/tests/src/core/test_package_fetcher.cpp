@@ -115,10 +115,9 @@ namespace
         // Extract base filename without extension for reuse
         const std::string pkg_basename = pkg_info.filename.substr(0, pkg_info.filename.size() - 6);
 
-        // Use the same cache layout as PackageFetcher: {cache_path}/{channel_id}/{subdir}/
-        const auto channel_id = package_cache_channel_id(pkg_info);
-        const auto subdir = package_cache_subdir(pkg_info);
-        const auto cache_subdir = temp_dir.path() / "pkgs" / channel_id / subdir;
+        // Use the same cache layout as PackageFetcher: {cache_path}/{channel}/{platform}/
+        const auto cache_subdir = temp_dir.path() / "pkgs"
+                                  / package_cache_folder_relative_path(pkg_info);
 
         // Create a minimal but valid conda package structure
         auto pkg_extract_dir = cache_subdir / pkg_basename;

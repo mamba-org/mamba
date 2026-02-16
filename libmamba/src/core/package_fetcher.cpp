@@ -145,9 +145,7 @@ namespace mamba
         {
             const fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
             auto& cache = caches.first_writable_cache(true);
-            const auto channel_id = package_cache_channel_id(m_package_info);
-            const auto channel_subdir = package_cache_subdir(m_package_info);
-            m_cache_path = cache.path() / channel_id / channel_subdir;
+            m_cache_path = cache.path() / package_cache_folder_relative_path(m_package_info);
             fs::create_directories(m_cache_path);
 
             if (!tarball_cache.empty())

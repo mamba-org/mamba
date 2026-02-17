@@ -491,13 +491,13 @@ namespace mambapy
                     return Channel::resolve(
                         what,
                         ChannelResolveParamsView{
-                            /* .platforms= */ platforms,
-                            /* .channel_alias= */ channel_alias,
-                            /* .custom_channels= */ custom_channels,
-                            /* .custom_multichannels= */ custom_multichannels,
-                            /* .authentication_db= */ authentication_db,
-                            /* .home_dir= */ home_dir,
-                            /* .current_working_dir= */ current_working_dir,
+                            .platforms = platforms,
+                            .channel_alias = channel_alias,
+                            .custom_channels = custom_channels,
+                            .custom_multichannels = custom_multichannels,
+                            .authentication_db = authentication_db,
+                            .home_dir = home_dir,
+                            .current_working_dir = current_working_dir,
                         }
                     );
                 },

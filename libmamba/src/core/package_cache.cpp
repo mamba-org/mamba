@@ -5,8 +5,10 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <ranges>
 #include <sstream>
 
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/context.hpp"
@@ -338,7 +340,8 @@ namespace mamba
                     // Validate URL
                     if (valid)
                     {
-                        if (!repodata_record["url"].get<std::string>().empty())
+                        const auto repodata_url = repodata_record["url"].get<std::string>();
+                        if (!repodata_url.empty())
                         {
                             const auto pkg_url = repodata_record["url"].get<std::string>();
                             if (!compare_cleaned_url(pkg_url, s.package_url))
@@ -484,8 +487,16 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find tarball cache for '" << s.filename << "'";
-            throw std::runtime_error("Package cache error.");
+            const auto message = fmt::format(
+                "Package cache error: Cannot find tarball cache for '{}' (evaluated cache dirs: tarballs {}, local {})",
+                s.filename,
+                m_cached_tarballs,
+                m_caches
+                    | std::views::transform([](const auto& pkg_cache_data)
+                                            { return pkg_cache_data.path(); })
+            );
+            LOG_ERROR << message;
+            throw std::runtime_error(message);
         }
     }
 
@@ -514,8 +525,16 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.filename << "'";
-            throw std::runtime_error("Package cache error.");
+            const auto message = fmt::format(
+                "Package cache error: Cannot find a valid extracted directory cache for '{}' (evaluated cache dirs: extraction {}, local {})",
+                s.filename,
+                m_cached_extracted_dirs,
+                m_caches
+                    | std::views::transform([](const auto& pkg_cache_data)
+                                            { return pkg_cache_data.path(); })
+            );
+            LOG_ERROR << message;
+            throw std::runtime_error(message);
         }
     }
 

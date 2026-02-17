@@ -4,11 +4,15 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <cassert>
+#include <iostream>
 #include <stdexcept>
 
+#include "mamba/core/logging.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/util/algorithm.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/tuple_hash.hpp"
@@ -16,6 +20,21 @@
 
 namespace mamba::specs
 {
+    namespace
+    {
+
+        void prepare_mirrors(std::vector<CondaURL>& mirror_urls)
+        {
+            for (auto& url : mirror_urls)
+            {
+                auto p = url.clear_path();
+                p = util::rstrip(p, '/');
+                url.set_path(std::move(p), CondaURL::Encode::no);
+            }
+        }
+
+    }
+
     /*********************************
      *  NameWeakener Implementation  *
      *********************************/
@@ -47,17 +66,50 @@ namespace mamba::specs
         , m_id(util::rstrip(m_display_name, '/'))
         , m_platforms(std::move(platforms))
     {
-        for (auto& url : m_mirror_urls)
-        {
-            auto p = url.clear_path();
-            p = util::rstrip(p, '/');
-            url.set_path(std::move(p), CondaURL::Encode::no);
-        }
+        prepare_mirrors(m_mirror_urls);
     }
 
     auto Channel::is_package() const -> bool
     {
         return (m_mirror_urls.size() == 1u) && !url().package().empty();
+    }
+
+    void
+    Channel::add_mirror_urls(const std::vector<CondaURL>& additional_mirrors, UrlPriority priority)
+    {
+        auto all_urls = m_mirror_urls;
+
+        // keep the mirrors list without duplicates
+        auto new_urls_view = std::views::filter(
+            additional_mirrors,
+            [&](const auto& url) { return not stdext::contains(all_urls, url); }
+        );
+        // TODO C++23 range `to<std::vector>`
+        std::vector new_urls(new_urls_view.begin(), new_urls_view.end());
+
+        auto insertion_point = [&]
+        {
+            switch (priority)
+            {
+                case UrlPriority::high:
+                    return all_urls.begin();
+
+                default:
+                case UrlPriority::low:
+                    return all_urls.end();
+            }
+        }();
+
+        all_urls.insert(insertion_point, new_urls.begin(), new_urls.end());
+
+        prepare_mirrors(all_urls);
+        m_mirror_urls = std::move(all_urls);
+
+        LOG_DEBUG << "\nALL MIRRORS FOR " << this->id();
+        for (const auto& url : m_mirror_urls)
+        {
+            LOG_DEBUG << "  " << url.str();
+        }
     }
 
     auto Channel::mirror_urls() const -> const std::vector<CondaURL>&
@@ -524,13 +576,13 @@ namespace mamba::specs
         return resolve(
             std::move(uc),
             ChannelResolveParamsView{
-                /* .platforms= */ params.platforms,
-                /* .channel_alias= */ params.channel_alias,
-                /* .custom_channels= */ params.custom_channels,
-                /* .custom_multichannels= */ params.custom_multichannels,
-                /* .authentication_db= */ params.authentication_db,
-                /* .home_dir= */ params.home_dir,
-                /* .current_working_dir= */ params.current_working_dir,
+                .platforms = params.platforms,
+                .channel_alias = params.channel_alias,
+                .custom_channels = params.custom_channels,
+                .custom_multichannels = params.custom_multichannels,
+                .authentication_db = params.authentication_db,
+                .home_dir = params.home_dir,
+                .current_working_dir = params.current_working_dir,
             }
         );
     }

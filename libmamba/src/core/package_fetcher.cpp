@@ -15,6 +15,57 @@
 namespace mamba
 {
 
+    /**
+     * Components passed to the download layer to build a package fetch request.
+     *
+     * The download system uses mirror_name to look up the appropriate mirror
+     * (PassThroughMirror, HTTPMirror, or OCIMirror) and url_path as the resource
+     * to fetch. The format of these fields depends on the package source type.
+     */
+    struct DownloadRequestComponents
+    {
+        std::string mirror_name;  ///< Mirror lookup key: "" for PassThrough, channel/OCI URL
+                                  ///< otherwise
+        std::string url_path;     ///< Full URL for PassThrough, or "platform/filename" for
+                                  ///< channel-based mirrors
+    };
+
+    /**
+     * Compute the download request components for a package.
+     *
+     * The download layer expects different URL formats depending on the source:
+     *
+     * - Plain HTTP (no auth): PassThroughMirror uses the full package_url directly.
+     *   Returns mirror_name="" and url_path=package_url.
+     *
+     * - OCI registries: OCIMirror builds URLs from channel + path. The package_url
+     *   format is not suitable. Returns mirror_name=channel (e.g. oci://.../conda-forge)
+     *   and url_path=platform/filename.
+     *
+     * - Authenticated URLs: HTTPMirror must not receive credentials in the URL
+     *   (they are set via libcurl CURLUPart). Returns mirror_name=channel and
+     *   url_path=platform/filename so the mirror can build a clean URL.
+     */
+    auto get_download_request_components(const specs::PackageInfo& pkg) -> DownloadRequestComponents
+    {
+        constexpr std::string_view oci_scheme = "oci://";
+        const bool use_oci = util::starts_with(pkg.package_url, oci_scheme);
+        const bool use_auth = std::regex_search(pkg.package_url, http_basicauth_regex())
+                              || std::regex_search(pkg.package_url, token_regex());
+
+        if (use_oci || use_auth)
+        {
+            return {
+                .mirror_name = pkg.channel,
+                .url_path = util::concat(pkg.platform, '/', pkg.filename),
+            };
+        }
+        return {
+            .mirror_name = "",
+            .url_path = pkg.package_url,
+        };
+    }
+
     /**********************
      * PackageExtractTask *
      **********************/
@@ -107,8 +158,12 @@ namespace mamba
             {
                 caches.clear_query_cache(m_package_info);
                 // need to download this file
+                const DownloadRequestComponents components = get_download_request_components(
+                    m_package_info
+                );
                 LOG_DEBUG << "Adding '" << name() << "' to download targets from '"
-                          << hide_secrets(channel()) << "/" << url_path() << "'";
+                          << hide_secrets(components.mirror_name) << "/" << components.url_path
+                          << "'";
                 m_tarball_path = m_cache_path / filename();
                 m_needs_extract = true;
                 m_needs_download = true;
@@ -140,8 +195,13 @@ namespace mamba
     {
         // download::Request request(name(), download::MirrorName(""), url(),
         // m_tarball_path.string());
-        download::Request
-            request(name(), download::MirrorName(channel()), url_path(), m_tarball_path.string());
+        const DownloadRequestComponents components = get_download_request_components(m_package_info);
+        download::Request request(
+            name(),
+            download::MirrorName(components.mirror_name),
+            components.url_path,
+            m_tarball_path.string()
+        );
         request.expected_size = expected_size();
         request.sha256 = sha256();
 
@@ -330,53 +390,6 @@ namespace mamba
     const std::string& PackageFetcher::filename() const
     {
         return m_package_info.filename;
-    }
-
-    bool PackageFetcher::use_oci() const
-    {
-        constexpr std::string_view oci_scheme = "oci://";
-        return util::starts_with(m_package_info.package_url, oci_scheme);
-    }
-
-    bool PackageFetcher::use_auth() const
-    {
-        return std::regex_search(m_package_info.package_url, http_basicauth_regex())
-               || std::regex_search(m_package_info.package_url, token_regex());
-    }
-
-    // NOTE
-    // - In the general case (not fetching from an oci registry),
-    // `channel()` and `url_path()` are concatenated when passed to `HTTPMirror`
-    // and the channel is resolved if needed (using the channel alias).
-    // Therefore, `util::url_concat("", m_package_info.package_url)`
-    // and `util::url_concat(m_package_info.channel, m_package_info.platform,
-    // m_package_info.filename)` should be equivalent, except when an explicit url is used as a spec
-    // with `--override-channels` option.
-    // Hence, we are favoring the first option (returning "" and `m_package_info.package_url`
-    // to be concatenated), valid for all the mentioned cases used with `HTTPMirror`.
-    // - In the case of fetching from oci registries (using `OCIMirror`),the actual url
-    // used is built differently, and returning `m_package_info.package_url` is not relevant
-    // (i.e oci://ghcr.io/<mirror>/<channel>/<platform>/<filename>).
-    // - With authenticated downloading (private packages for e.g), we should use
-    // `util::url_concat(m_package_info.channel, m_package_info.platform,
-    // m_package_info.filename)` as `m_package_info.package_url` would contain the
-    // authentication info which shouldn't be passed in the url but set using libcurl's CURLUPart.
-    std::string PackageFetcher::channel() const
-    {
-        if (use_oci() || use_auth())
-        {
-            return m_package_info.channel;
-        }
-        return "";
-    }
-
-    std::string PackageFetcher::url_path() const
-    {
-        if (use_oci() || use_auth())
-        {
-            return util::concat(m_package_info.platform, '/', m_package_info.filename);
-        }
-        return m_package_info.package_url;
     }
 
     const std::string& PackageFetcher::url() const

@@ -250,6 +250,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shards.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_index_loader.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/shard_traversal.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_types.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/singletons.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/subdir_index.cpp

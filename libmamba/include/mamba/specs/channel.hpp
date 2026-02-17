@@ -150,11 +150,11 @@ namespace mamba::specs
 
     struct ChannelResolveParamsView
     {
-        const ChannelResolveParams::platform_list& platforms = {};
-        const CondaURL& channel_alias = {};
-        const ChannelResolveParams::channel_map& custom_channels = {};
-        const ChannelResolveParams::multichannel_map& custom_multichannels = {};
-        const AuthenticationDataBase& authentication_db = {};
+        const ChannelResolveParams::platform_list& platforms;
+        const CondaURL& channel_alias;
+        const ChannelResolveParams::channel_map& custom_channels;
+        const ChannelResolveParams::multichannel_map& custom_multichannels;
+        const AuthenticationDataBase& authentication_db;
         std::string_view home_dir = {};
         std::string_view current_working_dir = {};
     };

@@ -55,11 +55,10 @@ namespace mamba
         [[nodiscard]] auto make_channel(std::string_view name) -> const channel_list&;
         [[nodiscard]] auto make_channel(
             std::string_view name,
-            const std::vector<std::string>& mirrors,
-            specs::Channel::UrlPriority new_mirrors_priority = specs::Channel::UrlPriority::low
-        ) -> const channel_list&;
+            const std::vector<std::string>& mirrors) -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
+        [[nodiscard]] auto zst_channels() const -> const std::vector<Channel>&;
 
         [[nodiscard]] auto has_zst(const Channel& chan) const -> bool;
 

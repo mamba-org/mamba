@@ -275,21 +275,11 @@ namespace mamba
 
     auto ChannelContext::make_channel(
         std::string_view name,
-        const std::vector<std::string>& mirrors,
-        specs::Channel::UrlPriority new_mirrors_priority
+        const std::vector<std::string>& mirrors
     ) -> const channel_list&
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
-            // inject additional mirrors if not already existing in current channels
-            for (auto& channel : it->second)
-            {
-                // TODO C++23: replace all this by  std::vector(from_range_t, ...)
-                auto urls_view = specs::as_conda_urls(mirrors);
-                std::vector<specs::CondaURL> urls(urls_view.begin(), urls_view.end());
-
-                channel.add_mirror_urls(urls, new_mirrors_priority);
-            }
             return it->second;
         }
 
@@ -318,15 +308,16 @@ namespace mamba
         return m_channel_params;
     }
 
+    [[nodiscard]] auto ChannelContext::zst_channels() const -> const std::vector<Channel>&
+    {
+        return m_has_zst;
+    }
+
     auto ChannelContext::has_zst(const Channel& chan) const -> bool
     {
-        for (const auto& zst_chan : m_has_zst)
-        {
-            if (zst_chan.contains_equivalent(chan))
-            {
-                return true;
-            }
-        }
-        return false;
+        return std::ranges::any_of(m_has_zst, [&](const auto& zst_chan){
+            return zst_chan.contains_equivalent(chan);
+        });
     }
+
 }

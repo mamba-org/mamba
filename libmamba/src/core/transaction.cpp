@@ -1386,30 +1386,32 @@ namespace mamba
 
         if (lockfile_data.get_metadata().enable_channels)
         {
-            // create or add mirrors to additional channels
+            // We need to recreate the channel context using updated channel values
+            auto channel_context_params = channel_context.params();
+            const auto zst_channels = channel_context.zst_channels();
+
             for (const EnvironmentLockFile::Channel& channel_info :
                  lockfile_data.get_metadata().channels)
             {
-                auto channels [[maybe_unused]] = channel_context.make_channel(
-                    channel_info.name,
-                    channel_info.urls,
-                    specs::Channel::UrlPriority::high  // put the urls coming form this file on top
-                                                       // of the mirrors list
-                );
-                // TODO c++23:  use .append
-                auto& context_mirrors = ctx.mirrored_channels[channel_info.name];
-                context_mirrors.insert(
-                    context_mirrors.begin(),
-                    channel_info.urls.begin(),
-                    channel_info.urls.end()
-                );
+                 // TODO C++23: replace all this by  std::vector(from_range_t, ...) 
+                 // or `channel_info.urls | as_conda_urls | to<vector>`
+                auto urls_view = specs::as_conda_urls(channel_info.urls);
+                std::vector<specs::CondaURL> mirror_urls(urls_view.begin(), urls_view.end());
+
+                auto channel_it = channel_context_params.custom_channels.find(channel_info.name);
+                if(channel_it == channel_context_params.custom_channels.end())
+                {
+                    channel_context_params.custom_channels.emplace(channel_info.name, specs::Channel{ std::move(mirror_urls), channel_info.name });
+                }
+                else
+                {
+                    channel_it->second.add_mirror_urls(mirror_urls, specs::Channel::UrlPriority::high);
+                }
             }
 
-            init_channels(ctx, channel_context, specs::Channel::UrlPriority::high);  // makes sure
-                                                                                     // the new
-                                                                                     // mirrors are
-                                                                                     // taken into
-                                                                                     // account
+            channel_context = ChannelContext{ std::move(channel_context_params), std::move(zst_channels) };
+
+            init_channels(ctx, channel_context, specs::Channel::UrlPriority::high); // update the context too
         }
 
         std::vector<specs::PackageInfo> conda_packages = {};

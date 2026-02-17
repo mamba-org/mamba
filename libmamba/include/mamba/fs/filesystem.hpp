@@ -1139,7 +1139,12 @@ namespace mamba::fs
         return std::filesystem::last_write_time(path, new_time, std::forward<OtherArgs>(args)...);
     }
 
-    // Check if we have modification rights on a path
+    /* Check if we have modification rights on a path.
+     * This function is not a wrapping on a of std::filesystem function, but it
+     * uses std::filesystem::status().
+     * Exceptions may be thrown by std::filesystem::status() if the path is not
+     * valid.
+     */
     bool has_permissions(const u8path&, const fs::perms&);
 
     // void permissions(const path& p, perms prms, perm_options opts = perm_options::replace);

@@ -12,7 +12,6 @@
 
 #ifndef _WIN32
 #include <fcntl.h>
-#include <grp.h>
 #include <pwd.h>
 #include <sys/stat.h>
 #include <unistd.h>

@@ -9,6 +9,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <solv/pooltypes.h>
 
@@ -106,6 +107,25 @@ namespace solv
 
         /** The type for which the solvable is used. */
         auto type() const -> SolvableType;
+
+        /**
+         * Get the defaulted_keys stored in this solvable.
+         *
+         * Defaulted_keys tracks which fields have stub/default values that should be
+         * replaced by values from index.json during package installation.
+         *
+         * The keys are stored as a comma-separated string in SOLVABLE_KEYWORDS and
+         * deserialized when retrieved.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required after
+         *       @ref ObjSolvableView::set_defaulted_keys for this attribute to be available.
+         *
+         * @return Vector of field names that have stub values, or empty if not set.
+         *
+         * @see ObjSolvableView::set_defaulted_keys
+         * @see https://github.com/mamba-org/mamba/issues/4095
+         */
+        auto defaulted_keys() const -> std::vector<std::string>;
 
     private:
 
@@ -431,6 +451,27 @@ namespace solv
          * @see ObjSolvableViewConst::type
          */
         void set_type(SolvableType val) const;
+
+        /**
+         * Set the defaulted_keys for this solvable.
+         *
+         * Defaulted_keys tracks which fields have stub/default values that should be
+         * replaced by values from index.json during package installation.
+         *
+         * The keys are serialized as a comma-separated string and stored in
+         * SOLVABLE_KEYWORDS. This field is repurposed for conda-specific metadata
+         * since it's not used in the conda ecosystem.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute
+         *       to be available for lookup via @ref ObjSolvableViewConst::defaulted_keys.
+         *
+         * @param keys Vector of field names that have stub values. The "_initialized"
+         *             sentinel should be first if present.
+         *
+         * @see ObjSolvableViewConst::defaulted_keys
+         * @see https://github.com/mamba-org/mamba/issues/4095
+         */
+        void set_defaulted_keys(const std::vector<std::string>& keys) const;
     };
 
     /***************************************

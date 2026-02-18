@@ -359,6 +359,39 @@ namespace mamba
                             }
                         }
                     }
+
+                    // HEALING: Detect corrupted cache from buggy versions since v2.1.1 (#3901),
+                    // partially mitigated in v2.3.3 (#4071).
+                    //
+                    // Corruption signature: timestamp == 0 AND license == ""
+                    //
+                    // Why this signature is safe (low false-positive risk):
+                    // - Both conditions must be true (very specific)
+                    // - Modern build tools virtually always set timestamps
+                    // - Packages typically have license information
+                    // - The combination is extremely rare for legitimate packages
+                    //
+                    // Even if a false positive occurs:
+                    // - The only consequence is unnecessary re-extraction
+                    // - This is wasted work, NOT data corruption
+                    // - The re-extracted package will have correct metadata
+                    //
+                    // When corruption is detected:
+                    // 1. Return valid=false to invalidate this cache entry
+                    // 2. Caller triggers re-extraction from tarball
+                    // 3. write_repodata_record() writes correct values using index.json
+                    //
+                    // See GitHub issue #4095.
+                    if (valid && repodata_record.contains("timestamp")
+                        && repodata_record["timestamp"].is_number()
+                        && repodata_record["timestamp"] == 0 && repodata_record.contains("license")
+                        && repodata_record["license"].is_string() && repodata_record["license"] == "")
+                    {
+                        LOG_INFO << "Detected corrupted metadata in cache (issue #4095), "
+                                    "will re-extract: "
+                                 << extracted_dir.string();
+                        valid = false;
+                    }
                 }
                 catch (const nlohmann::json::exception& e)
                 {

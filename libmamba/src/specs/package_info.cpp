@@ -95,6 +95,13 @@ namespace mamba::specs
 
                 // Name
                 out.name = head.value();  // There may be '-' in the name
+
+                // Mark fields that have stub/default values for URL-derived conda packages.
+                // These fields are NOT available from the URL and will use struct defaults.
+                // The "_initialized" sentinel enables fail-hard verification in
+                // write_repodata_record(). See issue #4095.
+                out.defaulted_keys = { "_initialized",   "build_number", "license",   "timestamp",
+                                       "track_features", "depends",      "constrains" };
             }
             // PackageType::Wheel (.whl):
             // {pkg name}-{version}-{build tag (optional)}-{python tag}-{abi tag}-{platform tag}.whl
@@ -140,6 +147,13 @@ namespace mamba::specs
                     out.version = tail;
                     // The head is the name
                     out.name = head.value();  // There may be '-' in the name
+
+                    // Mark fields that have stub/default values for URL-derived wheel packages.
+                    // Wheels don't have build info in the filename, so add build/build_string.
+                    // The "_initialized" sentinel enables fail-hard verification. See issue #4095.
+                    out.defaulted_keys = { "_initialized",   "build",   "build_string",
+                                           "build_number",   "license", "timestamp",
+                                           "track_features", "depends", "constrains" };
                 }
                 else
                 {
@@ -156,6 +170,13 @@ namespace mamba::specs
 
                     // Name
                     out.name = head.value();  // There may be '-' in the name
+
+                    // Mark fields that have stub/default values for URL-derived wheel packages.
+                    // Wheels don't have build info in the filename, so add build/build_string.
+                    // The "_initialized" sentinel enables fail-hard verification. See issue #4095.
+                    out.defaulted_keys = { "_initialized",   "build",   "build_string",
+                                           "build_number",   "license", "timestamp",
+                                           "track_features", "depends", "constrains" };
                 }
             }
             // PackageType::TarGz (.tar.gz): {pkg name}-{version}.tar.gz
@@ -173,6 +194,12 @@ namespace mamba::specs
 
                 // Name
                 out.name = head.value();  // There may be '-' in the name
+
+                // Mark fields that have stub/default values for URL-derived tar.gz packages.
+                // Similar to wheels: no build info in filename. See issue #4095.
+                out.defaulted_keys = { "_initialized",   "build",   "build_string",
+                                       "build_number",   "license", "timestamp",
+                                       "track_features", "depends", "constrains" };
             }
 
             return out;
@@ -247,9 +274,24 @@ namespace mamba::specs
             auto pkg = PackageInfo();
             pkg.package_url = str;
             const std::string pkg_name_marker = "#egg=";
+            bool has_egg_name = false;
             if (const auto idx = str.rfind(pkg_name_marker); idx != std::string_view::npos)
             {
                 pkg.name = str.substr(idx + pkg_name_marker.length());
+                has_egg_name = true;
+            }
+
+            // Mark fields that have stub/default values for git URL packages.
+            // Git URLs only provide package_url and optionally name (from #egg=).
+            // All other fields use struct defaults. See issue #4095.
+            pkg.defaulted_keys = { "_initialized", "version",   "channel",        "subdir",
+                                   "fn",           "build",     "build_string",   "build_number",
+                                   "license",      "timestamp", "track_features", "depends",
+                                   "constrains" };
+            // If #egg= is absent, name is also defaulted (empty string)
+            if (!has_egg_name)
+            {
+                pkg.defaulted_keys.push_back("name");
             }
             return pkg;
         }

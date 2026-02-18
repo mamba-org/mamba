@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+
 #include <fmt/core.h>
 #include <yaml-cpp/yaml.h>
 
@@ -73,6 +75,10 @@ namespace mamba
                 package.info.channel = maybe_parsed_info->channel;
                 package.info.build_string = maybe_parsed_info->build_string;
                 package.info.platform = maybe_parsed_info->platform;
+                // Copy defaulted_keys for fail-hard verification in write_repodata_record().
+                // The "_initialized" sentinel proves this PackageInfo was properly constructed.
+                // See issue #4095.
+                package.info.defaulted_keys = maybe_parsed_info->defaulted_keys;
             }
 
             for (const auto& dependency : package_node["dependencies"])
@@ -93,6 +99,27 @@ namespace mamba
                     package.info.constrains.push_back(
                         fmt::format("{} {}", constraint_dep_name, constraint_expr)
                     );
+                }
+            }
+
+            // When sha256 is present, the lockfile metadata is trustworthy.
+            // Remove "depends" and "constrains" from defaulted_keys if the lockfile
+            // populated them, so write_repodata_record() preserves these values
+            // (which may reflect repodata patches) instead of replacing them with
+            // index.json. When sha256 is absent, the lockfile may have been generated
+            // during v2.1.1 through v2.3.2 (partially mitigated for depends/constrains in v2.3.3 by
+            // #4071) with corrupted metadata, so keep these fields in defaulted_keys to allow
+            // index.json to provide correct values. See issue #4095.
+            if (!package.info.sha256.empty())
+            {
+                auto& dk = package.info.defaulted_keys;
+                if (!package.info.dependencies.empty())
+                {
+                    dk.erase(std::remove(dk.begin(), dk.end(), "depends"), dk.end());
+                }
+                if (!package.info.constrains.empty())
+                {
+                    dk.erase(std::remove(dk.begin(), dk.end(), "constrains"), dk.end());
                 }
             }
 

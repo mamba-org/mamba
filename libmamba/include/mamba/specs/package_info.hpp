@@ -52,8 +52,10 @@ namespace mamba::specs
         std::vector<std::string> track_features = {};
         std::vector<std::string> dependencies = {};
         std::vector<std::string> constrains = {};
-        // WARNING Be aware that `defaulted_keys` value, if set later,
-        // is not passed when going through `make_package_info` from libsolv
+        // Tracks which fields have stub/default values that should be replaced by index.json.
+        // Set by from_url() with field names, and by make_package_info() with {"_initialized"}.
+        // The "_initialized" sentinel indicates the PackageInfo was properly constructed.
+        // See GitHub issue #4095.
         std::vector<std::string> defaulted_keys = {};
         NoArchType noarch = NoArchType::No;
         std::size_t size = 0;

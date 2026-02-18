@@ -69,7 +69,7 @@ namespace
         // show the pretty single package view.
         if (query == mamba::QueryType::Search
             && (options.pretty_print
-                || specs_has_wildcard(options.specs.cbegin(), options.specs.cend())))
+                || !specs_has_wildcard(options.specs.cbegin(), options.specs.cend())))
         {
             format = mamba::QueryResultFormat::Pretty;
         }

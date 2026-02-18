@@ -14,6 +14,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -1664,6 +1665,38 @@ namespace mamba
         }
 
         copy = std::regex_replace(copy, http_basicauth_regex(), "$1$2:*****@");
+
+        return copy;
+    }
+
+    std::string remove_secrets_and_login_credentials(std::string_view str)
+    {
+        std::string copy(str);
+
+        // Remove token: /t/token -> remove /t/token entirely
+        if (util::contains(str, "/t/"))
+        {
+            copy = std::regex_replace(copy, token_regex(), "");
+        }
+
+        // Remove password from basic auth: user:password@domain -> preserve scheme and domain
+        // Handle both URLs with scheme (e.g., https://user:pass@domain) and without scheme
+        // (e.g., user:pass@domain at start or after whitespace)
+        // Pattern 1: Match URLs with scheme: (scheme://)(user):(password)@
+        // This must come first to handle URLs with schemes correctly
+        static const std::regex scheme_auth_regex{
+            "([a-zA-Z][a-zA-Z0-9+.-]*://)([^:@\\s]+):([^@\\s]+)@"
+        };
+        copy = std::regex_replace(copy, scheme_auth_regex, "$1");
+
+        // Pattern 2: Match URLs without scheme: (^|\s)(user):(password)@
+        // This matches user:pass@ at start of string or after whitespace, but NOT if preceded by
+        // :// We use a negative lookbehind-like approach: ensure the match is not part of a URL
+        // with scheme Since we already processed URLs with schemes, we just need to match
+        // user:pass@ that doesn't have :// before it. The pattern ensures username doesn't contain
+        // : or / to avoid matching URLs that already had their scheme processed.
+        static const std::regex no_scheme_auth_regex{ "(^|\\s)([^:@\\s/]+):([^@\\s]+)@" };
+        copy = std::regex_replace(copy, no_scheme_auth_regex, "$1");
 
         return copy;
     }

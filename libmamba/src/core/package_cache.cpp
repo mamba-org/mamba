@@ -15,6 +15,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
@@ -24,8 +25,64 @@ namespace mamba
 {
     auto package_cache_folder_relative_path(const specs::PackageInfo& s) -> fs::u8path
     {
-        LOG_TRACE << "Computing package cache folder path for package: " << s.name << " (channel: '"
-                  << s.channel << "', platform: '" << s.platform << "')";
+        LOG_TRACE << "Computing package cache folder path for package: " << s.name;
+        LOG_TRACE << "  channel: '" << s.channel << "'";
+        LOG_TRACE << "  platform: '" << s.platform << "'";
+        LOG_TRACE << "  package_url: '" << hide_secrets(s.package_url) << "'";
+        LOG_TRACE << "  filename: '" << s.filename << "'";
+
+        // Lambda to normalize URL paths for filesystem use:
+        // 1. Replace "://" with "/" (scheme separator)
+        // 2. Replace remaining ":" and "\" with "_" (but keep "/" as "/")
+        auto normalize_url_path = [](std::string& path)
+        {
+            util::replace_all(path, "://", "/");
+            LOG_TRACE << "After replacing '://' with '/': '" << path << "'";
+            std::ranges::replace_if(path, [](char c) { return c == ':' || c == '\\'; }, '_');
+            LOG_TRACE << "After replacing ':' and '\\\\' with '_': '" << path << "'";
+        };
+
+        // Prefer package_url if available, as it contains the full URL path
+        if (!s.package_url.empty())
+        {
+            LOG_TRACE << "Using package_url to infer cache folder path";
+
+            // Remove secrets from package_url before processing to ensure consistent cache paths
+            std::string dir_path = remove_secrets_and_login_credentials(s.package_url);
+
+            // Remove filename from the end (everything after the last '/')
+            if (!s.filename.empty() && util::ends_with(dir_path, s.filename))
+            {
+                dir_path = dir_path.substr(0, dir_path.size() - s.filename.size());
+                LOG_TRACE << "Removed filename, directory path: '" << dir_path << "'";
+            }
+            else
+            {
+                // Try to find the last '/' and remove everything after it
+                auto [directory_opt, filename_part] = util::rsplit_once(dir_path, '/');
+                if (directory_opt.has_value())
+                {
+                    dir_path = std::string(directory_opt.value());
+                    LOG_TRACE << "Extracted directory path from package_url: '" << dir_path << "'";
+                }
+                // If no '/' found, dir_path remains as the full URL (edge case)
+            }
+
+            // Remove trailing slash if present
+            dir_path = util::rstrip(dir_path, '/');
+            LOG_TRACE << "Directory path after removing trailing slash: '" << dir_path << "'";
+
+            // Normalize the URL path
+            normalize_url_path(dir_path);
+
+            const auto result = fs::u8path(dir_path);
+            LOG_TRACE << "Final package cache folder path from package_url: '" << result.string()
+                      << "'";
+            return result;
+        }
+
+        // Fallback to old behavior using channel and platform
+        LOG_TRACE << "package_url is empty, falling back to channel/platform-based path";
 
         const auto platform = s.platform.empty() ? std::string("noarch") : s.platform;
         std::string channel = s.channel.empty() ? "no_channel" : s.channel;
@@ -45,10 +102,13 @@ namespace mamba
                 LOG_TRACE << "Channel after stripping suffix: '" << channel << "'";
             }
         }
-        std::ranges::replace_if(channel, [](char c) { return c == '/' || c == ':' || c == '\\'; }, '_');
+
+        // Normalize the channel URL using the same normalization logic
+        normalize_url_path(channel);
 
         const auto result = fs::u8path(channel) / platform;
-        LOG_TRACE << "Final package cache folder path: '" << result.string() << "'";
+        LOG_TRACE << "Final package cache folder path from channel/platform: '" << result.string()
+                  << "'";
 
         return result;
     }

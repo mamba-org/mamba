@@ -198,4 +198,276 @@ namespace
         REQUIRE(repodata_record["constrains"].size() == 1);
         REQUIRE(repodata_record["constrains"][0] == "pytz");
     }
+
+    TEST_CASE("package_cache_folder_relative_path")
+    {
+        using namespace mamba;
+
+        SECTION("HTTPS URL with noarch platform")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "python_abi";
+            pkg.package_url = "https://prefix.dev/conda-forge/noarch/python_abi-3.14-8_cp314.conda";
+            pkg.filename = "python_abi-3.14-8_cp314.conda";
+            pkg.platform = "noarch";
+            pkg.channel = "conda-forge";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("https/prefix.dev/conda-forge/noarch").string());
+        }
+
+        SECTION("HTTPS URL with linux-64 platform")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "numpy";
+            pkg.package_url = "https://conda.anaconda.org/conda-forge/linux-64/numpy-1.26.0-py311h1234567_0.conda";
+            pkg.filename = "numpy-1.26.0-py311h1234567_0.conda";
+            pkg.platform = "linux-64";
+            pkg.channel = "conda-forge";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(
+                result.string() == fs::u8path("https/conda.anaconda.org/conda-forge/linux-64").string()
+            );
+        }
+
+        SECTION("HTTPS URL with custom domain and deep path")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "test-package";
+            pkg.package_url = "https://repo.example.com/channels/my-channel/linux-64/test-package-1.0-0.tar.bz2";
+            pkg.filename = "test-package-1.0-0.tar.bz2";
+            pkg.platform = "linux-64";
+            pkg.channel = "my-channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(
+                result.string()
+                == fs::u8path("https/repo.example.com/channels/my-channel/linux-64").string()
+            );
+        }
+
+        SECTION("HTTP URL (non-secure)")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "test-pkg";
+            pkg.package_url = "http://localhost:8000/mychannel/noarch/test-pkg-0.1-0.tar.bz2";
+            pkg.filename = "test-pkg-0.1-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "mychannel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("http/localhost_8000/mychannel/noarch").string());
+        }
+
+        SECTION("OCI registry URL")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "xtensor";
+            pkg.package_url = "oci://ghcr.io/channel-mirrors/conda-forge/linux-64/xtensor-0.25.0-h00ab1b0_0.conda";
+            pkg.filename = "xtensor-0.25.0-h00ab1b0_0.conda";
+            pkg.platform = "linux-64";
+            pkg.channel = "conda-forge";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(
+                result.string()
+                == fs::u8path("oci/ghcr.io/channel-mirrors/conda-forge/linux-64").string()
+            );
+        }
+
+        SECTION("OCI registry with different host")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "package";
+            pkg.package_url = "oci://registry.example.com:5000/myorg/mychannel/noarch/package-1.0-0.conda";
+            pkg.filename = "package-1.0-0.conda";
+            pkg.platform = "noarch";
+            pkg.channel = "mychannel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(
+                result.string()
+                == fs::u8path("oci/registry.example.com_5000/myorg/mychannel/noarch").string()
+            );
+        }
+
+        SECTION("File URL")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "local-pkg";
+            pkg.package_url = "file:///home/user/packages/linux-64/local-pkg-1.0-0.tar.bz2";
+            pkg.filename = "local-pkg-1.0-0.tar.bz2";
+            pkg.platform = "linux-64";
+            pkg.channel = "local";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("file//home/user/packages/linux-64").string());
+        }
+
+        SECTION("File URL with Windows path")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "win-pkg";
+            pkg.package_url = "file:///C:/Users/name/packages/win-64/win-pkg-1.0-0.tar.bz2";
+            pkg.filename = "win-pkg-1.0-0.tar.bz2";
+            pkg.platform = "win-64";
+            pkg.channel = "local";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("file//C_/Users/name/packages/win-64").string());
+        }
+
+        SECTION("HTTPS URL with authentication (credentials in URL)")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "auth-pkg";
+            pkg.package_url = "https://user:pass@repo.example.com/channel/noarch/auth-pkg-1.0-0.tar.bz2";
+            pkg.filename = "auth-pkg-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("https/repo.example.com/channel/noarch").string());
+        }
+
+        SECTION("URL with port number")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "port-pkg";
+            pkg.package_url = "https://repo.example.com:8443/channel/linux-64/port-pkg-1.0-0.tar.bz2";
+            pkg.filename = "port-pkg-1.0-0.tar.bz2";
+            pkg.platform = "linux-64";
+            pkg.channel = "channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(
+                result.string() == fs::u8path("https/repo.example.com_8443/channel/linux-64").string()
+            );
+        }
+
+        SECTION("URL with query parameters")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "query-pkg";
+            pkg.package_url = "https://repo.example.com/channel/noarch/query-pkg-1.0-0.tar.bz2?token=abc123";
+            pkg.filename = "query-pkg-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("https/repo.example.com/channel/noarch").string());
+        }
+
+        SECTION("URL with fragment")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "frag-pkg";
+            pkg.package_url = "https://repo.example.com/channel/noarch/frag-pkg-1.0-0.tar.bz2#section";
+            pkg.filename = "frag-pkg-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("https/repo.example.com/channel/noarch").string());
+        }
+
+        SECTION("Fallback to channel/platform when package_url is empty")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "fallback-pkg";
+            pkg.package_url = "";
+            pkg.filename = "fallback-pkg-1.0-0.tar.bz2";
+            pkg.platform = "linux-64";
+            pkg.channel = "conda-forge";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("conda-forge/linux-64").string());
+        }
+
+        SECTION("Fallback with channel containing platform")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "fallback-pkg2";
+            pkg.package_url = "";
+            pkg.filename = "fallback-pkg2-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "https://repo.example.com/channel/noarch";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("https/repo.example.com/channel/noarch").string());
+        }
+
+        SECTION("URL with trailing slash")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "trailing-pkg";
+            pkg.package_url = "https://repo.example.com/channel/noarch/";
+            pkg.filename = "trailing-pkg-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("https/repo.example.com/channel/noarch").string());
+        }
+
+        SECTION("Complex OCI URL with nested paths")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "complex-oci";
+            pkg.package_url = "oci://registry.example.com/org/team/project/channel/linux-64/complex-oci-2.0-1.conda";
+            pkg.filename = "complex-oci-2.0-1.conda";
+            pkg.platform = "linux-64";
+            pkg.channel = "channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(
+                result.string()
+                == fs::u8path("oci/registry.example.com/org/team/project/channel/linux-64").string()
+            );
+        }
+
+        SECTION("URL with special characters in path")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "special-pkg";
+            pkg.package_url = "https://repo.example.com/channel-name/sub-channel/noarch/special-pkg-1.0-0.tar.bz2";
+            pkg.filename = "special-pkg-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "channel-name";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(
+                result.string()
+                == fs::u8path("https/repo.example.com/channel-name/sub-channel/noarch").string()
+            );
+        }
+
+        SECTION("URL where filename doesn't match package_url ending")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "mismatch-pkg";
+            pkg.package_url = "https://repo.example.com/channel/noarch/some-other-file.tar.bz2";
+            pkg.filename = "mismatch-pkg-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "channel";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            // Should extract directory by finding last '/'
+            REQUIRE(result.string() == fs::u8path("https/repo.example.com/channel/noarch").string());
+        }
+
+        SECTION("Empty package_url and empty channel fallback")
+        {
+            specs::PackageInfo pkg;
+            pkg.name = "empty-pkg";
+            pkg.package_url = "";
+            pkg.filename = "empty-pkg-1.0-0.tar.bz2";
+            pkg.platform = "noarch";
+            pkg.channel = "";
+
+            auto result = package_cache_folder_relative_path(pkg);
+            REQUIRE(result.string() == fs::u8path("no_channel/noarch").string());
+        }
+    }
 }

@@ -68,6 +68,20 @@ class TestRun:
         print(res)
         assert len(res) > 0
 
+    @pytest.mark.parametrize("option_flag", [""])
+    def test_run_non_tty_streams(self, option_flag):
+        umamba = os.environ["TEST_MAMBA_EXE"]
+        cmd = [umamba, "run"] + [arg for arg in [option_flag, "python", "-c", "print('hi')"] if arg]
+        res = subprocess.run(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        assert res.stdout.decode().strip() == "hi"
+        assert "Undefined error: 0" not in res.stderr.decode()
+
     @pytest.mark.skipif(platform == "win32", reason="bash specific test")
     @pytest.mark.parametrize("inp", ["(", "a\nb", "a'b\""])
     def test_quoting(self, inp):

@@ -24,8 +24,14 @@ namespace mamba
 {
     auto package_cache_folder_relative_path(const specs::PackageInfo& s) -> fs::u8path
     {
+        LOG_TRACE << "Computing package cache folder path for package: " << s.name << " (channel: '"
+                  << s.channel << "', platform: '" << s.platform << "')";
+
         const auto platform = s.platform.empty() ? std::string("noarch") : s.platform;
         std::string channel = s.channel.empty() ? "no_channel" : s.channel;
+
+        LOG_TRACE << "Normalized platform: '" << platform << "', normalized channel: '" << channel
+                  << "'";
 
         // Strip trailing subdir so "https://x/conda-forge/noarch" and "conda-forge/linux-64"
         // produce the same base path as "https://x/conda-forge" and "conda-forge"
@@ -34,12 +40,17 @@ namespace mamba
             const std::string suffix = "/" + platform;
             if (util::ends_with(channel, suffix))
             {
+                LOG_TRACE << "Stripping platform suffix '" << suffix << "' from channel";
                 channel.resize(channel.size() - suffix.size());
+                LOG_TRACE << "Channel after stripping suffix: '" << channel << "'";
             }
         }
         std::ranges::replace_if(channel, [](char c) { return c == '/' || c == ':' || c == '\\'; }, '_');
 
-        return fs::u8path(channel) / platform;
+        const auto result = fs::u8path(channel) / platform;
+        LOG_TRACE << "Final package cache folder path: '" << result.string() << "'";
+
+        return result;
     }
 
     PackageCacheData::PackageCacheData(const fs::u8path& path)

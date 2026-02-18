@@ -31,7 +31,7 @@ namespace mamba
      * @code
      * pkgs/
      * ├── urls.txt
-     * ├── <channel>/                                   # e.g. conda-forge, http___localhost_8000_mychannel
+     * ├── <channel>/                                   # e.g. conda-forge, https/repo.example.com/channel
      * │   └── <platform>/                              # e.g. linux-64, noarch, osx-64
      * │       ├── package_name-version-build.tar.bz2   # tarball
      * │       └── package_name-version-build/          # extracted (same base name)
@@ -39,29 +39,51 @@ namespace mamba
      * │               └── repodata_record.json
      * @endcode
      *
-     * - channel: Path-safe channel identifier (e.g. "conda-forge",
-     *   "https___conda.anaconda.org_conda-forge"). Special characters in URLs
-     *   (/, :, \) are replaced with underscores.
+     * Path determination
+     * ------------------
+     * The function prioritizes PackageInfo::package_url when available, extracting
+     * the directory path from the URL. This ensures consistent cache paths based
+     * on the actual package location. When package_url is empty, it falls back to
+     * using PackageInfo::channel and PackageInfo::platform.
+     *
+     * URL normalization
+     * -----------------
+     * URLs are normalized for filesystem use:
+     * - Scheme separator "://" is replaced with "/" (e.g., "https://" -> "https/")
+     * - Path separators "/" are preserved to maintain directory structure
+     * - Remaining ":" and "\" characters are replaced with "_" (e.g., ports become "_")
+     * - Authentication credentials and tokens are removed before normalization
+     *
+     * Examples:
+     * - "https://repo.example.com/channel/noarch" -> "https/repo.example.com/channel/noarch"
+     * - "http://localhost:8000/mychannel/noarch" -> "http/localhost_8000/mychannel/noarch"
+     * - "oci://ghcr.io/org/channel/linux-64" -> "oci/ghcr.io/org/channel/linux-64"
+     * - "conda-forge" (fallback) -> "conda-forge/linux-64"
+     *
+     * - channel: Path-safe channel identifier preserving URL structure (e.g., "conda-forge",
+     *   "https/repo.example.com/channel"). Path separators are preserved, only scheme
+     *   separators and special characters are normalized.
      * - platform: Subdir such as "linux-64", "osx-arm64", "noarch".
      * - package: Tarball (e.g. "numpy-1.24.0-py310_0.conda") or extracted dir
      *   (e.g. "numpy-1.24.0-py310_0/").
      *
-     * Example: pkgs/conda-forge/linux-64/numpy-1.24.0-py310_0.conda
+     * Example: pkgs/https/repo.example.com/channel/linux-64/numpy-1.24.0-py310_0.conda
      *
      * Motivation
      * ----------
      * This hierarchy (unlike conda's flat pkgs/ layout) isolates packages by
      * channel and platform. It avoids collisions when the same package name
      * exists in different channels, supports multiple platforms in one cache,
-     * and makes cache structure predictable and easy to reason about.
+     * and makes cache structure predictable and easy to reason about. Using
+     * package_url ensures cache paths reflect the actual package source location.
      *
-     * Channel format handling
-     * ----------------------
-     * specs::PackageInfo::channel can be a URL ("https://conda.anaconda.org/conda-forge/noarch"),
-     * a slug ("conda-forge"), or a slug with subdir ("conda-forge/linux-64").
-     * Different formats for the same logical channel produce different cache
-     * paths. The transaction normalizes to channel URLs before fetch/extract
-     * so extraction and linking use consistent paths.
+     * Fallback behavior
+     * -----------------
+     * When PackageInfo::package_url is empty, the function falls back to using
+     * PackageInfo::channel and PackageInfo::platform. The channel is normalized
+     * using the same rules as package_url. If the channel contains a platform
+     * suffix (e.g., "https://repo.com/channel/noarch"), it is stripped before
+     * normalization to avoid duplication.
      */
     // clang-format on
     auto package_cache_folder_relative_path(const specs::PackageInfo& s) -> fs::u8path;

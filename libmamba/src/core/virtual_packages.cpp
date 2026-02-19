@@ -446,6 +446,23 @@ namespace mamba
 
             if (os == "emscripten")
             {
+                // Some `noarch` dependencies coming from other channels than emscripten-forge
+                // (such as conda-forge) depend on this virtual package, such as click.
+                //
+                // See:
+                // https://github.com/conda-forge/click-feedstock/blob/3fbd55a6d6620ded10ea69cd2608792829f5e52e/recipe/recipe.yaml#L33
+                //
+                // In order for them to be usable by environment relying on `emscripten-forge`,
+                // we consider `emscripten` a Unix platform, by adding this `__unix` virtual
+                // package.
+                //
+                // On the long term, we should consider adding some `noarch` builds depending on
+                // `__emscripten` to properly encode the requirements and specificities for
+                // `emscripten-*` targets.
+                //
+                // The version is, as for as we know, not used in the solving process (it is mostly
+                // informative), but can be overridden if needed defining the
+                // `CONDA_OVERRIDE_EMSCRIPTEN` environment variable.
                 const std::string version = overridable_emscripten_version();
                 res.push_back(make_virtual_package("__emscripten", platform, version));
                 res.push_back(make_virtual_package("__unix", platform, version));

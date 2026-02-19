@@ -460,12 +460,11 @@ namespace mamba
                 // `__emscripten` to properly encode the requirements and specificities for
                 // `emscripten-*` targets.
                 //
-                // The version is, as for as we know, not used in the solving process (it is mostly
-                // informative), but can be overridden if needed defining the
-                // `CONDA_OVERRIDE_EMSCRIPTEN` environment variable.
+                // The version is not used in the solving process, but can be overridden if
+                // needed defining the `CONDA_OVERRIDE_EMSCRIPTEN` environment variable.
                 const std::string version = overridable_emscripten_version();
+                res.push_back(make_virtual_package("__unix", platform, "0"));
                 res.push_back(make_virtual_package("__emscripten", platform, version));
-                res.push_back(make_virtual_package("__unix", platform, version));
             }
 
             res.push_back(make_virtual_package("__archspec", platform, "1", get_archspec(arch)));

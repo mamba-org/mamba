@@ -159,6 +159,33 @@ namespace mamba
                 REQUIRE(res == "example.com/path/to/file.tar.bz2");
             }
 
+            SECTION("URLs with already masked credentials (Windows compatibility)")
+            {
+                // Test URLs that already have masked passwords (*****)
+                // This can happen when URLs are processed multiple times
+                auto res = remove_secrets_and_login_credentials(
+                    "http://user:*****@localhost:1234/noarch/pkg.tar.bz2"
+                );
+                REQUIRE(res == "http://localhost:1234/noarch/pkg.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "https://testuser:*****@example.com/channel/linux-64/pkg.conda"
+                );
+                REQUIRE(res == "https://example.com/channel/linux-64/pkg.conda");
+
+                // Test masked tokens
+                res = remove_secrets_and_login_credentials(
+                    "http://repo.com/t/*****/noarch/pkg.tar.bz2"
+                );
+                REQUIRE(res == "http://repo.com/noarch/pkg.tar.bz2");
+
+                // Test URLs with ports and masked credentials
+                res = remove_secrets_and_login_credentials(
+                    "http://user:*****@localhost:8080/path/to/file.tar.bz2"
+                );
+                REQUIRE(res == "http://localhost:8080/path/to/file.tar.bz2");
+            }
+
             SECTION("OCI URLs")
             {
                 auto res = remove_secrets_and_login_credentials(

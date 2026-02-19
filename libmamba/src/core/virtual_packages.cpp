@@ -354,16 +354,6 @@ namespace mamba
             return util::windows_version();
         }
 
-        [[nodiscard]] auto overridable_emscripten_version() -> std::string
-        {
-            if (auto override_version = util::get_env("CONDA_OVERRIDE_EMSCRIPTEN"))
-            {
-                return std::move(override_version).value();
-            }
-            // 4.x is assumed to be the latest version used by emscripten-forge.
-            return { "4.x" };
-        }
-
         std::vector<specs::PackageInfo> dist_packages(const std::string& platform)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
@@ -457,14 +447,9 @@ namespace mamba
                 // package.
                 //
                 // On the long term, we should consider adding some `noarch` builds depending on
-                // `__emscripten` to properly encode the requirements and specificities for
-                // `emscripten-*` targets.
-                //
-                // The version is not used in the solving process, but can be overridden if
-                // needed defining the `CONDA_OVERRIDE_EMSCRIPTEN` environment variable.
-                const std::string version = overridable_emscripten_version();
-                res.push_back(make_virtual_package("__unix", platform, "0"));
-                res.push_back(make_virtual_package("__emscripten", platform, version));
+                // a `__emscripten` virtual package to properly encode the requirements and
+                // specificities for `emscripten-*` targets.
+                res.push_back(make_virtual_package("__unix", platform));
             }
 
             res.push_back(make_virtual_package("__archspec", platform, "1", get_archspec(arch)));

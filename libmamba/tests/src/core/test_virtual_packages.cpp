@@ -121,25 +121,10 @@ namespace mamba
 
                 // Test emscripten platform
                 pkgs = detail::dist_packages("emscripten-wasm32");
-                REQUIRE(pkgs.size() == 3);
+                REQUIRE(pkgs.size() == 2);
                 REQUIRE(pkgs[0].name == "__unix");
-                REQUIRE(pkgs[0].version == "0");
-                REQUIRE(pkgs[1].name == "__emscripten");
-                REQUIRE(pkgs[1].version == "4.x");
-                REQUIRE(pkgs[2].name == "__archspec");
-                REQUIRE(pkgs[2].build_string == "wasm32");
-
-                // Test emscripten with override
-                util::set_env("CONDA_OVERRIDE_EMSCRIPTEN", "3.1.50");
-                pkgs = detail::dist_packages("emscripten-wasm32");
-                REQUIRE(pkgs.size() == 3);
-                REQUIRE(pkgs[0].name == "__unix");
-                REQUIRE(pkgs[0].version == "0");
-                REQUIRE(pkgs[1].name == "__emscripten");
-                REQUIRE(pkgs[1].version == "3.1.50");
-                REQUIRE(pkgs[2].name == "__archspec");
-                REQUIRE(pkgs[2].build_string == "wasm32");
-                util::unset_env("CONDA_OVERRIDE_EMSCRIPTEN");
+                REQUIRE(pkgs[1].name == "__archspec");
+                REQUIRE(pkgs[1].build_string == "wasm32");
 
                 ctx.platform = ctx.host_platform;
             }

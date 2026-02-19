@@ -498,3 +498,143 @@ def test_search_version_sorting_numerical(yaml_env: Path):
                     f"Table build numbers not sorted correctly for version {version_i}: "
                     f"build {build_i} should be >= build {build_j}"
                 )
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_search_mamba_version_sorting_json(yaml_env: Path):
+    """
+    Test that search results for 'mamba' package are sorted by version and build number.
+
+    This test verifies that when searching for 'mamba' with --json flag, the results
+    are properly sorted with the latest version first, and within the same version,
+    higher build numbers come first.
+    """
+    # Search for mamba package
+    res = helpers.umamba_repoquery("search", "-c", "conda-forge", "mamba", "--json")
+
+    assert res["query"]["query"] == "mamba"
+    assert res["query"]["type"] == "search"
+
+    pkgs = res["result"]["pkgs"]
+    assert len(pkgs) > 0, "Should find at least one mamba package"
+
+    # Filter to get only mamba packages (not mamba-solver, mamba-build, etc.)
+    mamba_pkgs = [pkg for pkg in pkgs if pkg["name"] == "mamba"]
+
+    # We need at least a few versions to test sorting
+    assert len(mamba_pkgs) >= 2, "Need at least 2 mamba versions to test sorting"
+
+    # Helper function to parse version string into comparable tuple
+    def parse_version(version_str):
+        """Parse version string into tuple for comparison."""
+        try:
+            version_str = str(version_str).strip()
+            if not version_str:
+                return None
+
+            # Split by dots and convert to integers
+            parts = version_str.split(".")
+            version_parts = []
+            for part in parts:
+                # Extract numeric prefix
+                digits = ""
+                for char in part:
+                    if char.isdigit():
+                        digits += char
+                    else:
+                        break
+                if digits:
+                    version_parts.append(int(digits))
+                else:
+                    break
+
+            return tuple(version_parts) if version_parts else None
+        except (ValueError, AttributeError, TypeError):
+            return None
+
+    # Helper function to extract build number from build string
+    def parse_build_number(build_str):
+        """Extract build number from build string."""
+        try:
+            build_str = str(build_str).strip()
+            if not build_str:
+                return 0
+
+            # Extract number after the last underscore
+            if "_" in build_str:
+                parts = build_str.rsplit("_", 1)
+                if len(parts) == 2:
+                    build_num_str = parts[1]
+                    # Extract numeric prefix
+                    digits = ""
+                    for char in build_num_str:
+                        if char.isdigit():
+                            digits += char
+                        else:
+                            break
+                    if digits:
+                        return int(digits)
+            return 0
+        except (ValueError, AttributeError, TypeError):
+            return 0
+
+    # Extract and parse versions and build numbers
+    parsed_items = []
+    for pkg in mamba_pkgs:
+        version_str = pkg["version"]
+        build_str = pkg.get("build", "")
+        version_obj = parse_version(version_str)
+        if version_obj is not None:
+            build_num = parse_build_number(build_str)
+            parsed_items.append((version_obj, build_num, pkg))
+
+    # Verify we have parsed items
+    assert len(parsed_items) >= 2, "Need at least 2 parsed mamba versions to test sorting"
+
+    # Sort by version (descending), then by build number (descending)
+    # This is the expected order: newest version first, highest build number first
+    parsed_items.sort(key=lambda x: (x[0], x[1]), reverse=True)
+
+    # Verify that the JSON results match the expected sorted order
+    # The first item in parsed_items should match the first item in mamba_pkgs
+    expected_first = parsed_items[0]
+    actual_first = mamba_pkgs[0]
+
+    assert actual_first["version"] == expected_first[2]["version"], (
+        f"First result should have latest version. "
+        f"Expected: {expected_first[2]['version']}, Got: {actual_first['version']}"
+    )
+
+    # Verify all results are in descending order (newest first)
+    for i in range(len(parsed_items) - 1):
+        version_i, build_i, pkg_i = parsed_items[i]
+        version_j, build_j, pkg_j = parsed_items[i + 1]
+
+        # First compare versions
+        if version_i > version_j:
+            continue  # Correct order
+        elif version_i < version_j:
+            assert False, (
+                f"Versions not sorted correctly: {version_i} should be >= {version_j}. "
+                f"Package {pkg_i['version']} should come before {pkg_j['version']}"
+            )
+        else:
+            # Versions are equal, check build numbers
+            assert build_i >= build_j, (
+                f"Build numbers not sorted correctly for version {version_i}: "
+                f"build {build_i} should be >= {build_j}. "
+                f"Package {pkg_i['version']}={pkg_i.get('build', '')} should come before "
+                f"{pkg_j['version']}={pkg_j.get('build', '')}"
+            )
+
+    # Verify that the order in JSON matches the expected sorted order
+    for i, (version_tuple, build_num, expected_pkg) in enumerate(parsed_items):
+        actual_pkg = mamba_pkgs[i]
+        assert actual_pkg["version"] == expected_pkg["version"], (
+            f"JSON result at index {i} has wrong version. "
+            f"Expected: {expected_pkg['version']}, Got: {actual_pkg['version']}"
+        )
+        assert actual_pkg.get("build", "") == expected_pkg.get("build", ""), (
+            f"JSON result at index {i} has wrong build. "
+            f"Expected: {expected_pkg.get('build', '')}, Got: {actual_pkg.get('build', '')}"
+        )

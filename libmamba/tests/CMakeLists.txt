@@ -102,6 +102,7 @@ set(
     src/core/test_prefix_interoperability.cpp
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
+    src/core/test_query.cpp
     src/core/test_shell_init.cpp
     src/core/test_shards.cpp
     src/core/test_shard_index_loader.cpp

@@ -25,21 +25,13 @@ namespace mamba
 {
     auto package_cache_folder_relative_path(const specs::PackageInfo& s) -> fs::u8path
     {
-        LOG_TRACE << "Computing package cache folder path for package: " << s.name;
-        LOG_TRACE << "  channel: '" << s.channel << "'";
-        LOG_TRACE << "  platform: '" << s.platform << "'";
-        LOG_TRACE << "  package_url: '" << hide_secrets(s.package_url) << "'";
-        LOG_TRACE << "  filename: '" << s.filename << "'";
-
         // Lambda to normalize URL paths for filesystem use:
         // 1. Replace "://" with "/" (scheme separator)
         // 2. Replace remaining ":" and "\" with "_" (but keep "/" as "/")
         auto normalize_url_path = [](std::string& path)
         {
             util::replace_all(path, "://", "/");
-            LOG_TRACE << "After replacing '://' with '/': '" << path << "'";
             std::ranges::replace_if(path, [](char c) { return c == ':' || c == '\\'; }, '_');
-            LOG_TRACE << "After replacing ':' and '\\\\' with '_': '" << path << "'";
         };
 
         // Prefer package_url if available, as it contains the full URL path
@@ -54,7 +46,6 @@ namespace mamba
             if (!s.filename.empty() && util::ends_with(dir_path, s.filename))
             {
                 dir_path = dir_path.substr(0, dir_path.size() - s.filename.size());
-                LOG_TRACE << "Removed filename, directory path: '" << dir_path << "'";
             }
             else
             {
@@ -63,14 +54,12 @@ namespace mamba
                 if (directory_opt.has_value())
                 {
                     dir_path = std::string(directory_opt.value());
-                    LOG_TRACE << "Extracted directory path from package_url: '" << dir_path << "'";
                 }
                 // If no '/' found, dir_path remains as the full URL (edge case)
             }
 
             // Remove trailing slash if present
             dir_path = util::rstrip(dir_path, '/');
-            LOG_TRACE << "Directory path after removing trailing slash: '" << dir_path << "'";
 
             // Normalize the URL path
             normalize_url_path(dir_path);
@@ -87,9 +76,6 @@ namespace mamba
         const auto platform = s.platform.empty() ? std::string("noarch") : s.platform;
         std::string channel = s.channel.empty() ? "no_channel" : s.channel;
 
-        LOG_TRACE << "Normalized platform: '" << platform << "', normalized channel: '" << channel
-                  << "'";
-
         // Strip trailing subdir so "https://x/conda-forge/noarch" and "conda-forge/linux-64"
         // produce the same base path as "https://x/conda-forge" and "conda-forge"
         if (!platform.empty())
@@ -97,9 +83,7 @@ namespace mamba
             const std::string suffix = "/" + platform;
             if (util::ends_with(channel, suffix))
             {
-                LOG_TRACE << "Stripping platform suffix '" << suffix << "' from channel";
                 channel.resize(channel.size() - suffix.size());
-                LOG_TRACE << "Channel after stripping suffix: '" << channel << "'";
             }
         }
 

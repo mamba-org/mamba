@@ -31,10 +31,49 @@ def find_cache_archive(cache: Path, pkg_name: str) -> Optional[Path]:
 
 
 def find_pkg_build(cache: Path, name: str) -> str:
-    """Find the build name of a package in the cache from the package name."""
-    matches = [p for p in cache.glob(f"{name}*") if p.is_dir()]
-    assert len(matches) == 1
-    return matches[0].name
+    """Find the build name of a package in the cache from the package name.
+
+    Returns the relative path from cache root (e.g., "package-name" or
+    "https/.../platform/package-name") to support nested cache structure.
+    """
+    # Search recursively for package directories
+    # Filter to only match package directories (not subdirectories within packages)
+    # Package directories are direct children of platform directories (e.g., linux-64) or cache root
+    all_matches = [p for p in cache.rglob(f"{name}*") if p.is_dir()]
+    matches = []
+    for p in all_matches:
+        parent = p.parent
+        # Package directories are at platform level or cache root, not nested deeper
+        # Check if parent is a platform directory (contains platform identifiers)
+        is_platform_dir = any(
+            platform in parent.name.lower() for platform in ["linux", "win", "osx", "noarch"]
+        ) or parent.name.endswith(("64", "32", "arm64", "armv7"))
+        is_at_cache_root = parent == cache
+
+        # Package build names have format: name-version-build (e.g., xtensor-0.27.0-hb700be7_0)
+        # They contain at least 2 dashes (name-version-build)
+        looks_like_package_build = p.name.count("-") >= 2
+
+        if (is_platform_dir or is_at_cache_root) and looks_like_package_build:
+            matches.append(p)
+
+    if len(matches) == 0:
+        # List all top-level directories in cache for debugging
+        all_dirs = [p.name for p in cache.iterdir() if p.is_dir()]
+        raise AssertionError(
+            f"Could not find package directory matching '{name}*' in cache {cache}. "
+            f"Found top-level directories: {all_dirs}"
+        )
+    assert len(matches) == 1, (
+        f"Found {len(matches)} directories matching '{name}*' in cache {cache}, "
+        f"expected exactly 1. Found: {[str(m) for m in matches]}"
+    )
+    # Return relative path from cache root to support nested structures
+    try:
+        return str(matches[0].relative_to(cache))
+    except ValueError:
+        # If not relative (shouldn't happen), return just the name
+        return matches[0].name
 
 
 @pytest.fixture(scope="module")
@@ -285,14 +324,17 @@ class TestMultiplePkgCaches:
             "-n", env_name, package_to_check_requirements(), "-v", "--json", no_dry_run=True
         )
 
+        assert res["success"]
+
         env_dir = tmp_root_prefix / "envs" / env_name
         pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
         linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
-        pkg_name = helpers.get_concrete_pkg(res, package_to_check)
         installed_file_rel_path = linked_file.relative_to(env_dir)
-        cache_file = cache / pkg_name / installed_file_rel_path
+        # Use find_pkg_build to get the actual package directory path (handles nested cache structure)
+        pkg_dir_rel_path = find_pkg_build(cache, package_to_check)
+        cache_file = cache / pkg_dir_rel_path / installed_file_rel_path
 
         assert cache_file.exists()
 
@@ -315,18 +357,21 @@ class TestMultiplePkgCaches:
             "-n", env_name, package_to_check_requirements(), "--json", no_dry_run=True
         )
 
+        assert res["success"]
+
         env_dir = tmp_root_prefix / "envs" / env_name
         pkg_checker = helpers.PackageChecker(package_to_check, env_dir)
         linked_file = pkg_checker.find_installed(file_to_find_in_package)
         assert linked_file.exists()
 
-        pkg_name = helpers.get_concrete_pkg(res, package_to_check)
         installed_file_rel_path = linked_file.relative_to(env_dir)
         # A previous version of this test was attempting to test that the installed file
         # was linked from the first writable pkgs dir, however it passed only because of a bug
         # in how it used pytest.
         # The first pkgs dir can be used to link, even if it is not writable.
-        cache_file = tmp_cache / pkg_name / installed_file_rel_path
+        # Use find_pkg_build to get the actual package directory path (handles nested cache structure)
+        pkg_dir_rel_path = find_pkg_build(tmp_cache, package_to_check)
+        cache_file = tmp_cache / pkg_dir_rel_path / installed_file_rel_path
 
         assert cache_file.exists()
 

@@ -5,7 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
+#include <mutex>
 #include <sstream>
+#include <unordered_map>
 
 #include <nlohmann/json.hpp>
 
@@ -13,6 +15,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
@@ -20,6 +23,80 @@
 
 namespace mamba
 {
+    auto package_cache_folder_relative_path(const specs::PackageInfo& s) -> fs::u8path
+    {
+        // Lambda to normalize URL paths for filesystem use:
+        // 1. Replace "://" with "/" (scheme separator)
+        // 2. Replace remaining ":" and "\" with "_" (but keep "/" as "/")
+        auto normalize_url_path = [](std::string& path)
+        {
+            util::replace_all(path, "://", "/");
+            std::ranges::replace_if(path, [](char c) { return c == ':' || c == '\\'; }, '_');
+        };
+
+        // Prefer package_url if available, as it contains the full URL path
+        if (!s.package_url.empty())
+        {
+            LOG_TRACE << "Using package_url to infer cache folder path";
+
+            // Remove secrets from package_url before processing to ensure consistent cache paths
+            std::string dir_path = remove_secrets_and_login_credentials(s.package_url);
+
+            // Remove filename from the end (everything after the last '/')
+            if (!s.filename.empty() && util::ends_with(dir_path, s.filename))
+            {
+                dir_path = dir_path.substr(0, dir_path.size() - s.filename.size());
+            }
+            else
+            {
+                // Try to find the last '/' and remove everything after it
+                auto [directory_opt, filename_part] = util::rsplit_once(dir_path, '/');
+                if (directory_opt.has_value())
+                {
+                    dir_path = std::string(directory_opt.value());
+                }
+                // If no '/' found, dir_path remains as the full URL (edge case)
+            }
+
+            // Remove trailing slash if present
+            dir_path = util::rstrip(dir_path, '/');
+
+            // Normalize the URL path
+            normalize_url_path(dir_path);
+
+            const auto result = fs::u8path(dir_path);
+            LOG_TRACE << "Final package cache folder path from package_url: '" << result.string()
+                      << "'";
+            return result;
+        }
+
+        // Fallback to old behavior using channel and platform
+        LOG_TRACE << "package_url is empty, falling back to channel/platform-based path";
+
+        const auto platform = s.platform.empty() ? std::string("noarch") : s.platform;
+        std::string channel = s.channel.empty() ? "no_channel" : s.channel;
+
+        // Strip trailing subdir so "https://x/conda-forge/noarch" and "conda-forge/linux-64"
+        // produce the same base path as "https://x/conda-forge" and "conda-forge"
+        if (!platform.empty())
+        {
+            const std::string suffix = "/" + platform;
+            if (util::ends_with(channel, suffix))
+            {
+                channel.resize(channel.size() - suffix.size());
+            }
+        }
+
+        // Normalize the channel URL using the same normalization logic
+        normalize_url_path(channel);
+
+        const auto result = fs::u8path(channel) / platform;
+        LOG_TRACE << "Final package cache folder path from channel/platform: '" << result.string()
+                  << "'";
+
+        return result;
+    }
+
     PackageCacheData::PackageCacheData(const fs::u8path& path)
         : m_path(path)
     {
@@ -67,8 +144,8 @@ namespace mamba
 
     void PackageCacheData::clear_query_cache(const specs::PackageInfo& s)
     {
-        m_valid_tarballs.erase(s.str());
-        m_valid_extracted_dir.erase(s.str());
+        m_valid_tarballs.erase(s.long_str());
+        m_valid_extracted_dir.erase(s.long_str());
     }
 
     void PackageCacheData::check_writable()
@@ -117,7 +194,7 @@ namespace mamba
     bool
     PackageCacheData::has_valid_tarball(const specs::PackageInfo& s, const ValidationParams& params)
     {
-        std::string pkg = s.str();
+        const std::string pkg = s.long_str();
         if (m_valid_tarballs.find(pkg) != m_valid_tarballs.end())
         {
             return m_valid_tarballs[pkg];
@@ -125,13 +202,14 @@ namespace mamba
 
         assert(!s.filename.empty());
         const auto pkg_name = specs::strip_archive_extension(s.filename);
+        const auto folder = package_cache_folder_relative_path(s);
+        const fs::u8path tarball_path = m_path / folder / s.filename;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '" << pkg_name
                   << "'";
 
         bool valid = false;
-        if (fs::exists(m_path / s.filename))
+        if (fs::exists(tarball_path))
         {
-            fs::u8path tarball_path = m_path / s.filename;
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
             valid = s.size == 0 || validation::file_size(tarball_path, s.size);
@@ -237,14 +315,15 @@ namespace mamba
     {
         bool valid = false, can_validate = false;
 
-        std::string pkg = s.str();
+        const std::string pkg = s.long_str();
         if (m_valid_extracted_dir.find(pkg) != m_valid_extracted_dir.end())
         {
             return m_valid_extracted_dir[pkg];
         }
 
         auto pkg_name = specs::strip_archive_extension(s.filename);
-        fs::u8path extracted_dir = m_path / pkg_name;
+        const auto folder = package_cache_folder_relative_path(s);
+        const fs::u8path extracted_dir = m_path / folder / pkg_name;
         LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
                   << pkg_name << "'";
 
@@ -408,6 +487,11 @@ namespace mamba
         {
             m_caches.emplace_back(c);
         }
+        // Ensure root cache directories exist before any operations
+        for (auto& cache : m_caches)
+        {
+            cache.create_directory();
+        }
     }
 
     PackageCacheData& MultiPackageCache::first_writable_cache(bool create)
@@ -462,19 +546,21 @@ namespace mamba
 
     fs::u8path MultiPackageCache::get_tarball_path(const specs::PackageInfo& s, bool return_empty)
     {
-        const std::string pkg(s.str());
+        const std::string pkg(s.long_str());
         const auto cache_iter(m_cached_tarballs.find(pkg));
         if (cache_iter != m_cached_tarballs.end())
         {
             return cache_iter->second;
         }
 
+        const auto folder = package_cache_folder_relative_path(s);
         for (PackageCacheData& c : m_caches)
         {
             if (c.has_valid_tarball(s, m_params))
             {
-                m_cached_tarballs[pkg] = c.path();
-                return c.path();
+                const fs::u8path path = c.path() / folder;
+                m_cached_tarballs[pkg] = path;
+                return path;
             }
         }
 
@@ -492,19 +578,21 @@ namespace mamba
     fs::u8path
     MultiPackageCache::get_extracted_dir_path(const specs::PackageInfo& s, bool return_empty)
     {
-        const std::string pkg(s.str());
+        const std::string pkg(s.long_str());
         const auto cache_iter(m_cached_extracted_dirs.find(pkg));
         if (cache_iter != m_cached_extracted_dirs.end())
         {
             return cache_iter->second;
         }
 
+        const auto folder = package_cache_folder_relative_path(s);
         for (auto& c : m_caches)
         {
             if (c.has_valid_extracted_dir(s, m_params))
             {
-                m_cached_extracted_dirs[pkg] = c.path();
-                return c.path();
+                const fs::u8path path = c.path() / folder;
+                m_cached_extracted_dirs[pkg] = path;
+                return path;
             }
         }
 

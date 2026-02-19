@@ -138,12 +138,6 @@ namespace mamba
                     {
                         bytes.push_back(static_cast<std::byte>(elem.via.u64 & 0xFF));
                     }
-                    else if (elem.type == MSGPACK_OBJECT_NEGATIVE_INTEGER)
-                    {
-                        // Handle negative integers (shouldn't happen for bytes, but handle
-                        // gracefully)
-                        bytes.push_back(static_cast<std::byte>(std::abs(elem.via.i64) & 0xFF));
-                    }
                     else
                     {
                         LOG_WARNING

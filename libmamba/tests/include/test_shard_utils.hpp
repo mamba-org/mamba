@@ -129,17 +129,29 @@ namespace mambatests
         ) -> std::vector<std::uint8_t>;
 
         /**
+         * Hash format enum for specifying how to encode md5/sha256 in msgpack.
+         */
+        enum class HashFormat
+        {
+            String,     ///< As a string
+            Bytes,      ///< As binary data (BIN type)
+            ArrayBytes  ///< As an array of positive integers (bytes)
+        };
+
+        /**
          * Create a shard package record msgpack.
          *
          * @param name Package name
          * @param version Package version
          * @param build Build string
          * @param build_number Build number
-         * @param sha256 SHA256 hash (optional, can be string or bytes)
-         * @param md5 MD5 hash (optional, can be string or bytes)
+         * @param sha256 SHA256 hash (optional, can be string, bytes, or array)
+         * @param md5 MD5 hash (optional, can be string, bytes, or array)
          * @param depends Dependencies
          * @param constrains Constraints
          * @param noarch Noarch type
+         * @param sha256_format Format for sha256 encoding
+         * @param md5_format Format for md5 encoding
          * @return Serialized msgpack data
          */
         auto create_shard_package_record_msgpack(
@@ -152,8 +164,8 @@ namespace mambatests
             const std::vector<std::string>& depends = {},
             const std::vector<std::string>& constrains = {},
             const std::optional<std::string>& noarch = std::nullopt,
-            bool sha256_as_bytes = false,
-            bool md5_as_bytes = false
+            HashFormat sha256_format = HashFormat::String,
+            HashFormat md5_format = HashFormat::String
         ) -> std::vector<std::uint8_t>;
     }
 }

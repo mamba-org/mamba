@@ -323,8 +323,8 @@ namespace mambatests
             const std::vector<std::string>& depends,
             const std::vector<std::string>& constrains,
             const std::optional<std::string>& noarch,
-            bool sha256_as_bytes,
-            bool md5_as_bytes
+            HashFormat sha256_format,
+            HashFormat md5_format
         ) -> std::vector<std::uint8_t>
         {
             msgpack_sbuffer sbuf;
@@ -383,11 +383,12 @@ namespace mambatests
             // sha256 (optional)
             if (sha256.has_value())
             {
-                msgpack_pack_str(&pk, 5);
-                msgpack_pack_str_body(&pk, "sha256", 5);
-                if (sha256_as_bytes)
+                msgpack_pack_str(&pk, 6);
+                msgpack_pack_str_body(&pk, "sha256", 6);
+
+                if (sha256_format == HashFormat::Bytes)
                 {
-                    // Convert hex string to bytes
+                    // Convert hex string to bytes (BIN type)
                     std::vector<std::uint8_t> hash_bytes;
                     hash_bytes.reserve(sha256->size() / 2);
                     for (size_t i = 0; i < sha256->size(); i += 2)
@@ -403,7 +404,29 @@ namespace mambatests
                     msgpack_pack_bin(&pk, hash_bytes.size());
                     msgpack_pack_bin_body(&pk, hash_bytes.data(), hash_bytes.size());
                 }
-                else
+                else if (sha256_format == HashFormat::ArrayBytes)
+                {
+                    // Convert hex string to array of integers (bytes)
+                    std::vector<std::uint8_t> hash_bytes;
+                    hash_bytes.reserve(sha256->size() / 2);
+                    for (size_t i = 0; i < sha256->size(); i += 2)
+                    {
+                        if (i + 1 < sha256->size())
+                        {
+                            std::string byte_str = sha256->substr(i, 2);
+                            hash_bytes.push_back(
+                                static_cast<std::uint8_t>(std::stoul(byte_str, nullptr, 16))
+                            );
+                        }
+                    }
+                    msgpack_pack_array(&pk, hash_bytes.size());
+                    for (const auto& byte : hash_bytes)
+                    {
+                        // Pack as unsigned int (msgpack will encode it efficiently)
+                        msgpack_pack_unsigned_int(&pk, static_cast<unsigned int>(byte));
+                    }
+                }
+                else  // HashFormat::String (default)
                 {
                     msgpack_pack_str(&pk, sha256->size());
                     msgpack_pack_str_body(&pk, sha256->c_str(), sha256->size());
@@ -415,9 +438,10 @@ namespace mambatests
             {
                 msgpack_pack_str(&pk, 3);
                 msgpack_pack_str_body(&pk, "md5", 3);
-                if (md5_as_bytes)
+
+                if (md5_format == HashFormat::Bytes)
                 {
-                    // Convert hex string to bytes
+                    // Convert hex string to bytes (BIN type)
                     std::vector<std::uint8_t> hash_bytes;
                     hash_bytes.reserve(md5->size() / 2);
                     for (size_t i = 0; i < md5->size(); i += 2)
@@ -433,7 +457,29 @@ namespace mambatests
                     msgpack_pack_bin(&pk, hash_bytes.size());
                     msgpack_pack_bin_body(&pk, hash_bytes.data(), hash_bytes.size());
                 }
-                else
+                else if (md5_format == HashFormat::ArrayBytes)
+                {
+                    // Convert hex string to array of integers (bytes)
+                    std::vector<std::uint8_t> hash_bytes;
+                    hash_bytes.reserve(md5->size() / 2);
+                    for (size_t i = 0; i < md5->size(); i += 2)
+                    {
+                        if (i + 1 < md5->size())
+                        {
+                            std::string byte_str = md5->substr(i, 2);
+                            hash_bytes.push_back(
+                                static_cast<std::uint8_t>(std::stoul(byte_str, nullptr, 16))
+                            );
+                        }
+                    }
+                    msgpack_pack_array(&pk, hash_bytes.size());
+                    for (const auto& byte : hash_bytes)
+                    {
+                        // Pack as unsigned int (msgpack will encode it efficiently)
+                        msgpack_pack_unsigned_int(&pk, static_cast<unsigned int>(byte));
+                    }
+                }
+                else  // HashFormat::String (default)
                 {
                     msgpack_pack_str(&pk, md5->size());
                     msgpack_pack_str_body(&pk, md5->c_str(), md5->size());

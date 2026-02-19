@@ -90,9 +90,15 @@ namespace mamba
 
         /**
          * Extract a hash value (sha256 or md5) from a msgpack object.
-         * Handles string, binary, and extension types, converting bytes to hex strings.
+         * Handles string, binary, extension, and array types, converting bytes to hex strings.
+         *
+         * @param obj The msgpack object containing the hash
+         * @param field_name The name of the field (for error messages)
+         * @return The hash as a hex string, or empty string if parsing fails
          */
-        auto msgpack_object_to_hash_string(const msgpack_object& obj) -> std::string
+        auto
+        msgpack_object_to_hash_string(const msgpack_object& obj, const std::string& field_name = "")
+            -> std::string
         {
             if (obj.type == MSGPACK_OBJECT_STR)
             {
@@ -114,16 +120,62 @@ namespace mamba
                     reinterpret_cast<const std::byte*>(obj.via.ext.ptr + obj.via.ext.size)
                 );
             }
+            else if (obj.type == MSGPACK_OBJECT_ARRAY)
+            {
+                // Handle array type - array of positive integers (bytes)
+                if (obj.via.array.size == 0)
+                {
+                    return std::string();
+                }
+
+                // Array of bytes (positive integers) - convert to hex string
+                std::vector<std::byte> bytes;
+                bytes.reserve(obj.via.array.size);
+                for (std::uint32_t i = 0; i < obj.via.array.size; ++i)
+                {
+                    const msgpack_object& elem = obj.via.array.ptr[i];
+                    if (elem.type == MSGPACK_OBJECT_POSITIVE_INTEGER)
+                    {
+                        bytes.push_back(static_cast<std::byte>(elem.via.u64 & 0xFF));
+                    }
+                    else if (elem.type == MSGPACK_OBJECT_NEGATIVE_INTEGER)
+                    {
+                        // Handle negative integers (shouldn't happen for bytes, but handle
+                        // gracefully)
+                        bytes.push_back(static_cast<std::byte>(std::abs(elem.via.i64) & 0xFF));
+                    }
+                    else
+                    {
+                        LOG_WARNING
+                            << "Array element " << i << " in " << field_name
+                            << " is not a positive integer (type: " << static_cast<int>(elem.type)
+                            << "), cannot convert to bytes";
+                        return std::string();
+                    }
+                }
+                return util::bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size());
+            }
+            else if (obj.type == MSGPACK_OBJECT_NIL)
+            {
+                // Nil is allowed for optional fields, return empty string
+                return std::string();
+            }
             else
             {
-                // Try to convert as string
+                // Try to convert as string for other types (e.g., positive/negative integers)
                 try
                 {
                     return msgpack_object_to_string(obj);
                 }
-                catch (...)
+                catch (const std::exception& e)
                 {
-                    // Return empty string if conversion fails
+                    std::string error_msg = "Failed to parse "
+                                            + (field_name.empty() ? "hash" : field_name)
+                                            + " from msgpack: unexpected type "
+                                            + std::to_string(static_cast<int>(obj.type));
+                    LOG_ERROR << error_msg << ": " << e.what();
+                    // Return empty string - validation will check that at least one checksum is
+                    // present
                     return std::string();
                 }
             }
@@ -191,11 +243,19 @@ namespace mamba
                     }
                     else if (key == "sha256")
                     {
-                        record.sha256 = msgpack_object_to_hash_string(val_obj);
+                        std::string hash = msgpack_object_to_hash_string(val_obj, "sha256");
+                        if (!hash.empty())
+                        {
+                            record.sha256 = hash;
+                        }
                     }
                     else if (key == "md5")
                     {
-                        record.md5 = msgpack_object_to_hash_string(val_obj);
+                        std::string hash = msgpack_object_to_hash_string(val_obj, "md5");
+                        if (!hash.empty())
+                        {
+                            record.md5 = hash;
+                        }
                     }
                     else if (key == "depends")
                     {
@@ -261,6 +321,17 @@ namespace mamba
                                 << ") in ShardPackageRecord: " << e.what();
                     // Continue parsing other fields
                 }
+            }
+
+            // Validate that at least one checksum (md5 or sha256) is present
+            // Shards must have checksums for package verification
+            if (!record.sha256.has_value() && !record.md5.has_value())
+            {
+                throw std::runtime_error(
+                    "Shard package record for '" + record.name
+                    + "' is missing both md5 and sha256 checksums. "
+                    + "At least one checksum is required."
+                );
             }
 
             return record;

@@ -222,8 +222,8 @@ TEST_CASE("Shard parsing - Package record parsing")
             {},
             {},
             std::nullopt,
-            true,  // sha256_as_bytes
-            false
+            HashFormat::Bytes,  // sha256_as_bytes
+            HashFormat::String
         );
 
         msgpack_unpacked unpacked = {};
@@ -252,8 +252,8 @@ TEST_CASE("Shard parsing - Package record parsing")
             {},
             {},
             std::nullopt,
-            false,
-            true  // md5_as_bytes
+            HashFormat::String,
+            HashFormat::Bytes  // md5_as_bytes
         );
 
         msgpack_unpacked unpacked = {};
@@ -284,6 +284,243 @@ TEST_CASE("Shard parsing - Package record parsing")
         );
 
         REQUIRE(unpacked.data.type == MSGPACK_OBJECT_MAP);
+
+        msgpack_zone_destroy(unpacked.zone);
+    }
+
+    SECTION("Parse package record with sha256 as array of bytes")
+    {
+        const std::string expected_sha256 = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+        auto msgpack_data = create_shard_package_record_msgpack(
+            "test-pkg",
+            "1.0.0",
+            "0",
+            0,
+            expected_sha256,
+            std::nullopt,
+            {},
+            {},
+            std::nullopt,
+            HashFormat::ArrayBytes,
+            HashFormat::String
+        );
+
+        msgpack_unpacked unpacked = {};
+        size_t offset = 0;
+        msgpack_unpack_return ret = msgpack_unpack_next(
+            &unpacked,
+            reinterpret_cast<const char*>(msgpack_data.data()),
+            msgpack_data.size(),
+            &offset
+        );
+
+        REQUIRE(ret == MSGPACK_UNPACK_SUCCESS);
+        REQUIRE(unpacked.data.type == MSGPACK_OBJECT_MAP);
+
+        // Verify sha256 is stored as array of positive integers (bytes)
+        bool found_sha256 = false;
+        for (std::uint32_t i = 0; i < unpacked.data.via.map.size; ++i)
+        {
+            const msgpack_object& key_obj = unpacked.data.via.map.ptr[i].key;
+            const msgpack_object& val_obj = unpacked.data.via.map.ptr[i].val;
+
+            if (key_obj.type == MSGPACK_OBJECT_STR)
+            {
+                std::string key(reinterpret_cast<const char*>(key_obj.via.str.ptr), key_obj.via.str.size);
+                if (key == "sha256")
+                {
+                    found_sha256 = true;
+                    REQUIRE(val_obj.type == MSGPACK_OBJECT_ARRAY);
+                    REQUIRE(val_obj.via.array.size == 32);  // sha256 is 32 bytes = 64 hex chars / 2
+                    // Verify first element is a positive integer
+                    REQUIRE(val_obj.via.array.ptr[0].type == MSGPACK_OBJECT_POSITIVE_INTEGER);
+                    break;
+                }
+            }
+        }
+        REQUIRE(found_sha256);
+
+        msgpack_zone_destroy(unpacked.zone);
+    }
+
+    SECTION("Parse package record with md5 as array of bytes")
+    {
+        const std::string expected_md5 = "12345678901234567890123456789012";
+        auto msgpack_data = create_shard_package_record_msgpack(
+            "test-pkg",
+            "1.0.0",
+            "0",
+            0,
+            std::nullopt,
+            expected_md5,
+            {},
+            {},
+            std::nullopt,
+            HashFormat::String,
+            HashFormat::ArrayBytes
+        );
+
+        msgpack_unpacked unpacked = {};
+        size_t offset = 0;
+        msgpack_unpack_return ret = msgpack_unpack_next(
+            &unpacked,
+            reinterpret_cast<const char*>(msgpack_data.data()),
+            msgpack_data.size(),
+            &offset
+        );
+
+        REQUIRE(ret == MSGPACK_UNPACK_SUCCESS);
+        REQUIRE(unpacked.data.type == MSGPACK_OBJECT_MAP);
+
+        // Verify md5 is stored as array of positive integers (bytes)
+        bool found_md5 = false;
+        for (std::uint32_t i = 0; i < unpacked.data.via.map.size; ++i)
+        {
+            const msgpack_object& key_obj = unpacked.data.via.map.ptr[i].key;
+            const msgpack_object& val_obj = unpacked.data.via.map.ptr[i].val;
+
+            if (key_obj.type == MSGPACK_OBJECT_STR)
+            {
+                std::string key(reinterpret_cast<const char*>(key_obj.via.str.ptr), key_obj.via.str.size);
+                if (key == "md5")
+                {
+                    found_md5 = true;
+                    REQUIRE(val_obj.type == MSGPACK_OBJECT_ARRAY);
+                    REQUIRE(val_obj.via.array.size == 16);  // md5 is 16 bytes = 32 hex chars / 2
+                    // Verify first element is a positive integer
+                    REQUIRE(val_obj.via.array.ptr[0].type == MSGPACK_OBJECT_POSITIVE_INTEGER);
+                    break;
+                }
+            }
+        }
+        REQUIRE(found_md5);
+
+        msgpack_zone_destroy(unpacked.zone);
+    }
+
+    SECTION("Parse package record with both checksums as arrays")
+    {
+        const std::string expected_sha256 = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+        const std::string expected_md5 = "12345678901234567890123456789012";
+        auto msgpack_data = create_shard_package_record_msgpack(
+            "test-pkg",
+            "1.0.0",
+            "0",
+            0,
+            expected_sha256,
+            expected_md5,
+            {},
+            {},
+            std::nullopt,
+            HashFormat::ArrayBytes,
+            HashFormat::ArrayBytes
+        );
+
+        msgpack_unpacked unpacked = {};
+        size_t offset = 0;
+        msgpack_unpack_return ret = msgpack_unpack_next(
+            &unpacked,
+            reinterpret_cast<const char*>(msgpack_data.data()),
+            msgpack_data.size(),
+            &offset
+        );
+
+        REQUIRE(ret == MSGPACK_UNPACK_SUCCESS);
+        REQUIRE(unpacked.data.type == MSGPACK_OBJECT_MAP);
+
+        // Verify both checksums are stored as arrays of positive integers (bytes)
+        bool found_sha256 = false;
+        bool found_md5 = false;
+        for (std::uint32_t i = 0; i < unpacked.data.via.map.size; ++i)
+        {
+            const msgpack_object& key_obj = unpacked.data.via.map.ptr[i].key;
+            const msgpack_object& val_obj = unpacked.data.via.map.ptr[i].val;
+
+            if (key_obj.type == MSGPACK_OBJECT_STR)
+            {
+                std::string key(reinterpret_cast<const char*>(key_obj.via.str.ptr), key_obj.via.str.size);
+                if (key == "sha256")
+                {
+                    found_sha256 = true;
+                    REQUIRE(val_obj.type == MSGPACK_OBJECT_ARRAY);
+                    REQUIRE(val_obj.via.array.size == 32);
+                    // Verify first element is a positive integer
+                    REQUIRE(val_obj.via.array.ptr[0].type == MSGPACK_OBJECT_POSITIVE_INTEGER);
+                }
+                else if (key == "md5")
+                {
+                    found_md5 = true;
+                    REQUIRE(val_obj.type == MSGPACK_OBJECT_ARRAY);
+                    REQUIRE(val_obj.via.array.size == 16);
+                    // Verify first element is a positive integer
+                    REQUIRE(val_obj.via.array.ptr[0].type == MSGPACK_OBJECT_POSITIVE_INTEGER);
+                }
+            }
+        }
+        REQUIRE(found_sha256);
+        REQUIRE(found_md5);
+
+        msgpack_zone_destroy(unpacked.zone);
+    }
+
+    SECTION("Parse package record with mixed hash formats")
+    {
+        const std::string expected_sha256 = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
+        const std::string expected_md5 = "12345678901234567890123456789012";
+        auto msgpack_data = create_shard_package_record_msgpack(
+            "test-pkg",
+            "1.0.0",
+            "0",
+            0,
+            expected_sha256,
+            expected_md5,
+            {},
+            {},
+            std::nullopt,
+            HashFormat::ArrayBytes,  // sha256 as array of bytes (integers)
+            HashFormat::Bytes        // md5 as binary
+        );
+
+        msgpack_unpacked unpacked = {};
+        size_t offset = 0;
+        msgpack_unpack_return ret = msgpack_unpack_next(
+            &unpacked,
+            reinterpret_cast<const char*>(msgpack_data.data()),
+            msgpack_data.size(),
+            &offset
+        );
+
+        REQUIRE(ret == MSGPACK_UNPACK_SUCCESS);
+        REQUIRE(unpacked.data.type == MSGPACK_OBJECT_MAP);
+
+        // Verify formats
+        bool found_sha256 = false;
+        bool found_md5 = false;
+        for (std::uint32_t i = 0; i < unpacked.data.via.map.size; ++i)
+        {
+            const msgpack_object& key_obj = unpacked.data.via.map.ptr[i].key;
+            const msgpack_object& val_obj = unpacked.data.via.map.ptr[i].val;
+
+            if (key_obj.type == MSGPACK_OBJECT_STR)
+            {
+                std::string key(reinterpret_cast<const char*>(key_obj.via.str.ptr), key_obj.via.str.size);
+                if (key == "sha256")
+                {
+                    found_sha256 = true;
+                    REQUIRE(val_obj.type == MSGPACK_OBJECT_ARRAY);
+                    REQUIRE(val_obj.via.array.size == 32);  // sha256 is 32 bytes
+                    // Verify first element is a positive integer
+                    REQUIRE(val_obj.via.array.ptr[0].type == MSGPACK_OBJECT_POSITIVE_INTEGER);
+                }
+                else if (key == "md5")
+                {
+                    found_md5 = true;
+                    REQUIRE(val_obj.type == MSGPACK_OBJECT_BIN);
+                }
+            }
+        }
+        REQUIRE(found_sha256);
+        REQUIRE(found_md5);
 
         msgpack_zone_destroy(unpacked.zone);
     }

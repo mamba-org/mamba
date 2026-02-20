@@ -493,12 +493,6 @@ namespace mamba
                 }
             }
 
-            auto validation_safety_checks = ctx.validation_params.safety_checks;
-            if (ctx.repodata_use_shards)
-            {
-                ctx.validation_params.safety_checks = VerificationLevel::Disabled;
-            }
-
             std::set<std::string> loaded_subdirs_with_shards;
             bool loading_failed = false;
 
@@ -600,7 +594,6 @@ namespace mamba
                 }
             }
 
-            ctx.validation_params.safety_checks = validation_safety_checks;
             if (loading_failed)
             {
                 bool should_retry = !ctx.offline && !is_retry;

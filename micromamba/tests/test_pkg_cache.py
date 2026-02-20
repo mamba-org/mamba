@@ -313,12 +313,18 @@ def same_repodata_json_solv(cache: Path):
 class TestMultiplePkgCaches:
     @pytest.mark.parametrize("which_cache", ["tmp_cache", "tmp_cache_alt"])
     def test_different_caches(
-        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt, which_cache
+        self,
+        tmp_home,
+        tmp_root_prefix,
+        tmp_cache,
+        tmp_cache_alt,
+        which_cache,
+        monkeypatch,
     ):
         # Test parametrization
         cache = {"tmp_cache": tmp_cache, "tmp_cache_alt": tmp_cache_alt}[which_cache]
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{cache}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{cache}")
         env_name = "some_env"
         res = helpers.create(
             "-n", env_name, package_to_check_requirements(), "-v", "--json", no_dry_run=True
@@ -349,8 +355,9 @@ class TestMultiplePkgCaches:
         tmp_cache_writable,
         tmp_cache,
         tmp_cache_alt,
+        monkeypatch,
     ):
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache},{tmp_cache_alt}")
 
         env_name = "some_env"
         res = helpers.create(
@@ -378,15 +385,17 @@ class TestMultiplePkgCaches:
         assert linked_file.stat().st_dev == cache_file.stat().st_dev
         assert linked_file.stat().st_ino == cache_file.stat().st_ino
 
-    def test_no_writable(self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt):
+    def test_no_writable(self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt, monkeypatch):
         helpers.rmtree(tmp_cache / find_pkg_build(tmp_cache, package_to_check))
         helpers.recursive_chmod(tmp_cache, 0o500)
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache},{tmp_cache_alt}")
 
         helpers.create("-n", "myenv", package_to_check_requirements(), "--json", no_dry_run=True)
 
-    def test_no_writable_extracted_dir_corrupted(self, tmp_home, tmp_root_prefix, tmp_cache):
+    def test_no_writable_extracted_dir_corrupted(
+        self, tmp_home, tmp_root_prefix, tmp_cache, monkeypatch
+    ):
         old_cache_dir = tmp_cache / find_pkg_build(tmp_cache, package_to_check)
         if old_cache_dir.is_dir():
             files = glob.glob(
@@ -396,7 +405,7 @@ class TestMultiplePkgCaches:
                 (old_cache_dir / file).unlink()
         helpers.recursive_chmod(tmp_cache, 0o500)
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache}")
 
         # Mamba now handles corrupted extracted directories in read-only caches gracefully
         # by extracting to a temporary location, so the operation should succeed
@@ -405,7 +414,7 @@ class TestMultiplePkgCaches:
         )
 
     def test_first_writable_extracted_dir_corrupted(
-        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
+        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt, monkeypatch
     ):
         test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
         helpers.rmtree(tmp_cache)  # convenience for cache teardown
@@ -419,7 +428,7 @@ class TestMultiplePkgCaches:
             for file in files:
                 helpers.rmtree(file)
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache},{tmp_cache_alt}")
         env_name = "myenv"
 
         helpers.create(
@@ -460,13 +469,14 @@ class TestMultiplePkgCaches:
         tmp_cache,
         tmp_cache_alt,
         tmp_cache_test_package_dir,
+        monkeypatch,
     ):
         test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
         helpers.rmtree(find_cache_archive(tmp_cache, test_pkg_bld))
         helpers.rmtree(tmp_cache_alt)
         helpers.recursive_chmod(tmp_cache, 0o500)
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache},{tmp_cache_alt}")
         env_name = "myenv"
 
         helpers.create("-n", env_name, package_to_check_requirements(), "--json", no_dry_run=True)
@@ -499,14 +509,14 @@ class TestMultiplePkgCaches:
         assert linked_file.stat().st_ino == non_writable_cache_file.stat().st_ino
 
     def test_missing_extracted_dir_in_non_writable_cache(
-        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
+        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt, monkeypatch
     ):
         test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
         helpers.rmtree(tmp_cache / test_pkg_bld)
         helpers.rmtree(tmp_cache_alt)
         helpers.recursive_chmod(tmp_cache, 0o500)
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache},{tmp_cache_alt}")
         env_name = "myenv"
 
         helpers.create("-n", env_name, package_to_check_requirements(), "--json", no_dry_run=True)
@@ -539,7 +549,7 @@ class TestMultiplePkgCaches:
         assert linked_file.stat().st_ino == writable_cache_file.stat().st_ino
 
     def test_corrupted_extracted_dir_in_non_writable_cache(
-        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
+        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt, monkeypatch
     ):
         test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
         tmp_cache_test_pkg_dir = Path(tmp_cache / test_pkg_bld)
@@ -552,7 +562,7 @@ class TestMultiplePkgCaches:
         os.makedirs(tmp_cache_alt)
         helpers.recursive_chmod(tmp_cache, 0o500)
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache},{tmp_cache_alt}")
         env_name = "myenv"
 
         helpers.create(
@@ -591,12 +601,12 @@ class TestMultiplePkgCaches:
         assert linked_file.stat().st_ino == writable_cache_file.stat().st_ino
 
     def test_expired_but_valid_repodata_in_non_writable_cache(
-        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
+        self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt, monkeypatch
     ):
         helpers.rmtree(tmp_cache_alt)
         helpers.recursive_chmod(tmp_cache, 0o500)
 
-        os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache},{tmp_cache_alt}"
+        monkeypatch.setenv("CONDA_PKGS_DIRS", f"{tmp_cache},{tmp_cache_alt}")
         env_name = "myenv"
         test_pkg_bld = find_pkg_build(tmp_cache, package_to_check)
 

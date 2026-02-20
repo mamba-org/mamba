@@ -27,7 +27,7 @@ namespace mamba
     auto load_subdir_in_database(  //
         const Context& ctx,
         solver::libsolv::Database& database,
-        const SubdirIndexLoader& subdir
+        const SubdirIndexLoader& subdir_index_loader
     ) -> expected_t<solver::libsolv::RepoInfo>;
 
     auto load_installed_packages_in_database(

@@ -31,12 +31,13 @@ namespace mamba
                 // TODO : us tl::expected mechanism
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
-            auto sprefix_data = PrefixData::create(pkgs_dir, channel_context);
-            if (!sprefix_data)
+            // Create PrefixData from pkgs_dir to load installed packages
+            expected_t<PrefixData> prefix_data_result = PrefixData::create(pkgs_dir, channel_context);
+            if (!prefix_data_result)
             {
                 throw std::runtime_error("Specified pkgs_dir does not exist\n");
             }
-            PrefixData& prefix_data = sprefix_data.value();
+            PrefixData& prefix_data = prefix_data_result.value();
             for (const auto& entry : fs::directory_iterator(pkgs_dir))
             {
                 fs::u8path repodata_record_json = entry.path() / "info" / "repodata_record.json";
@@ -54,18 +55,18 @@ namespace mamba
             ChannelContext& channel_context,
             const specs::Channel& channel,
             MultiPackageCache& package_caches,
-            std::vector<SubdirIndexLoader>& subdirs,
+            std::vector<SubdirIndexLoader>& subdir_index_loaders,
             std::vector<mamba_error>& error_list,
             std::vector<solver::libsolv::Priorities>& priorities,
             int& max_prio,
-            specs::CondaURL& prev_channel_url
+            specs::CondaURL& previous_channel_url
         )
         {
             static bool has_shown_anaconda_channel_warning = false;
             for (const auto& platform : channel.platforms())
             {
-                auto show_warning = ctx.show_anaconda_channel_warnings;
-                auto channel_name = channel.platform_url(platform).host();
+                bool show_warning = ctx.show_anaconda_channel_warnings;
+                std::string channel_name = channel.platform_url(platform).host();
                 if (channel_name == "repo.anaconda.com" && show_warning
                     && !has_shown_anaconda_channel_warning)
                 {
@@ -76,27 +77,31 @@ namespace mamba
                     LOG_WARNING << "See: https://legal.anaconda.com/policies/en/";
                 }
 
-                auto subdir_params = ctx.subdir_params();
+                SubdirParams subdir_params = ctx.subdir_params();
                 subdir_params.repodata_force_use_zst = channel_context.has_zst(channel);
-                auto sdires = SubdirIndexLoader::create(
+
+
+                // Create SubdirIndexLoader for this platform; handle errors gracefully
+                expected_t<SubdirIndexLoader> subdir_index_loader_result = SubdirIndexLoader::create(
                     subdir_params,
                     channel,
                     platform,
                     package_caches,
                     "repodata.json"
                 );
-                if (!sdires.has_value())
+                if (!subdir_index_loader_result.has_value())
                 {
-                    error_list.push_back(std::move(sdires).error());
+                    error_list.push_back(std::move(subdir_index_loader_result).error());
                     continue;
                 }
-                auto sdir = std::move(sdires).value();
-                if (sdir.valid_cache_found())
+                SubdirIndexLoader subdir_index_loader = std::move(subdir_index_loader_result).value();
+                if (subdir_index_loader.valid_cache_found())
                 {
-                    Console::stream() << fmt::format("{:<50} {:>20}", sdir.name(), "Using cache");
+                    Console::stream()
+                        << fmt::format("{:<50} {:>20}", subdir_index_loader.name(), "Using cache");
                 }
 
-                subdirs.push_back(std::move(sdir));
+                subdir_index_loaders.push_back(std::move(subdir_index_loader));
                 if (ctx.channel_priority == ChannelPriority::Disabled)
                 {
                     priorities.push_back({ /* .priority= */ 0, /* .subpriority= */ 0 });
@@ -104,10 +109,10 @@ namespace mamba
                 else
                 {
                     // Consider 'flexible' and 'strict' the same way
-                    if (channel.url() != prev_channel_url)
+                    if (channel.url() != previous_channel_url)
                     {
                         max_prio--;
-                        prev_channel_url = channel.url();
+                        previous_channel_url = channel.url();
                     }
                     priorities.push_back({ /* .priority= */ max_prio, /* .subpriority= */ 0 });
                 }
@@ -140,15 +145,19 @@ namespace mamba
 
             std::vector<solver::libsolv::Priorities> priorities;
             int max_prio = static_cast<int>(ctx.channels.size());
-            auto prev_channel_url = specs::CondaURL();
+            specs::CondaURL previous_channel_url;
 
             Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
             std::vector<mamba_error> error_list;
 
+            // Process mirrored channels: create channel objects, configure mirrors, and initialize
+            // subdirs for each platform. Mirrored channels use alternative URLs for redundancy and
+            // performance.
             for (const auto& mirror : ctx.mirrored_channels)
             {
-                for (auto channel : channel_context.make_channel(mirror.first, mirror.second))
+                for (const specs::Channel& channel :
+                     channel_context.make_channel(mirror.first, mirror.second))
                 {
                     create_mirrors(channel, ctx.mirrors);
                     create_subdirs(
@@ -160,26 +169,32 @@ namespace mamba
                         error_list,
                         priorities,
                         max_prio,
-                        prev_channel_url
+                        previous_channel_url
                     );
                 }
             }
 
-            auto packages = std::vector<specs::PackageInfo>();
+            std::vector<specs::PackageInfo> packages;
 
+            // Process regular (non-mirrored) channels: skip channels already handled as mirrored
+            // channels, then handle two cases:
+            //  - (1) package URLs are extracted as PackageInfo and collected separately,
+            //  - (2) regular channel URLs have mirrors configured and subdirs initialized for each
+            //  platform.
             for (const auto& location : ctx.channels)
             {
-                // TODO: C++20, replace with contains
-                if (ctx.mirrored_channels.find(location) == ctx.mirrored_channels.end())
+                if (!ctx.mirrored_channels.contains(location))
                 {
-                    for (auto channel : channel_context.make_channel(location))
+                    for (const specs::Channel& channel : channel_context.make_channel(location))
                     {
                         if (channel.is_package())
                         {
-                            auto pkg_info = specs::PackageInfo::from_url(channel.url().str())
-                                                .or_else([](specs::ParseError&& err)
-                                                         { throw std::move(err); })
-                                                .value();
+                            specs::PackageInfo pkg_info = specs::PackageInfo::from_url(
+                                                              channel.url().str()
+                            )
+                                                              .or_else([](specs::ParseError&& err)
+                                                                       { throw std::move(err); })
+                                                              .value();
                             packages.push_back(pkg_info);
                             continue;
                         }
@@ -194,7 +209,7 @@ namespace mamba
                             error_list,
                             priorities,
                             max_prio,
-                            prev_channel_url
+                            previous_channel_url
                         );
                     }
                 }
@@ -205,45 +220,35 @@ namespace mamba
                 database.add_repo_from_packages(packages, "packages");
             }
 
-            expected_t<void> download_res;
-            if (SubdirIndexMonitor::can_monitor(ctx))
-            {
-                SubdirIndexMonitor check_monitor({ true, true });
-                SubdirIndexMonitor index_monitor;
-                download_res = SubdirIndexLoader::download_required_indexes(
-                    subdirs,
-                    ctx.subdir_download_params(),
-                    ctx.authentication_info(),
-                    ctx.mirrors,
-                    ctx.download_options(),
-                    ctx.remote_fetch_params,
-                    &check_monitor,
-                    &index_monitor
-                );
-            }
-            else
-            {
-                download_res = SubdirIndexLoader::download_required_indexes(
-                    subdirs,
-                    ctx.subdir_download_params(),
-                    ctx.authentication_info(),
-                    ctx.mirrors,
-                    ctx.download_options(),
-                    ctx.remote_fetch_params
-                );
-            }
+            // Download required repodata indexes, with or without progress monitors
+            expected_t<void> download_result;
+            bool can_monitor = SubdirIndexMonitor::can_monitor(ctx);
+            SubdirIndexMonitor check_monitor({ true, true });
+            SubdirIndexMonitor index_monitor;
+            download_result = SubdirIndexLoader::download_required_indexes(
+                subdirs,
+                ctx.subdir_download_params(),
+                ctx.authentication_info(),
+                ctx.mirrors,
+                ctx.download_options(),
+                ctx.remote_fetch_params,
+                can_monitor ? &check_monitor : nullptr,
+                can_monitor ? &index_monitor : nullptr
+            );
 
-            if (!download_res)
+            // Handle download errors: check for user interruption and add to error list
+            if (!download_result)
             {
-                mamba_error error = download_res.error();
-                mamba_error_code ec = error.error_code();
+                mamba_error error = download_result.error();
+                mamba_error_code error_code = error.error_code();
                 error_list.push_back(std::move(error));
-                if (ec == mamba_error_code::user_interrupted)
+                if (error_code == mamba_error_code::user_interrupted)
                 {
                     return tl::unexpected(mamba_aggregated_error(std::move(error_list), false));
                 }
             }
 
+            // In offline mode, load packages from local pkgs_dir
             if (ctx.offline)
             {
                 LOG_INFO << "Creating repo from pkgs_dir for offline";
@@ -252,51 +257,65 @@ namespace mamba
                     create_repo_from_pkgs_dir(ctx, channel_context, database, c);
                 }
             }
-            std::string prev_channel;
+            std::string previous_channel;
             bool loading_failed = false;
+
+            // Load each subdir into the database, handling retry logic for corrupted cache
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
-                auto& subdir = subdirs[i];
-                if (!subdir.valid_cache_found())
+                SubdirIndexLoader& subdir_index_loader = subdirs[i];
+                const solver::libsolv::Priorities& subdir_priorities = priorities[i];
+
+                if (!subdir_index_loader.valid_cache_found())
                 {
-                    if (!ctx.offline && subdir.is_noarch())
+                    if (!ctx.offline && subdir_index_loader.is_noarch())
                     {
                         error_list.push_back(mamba_error(
-                            "Subdir " + subdir.name() + " not loaded!",
+                            "Subdir " + subdir_index_loader.name() + " not loaded!",
                             mamba_error_code::subdirdata_not_loaded
                         ));
                     }
                     continue;
                 }
 
-                auto result = load_subdir_in_database(ctx, database, subdir);
-                if (result)
+                expected_t<solver::libsolv::RepoInfo> subdir_repo_info = load_subdir_in_database(
+                    ctx,
+                    database,
+                    subdir_index_loader
+                );
+                if (subdir_repo_info)
                 {
-                    database.set_repo_priority(std::move(result).value(), priorities[i]);
+                    database.set_repo_priority(std::move(subdir_repo_info).value(), subdir_priorities);
                 }
                 else if (is_retry)
                 {
-                    std::stringstream ss;
-                    ss << "Could not load repodata.json for " << subdir.name() << " after retry."
-                       << "Please check repodata source. Exiting." << std::endl;
-                    error_list.push_back(mamba_error(ss.str(), mamba_error_code::repodata_not_loaded));
+                    // Already retried once, report error and exit
+                    std::stringstream error_message_stream;
+                    error_message_stream << "Could not load repodata.json for "
+                                         << subdir_index_loader.name() << " after retry."
+                                         << "Please check repodata source. Exiting." << std::endl;
+                    error_list.push_back(
+                        mamba_error(error_message_stream.str(), mamba_error_code::repodata_not_loaded)
+                    );
                 }
                 else
                 {
-                    LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                    // First failure: clear cache and mark for retry
+                    LOG_WARNING << "Could not load repodata.json for " << subdir_index_loader.name()
                                 << ". Deleting cache, and retrying.";
-                    subdir.clear_valid_cache_files();
+                    subdir_index_loader.clear_valid_cache_files();
                     loading_failed = true;
                 }
             }
 
+            // Retry logic: if loading failed and we haven't retried yet, retry once
             if (loading_failed)
             {
-                if (!ctx.offline && !is_retry)
+                bool should_retry = !ctx.offline && !is_retry;
+                if (should_retry)
                 {
                     LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                    bool retry = true;
-                    return load_channels_impl(ctx, channel_context, database, package_caches, retry);
+                    return load_channels_impl(ctx, channel_context, database, package_caches, true);
                 }
                 error_list.emplace_back(
                     "Could not load repodata. Cache corrupted?",
@@ -324,7 +343,8 @@ namespace mamba
     {
         for (const auto& mirror : context.mirrored_channels)
         {
-            for (auto channel : channel_context.make_channel(mirror.first, mirror.second))
+            for (const specs::Channel& channel :
+                 channel_context.make_channel(mirror.first, mirror.second))
             {
                 create_mirrors(channel, context.mirrors);
             }
@@ -332,10 +352,9 @@ namespace mamba
 
         for (const auto& location : context.channels)
         {
-            // TODO: C++20, replace with contains
-            if (context.mirrored_channels.find(location) == context.mirrored_channels.end())
+            if (!context.mirrored_channels.contains(location))
             {
-                for (auto channel : channel_context.make_channel(location))
+                for (const specs::Channel& channel : channel_context.make_channel(location))
                 {
                     create_mirrors(channel, context.mirrors);
                 }
@@ -351,10 +370,11 @@ namespace mamba
     {
         for (const auto& spec : specs)
         {
-            auto pkg_info = specs::PackageInfo::from_url(spec)
-                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                .value();
-            for (auto channel : channel_context.make_channel(pkg_info.channel))
+            specs::PackageInfo pkg_info = specs::PackageInfo::from_url(spec)
+                                              .or_else([](specs::ParseError&& err)
+                                                       { throw std::move(err); })
+                                              .value();
+            for (const specs::Channel& channel : channel_context.make_channel(pkg_info.channel))
             {
                 create_mirrors(channel, context.mirrors);
             }

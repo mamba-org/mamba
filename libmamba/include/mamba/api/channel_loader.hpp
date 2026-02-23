@@ -7,6 +7,7 @@
 #ifndef MAMBA_API_CHANNEL_LOADER_HPP
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -17,8 +18,38 @@ namespace mamba
     namespace solver::libsolv
     {
         class Database;
+        struct Priorities;
+        class RepoInfo;
     }
     class Context;
+    class SubdirIndexLoader;
+
+    /**
+     * Load a single subdir using sharded repodata (only reachable packages).
+     *
+     * Uses the shard index and per-package shards to load just the packages reachable from
+     * \p root_packages via dependencies, instead of the full repodata. Fails fast if shards
+     * are disabled, not up-to-date, or \p root_packages is empty.
+     *
+     * @param ctx Context (repodata_use_shards, shard TTL, download params, etc.).
+     * @param database Libsolv database to add repos into.
+     * @param root_packages Root package names for reachability (e.g. install specs).
+     * @param subdirs All subdir loaders; \p subdir_idx is the one to load.
+     * @param subdir_idx Index of the subdir to load in \p subdirs.
+     * @param loaded_subdirs_with_shards Set of subdir names already loaded via shards (updated).
+     * @param priorities Repo priorities aligned with \p subdirs.
+     * @return The repo for the requested subdir, or unexpected mamba_error on failure.
+     */
+    auto load_subdir_with_shards(
+        Context& ctx,
+        solver::libsolv::Database& database,
+        const std::vector<std::string>& root_packages,
+        std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t subdir_idx,
+        std::set<std::string>& loaded_subdirs_with_shards,
+        const std::vector<solver::libsolv::Priorities>& priorities
+    ) -> expected_t<solver::libsolv::RepoInfo>;
+
     class ChannelContext;
     class MultiPackageCache;
 

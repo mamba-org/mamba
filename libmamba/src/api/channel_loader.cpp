@@ -22,6 +22,7 @@
 #include "mamba/core/subdir_index.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/specs/error.hpp"
 #include "mamba/specs/package_info.hpp"
 
 namespace mamba
@@ -142,167 +143,216 @@ namespace mamba
             }
         }
 
-        auto load_subdir_with_shards(
-            Context& ctx,
-            solver::libsolv::Database& database,
-            const std::vector<std::string>& root_packages,
-            std::vector<SubdirIndexLoader>& subdirs,
-            std::size_t subdir_idx,
-            std::set<std::string>& loaded_subdirs_with_shards,
-            const std::vector<solver::libsolv::Priorities>& priorities
-        ) -> expected_t<solver::libsolv::RepoInfo>
+    }  // anonymous namespace
+
+    auto load_subdir_with_shards(
+        Context& ctx,
+        solver::libsolv::Database& database,
+        const std::vector<std::string>& root_packages,
+        std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t subdir_idx,
+        std::set<std::string>& loaded_subdirs_with_shards,
+        const std::vector<solver::libsolv::Priorities>& priorities
+    ) -> expected_t<solver::libsolv::RepoInfo>
+    {
+        auto& subdir = subdirs[subdir_idx];
+        LOG_DEBUG << "Attempting to load subdir with shards: " << subdir.name();
+
+        // Return error if shards are not applicable (disabled, stale metadata, or no roots).
+        if (!ctx.repodata_use_shards
+            || !subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
+            || root_packages.empty())
         {
-            auto& subdir = subdirs[subdir_idx];
-            if (!ctx.repodata_use_shards
-                || !subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
-                || root_packages.empty())
-            {
-                return tl::unexpected(mamba_error("Shards not applicable", mamba_error_code::unknown));
-            }
-
-            auto subdir_params = ctx.subdir_download_params();
-            auto shard_index_result = ShardIndexLoader::fetch_and_parse_shard_index(
-                subdir,
-                subdir_params,
-                ctx.authentication_info(),
-                ctx.mirrors,
-                ctx.download_options(),
-                ctx.remote_fetch_params,
-                ctx.repodata_shards_ttl
-            );
-            if (!shard_index_result || !shard_index_result.value().has_value())
-            {
-                return tl::unexpected(mamba_error(
-                    "Failed to fetch shard index for " + subdir.name(),
-                    mamba_error_code::subdirdata_not_loaded
-                ));
-            }
-
-            const auto& channel = subdir.channel();
-            std::string current_repodata_url = subdir.repodata_url().str();
-
-            std::vector<std::shared_ptr<Shards>> all_shards;
-            std::map<std::string, std::size_t> url_to_subdir_idx;
-            for (std::size_t j = 0; j < subdirs.size(); ++j)
-            {
-                if (subdirs[j].channel().url() == channel.url())
-                {
-                    auto sidx_result = (j == subdir_idx)
-                                           ? std::move(shard_index_result)
-                                           : ShardIndexLoader::fetch_and_parse_shard_index(
-                                                 subdirs[j],
-                                                 subdir_params,
-                                                 ctx.authentication_info(),
-                                                 ctx.mirrors,
-                                                 ctx.download_options(),
-                                                 ctx.remote_fetch_params,
-                                                 ctx.repodata_shards_ttl
-                                             );
-                    if (!sidx_result || !sidx_result.value().has_value())
-                    {
-                        continue;
-                    }
-                    auto si = std::move(sidx_result.value().value());
-                    std::string sdir_url = subdirs[j].repodata_url().str();
-                    auto shards_ptr = std::make_shared<Shards>(
-                        std::move(si),
-                        sdir_url,
-                        subdirs[j].channel(),
-                        ctx.authentication_info(),
-                        ctx.remote_fetch_params,
-                        ctx.repodata_shards_threads,
-                        &ctx.mirrors
-                    );
-                    all_shards.push_back(std::move(shards_ptr));
-                    url_to_subdir_idx[sdir_url] = j;
-                }
-            }
-
-            RepodataSubset subset(std::move(all_shards));
-            subset.reachable(root_packages, "bfs", std::nullopt);
-
-            std::map<std::string, std::vector<specs::PackageInfo>> packages_by_url;
-            for (const auto& [node_id, node] : subset.nodes())
-            {
-                if (!node.visited)
-                {
-                    continue;
-                }
-                auto it = std::find_if(
-                    subset.shards().begin(),
-                    subset.shards().end(),
-                    [&node_id](const std::shared_ptr<Shards>& s)
-                    { return s->url() == node_id.channel; }
-                );
-                if (it == subset.shards().end())
-                {
-                    continue;
-                }
-                auto& shards_ptr = *it;
-                try
-                {
-                    auto shard = shards_ptr->visit_package(node_id.package);
-                    auto base_url = shards_ptr->base_url();
-                    specs::DynamicPlatform platform = shards_ptr->subdir();
-                    std::string channel_id = subdirs[url_to_subdir_idx[node_id.channel]].channel_id();
-                    for (const auto& [filename, record] : shard.packages)
-                    {
-                        packages_by_url[node_id.channel].push_back(
-                            to_package_info(record, filename, channel_id, platform, base_url)
-                        );
-                    }
-                    for (const auto& [filename, record] : shard.conda_packages)
-                    {
-                        packages_by_url[node_id.channel].push_back(
-                            to_package_info(record, filename, channel_id, platform, base_url)
-                        );
-                    }
-                }
-                catch (const std::exception&)
-                {
-                }
-            }
-
-            std::optional<solver::libsolv::RepoInfo> result_repo;
-            for (const auto& [channel_url, pkgs] : packages_by_url)
-            {
-                std::string repo_name = subdirs[url_to_subdir_idx[channel_url]].name();
-                if (loaded_subdirs_with_shards.count(repo_name))
-                {
-                    continue;
-                }
-                loaded_subdirs_with_shards.insert(repo_name);
-
-                auto sorted_pkgs = pkgs;
-                std::sort(
-                    sorted_pkgs.begin(),
-                    sorted_pkgs.end(),
-                    [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                    {
-                        // Compare in reverse order for descending sort (newer versions first)
-                        return specs::compare_packages_by_version_and_build(rhs, lhs);
-                    }
-                );
-                auto repo = database.add_repo_from_packages(
-                    sorted_pkgs,
-                    repo_name,
-                    solver::libsolv::PipAsPythonDependency(ctx.add_pip_as_python_dependency)
-                );
-                std::size_t idx = url_to_subdir_idx[channel_url];
-                database.set_repo_priority(repo, priorities[idx]);
-                if (channel_url == current_repodata_url)
-                {
-                    result_repo = std::move(repo);
-                }
-            }
-            if (result_repo)
-            {
-                return std::move(*result_repo);
-            }
-            return tl::unexpected(
-                mamba_error("No packages for " + subdir.name(), mamba_error_code::subdirdata_not_loaded)
-            );
+            LOG_DEBUG << "Shards not applicable for " << subdir.name()
+                      << " (use_shards=" << ctx.repodata_use_shards
+                      << ", root_packages=" << root_packages.size() << ")";
+            return tl::unexpected(mamba_error("Shards not applicable", mamba_error_code::unknown));
         }
+
+        // Fetch and parse the shard index for the requested subdir (subdir_idx).
+        auto subdir_params = ctx.subdir_download_params();
+        auto shard_index_result = ShardIndexLoader::fetch_and_parse_shard_index(
+            subdir,
+            subdir_params,
+            ctx.authentication_info(),
+            ctx.mirrors,
+            ctx.download_options(),
+            ctx.remote_fetch_params,
+            ctx.repodata_shards_ttl
+        );
+        if (!shard_index_result || !shard_index_result.value().has_value())
+        {
+            LOG_WARNING << "Failed to fetch shard index for " << subdir.name();
+            return tl::unexpected(mamba_error(
+                "Failed to fetch shard index for " + subdir.name(),
+                mamba_error_code::subdirdata_not_loaded
+            ));
+        }
+
+        LOG_DEBUG << "Shard index fetched for " << subdir.name();
+        const auto& channel = subdir.channel();
+        std::string current_repodata_url = subdir.repodata_url().str();
+
+        // For all subdirs sharing the same channel URL, fetch their shard indices and build
+        //    a Shards instance per subdir; collect them into a RepodataSubset.
+        std::vector<std::shared_ptr<Shards>> all_shards;
+        std::map<std::string, std::size_t> url_to_subdir_idx;
+        for (std::size_t j = 0; j < subdirs.size(); ++j)
+        {
+            if (subdirs[j].channel().url() == channel.url())
+            {
+                auto sidx_result = (j == subdir_idx) ? std::move(shard_index_result)
+                                                     : ShardIndexLoader::fetch_and_parse_shard_index(
+                                                           subdirs[j],
+                                                           subdir_params,
+                                                           ctx.authentication_info(),
+                                                           ctx.mirrors,
+                                                           ctx.download_options(),
+                                                           ctx.remote_fetch_params,
+                                                           ctx.repodata_shards_ttl
+                                                       );
+                if (!sidx_result || !sidx_result.value().has_value())
+                {
+                    continue;
+                }
+                auto si = std::move(sidx_result.value().value());
+                std::string sdir_url = subdirs[j].repodata_url().str();
+                auto shards_ptr = std::make_shared<Shards>(
+                    std::move(si),
+                    sdir_url,
+                    subdirs[j].channel(),
+                    ctx.authentication_info(),
+                    ctx.remote_fetch_params,
+                    ctx.repodata_shards_threads,
+                    &ctx.mirrors
+                );
+                all_shards.push_back(std::move(shards_ptr));
+                url_to_subdir_idx[sdir_url] = j;
+            }
+        }
+
+        // Compute the reachable subset from root_packages (BFS) so only needed shards
+        //    are considered.
+        RepodataSubset subset(std::move(all_shards));
+        subset.reachable(root_packages, "bfs", std::nullopt);
+        LOG_DEBUG << "Reachable subset computed for " << subdir.name() << " ("
+                  << subset.shards().size() << " shards, " << subset.nodes().size() << " nodes)";
+
+        // For each visited node in the subset, visit the corresponding package shard and
+        //    convert records to PackageInfo; collect packages by channel URL. Exceptions
+        //    from individual packages are logged and skipped.
+        std::map<std::string, std::vector<specs::PackageInfo>> packages_by_url;
+        for (const auto& [node_id, node] : subset.nodes())
+        {
+            if (!node.visited)
+            {
+                continue;
+            }
+            auto it = std::find_if(
+                subset.shards().begin(),
+                subset.shards().end(),
+                [&node_id](const std::shared_ptr<Shards>& s) { return s->url() == node_id.channel; }
+            );
+            if (it == subset.shards().end())
+            {
+                continue;
+            }
+            auto& shards_ptr = *it;
+            try
+            {
+                auto shard = shards_ptr->visit_package(node_id.package);
+                auto base_url = shards_ptr->base_url();
+                specs::DynamicPlatform platform = shards_ptr->subdir();
+                std::string channel_id = subdirs[url_to_subdir_idx[node_id.channel]].channel_id();
+                for (const auto& [filename, record] : shard.packages)
+                {
+                    packages_by_url[node_id.channel].push_back(
+                        to_package_info(record, filename, channel_id, platform, base_url)
+                    );
+                }
+                for (const auto& [filename, record] : shard.conda_packages)
+                {
+                    packages_by_url[node_id.channel].push_back(
+                        to_package_info(record, filename, channel_id, platform, base_url)
+                    );
+                }
+            }
+            catch (const specs::ParseError& e)
+            {
+                LOG_WARNING << "Failed to load package " << node_id.package << " from "
+                            << node_id.channel << " (parse error): " << e.what();
+            }
+            catch (const mamba_error& e)
+            {
+                LOG_WARNING << "Failed to load package " << node_id.package << " from "
+                            << node_id.channel << ": " << e.what();
+            }
+            catch (const std::invalid_argument& e)
+            {
+                LOG_WARNING << "Failed to load package " << node_id.package << " from "
+                            << node_id.channel << " (invalid argument): " << e.what();
+            }
+            catch (const std::runtime_error& e)
+            {
+                LOG_WARNING << "Failed to load package " << node_id.package << " from "
+                            << node_id.channel << ": " << e.what();
+            }
+            catch (const std::exception& e)
+            {
+                LOG_WARNING << "Failed to load package " << node_id.package << " from "
+                            << node_id.channel << ": " << e.what();
+            }
+        }
+
+        // For each channel URL with packages, add a repo to database (unless already in
+        //    loaded_subdirs_with_shards), sort packages by version/build, and set repo
+        //    priority. The repo for the requested subdir's repodata URL is returned on success.
+        std::optional<solver::libsolv::RepoInfo> result_repo;
+        for (const auto& [channel_url, pkgs] : packages_by_url)
+        {
+            std::string repo_name = subdirs[url_to_subdir_idx[channel_url]].name();
+            if (loaded_subdirs_with_shards.count(repo_name))
+            {
+                continue;
+            }
+            loaded_subdirs_with_shards.insert(repo_name);
+
+            auto sorted_pkgs = pkgs;
+            std::sort(
+                sorted_pkgs.begin(),
+                sorted_pkgs.end(),
+                [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
+                {
+                    // Compare in reverse order for descending sort (newer versions first)
+                    return specs::compare_packages_by_version_and_build(rhs, lhs);
+                }
+            );
+            auto repo = database.add_repo_from_packages(
+                sorted_pkgs,
+                repo_name,
+                solver::libsolv::PipAsPythonDependency(ctx.add_pip_as_python_dependency)
+            );
+            std::size_t idx = url_to_subdir_idx[channel_url];
+            database.set_repo_priority(repo, priorities[idx]);
+            if (channel_url == current_repodata_url)
+            {
+                result_repo = std::move(repo);
+            }
+        }
+        // If no packages were loaded for the requested subdir, return an error.
+        if (result_repo)
+        {
+            LOG_INFO << "Loaded subdir with shards: " << subdir.name();
+            return std::move(*result_repo);
+        }
+        LOG_WARNING << "No packages loaded from shards for " << subdir.name();
+        return tl::unexpected(
+            mamba_error("No packages for " + subdir.name(), mamba_error_code::subdirdata_not_loaded)
+        );
+    }
+
+    namespace
+    {
 
         auto load_channels_impl(
             Context& ctx,

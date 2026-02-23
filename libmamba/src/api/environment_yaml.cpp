@@ -134,7 +134,7 @@ namespace mamba
                 {
                     std::string channel_name = extract_channel_name(channel_context, pkg.channel);
                     // Only add if not already seen (maintain order of first appearance)
-                    if (channel_set.find(channel_name) == channel_set.end())
+                    if (!channel_set.contains(channel_name))
                     {
                         channel_set.insert(channel_name);
                         channels.push_back(channel_name);

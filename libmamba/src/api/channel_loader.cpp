@@ -442,7 +442,8 @@ namespace mamba
                 database.add_repo_from_packages(packages, "packages");
             }
 
-            // Download required repodata indexes, with or without progress monitors.
+            // Two-phase download: check requests first (freshness), then download full repodata
+            // index only for subdirs that will not use shards (see subdirs_needing_index below).
             auto subdir_params = ctx.subdir_download_params();
             download::Monitor* check_monitor_ptr = nullptr;
             SubdirIndexMonitor check_monitor({ true, true });
@@ -460,7 +461,8 @@ namespace mamba
                 check_monitor_ptr
             );
 
-            // Handle check download errors: check for user interruption and add to error list
+            // Handle check download errors: record them and propagate user interrupt so we avoid
+            // starting index downloads.
             if (!check_res)
             {
                 mamba_error error = check_res.error();
@@ -472,7 +474,7 @@ namespace mamba
                 }
             }
 
-            // For each subdir, decide whether we can use shards or need full index.
+            // Subdirs using shards don't need the full repodata index; only collect those that do.
             std::vector<SubdirIndexLoader*> subdirs_needing_index;
             for (auto& s : subdirs)
             {
@@ -485,6 +487,7 @@ namespace mamba
                 }
             }
 
+            // Download full index only for subdirs that need it; skip when all use shards.
             expected_t<void> download_res = expected_t<void>();
             if (!subdirs_needing_index.empty())
             {
@@ -543,6 +546,8 @@ namespace mamba
                 }
             }
 
+            // Tracks subdir names already loaded via `load_subdir_with_shards` (one sharded load
+            // can populate multiple same-channel platforms, so we skip them in the loop).
             std::set<std::string> loaded_subdirs_with_shards;
             bool loading_failed = false;
 
@@ -554,11 +559,14 @@ namespace mamba
                                   && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                                   && !root_packages.empty();
 
+                // Skip if this subdir was already loaded as part of a sharded same-channel load.
                 if (loaded_subdirs_with_shards.count(subdir.name()))
                 {
                     continue;
                 }
 
+                // When using shards we don't require valid cache here; the shard path may load
+                // anyway.
                 if (!subdir.valid_cache_found() && !use_shards)
                 {
                     if (!ctx.offline && subdir.is_noarch())
@@ -571,6 +579,9 @@ namespace mamba
                     continue;
                 }
 
+                // When use_shards: try load_subdir_with_shards first; on failure fall back to
+                // cached full repodata or (if not offline) full repodata download then
+                // `load_subdir_in_database`.
                 auto result = [&]() -> expected_t<solver::libsolv::RepoInfo>
                 {
                     if (use_shards)

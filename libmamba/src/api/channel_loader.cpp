@@ -264,7 +264,6 @@ namespace mamba
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 SubdirIndexLoader& subdir_index_loader = subdirs[i];
-                const solver::libsolv::Priorities& subdir_priorities = priorities[i];
 
                 if (!subdir_index_loader.valid_cache_found())
                 {
@@ -285,7 +284,7 @@ namespace mamba
                 );
                 if (subdir_repo_info)
                 {
-                    database.set_repo_priority(std::move(subdir_repo_info).value(), subdir_priorities);
+                    database.set_repo_priority(std::move(subdir_repo_info).value(), priorities[i]);
                 }
                 else if (is_retry)
                 {

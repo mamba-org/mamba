@@ -103,6 +103,7 @@ install(
     NAMESPACE mamba::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
+export(EXPORT ${PROJECT_NAME}Targets NAMESPACE mamba::)
 
 install(
     FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"

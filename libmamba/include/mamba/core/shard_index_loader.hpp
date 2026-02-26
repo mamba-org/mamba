@@ -45,7 +45,7 @@ namespace mamba
          * @return Parsed shard index, or nullopt if shards not available.
          */
         static auto fetch_and_parse_shard_index(
-            SubdirIndexLoader& subdir,
+            SubdirIndexLoader& subdir_index_loader,
             const SubdirDownloadParams& params,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
@@ -89,7 +89,7 @@ namespace mamba
          * Build download request for shard index.
          */
         static auto build_shard_index_request(
-            const SubdirIndexLoader& subdir,
+            const SubdirIndexLoader& subdir_index_loader,
             const SubdirDownloadParams& params,
             const fs::u8path& cache_dir
         ) -> std::optional<download::Request>;

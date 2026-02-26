@@ -22,39 +22,46 @@ namespace mamba::solver
         struct Omit
         {
             specs::PackageInfo what;
+            auto operator==(const Omit& other) const -> bool = default;
         };
 
         struct Upgrade
         {
             specs::PackageInfo remove;
             specs::PackageInfo install;
+            auto operator==(const Upgrade& other) const -> bool = default;
         };
 
         struct Downgrade
         {
             specs::PackageInfo remove;
             specs::PackageInfo install;
+            auto operator==(const Downgrade& other) const -> bool = default;
         };
 
         struct Change
         {
             specs::PackageInfo remove;
             specs::PackageInfo install;
+            auto operator==(const Change& other) const -> bool = default;
         };
 
         struct Reinstall
         {
             specs::PackageInfo what;
+            auto operator==(const Reinstall& other) const -> bool = default;
         };
 
         struct Remove
         {
             specs::PackageInfo remove;
+            auto operator==(const Remove& other) const -> bool = default;
         };
 
         struct Install
         {
             specs::PackageInfo install;
+            auto operator==(const Install& other) const -> bool = default;
         };
 
         template <typename T>
@@ -67,6 +74,8 @@ namespace mamba::solver
         using action_list = std::vector<Action>;
 
         action_list actions = {};
+
+        auto operator==(const Solution& other) const -> bool = default;
 
         /**
          * Return a view of all unique packages involved in the solution.

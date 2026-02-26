@@ -651,6 +651,7 @@ namespace mamba
             };
             add_logger_to_database(db);
 
+            // Extract package names from specs and add installed packages to root packages.
             std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
             if (fs::exists(ctx.prefix_params.target_prefix))
             {
@@ -660,10 +661,13 @@ namespace mamba
                 );
                 if (maybe_prefix_data)
                 {
-                    for (const auto& [name, _] : maybe_prefix_data->records())
-                    {
-                        root_packages.push_back(name);
-                    }
+                    root_packages.reserve(root_packages.size() + maybe_prefix_data->records().size());
+                    std::transform(
+                        maybe_prefix_data->records().begin(),
+                        maybe_prefix_data->records().end(),
+                        std::back_inserter(root_packages),
+                        [](const auto& name_and_info) { return name_and_info.first; }
+                    );
                 }
             }
 

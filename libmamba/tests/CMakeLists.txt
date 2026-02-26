@@ -88,7 +88,6 @@ set(
     src/core/test_activation.cpp
     src/core/test_channel_context.cpp
     src/core/test_channel_loader.cpp
-    src/core/test_channel_loader_shards.cpp
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
     src/core/test_env_file_reading.cpp

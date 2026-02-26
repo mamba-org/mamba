@@ -314,7 +314,8 @@ namespace mamba
                 if (should_retry)
                 {
                     LOG_WARNING << "Encountered malformed repodata.json cache. Redownloading.";
-                    return load_channels_impl(ctx, channel_context, database, package_caches, true);
+                    bool retry = true;
+                    return load_channels_impl(ctx, channel_context, database, package_caches, retry);
                 }
                 error_list.emplace_back(
                     "Could not load repodata. Cache corrupted?",

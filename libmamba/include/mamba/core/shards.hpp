@@ -184,15 +184,38 @@ namespace mamba
         /**
          * Decompress zstd compressed shard data.
          */
-        auto decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data)
+        auto decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data) const
             -> expected_t<std::vector<std::uint8_t>>;
 
         /**
          * Parse msgpack data into ShardDict.
          */
-        auto
-        parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data, const std::string& package)
-            -> expected_t<ShardDict>;
+        auto parse_shard_msgpack(
+            const std::vector<std::uint8_t>& decompressed_data,
+            const std::string& package
+        ) const -> expected_t<ShardDict>;
+
+        /**
+         * Get the cache path for a shard file.
+         * Returns path: {cache_dir}/cache/shards/{hex_hash}.msgpack.zst
+         */
+        [[nodiscard]] auto shard_cache_path(const std::string& package) const -> fs::u8path;
+
+        /**
+         * Check if a shard is cached and valid (matches expected hash).
+         */
+        [[nodiscard]] auto is_shard_cached(const std::string& package) const -> bool;
+
+        /**
+         * Load and parse a shard from cache.
+         */
+        auto load_shard_from_cache(const std::string& package) const -> expected_t<ShardDict>;
+
+        /**
+         * Save a downloaded shard to cache.
+         */
+        auto save_shard_to_cache(const std::string& package, const fs::u8path& shard_file)
+            -> expected_t<void>;
     };
 
 }

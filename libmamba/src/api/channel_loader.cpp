@@ -300,7 +300,7 @@ namespace mamba
         for (const auto& [channel_url, pkgs] : packages_by_url)
         {
             std::string repo_name = subdirs[url_to_subdir_idx[channel_url]].name();
-            if (loaded_subdirs_with_shards.count(repo_name))
+            if (loaded_subdirs_with_shards.contains(repo_name))
             {
                 continue;
             }
@@ -549,7 +549,7 @@ namespace mamba
                                   && !root_packages.empty();
 
                 // Skip if this subdir was already loaded as part of a sharded same-channel load.
-                if (loaded_subdirs_with_shards.count(subdir.name()))
+                if (loaded_subdirs_with_shards.contains(subdir.name()))
                 {
                     continue;
                 }

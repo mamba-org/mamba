@@ -60,6 +60,58 @@ namespace mamba
             return load_installed_packages_in_database(ctx, database, prefix_data);
         }
 
+        std::map<std::string, std::vector<specs::PackageInfo>> build_packages_by_url_from_subset(
+            const RepodataSubset& subset,
+            const std::vector<SubdirIndexLoader>& subdirs,
+            const std::map<std::string, std::size_t>& url_to_subdir_idx
+        )
+        {
+            std::map<std::string, std::vector<specs::PackageInfo>> packages_by_url;
+            for (const auto& [node_id, node] : subset.nodes())
+            {
+                if (!node.visited)
+                {
+                    continue;
+                }
+                auto it = std::find_if(
+                    subset.shards().begin(),
+                    subset.shards().end(),
+                    [&node_id](const std::shared_ptr<Shards>& s)
+                    { return s->url() == node_id.channel; }
+                );
+                if (it == subset.shards().end())
+                {
+                    continue;
+                }
+                auto& shards_ptr = *it;
+                try
+                {
+                    auto shard = shards_ptr->visit_package(node_id.package);
+                    auto base_url = shards_ptr->base_url();
+                    specs::DynamicPlatform platform = shards_ptr->subdir();
+                    std::string channel_id = subdirs[url_to_subdir_idx.at(node_id.channel)].channel_id();
+                    for (const auto& [filename, record] : shard.packages)
+                    {
+                        packages_by_url[node_id.channel].push_back(
+                            to_package_info(record, filename, channel_id, platform, base_url)
+                        );
+                    }
+                    for (const auto& [filename, record] : shard.conda_packages)
+                    {
+                        packages_by_url[node_id.channel].push_back(
+                            to_package_info(record, filename, channel_id, platform, base_url)
+                        );
+                    }
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_WARNING << "Failed to load package " << node_id.package << " from "
+                                << node_id.channel << ": " << e.what();
+                }
+            }
+            return packages_by_url;
+        }
+
         void create_subdirs(
             Context& ctx,
             ChannelContext& channel_context,
@@ -127,6 +179,52 @@ namespace mamba
                     priorities.push_back({ /* .priority= */ max_prio, /* .subpriority= */ 0 });
                 }
             }
+        }
+
+        std::optional<solver::libsolv::RepoInfo> add_repos_from_packages_by_url(
+            Context& ctx,
+            solver::libsolv::Database& database,
+            const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
+            std::vector<SubdirIndexLoader>& subdirs,
+            const std::map<std::string, std::size_t>& url_to_subdir_idx,
+            const std::vector<solver::libsolv::Priorities>& priorities,
+            const std::string& current_repodata_url,
+            std::set<std::string>& loaded_subdirs_with_shards
+        )
+        {
+            std::optional<solver::libsolv::RepoInfo> result_repo;
+            for (const auto& [channel_url, pkgs] : packages_by_url)
+            {
+                std::string repo_name = subdirs.at(url_to_subdir_idx.at(channel_url)).name();
+                if (loaded_subdirs_with_shards.contains(repo_name))
+                {
+                    continue;
+                }
+                loaded_subdirs_with_shards.insert(repo_name);
+
+                auto sorted_pkgs = pkgs;
+                std::sort(
+                    sorted_pkgs.begin(),
+                    sorted_pkgs.end(),
+                    [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
+                    {
+                        // Compare in reverse order for descending sort (newer versions first)
+                        return specs::compare_packages_by_version_and_build(rhs, lhs);
+                    }
+                );
+                auto repo = database.add_repo_from_packages(
+                    sorted_pkgs,
+                    repo_name,
+                    solver::libsolv::PipAsPythonDependency(ctx.add_pip_as_python_dependency)
+                );
+                std::size_t idx = url_to_subdir_idx.at(channel_url);
+                database.set_repo_priority(repo, priorities[idx]);
+                if (channel_url == current_repodata_url)
+                {
+                    result_repo = std::move(repo);
+                }
+            }
+            return result_repo;
         }
 
         void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors)
@@ -230,84 +328,21 @@ namespace mamba
         // For each visited node in the subset, visit the corresponding package shard and
         //    convert records to PackageInfo; collect packages by channel URL. Exceptions
         //    from individual packages are logged and skipped.
-        std::map<std::string, std::vector<specs::PackageInfo>> packages_by_url;
-        for (const auto& [node_id, node] : subset.nodes())
-        {
-            if (!node.visited)
-            {
-                continue;
-            }
-            auto it = std::find_if(
-                subset.shards().begin(),
-                subset.shards().end(),
-                [&node_id](const std::shared_ptr<Shards>& s) { return s->url() == node_id.channel; }
-            );
-            if (it == subset.shards().end())
-            {
-                continue;
-            }
-            auto& shards_ptr = *it;
-            try
-            {
-                auto shard = shards_ptr->visit_package(node_id.package);
-                auto base_url = shards_ptr->base_url();
-                specs::DynamicPlatform platform = shards_ptr->subdir();
-                std::string channel_id = subdirs[url_to_subdir_idx[node_id.channel]].channel_id();
-                for (const auto& [filename, record] : shard.packages)
-                {
-                    packages_by_url[node_id.channel].push_back(
-                        to_package_info(record, filename, channel_id, platform, base_url)
-                    );
-                }
-                for (const auto& [filename, record] : shard.conda_packages)
-                {
-                    packages_by_url[node_id.channel].push_back(
-                        to_package_info(record, filename, channel_id, platform, base_url)
-                    );
-                }
-            }
-            catch (const std::exception& e)
-            {
-                LOG_WARNING << "Failed to load package " << node_id.package << " from "
-                            << node_id.channel << ": " << e.what();
-            }
-        }
+        auto packages_by_url = build_packages_by_url_from_subset(subset, subdirs, url_to_subdir_idx);
 
         // For each channel URL with packages, add a repo to database (unless already in
         //    loaded_subdirs_with_shards), sort packages by version/build, and set repo
         //    priority. The repo for the requested subdir's repodata URL is returned on success.
-        std::optional<solver::libsolv::RepoInfo> result_repo;
-        for (const auto& [channel_url, pkgs] : packages_by_url)
-        {
-            std::string repo_name = subdirs[url_to_subdir_idx[channel_url]].name();
-            if (loaded_subdirs_with_shards.contains(repo_name))
-            {
-                continue;
-            }
-            loaded_subdirs_with_shards.insert(repo_name);
-
-            auto sorted_pkgs = pkgs;
-            std::sort(
-                sorted_pkgs.begin(),
-                sorted_pkgs.end(),
-                [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                {
-                    // Compare in reverse order for descending sort (newer versions first)
-                    return specs::compare_packages_by_version_and_build(rhs, lhs);
-                }
-            );
-            auto repo = database.add_repo_from_packages(
-                sorted_pkgs,
-                repo_name,
-                solver::libsolv::PipAsPythonDependency(ctx.add_pip_as_python_dependency)
-            );
-            std::size_t idx = url_to_subdir_idx[channel_url];
-            database.set_repo_priority(repo, priorities[idx]);
-            if (channel_url == current_repodata_url)
-            {
-                result_repo = std::move(repo);
-            }
-        }
+        std::optional<solver::libsolv::RepoInfo> result_repo = add_repos_from_packages_by_url(
+            ctx,
+            database,
+            packages_by_url,
+            subdirs,
+            url_to_subdir_idx,
+            priorities,
+            current_repodata_url,
+            loaded_subdirs_with_shards
+        );
         // If no packages were loaded for the requested subdir, return an error.
         if (result_repo)
         {

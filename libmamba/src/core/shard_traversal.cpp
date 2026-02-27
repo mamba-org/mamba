@@ -89,12 +89,12 @@ namespace mamba
      * RepodataSubset *
      ******************/
 
-    RepodataSubset::RepodataSubset(ShardsPtrVector shards)
+    RepodataSubset::RepodataSubset(std::vector<Shards> shards)
         : m_shards(std::move(shards))
     {
-        for (const auto& s : m_shards)
+        for (std::size_t i = 0; i < m_shards.size(); ++i)
         {
-            m_shards_by_url[s->url()] = s;
+            m_shards_by_url[m_shards[i].url()] = i;
         }
     }
 
@@ -135,7 +135,7 @@ namespace mamba
         return m_nodes;
     }
 
-    const ShardsPtrVector& RepodataSubset::shards() const
+    const std::vector<Shards>& RepodataSubset::shards() const
     {
         return m_shards;
     }
@@ -148,13 +148,14 @@ namespace mamba
     {
         for (const auto& pkg : root_packages)
         {
-            for (const auto& [url, shards_ptr] : m_shards_by_url)
+            for (const auto& [url, shard_index] : m_shards_by_url)
             {
-                if (!shards_ptr->contains(pkg))
+                auto& shards = m_shards[shard_index];
+                if (!shards.contains(pkg))
                 {
                     continue;
                 }
-                std::string shard_url = shards_ptr->shard_url(pkg);
+                std::string shard_url = shards.shard_url(pkg);
                 if (root_shards.has_value() && !root_shards->get().contains(shard_url))
                 {
                     continue;
@@ -179,8 +180,8 @@ namespace mamba
             {
                 continue;
             }
-            auto& shards_ptr = it->second;
-            if (!shards_ptr->is_shard_present(id.package))
+            auto& shards = m_shards[it->second];
+            if (!shards.is_shard_present(id.package))
             {
                 to_fetch_by_channel[id.channel].push_back(id.package);
             }
@@ -194,12 +195,13 @@ namespace mamba
                 auto it = m_shards_by_url.find(channel);
                 if (it != m_shards_by_url.end())
                 {
-                    auto result = it->second->fetch_shards(to_fetch);
+                    auto& shards = m_shards[it->second];
+                    auto result = shards.fetch_shards(to_fetch);
                     if (result)
                     {
                         for (const auto& [pkg, shard] : result.value())
                         {
-                            it->second->process_fetched_shard(pkg, shard);
+                            shards.process_fetched_shard(pkg, shard);
                         }
                     }
                 }
@@ -265,11 +267,11 @@ namespace mamba
         {
             return;
         }
-        auto& shards_ptr = it->second;
+        auto& shards = m_shards[it->second];
 
-        if (!shards_ptr->is_shard_present(node_id.package))
+        if (!shards.is_shard_present(node_id.package))
         {
-            auto result = shards_ptr->fetch_shards({ node_id.package });
+            auto result = shards.fetch_shards({ node_id.package });
             if (!result)
             {
                 LOG_WARNING << "Failed to fetch shard for " << node_id.package << ": "
@@ -279,7 +281,7 @@ namespace mamba
             auto shard_it = result.value().find(node_id.package);
             if (shard_it != result.value().end())
             {
-                shards_ptr->process_fetched_shard(node_id.package, shard_it->second);
+                shards.process_fetched_shard(node_id.package, shard_it->second);
             }
         }
 
@@ -289,7 +291,7 @@ namespace mamba
         ShardDict shard;
         try
         {
-            shard = shards_ptr->visit_package(node_id.package);
+            shard = shards.visit_package(node_id.package);
         }
         catch (const std::exception& e)
         {
@@ -299,13 +301,14 @@ namespace mamba
 
         for (const auto& dep : extract_dependencies_impl(shard))
         {
-            for (const auto& [url, dep_shards] : m_shards_by_url)
+            for (const auto& [url, shard_index] : m_shards_by_url)
             {
-                if (!dep_shards->contains(dep))
+                auto& dep_shards = m_shards[shard_index];
+                if (!dep_shards.contains(dep))
                 {
                     continue;
                 }
-                NodeId neighbor_id{ dep, url, dep_shards->shard_url(dep) };
+                NodeId neighbor_id{ dep, url, dep_shards.shard_url(dep) };
                 if (!m_nodes.contains(neighbor_id))
                 {
                     m_nodes[neighbor_id] = Node{
@@ -337,9 +340,9 @@ namespace mamba
         {
             return {};
         }
-        auto& shards_ptr = it->second;
+        auto& shards = m_shards[it->second];
 
-        if (!shards_ptr->is_shard_present(node_id.package))
+        if (!shards.is_shard_present(node_id.package))
         {
             return {};
         }
@@ -347,7 +350,7 @@ namespace mamba
         ShardDict shard;
         try
         {
-            shard = shards_ptr->visit_package(node_id.package);
+            shard = shards.visit_package(node_id.package);
         }
         catch (const std::exception&)
         {
@@ -357,11 +360,12 @@ namespace mamba
         std::vector<NodeId> result;
         for (const auto& dep : extract_dependencies_impl(shard))
         {
-            for (const auto& [url, dep_shards] : m_shards_by_url)
+            for (const auto& [url, shard_index] : m_shards_by_url)
             {
-                if (dep_shards->contains(dep))
+                auto& dep_shards = m_shards[shard_index];
+                if (dep_shards.contains(dep))
                 {
-                    result.push_back({ dep, url, dep_shards->shard_url(dep) });
+                    result.push_back({ dep, url, dep_shards.shard_url(dep) });
                 }
             }
         }

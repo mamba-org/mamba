@@ -592,7 +592,7 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
             find_library(LZ4_LIBRARY NAMES lz4)
             find_library(LZO2_LIBRARY NAMES lzo2)
-            find_package(zstd CONFIG REQUIRED)
+            find_package(zstd REQUIRED)
             find_library(BZIP2_LIBRARIES NAMES bz2)
             find_library(CRYPTO_LIBRARIES NAMES libcrypto)
 

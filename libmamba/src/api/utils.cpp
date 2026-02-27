@@ -17,6 +17,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/environment.hpp"
 
 #include "utils.hpp"
@@ -237,6 +238,24 @@ namespace mamba
                 }
             }
         }
+    }
+
+    std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs)
+    {
+        std::vector<std::string> names;
+        for (const auto& s : specs)
+        {
+            auto parsed = specs::MatchSpec::parse(s);
+            if (parsed && !parsed->name().is_free())
+            {
+                auto name = parsed->name().to_string();
+                if (!name.empty())
+                {
+                    names.push_back(std::move(name));
+                }
+            }
+        }
+        return names;
     }
 
     void add_pip_if_python(std::vector<std::string>& root_packages)

@@ -32,7 +32,8 @@
 
 #include "mambatests.hpp"
 
-// Forward declaration for utility implemented in core/util.cpp
+// extract_package_names_from_specs is implemented in api/utils.cpp (header is not in public include
+// path)
 namespace mamba
 {
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);

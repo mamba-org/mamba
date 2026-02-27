@@ -449,12 +449,7 @@ namespace mamba
             // Two-phase download: check requests first (freshness), then download full repodata
             // index only for subdirs that will not use shards (see subdirs_needing_index below).
             auto subdir_params = ctx.subdir_download_params();
-            download::Monitor* check_monitor_ptr = nullptr;
             SubdirIndexMonitor check_monitor({ true, true });
-            if (SubdirIndexMonitor::can_monitor(ctx))
-            {
-                check_monitor_ptr = &check_monitor;
-            }
 
             auto check_res = SubdirIndexLoader::download_requests(
                 SubdirIndexLoader::build_all_check_requests(subdirs.begin(), subdirs.end(), subdir_params),
@@ -462,7 +457,7 @@ namespace mamba
                 ctx.mirrors,
                 ctx.download_options(),
                 ctx.remote_fetch_params,
-                check_monitor_ptr
+                SubdirIndexMonitor::can_monitor(ctx) ? &check_monitor : nullptr
             );
 
             // Handle check download errors: record them and propagate user interrupt so we avoid

@@ -33,30 +33,6 @@
 
 #include "utils.hpp"
 
-namespace
-{
-    void add_pip_to_root_packages_if_python_present(std::vector<std::string>& root_packages)
-    {
-        bool has_python = false;
-        bool has_pip = false;
-        for (const auto& pkg : root_packages)
-        {
-            if (pkg == "python")
-            {
-                has_python = true;
-            }
-            if (pkg == "pip")
-            {
-                has_pip = true;
-            }
-        }
-        if (has_python && !has_pip)
-        {
-            root_packages.push_back("pip");
-        }
-    }
-}
-
 namespace mamba
 {
 

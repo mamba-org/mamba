@@ -266,26 +266,6 @@ namespace mamba
                     );
                 }
             }
-            catch (const specs::ParseError& e)
-            {
-                LOG_WARNING << "Failed to load package " << node_id.package << " from "
-                            << node_id.channel << " (parse error): " << e.what();
-            }
-            catch (const mamba_error& e)
-            {
-                LOG_WARNING << "Failed to load package " << node_id.package << " from "
-                            << node_id.channel << ": " << e.what();
-            }
-            catch (const std::invalid_argument& e)
-            {
-                LOG_WARNING << "Failed to load package " << node_id.package << " from "
-                            << node_id.channel << " (invalid argument): " << e.what();
-            }
-            catch (const std::runtime_error& e)
-            {
-                LOG_WARNING << "Failed to load package " << node_id.package << " from "
-                            << node_id.channel << ": " << e.what();
-            }
             catch (const std::exception& e)
             {
                 LOG_WARNING << "Failed to load package " << node_id.package << " from "

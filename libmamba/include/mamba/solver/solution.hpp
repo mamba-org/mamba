@@ -22,46 +22,46 @@ namespace mamba::solver
         struct Omit
         {
             specs::PackageInfo what;
-            auto operator==(const Omit& other) const -> bool = default;
+            bool operator==(const Omit& other) const = default;
         };
 
         struct Upgrade
         {
             specs::PackageInfo remove;
             specs::PackageInfo install;
-            auto operator==(const Upgrade& other) const -> bool = default;
+            bool operator==(const Upgrade& other) const = default;
         };
 
         struct Downgrade
         {
             specs::PackageInfo remove;
             specs::PackageInfo install;
-            auto operator==(const Downgrade& other) const -> bool = default;
+            bool operator==(const Downgrade& other) const = default;
         };
 
         struct Change
         {
             specs::PackageInfo remove;
             specs::PackageInfo install;
-            auto operator==(const Change& other) const -> bool = default;
+            bool operator==(const Change& other) const = default;
         };
 
         struct Reinstall
         {
             specs::PackageInfo what;
-            auto operator==(const Reinstall& other) const -> bool = default;
+            bool operator==(const Reinstall& other) const = default;
         };
 
         struct Remove
         {
             specs::PackageInfo remove;
-            auto operator==(const Remove& other) const -> bool = default;
+            bool operator==(const Remove& other) const = default;
         };
 
         struct Install
         {
             specs::PackageInfo install;
-            auto operator==(const Install& other) const -> bool = default;
+            bool operator==(const Install& other) const = default;
         };
 
         template <typename T>
@@ -75,7 +75,7 @@ namespace mamba::solver
 
         action_list actions = {};
 
-        auto operator==(const Solution& other) const -> bool = default;
+        bool operator==(const Solution& other) const = default;
 
         /**
          * Return a view of all unique packages involved in the solution.

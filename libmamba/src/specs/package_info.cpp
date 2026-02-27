@@ -593,7 +593,7 @@ namespace mamba::specs
         return fmt::format("{}/{}", channel_mirror_platform_url, filename);
     }
 
-    auto compare_packages_by_version_and_build(const PackageInfo& lhs, const PackageInfo& rhs) -> bool
+    bool compare_packages_by_version_and_build(const PackageInfo& lhs, const PackageInfo& rhs)
     {
         // First compare by version
         auto lhs_version = Version::parse(lhs.version).value_or(Version());

@@ -195,21 +195,21 @@ namespace mamba
         void clear_valid_cache_files();
 
         template <typename First, typename End>
-        static auto
-        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
-            -> download::MultiRequest;
+        static download::MultiRequest
+        build_all_check_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params);
+
         template <typename First, typename End>
-        static auto
-        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params)
-            -> download::MultiRequest;
-        [[nodiscard]] static auto download_requests(
+        static download::MultiRequest
+        build_all_index_requests(First subdirs_first, End subdirs_last, const SubdirDownloadParams& params);
+
+        [[nodiscard]] static expected_t<void> download_requests(
             download::MultiRequest index_requests,
             const specs::AuthenticationDataBase& auth_info,
             const download::mirror_map& mirrors,
             const download::Options& download_options,
             const download::RemoteFetchParams& remote_fetch_params,
             download::Monitor* download_monitor
-        ) -> expected_t<void>;
+        );
 
     private:
 

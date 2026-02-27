@@ -250,7 +250,7 @@ TEST_CASE("RepodataSubset constructor and accessors", "[mamba::core][mamba::core
     SECTION("Empty shards")
     {
         RepodataSubset subset({});
-        REQUIRE(subset.shards().empty());
+        REQUIRE(subset.url_keyed_shards().empty());
         REQUIRE(subset.nodes().empty());
     }
 
@@ -260,9 +260,9 @@ TEST_CASE("RepodataSubset constructor and accessors", "[mamba::core][mamba::core
             "https://example.com/conda-forge",
             { { "python", {} } }
         );
-        RepodataSubset subset({ shards });
-        REQUIRE(subset.shards().size() == 1);
-        REQUIRE(subset.shards()[0] == shards);
+        RepodataSubset subset({ *shards });
+        REQUIRE(subset.url_keyed_shards().size() == 1);
+        REQUIRE(subset.url_keyed_shards().begin()->second.url() == shards->url());
     }
 }
 
@@ -274,7 +274,7 @@ TEST_CASE("RepodataSubset reachable empty", "[mamba::core][mamba::core::shard_tr
             "https://example.com/conda-forge",
             { { "python", {} } }
         );
-        RepodataSubset subset({ shards });
+        RepodataSubset subset({ *shards });
         subset.reachable({}, "pipelined", std::nullopt);
         REQUIRE(subset.nodes().empty());
     }
@@ -285,7 +285,7 @@ TEST_CASE("RepodataSubset reachable empty", "[mamba::core][mamba::core::shard_tr
             "https://example.com/conda-forge",
             { { "python", {} } }
         );
-        RepodataSubset subset({ shards });
+        RepodataSubset subset({ *shards });
         subset.reachable({}, "bfs", std::nullopt);
         REQUIRE(subset.nodes().empty());
     }
@@ -320,7 +320,7 @@ TEST_CASE("RepodataSubset reachable pipelined", "[mamba::core][mamba::core::shar
         }
     );
 
-    RepodataSubset subset({ shards });
+    RepodataSubset subset({ *shards });
     subset.reachable({ "python" }, "pipelined", std::nullopt);
 
     const auto& nodes = subset.nodes();
@@ -369,7 +369,7 @@ TEST_CASE("RepodataSubset reachable bfs", "[mamba::core][mamba::core::shard_trav
         }
     );
 
-    RepodataSubset subset({ shards });
+    RepodataSubset subset({ *shards });
     subset.reachable({ "python" }, "bfs", std::nullopt);
 
     const auto& nodes = subset.nodes();
@@ -402,7 +402,7 @@ TEST_CASE("RepodataSubset reachable with root_shards filter", "[mamba::core][mam
         { { "python", python_shard } }
     );
 
-    RepodataSubset subset({ shards });
+    RepodataSubset subset({ *shards });
     std::set<std::string> root_shards = { shards->shard_url("python") };
     subset.reachable({ "python" }, "pipelined", std::optional{ std::cref(root_shards) });
 
@@ -425,7 +425,7 @@ TEST_CASE(
         { { "python", python_shard } }
     );
 
-    RepodataSubset subset({ shards });
+    RepodataSubset subset({ *shards });
     std::set<std::string> root_shards = { "https://nonexistent/shard.msgpack.zst" };
     subset.reachable({ "python" }, "pipelined", std::optional{ std::cref(root_shards) });
 
@@ -450,7 +450,7 @@ TEST_CASE("RepodataSubset multiple channels", "[mamba::core][mamba::core::shard_
         { { "python", python_shard } }
     );
 
-    RepodataSubset subset({ cf_shards, defaults_shards });
+    RepodataSubset subset({ *cf_shards, *defaults_shards });
     subset.reachable({ "python" }, "pipelined", std::nullopt);
 
     REQUIRE(subset.nodes().size() >= 2);
@@ -469,7 +469,7 @@ TEST_CASE("RepodataSubset package not in any shard", "[mamba::core][mamba::core:
         { { "python", python_shard } }
     );
 
-    RepodataSubset subset({ shards });
+    RepodataSubset subset({ *shards });
     subset.reachable({ "nonexistent_package" }, "pipelined", std::nullopt);
 
     REQUIRE(subset.nodes().empty());
@@ -488,7 +488,7 @@ TEST_CASE("RepodataSubset default strategy is bfs", "[mamba::core][mamba::core::
         { { "python", python_shard } }
     );
 
-    RepodataSubset subset({ shards });
+    RepodataSubset subset({ *shards });
     subset.reachable({ "python" });
 
     REQUIRE(subset.nodes().size() >= 1);

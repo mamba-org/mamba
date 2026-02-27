@@ -89,12 +89,12 @@ namespace mamba
      * RepodataSubset *
      ******************/
 
-    RepodataSubset::RepodataSubset(ShardsPtrVector shards)
-        : m_shards(std::move(shards))
+    RepodataSubset::RepodataSubset(std::vector<Shards> shards)
     {
-        for (const auto& s : m_shards)
+        for (auto& s : shards)
         {
-            m_shards_by_url[s->url()] = s;
+            auto url = s.url();
+            m_url_keyed_shards.emplace(std::move(url), std::move(s));
         }
     }
 
@@ -135,9 +135,9 @@ namespace mamba
         return m_nodes;
     }
 
-    const ShardsPtrVector& RepodataSubset::shards() const
+    const std::map<std::string, Shards>& RepodataSubset::url_keyed_shards() const
     {
-        return m_shards;
+        return m_url_keyed_shards;
     }
 
     void RepodataSubset::init_pending_with_roots(
@@ -148,13 +148,13 @@ namespace mamba
     {
         for (const auto& pkg : root_packages)
         {
-            for (const auto& [url, shards_ptr] : m_shards_by_url)
+            for (auto& [url, shards] : m_url_keyed_shards)
             {
-                if (!shards_ptr->contains(pkg))
+                if (!shards.contains(pkg))
                 {
                     continue;
                 }
-                std::string shard_url = shards_ptr->shard_url(pkg);
+                std::string shard_url = shards.shard_url(pkg);
                 if (root_shards.has_value() && !root_shards->get().contains(shard_url))
                 {
                     continue;
@@ -174,13 +174,13 @@ namespace mamba
         std::map<std::string, std::vector<std::string>> to_fetch_by_channel;
         for (const auto& id : batch)
         {
-            auto it = m_shards_by_url.find(id.channel);
-            if (it == m_shards_by_url.end())
+            auto it = m_url_keyed_shards.find(id.channel);
+            if (it == m_url_keyed_shards.end())
             {
                 continue;
             }
-            auto& shards_ptr = it->second;
-            if (!shards_ptr->is_shard_present(id.package))
+            auto& shards = it->second;
+            if (!shards.is_shard_present(id.package))
             {
                 to_fetch_by_channel[id.channel].push_back(id.package);
             }
@@ -191,15 +191,16 @@ namespace mamba
             to_fetch.erase(std::unique(to_fetch.begin(), to_fetch.end()), to_fetch.end());
             if (!to_fetch.empty())
             {
-                auto it = m_shards_by_url.find(channel);
-                if (it != m_shards_by_url.end())
+                auto it = m_url_keyed_shards.find(channel);
+                if (it != m_url_keyed_shards.end())
                 {
-                    auto result = it->second->fetch_shards(to_fetch);
+                    auto& shards = it->second;
+                    auto result = shards.fetch_shards(to_fetch);
                     if (result)
                     {
                         for (const auto& [pkg, shard] : result.value())
                         {
-                            it->second->process_fetched_shard(pkg, shard);
+                            shards.process_fetched_shard(pkg, shard);
                         }
                     }
                 }
@@ -260,16 +261,16 @@ namespace mamba
 
     void RepodataSubset::visit_node(const NodeId& node_id, std::vector<NodeId>& pending)
     {
-        auto it = m_shards_by_url.find(node_id.channel);
-        if (it == m_shards_by_url.end())
+        auto it = m_url_keyed_shards.find(node_id.channel);
+        if (it == m_url_keyed_shards.end())
         {
             return;
         }
-        auto& shards_ptr = it->second;
+        auto& shards = it->second;
 
-        if (!shards_ptr->is_shard_present(node_id.package))
+        if (!shards.is_shard_present(node_id.package))
         {
-            auto result = shards_ptr->fetch_shards({ node_id.package });
+            auto result = shards.fetch_shards({ node_id.package });
             if (!result)
             {
                 LOG_WARNING << "Failed to fetch shard for " << node_id.package << ": "
@@ -279,7 +280,7 @@ namespace mamba
             auto shard_it = result.value().find(node_id.package);
             if (shard_it != result.value().end())
             {
-                shards_ptr->process_fetched_shard(node_id.package, shard_it->second);
+                shards.process_fetched_shard(node_id.package, shard_it->second);
             }
         }
 
@@ -289,7 +290,7 @@ namespace mamba
         ShardDict shard;
         try
         {
-            shard = shards_ptr->visit_package(node_id.package);
+            shard = shards.visit_package(node_id.package);
         }
         catch (const std::exception& e)
         {
@@ -299,13 +300,13 @@ namespace mamba
 
         for (const auto& dep : extract_dependencies_impl(shard))
         {
-            for (const auto& [url, dep_shards] : m_shards_by_url)
+            for (auto& [url, dep_shards] : m_url_keyed_shards)
             {
-                if (!dep_shards->contains(dep))
+                if (!dep_shards.contains(dep))
                 {
                     continue;
                 }
-                NodeId neighbor_id{ dep, url, dep_shards->shard_url(dep) };
+                NodeId neighbor_id{ dep, url, dep_shards.shard_url(dep) };
                 if (!m_nodes.contains(neighbor_id))
                 {
                     m_nodes[neighbor_id] = Node{
@@ -332,14 +333,14 @@ namespace mamba
 
     std::vector<NodeId> RepodataSubset::neighbors(const NodeId& node_id)
     {
-        auto it = m_shards_by_url.find(node_id.channel);
-        if (it == m_shards_by_url.end())
+        auto it = m_url_keyed_shards.find(node_id.channel);
+        if (it == m_url_keyed_shards.end())
         {
             return {};
         }
-        auto& shards_ptr = it->second;
+        auto& shards = it->second;
 
-        if (!shards_ptr->is_shard_present(node_id.package))
+        if (!shards.is_shard_present(node_id.package))
         {
             return {};
         }
@@ -347,7 +348,7 @@ namespace mamba
         ShardDict shard;
         try
         {
-            shard = shards_ptr->visit_package(node_id.package);
+            shard = shards.visit_package(node_id.package);
         }
         catch (const std::exception&)
         {
@@ -357,11 +358,11 @@ namespace mamba
         std::vector<NodeId> result;
         for (const auto& dep : extract_dependencies_impl(shard))
         {
-            for (const auto& [url, dep_shards] : m_shards_by_url)
+            for (auto& [url, dep_shards] : m_url_keyed_shards)
             {
-                if (dep_shards->contains(dep))
+                if (dep_shards.contains(dep))
                 {
-                    result.push_back({ dep, url, dep_shards->shard_url(dep) });
+                    result.push_back({ dep, url, dep_shards.shard_url(dep) });
                 }
             }
         }

@@ -54,7 +54,7 @@ namespace mamba
      * This is used by both install and update flows to automatically add ``pip`` when
      * ``python`` is part of the requested specs, unless ``pip`` is already present.
      */
-    void add_pip_to_root_packages_if_python_present(std::vector<std::string>& root_packages);
+    void add_pip_if_python(std::vector<std::string>& root_packages);
 
 }
 

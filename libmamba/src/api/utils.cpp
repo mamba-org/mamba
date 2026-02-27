@@ -239,7 +239,7 @@ namespace mamba
         }
     }
 
-    void add_pip_to_root_packages_if_python_present(std::vector<std::string>& root_packages)
+    void add_pip_if_python(std::vector<std::string>& root_packages)
     {
         bool has_python = false;
         bool has_pip = false;

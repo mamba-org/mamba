@@ -183,7 +183,7 @@ namespace mamba
         // other packages, which is a choice the solver can make.
         if (ctx.repodata_use_shards)
         {
-            add_pip_to_root_packages_if_python_present(root_packages);
+            add_pip_if_python(root_packages);
         }
 
         auto exp_loaded = load_channels(ctx, channel_context, db, package_caches, root_packages);

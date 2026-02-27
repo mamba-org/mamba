@@ -343,7 +343,7 @@ namespace mamba
         specs::AuthenticationDataBase auth_info,
         download::RemoteFetchParams remote_fetch_params,
         std::size_t download_threads,
-        const download::mirror_map* mirrors
+        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -351,7 +351,7 @@ namespace mamba
         , m_auth_info(std::move(auth_info))
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(download_threads)
-        , m_mirrors(mirrors ? std::make_optional(mirrors) : std::nullopt)
+        , m_mirrors(std::move(mirrors))
     {
     }
 
@@ -1033,7 +1033,7 @@ namespace mamba
         download::mirror_map extended_mirrors;
         if (m_mirrors.has_value())
         {
-            extended_mirrors.add_mirrors_from(**m_mirrors, m_channel.id());
+            extended_mirrors.add_mirrors_from(m_mirrors->get(), m_channel.id());
         }
 
         const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();

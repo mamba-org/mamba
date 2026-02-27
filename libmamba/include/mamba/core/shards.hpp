@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_SHARDS_HPP
 #define MAMBA_CORE_SHARDS_HPP
 
+#include <functional>
 #include <map>
 #include <optional>
 #include <string>
@@ -56,7 +57,7 @@ namespace mamba
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
             std::size_t download_threads = 10,
-            const download::mirror_map* mirrors = nullptr
+            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
         );
 
         /** Return the names of all packages available in this shard collection. */
@@ -117,7 +118,7 @@ namespace mamba
         std::size_t m_download_threads;
 
         /** Optional base mirrors for channel-based downloads. */
-        std::optional<const download::mirror_map*> m_mirrors;
+        std::optional<std::reference_wrapper<const download::mirror_map>> m_mirrors;
 
         /** Visited shards, keyed by package name. */
         std::map<std::string, ShardDict> m_visited;

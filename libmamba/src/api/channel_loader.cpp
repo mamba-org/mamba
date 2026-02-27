@@ -224,7 +224,7 @@ namespace mamba
                     ctx.authentication_info(),
                     ctx.remote_fetch_params,
                     ctx.repodata_shards_threads,
-                    &ctx.mirrors
+                    std::cref(ctx.mirrors)
                 );
                 all_shards.push_back(std::move(shards_ptr));
                 url_to_subdir_idx[sdir_url] = j;

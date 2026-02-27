@@ -25,6 +25,8 @@ namespace mamba::download
     namespace
     {
         const auto PASSTHROUGH_MIRROR_ID = MirrorID("");
+        constexpr const char REPODATA_SHARDS_MSGPACK[] = "repodata_shards.msgpack";
+        constexpr const char REPODATA_SHARDS_MSGPACK_ZST[] = "repodata_shards.msgpack.zst";
     }
 
     PassThroughMirror::PassThroughMirror()
@@ -85,8 +87,8 @@ namespace mamba::download
             //   linux-64/repodata_shards.msgpack.zst
             //   noarch/repodata_shards.msgpack.zst
             if (util::ends_with(path, ".json") || util::ends_with(path, ".json.zst")
-                || util::ends_with(path, "repodata_shards.msgpack")
-                || util::ends_with(path, "repodata_shards.msgpack.zst"))
+                || util::ends_with(path, REPODATA_SHARDS_MSGPACK)
+                || util::ends_with(path, REPODATA_SHARDS_MSGPACK_ZST))
             {
                 return { path, "latest" };
             }

@@ -125,6 +125,14 @@ namespace mamba
 
         static Console& instance();
         static bool is_available();
+        /**
+         * Check if status messages can be reported to stdout.
+         *
+         * Returns true if Console is available and JSON output is not enabled.
+         * Use this before printing status messages to ensure they don't
+         * interfere with JSON output.
+         */
+        [[nodiscard]] static bool can_report_status();
         static ConsoleStream stream();
         static bool prompt(std::string_view message, char fallback = '_');
         static bool prompt(std::string_view message, char fallback, std::istream& input_stream);

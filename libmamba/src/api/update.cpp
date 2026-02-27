@@ -220,7 +220,7 @@ namespace mamba
             // Console stream prints on destruction
         }
 
-        if (Context::can_report_status())
+        if (Console::can_report_status())
         {
             Console::instance().print(
                 fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
@@ -235,7 +235,7 @@ namespace mamba
                                    : solver::libsolv::MatchSpecParser::Mixed
                            )
                            .value();
-        if (Context::can_report_status())
+        if (Console::can_report_status())
         {
             Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
         }

@@ -108,7 +108,7 @@ namespace mamba
         {
             return;
         }
-        if (Context::can_report_status())
+        if (Console::can_report_status())
         {
             Console::instance().print(
                 fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "⧖ Starting")
@@ -122,7 +122,7 @@ namespace mamba
         {
             reachable_pipelined(root_packages, root_shards);
         }
-        if (Context::can_report_status())
+        if (Console::can_report_status())
         {
             Console::instance().print(
                 fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "✔ Done")

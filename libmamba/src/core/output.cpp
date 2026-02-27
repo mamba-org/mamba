@@ -344,6 +344,11 @@ namespace mamba
         return ConsoleStream();
     }
 
+    bool Console::can_report_status()
+    {
+        return is_available() && !instance().context().output_params.json;
+    }
+
     void Console::cancel_json_print()
     {
         p_data->is_json_print_cancelled = true;

@@ -540,7 +540,7 @@ namespace mamba
             if (cached_index.has_value())
             {
                 LOG_DEBUG << "Using cached shard index for " << subdir.name();
-                if (Context::can_report_status())
+                if (Console::can_report_status())
                 {
                     std::string label = "Fetch Shards' Index for " + subdir.name();
                     if (label.length() > 85)
@@ -559,7 +559,7 @@ namespace mamba
         {
             label = label.substr(0, 82) + "...";
         }
-        if (Context::can_report_status())
+        if (Console::can_report_status())
         {
             Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
         }
@@ -621,7 +621,7 @@ namespace mamba
             {
                 label = label.substr(0, 82) + "...";
             }
-            if (Context::can_report_status())
+            if (Console::can_report_status())
             {
                 Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
             }
@@ -639,7 +639,7 @@ namespace mamba
             }
 
             // Print final status when done (reuse label variable)
-            if (Context::can_report_status())
+            if (Console::can_report_status())
             {
                 if (label.length() > 85)
                 {

@@ -105,7 +105,7 @@ namespace mamba
                     continue;
                 }
                 SubdirIndexLoader subdir_index_loader = std::move(subdir_index_loader_result).value();
-                if (subdir_index_loader.valid_cache_found() && Context::can_report_status())
+                if (subdir_index_loader.valid_cache_found() && Console::can_report_status())
                 {
                     Console::stream()
                         << fmt::format("{:<50} {:>20}", subdir_index_loader.name(), "Using cache");

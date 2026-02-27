@@ -220,13 +220,6 @@ namespace mamba
             };
         }
 
-        /**
-         * Check if status messages can be reported to stdout.
-         * Returns true if Console is available and JSON output is not enabled.
-         * Use this before printing status messages to ensure they don't interfere with JSON output.
-         */
-        [[nodiscard]] static bool can_report_status();
-
         std::size_t lock_timeout = 0;
         bool use_lockfiles = true;
 

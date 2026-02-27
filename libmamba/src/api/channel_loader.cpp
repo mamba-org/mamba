@@ -158,17 +158,6 @@ namespace mamba
         auto& subdir = subdirs[subdir_idx];
         LOG_DEBUG << "Attempting to load subdir with shards: " << subdir.name();
 
-        // Return error if shards are not applicable (disabled, stale metadata, or no roots).
-        if (!ctx.repodata_use_shards
-            || !subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
-            || root_packages.empty())
-        {
-            LOG_DEBUG << "Shards not applicable for " << subdir.name()
-                      << " (use_shards=" << ctx.repodata_use_shards
-                      << ", root_packages=" << root_packages.size() << ")";
-            return tl::unexpected(mamba_error("Shards not applicable", mamba_error_code::unknown));
-        }
-
         // Fetch and parse the shard index for the requested subdir (subdir_idx).
         auto subdir_params = ctx.subdir_download_params();
         auto shard_index_result = ShardIndexLoader::fetch_and_parse_shard_index(

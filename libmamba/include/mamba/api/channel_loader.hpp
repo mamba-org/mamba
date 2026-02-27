@@ -28,8 +28,11 @@ namespace mamba
      * Load a single subdir using sharded repodata (only reachable packages).
      *
      * Uses the shard index and per-package shards to load just the packages reachable from
-     * \p root_packages via dependencies, instead of the full repodata. Fails fast if shards
-     * are disabled, not up-to-date, or \p root_packages is empty.
+     * \p root_packages via dependencies, instead of the full repodata.
+     *
+     * Precondition: the caller must only invoke this when shards are applicable for the
+     * targeted subdir (e.g. sharded repodata is enabled, metadata is up to date, and
+     * \p root_packages is non-empty).
      *
      * @param ctx Context (repodata_use_shards, shard TTL, download params, etc.).
      * @param database Libsolv database to add repos into.

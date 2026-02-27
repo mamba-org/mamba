@@ -480,37 +480,19 @@ namespace mamba
             expected_t<void> download_res = expected_t<void>();
             if (!subdirs_needing_index.empty())
             {
-                if (SubdirIndexMonitor::can_monitor(ctx))
-                {
-                    SubdirIndexMonitor index_monitor;
-                    download_res = SubdirIndexLoader::download_requests(
-                        SubdirIndexLoader::build_all_index_requests(
-                            subdirs_needing_index.begin(),
-                            subdirs_needing_index.end(),
-                            subdir_params
-                        ),
-                        ctx.authentication_info(),
-                        ctx.mirrors,
-                        ctx.download_options(),
-                        ctx.remote_fetch_params,
-                        &index_monitor
-                    );
-                }
-                else
-                {
-                    download_res = SubdirIndexLoader::download_requests(
-                        SubdirIndexLoader::build_all_index_requests(
-                            subdirs_needing_index.begin(),
-                            subdirs_needing_index.end(),
-                            subdir_params
-                        ),
-                        ctx.authentication_info(),
-                        ctx.mirrors,
-                        ctx.download_options(),
-                        ctx.remote_fetch_params,
-                        nullptr
-                    );
-                }
+                SubdirIndexMonitor index_monitor;
+                download_res = SubdirIndexLoader::download_requests(
+                    SubdirIndexLoader::build_all_index_requests(
+                        subdirs_needing_index.begin(),
+                        subdirs_needing_index.end(),
+                        subdir_params
+                    ),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
+                    SubdirIndexMonitor::can_monitor(ctx) ? &index_monitor : nullptr
+                );
             }
 
             // Handle index download errors: check for user interruption and add to error list

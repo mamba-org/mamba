@@ -29,6 +29,8 @@
 
 namespace mamba
 {
+    class Console;
+
     enum class VerificationLevel
     {
         Disabled,
@@ -258,6 +260,10 @@ namespace mamba
 
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
+
+        bool repodata_use_shards = false;
+        std::size_t repodata_shards_ttl = 86400;
+        std::size_t repodata_shards_threads = 10;
 
         // FIXME: Should not be stored here
         // Notice that we cannot build this map directly from mirrored_channels,

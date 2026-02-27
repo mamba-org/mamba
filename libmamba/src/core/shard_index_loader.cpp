@@ -16,6 +16,7 @@
 #include <msgpack/zone.h>
 #include <zstd.h>
 
+#include "mamba/core/context.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
@@ -539,12 +540,15 @@ namespace mamba
             if (cached_index.has_value())
             {
                 LOG_DEBUG << "Using cached shard index for " << subdir.name();
-                std::string label = "Fetch Shards' Index for " + subdir.name();
-                if (label.length() > 85)
+                if (Console::can_report_status())
                 {
-                    label = label.substr(0, 82) + "...";
+                    std::string label = "Fetch Shards' Index for " + subdir.name();
+                    if (label.length() > 85)
+                    {
+                        label = label.substr(0, 82) + "...";
+                    }
+                    Console::instance().print(fmt::format("{:<85} {:>20}", label, "✔ Done"));
                 }
-                Console::instance().print(fmt::format("{:<85} {:>20}", label, "✔ Done"));
                 return std::optional<ShardsIndexDict>(std::move(cached_index.value()));
             }
         }
@@ -555,7 +559,10 @@ namespace mamba
         {
             label = label.substr(0, 82) + "...";
         }
-        Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
+        if (Console::can_report_status())
+        {
+            Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
+        }
 
         // Build download request
         auto request_opt = build_shard_index_request(
@@ -614,7 +621,10 @@ namespace mamba
             {
                 label = label.substr(0, 82) + "...";
             }
-            Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
+            if (Console::can_report_status())
+            {
+                Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
+            }
             auto index_result = parse_shard_index(downloaded_path);
             if (!index_result.has_value())
             {
@@ -629,11 +639,14 @@ namespace mamba
             }
 
             // Print final status when done (reuse label variable)
-            if (label.length() > 85)
+            if (Console::can_report_status())
             {
-                label = label.substr(0, 82) + "...";
+                if (label.length() > 85)
+                {
+                    label = label.substr(0, 82) + "...";
+                }
+                Console::instance().print(fmt::format("{:<85} {:>20}", label, "✔ Done"));
             }
-            Console::instance().print(fmt::format("{:<85} {:>20}", label, "✔ Done"));
             return std::optional<ShardsIndexDict>(std::move(index_result.value()));
         }
         catch (const std::exception& e)

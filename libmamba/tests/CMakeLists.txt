@@ -110,6 +110,7 @@ set(
     src/core/test_shard_traversal.cpp
     src/core/test_shard_types.cpp
     src/core/test_shard_utils.cpp
+    src/core/test_sharded_repodata_integration.cpp
     src/core/test_subdir_index.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp

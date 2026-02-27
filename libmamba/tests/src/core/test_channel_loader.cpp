@@ -157,3 +157,27 @@ TEST_CASE("load_channels", "[mamba::api][channel_loader]")
     REQUIRE(result.has_value());
     REQUIRE(database.repo_count() == 0);
 }
+
+TEST_CASE("load_channels with root_packages", "[mamba::core][mamba::api::channel_loader]")
+{
+    auto& ctx = mambatests::context();
+    ctx.channels = { "conda-forge" };
+    ctx.repodata_use_shards = true;
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    solver::libsolv::Database db{ channel_context.params() };
+    MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
+
+    SECTION("Empty root_packages")
+    {
+        auto result = load_channels(ctx, channel_context, db, package_caches, {});
+        REQUIRE(result.has_value());
+    }
+
+    SECTION("With root_packages")
+    {
+        std::vector<std::string> root_packages = { "python" };
+        auto result = load_channels(ctx, channel_context, db, package_caches, root_packages);
+        REQUIRE(result.has_value());
+    }
+}

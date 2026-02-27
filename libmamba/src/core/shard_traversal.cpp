@@ -8,7 +8,11 @@
 #include <set>
 #include <vector>
 
+#include <fmt/format.h>
+
+#include "mamba/core/context.hpp"
 #include "mamba/core/logging.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/shard_traversal.hpp"
 #include "mamba/specs/match_spec.hpp"
 
@@ -104,6 +108,12 @@ namespace mamba
         {
             return;
         }
+        if (Console::can_report_status())
+        {
+            Console::instance().print(
+                fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "⧖ Starting")
+            );
+        }
         if (strategy == "bfs")
         {
             reachable_bfs(root_packages, root_shards);
@@ -111,6 +121,12 @@ namespace mamba
         else
         {
             reachable_pipelined(root_packages, root_shards);
+        }
+        if (Console::can_report_status())
+        {
+            Console::instance().print(
+                fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "✔ Done")
+            );
         }
     }
 

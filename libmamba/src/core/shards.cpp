@@ -342,7 +342,8 @@ namespace mamba
         specs::Channel channel,
         specs::AuthenticationDataBase auth_info,
         download::RemoteFetchParams remote_fetch_params,
-        std::size_t download_threads
+        std::size_t download_threads,
+        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -350,6 +351,7 @@ namespace mamba
         , m_auth_info(std::move(auth_info))
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(download_threads)
+        , m_mirrors(std::move(mirrors))
     {
     }
 
@@ -674,12 +676,10 @@ namespace mamba
                 {
                     const auto& parsed_url = url_parsed.value();
                     // Construct base URL: scheme://host/
-                    std::string base_url = util::url_concat(
-                        parsed_url.scheme(),
-                        "://",
-                        parsed_url.host(),
-                        "/"
-                    );
+                    // Note: do not use url_concat here - it inserts '/' between segments when
+                    // neither ends/starts with '/', which would turn "https"+"://" into "https/://"
+                    std::string base_url = std::string(parsed_url.scheme()) + "://"
+                                           + parsed_url.host() + "/";
                     // Get relative path (remove leading '/')
                     std::string path = parsed_url.path();
                     if (path.size() > 1)
@@ -1031,6 +1031,10 @@ namespace mamba
         std::map<std::string, fs::u8path> package_to_artifact_path;
         std::vector<std::shared_ptr<TemporaryFile>> artifacts;
         download::mirror_map extended_mirrors;
+        if (m_mirrors.has_value())
+        {
+            extended_mirrors.add_mirrors_from(m_mirrors->get(), m_channel.id());
+        }
 
         const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();
         const fs::u8path cache_dir_path = fs::u8path(
@@ -1073,8 +1077,9 @@ namespace mamba
 
             if (!download_results[i].has_value())
             {
+                const auto& err = download_results[i].error();
                 LOG_WARNING << "Failed to download shard " << url << " for package '" << package
-                            << "'";
+                            << "': " << err.message;
                 continue;
             }
 
@@ -1190,11 +1195,42 @@ namespace mamba
 
     auto Shards::base_url() const -> std::string
     {
-        return m_shards_index.info.base_url;
+        if (m_base_url_cache.has_value())
+        {
+            return *m_base_url_cache;
+        }
+
+        std::string base_url_str = m_shards_index.info.base_url;
+
+        // When base_url is relative (no URL scheme), resolve it against the channel URL.
+        // Shard indices may store paths like "/conda-forge/linux-64" which would be
+        // interpreted as file:// paths when used directly.
+        if (!util::url_has_scheme(base_url_str))
+        {
+            auto url_parsed = util::URL::parse(m_url);
+            if (url_parsed.has_value())
+            {
+                const auto& parsed = url_parsed.value();
+                std::string origin = std::string(parsed.scheme()) + "://" + parsed.host();
+                if (const auto& port = parsed.port(); !port.empty())
+                {
+                    origin += ":" + port;
+                }
+                base_url_str = util::url_concat(origin, base_url_str);
+            }
+        }
+
+        m_base_url_cache = base_url_str;
+        return *m_base_url_cache;
     }
 
     auto Shards::url() const -> std::string
     {
         return m_url;
+    }
+
+    auto Shards::subdir() const -> const std::string&
+    {
+        return m_shards_index.info.subdir;
     }
 }

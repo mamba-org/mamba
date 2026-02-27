@@ -26,6 +26,11 @@
 
 namespace mamba
 {
+    namespace
+    {
+        constinit const char REPODATA_SHARDS_MSGPACK_ZST[] = "repodata_shards.msgpack.zst";
+    }
+
     /*******************
      * MSubdirMetadata *
      *******************/
@@ -640,7 +645,7 @@ namespace mamba
 
     auto SubdirIndexLoader::shard_index_url_path() const -> std::string
     {
-        return util::url_concat(m_platform, "/", "repodata_shards.msgpack.zst");
+        return util::url_concat(m_platform, "/", REPODATA_SHARDS_MSGPACK_ZST);
     }
 
     auto SubdirIndexLoader::valid_json_cache_path_unchecked() const -> fs::u8path

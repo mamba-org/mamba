@@ -42,6 +42,20 @@ namespace mamba
     void
     populate_context_channels_from_specs(const std::vector<std::string>& raw_matchspecs, Context& context);
 
+    /**
+     * Extract package names from matchspec strings.
+     * Only extracts exact name matches (no version constraints).
+     */
+    std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
+
+    /**
+     * Ensure that ``"pip"`` is present in ``root_packages`` when ``"python"`` is requested.
+     *
+     * This is used by both install and update flows to automatically add ``pip`` when
+     * ``python`` is part of the requested specs, unless ``pip`` is already present.
+     */
+    void add_pip_if_python(std::vector<std::string>& root_packages);
+
 }
 
 #endif  // MAMBA_UTILS_HPP

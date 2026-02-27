@@ -59,6 +59,7 @@ extern "C"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/random.hpp"
@@ -1723,5 +1724,6 @@ namespace mamba
 
         return copy;
     }
+
 
 }  // namespace mamba

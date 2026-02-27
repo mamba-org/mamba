@@ -4,12 +4,14 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <fmt/format.h>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
@@ -17,6 +19,7 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
+#include "mamba/specs/match_spec.hpp"
 
 #include "utils.hpp"
 
@@ -173,7 +176,17 @@ namespace mamba
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches);
+        auto root_packages = extract_package_names_from_specs(raw_update_specs);
+
+        // When updating python with sharded repodata, also include pip in root packages.
+        // This also avoids pulling old versions of python (1.x) which do not depend on
+        // other packages, which is a choice the solver can make.
+        if (ctx.repodata_use_shards)
+        {
+            add_pip_if_python(root_packages);
+        }
+
+        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches, root_packages);
         if (!exp_loaded)
         {
             throw std::runtime_error(exp_loaded.error().what());
@@ -207,6 +220,12 @@ namespace mamba
             // Console stream prints on destruction
         }
 
+        if (Console::can_report_status())
+        {
+            Console::instance().print(
+                fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
+            );
+        }
         auto outcome = solver::libsolv::Solver()
                            .solve(
                                db,
@@ -216,6 +235,10 @@ namespace mamba
                                    : solver::libsolv::MatchSpecParser::Mixed
                            )
                            .value();
+        if (Console::can_report_status())
+        {
+            Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
+        }
         if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
         {
             unsolvable->explain_problems_to(

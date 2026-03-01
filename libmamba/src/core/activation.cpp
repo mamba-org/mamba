@@ -709,14 +709,15 @@ namespace mamba
         auto has_prefix = util::get_env("CONDA_PREFIX");
         if (m_context.auto_activate_base && !has_prefix.has_value())
         {
-			if (is_powershell(this))
-			{
-				builder << "& " << get_self_exe_path().stem() << " activate base\n";
-			}
-			else
-			{
-				builder << get_self_exe_path().stem() << " activate base\n";
-			}
+            // use invocation operator to run commands represented by strings
+            if (is_powershell(this))
+            {
+                builder << "& " << get_self_exe_path().stem() << " activate base\n";
+            }
+            else
+            {
+                builder << get_self_exe_path().stem() << " activate base\n";
+            }
         }
         builder << hook_postamble() << "\n";
         return builder.str();

@@ -57,7 +57,8 @@ namespace mamba
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
             std::size_t download_threads = 10,
-            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
+            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt,
+            fs::u8path pkgs_cache_root = {}
         );
 
         /** Return the names of all packages available in this shard collection. */
@@ -129,10 +130,22 @@ namespace mamba
         /** Cached resolved base_url for packages. */
         mutable std::optional<std::string> m_base_url_cache;
 
+        /** Root directory of the writable packages cache (e.g. first writable pkgs_dir). */
+        fs::u8path m_pkgs_cache_root;
+
         /**
          * Get the base URL where shards are stored.
          */
         [[nodiscard]] auto shards_base_url() const -> std::string;
+
+        /**
+         * Get the root directory used for shard caching.
+         *
+         * When constructed with an explicit cache root, that path is used.
+         * Otherwise, this falls back to an environment-based default using
+         * XDG_CACHE_HOME or util::user_cache_dir().
+         */
+        [[nodiscard]] auto pkgs_cache_root() const -> fs::u8path;
 
         /**
          * Get the relative path for a shard (for use with download::Request).

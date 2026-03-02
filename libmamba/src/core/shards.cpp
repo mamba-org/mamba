@@ -345,7 +345,8 @@ namespace mamba
         specs::AuthenticationDataBase auth_info,
         download::RemoteFetchParams remote_fetch_params,
         std::size_t download_threads,
-        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors
+        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors,
+        fs::u8path pkgs_cache_root
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -354,6 +355,7 @@ namespace mamba
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(download_threads)
         , m_mirrors(std::move(mirrors))
+        , m_pkgs_cache_root(std::move(pkgs_cache_root))
     {
     }
 
@@ -408,15 +410,21 @@ namespace mamba
         return result;
     }
 
+    auto Shards::pkgs_cache_root() const -> fs::u8path
+    {
+        if (!m_pkgs_cache_root.empty())
+        {
+            return m_pkgs_cache_root;
+        }
+
+        return fs::u8path(util::user_cache_dir()) / "conda" / "pkgs";
+    }
+
     auto Shards::shard_url(const std::string& package) const -> std::string
     {
-        LOG_DEBUG << "Constructing shard URL for package '" << package
-                  << "' from base_url: " << shards_base_url();
         auto it = m_shards_index.shards.find(package);
         if (it == m_shards_index.shards.end())
         {
-            LOG_DEBUG << "Package '" << package << "' not found in shard index (index contains "
-                      << m_shards_index.shards.size() << " packages)";
             throw std::runtime_error("Package " + package + " not found in shard index");
         }
 
@@ -425,10 +433,8 @@ namespace mamba
             reinterpret_cast<const std::byte*>(it->second.data()),
             reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
         );
-        LOG_DEBUG << "Package '" << package << "' found in shard index with hash: " << hex_hash;
         std::string shard_name = hex_hash + ".msgpack.zst";
         std::string url = shards_base_url() + shard_name;
-        LOG_DEBUG << "Constructed shard URL for package '" << package << "': " << url;
         return url;
     }
 
@@ -1059,13 +1065,7 @@ namespace mamba
             extended_mirrors.add_mirrors_from(m_mirrors->get(), m_channel.id());
         }
 
-        const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();
-        const fs::u8path cache_dir_path = fs::u8path(
-                                              XDG_CACHE_HOME_SET
-                                                  ? util::get_env("XDG_CACHE_HOME").value()
-                                                  : util::user_cache_dir()
-                                          )
-                                          / "conda" / "pkgs";
+        const fs::u8path cache_dir_path = pkgs_cache_root();
         const std::string cache_dir_str = create_cache_dir(cache_dir_path);
 
         create_download_requests(
@@ -1300,16 +1300,10 @@ namespace mamba
             reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
         );
 
-        // Construct cache directory path
-        const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();
-        const fs::u8path cache_dir_path = fs::u8path(
-                                              XDG_CACHE_HOME_SET
-                                                  ? util::get_env("XDG_CACHE_HOME").value()
-                                                  : util::user_cache_dir()
-                                          )
-                                          / "conda" / "pkgs" / "cache" / "shards";
+        // Construct cache directory path under the shared packages cache root.
+        const fs::u8path cache_dir_path = pkgs_cache_root() / "cache" / "shards";
 
-        // Return full cache path: {cache_dir}/cache/shards/{hex_hash}.msgpack.zst
+        // Return full cache path: {pkgs_cache_root}/cache/shards/{hex_hash}.msgpack.zst
         return cache_dir_path / (hex_hash + ".msgpack.zst");
     }
 

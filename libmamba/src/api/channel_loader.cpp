@@ -67,25 +67,28 @@ namespace mamba
         )
         {
             std::map<std::string, std::vector<specs::PackageInfo>> packages_by_url;
-            const auto& shards_by_url = subset.url_keyed_shards();
             for (const auto& [node_id, node] : subset.nodes())
             {
                 if (!node.visited)
                 {
                     continue;
                 }
-
-                auto it = shards_by_url.find(node_id.channel);
-                if (it == shards_by_url.end())
+                auto it = std::find_if(
+                    subset.shards().begin(),
+                    subset.shards().end(),
+                    [&node_id](const std::shared_ptr<Shards>& s)
+                    { return s->url() == node_id.channel; }
+                );
+                if (it == subset.shards().end())
                 {
                     continue;
                 }
-                const Shards& shards = it->second;
+                auto& shards_ptr = *it;
                 try
                 {
-                    auto shard = shards.visit_package(node_id.package);
-                    auto base_url = shards.base_url();
-                    specs::DynamicPlatform platform = shards.subdir();
+                    auto shard = shards_ptr->visit_package(node_id.package);
+                    auto base_url = shards_ptr->base_url();
+                    specs::DynamicPlatform platform = shards_ptr->subdir();
                     std::string channel_id = subdirs[url_to_subdir_idx.at(node_id.channel)].channel_id();
                     for (const auto& [filename, record] : shard.packages)
                     {
@@ -279,7 +282,7 @@ namespace mamba
 
         // For all subdirs sharing the same channel URL, fetch their shard indices and build
         //    a Shards instance per subdir; collect them into a RepodataSubset.
-        std::vector<Shards> all_shards;
+        std::vector<std::shared_ptr<Shards>> all_shards;
         std::map<std::string, std::size_t> url_to_subdir_idx;
         for (std::size_t j = 0; j < subdirs.size(); ++j)
         {
@@ -301,7 +304,7 @@ namespace mamba
                 }
                 auto si = std::move(sidx_result.value().value());
                 std::string sdir_url = subdirs[j].repodata_url().str();
-                all_shards.emplace_back(
+                auto shards_ptr = std::make_shared<Shards>(
                     std::move(si),
                     sdir_url,
                     subdirs[j].channel(),
@@ -310,6 +313,7 @@ namespace mamba
                     ctx.repodata_shards_threads,
                     std::cref(ctx.mirrors)
                 );
+                all_shards.push_back(std::move(shards_ptr));
                 url_to_subdir_idx[sdir_url] = j;
             }
         }
@@ -319,8 +323,7 @@ namespace mamba
         RepodataSubset subset(std::move(all_shards));
         subset.reachable(root_packages, "bfs", std::nullopt);
         LOG_DEBUG << "Reachable subset computed for " << subdir.name() << " ("
-                  << subset.url_keyed_shards().size() << " shards, " << subset.nodes().size()
-                  << " nodes)";
+                  << subset.shards().size() << " shards, " << subset.nodes().size() << " nodes)";
 
         // For each visited node in the subset, visit the corresponding package shard and
         //    convert records to PackageInfo; collect packages by channel URL. Exceptions

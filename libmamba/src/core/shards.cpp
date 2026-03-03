@@ -356,7 +356,46 @@ namespace mamba
         , m_mirrors(std::move(mirrors))
         , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / "conda" / "pkgs")
         , m_shard_cache_dir(m_pkgs_cache_root / "cache" / "shards")
+        , m_mutex(std::make_unique<std::mutex>())
     {
+    }
+
+    Shards::Shards(const Shards& other)
+        : m_shards_index(other.m_shards_index)
+        , m_url(other.m_url)
+        , m_channel(other.m_channel)
+        , m_auth_info(other.m_auth_info)
+        , m_remote_fetch_params(other.m_remote_fetch_params)
+        , m_download_threads(other.m_download_threads)
+        , m_mirrors(other.m_mirrors)
+        , m_visited(other.m_visited)
+        , m_shards_base_url(other.m_shards_base_url)
+        , m_base_url_cache(other.m_base_url_cache)
+        , m_pkgs_cache_root(other.m_pkgs_cache_root)
+        , m_shard_cache_dir(other.m_shard_cache_dir)
+        , m_mutex(std::make_unique<std::mutex>())
+    {
+    }
+
+    Shards& Shards::operator=(const Shards& other)
+    {
+        if (this != &other)
+        {
+            m_shards_index = other.m_shards_index;
+            m_url = other.m_url;
+            m_channel = other.m_channel;
+            m_auth_info = other.m_auth_info;
+            m_remote_fetch_params = other.m_remote_fetch_params;
+            m_download_threads = other.m_download_threads;
+            m_mirrors = other.m_mirrors;
+            m_visited = other.m_visited;
+            m_shards_base_url = other.m_shards_base_url;
+            m_base_url_cache = other.m_base_url_cache;
+            m_pkgs_cache_root = other.m_pkgs_cache_root;
+            m_shard_cache_dir = other.m_shard_cache_dir;
+            // m_mutex is replaced, not copied
+        }
+        return *this;
     }
 
     auto Shards::package_names() const -> std::vector<std::string>
@@ -377,9 +416,12 @@ namespace mamba
 
     auto Shards::shards_base_url() const -> std::string
     {
-        if (m_shards_base_url.has_value())
         {
-            return *m_shards_base_url;
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            if (m_shards_base_url.has_value())
+            {
+                return *m_shards_base_url;
+            }
         }
 
         std::string shards_base_url_str = m_shards_index.info.shards_base_url;
@@ -406,7 +448,10 @@ namespace mamba
             result += "/";
         }
 
-        m_shards_base_url = result;
+        {
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            m_shards_base_url = result;
+        }
         return result;
     }
 
@@ -531,11 +576,13 @@ namespace mamba
 
     auto Shards::is_shard_present(const std::string& package) const -> bool
     {
+        std::lock_guard<std::mutex> lock(*m_mutex);
         return m_visited.find(package) != m_visited.end();
     }
 
     auto Shards::visit_package(const std::string& package) const -> ShardDict
     {
+        std::lock_guard<std::mutex> lock(*m_mutex);
         auto it = m_visited.find(package);
         if (it == m_visited.end())
         {
@@ -571,7 +618,10 @@ namespace mamba
             }
         }
 
-        m_visited[package] = shard;
+        {
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            m_visited[package] = shard;
+        }
     }
 
     auto Shards::fetch_shard(const std::string& package) -> expected_t<ShardDict>
@@ -602,14 +652,18 @@ namespace mamba
         for (const auto& package : packages)
         {
             // Check in-memory cache first
-            if (auto it = m_visited.find(package); it != m_visited.end())
             {
-                LOG_DEBUG << "Shard for package '" << package
-                          << "' already in memory, skipping download";
-                results[package] = it->second;
+                std::lock_guard<std::mutex> lock(*m_mutex);
+                if (auto it = m_visited.find(package); it != m_visited.end())
+                {
+                    LOG_DEBUG << "Shard for package '" << package
+                              << "' already in memory, skipping download";
+                    results[package] = it->second;
+                    continue;
+                }
             }
             // Check disk cache
-            else if (is_shard_cached(package))
+            if (is_shard_cached(package))
             {
                 LOG_DEBUG << "Shard for package '" << package
                           << "' found in cache, attempting to load";
@@ -1085,33 +1139,107 @@ namespace mamba
             nullptr  // monitor
         );
 
-        for (std::size_t i = 0; i < download_results.size() && i < cache_miss_urls.size(); ++i)
+        const std::size_t task_count = std::min(download_results.size(), cache_miss_urls.size());
+        if (task_count == 0)
         {
-            const std::string& url = cache_miss_urls[i];
-            const std::string& package = cache_miss_packages[i];
+            return results;
+        }
 
-            if (!download_results[i].has_value())
+        std::size_t parsing_threads = m_download_threads;
+        if (parsing_threads == 0)
+        {
+            parsing_threads = std::thread::hardware_concurrency();
+            if (parsing_threads == 0)
             {
-                const auto& err = download_results[i].error();
-                LOG_WARNING << "Failed to download shard " << url << " for package '" << package
-                            << "': " << err.message;
-                continue;
+                parsing_threads = 1;
+            }
+        }
+
+        const std::size_t max_threads = std::max<std::size_t>(
+            1,
+            std::min<std::size_t>(parsing_threads, task_count)
+        );
+
+        std::mutex results_mutex;
+        auto worker = [this,
+                       &download_results,
+                       &cache_miss_urls,
+                       &cache_miss_packages,
+                       &package_to_cache_path,
+                       &results,
+                       &results_mutex](std::size_t begin, std::size_t end)
+        {
+            for (std::size_t i = begin; i < end; ++i)
+            {
+                const std::string& url = cache_miss_urls[i];
+                const std::string& package = cache_miss_packages[i];
+
+                if (!download_results[i].has_value())
+                {
+                    const auto& err = download_results[i].error();
+                    LOG_WARNING << "Failed to download shard " << url << " for package '" << package
+                                << "': " << err.message;
+                    continue;
+                }
+
+                const auto& success = download_results[i].value();
+                LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
+                          << url << " (" << success.transfer.downloaded_size << " bytes)";
+
+                auto shard_result = process_downloaded_shard(package, success, package_to_cache_path);
+                if (!shard_result.has_value())
+                {
+                    LOG_WARNING << "Failed to process downloaded shard for package '" << package
+                                << "': " << shard_result.error().what();
+                    continue;
+                }
+
+                // For Filename variant, the file was already downloaded to the cache path.
+                // For Buffer variant, we would need to write to cache - not implemented.
+
+                {
+                    std::lock_guard<std::mutex> lock(results_mutex);
+                    results[package] = shard_result.value();
+                }
+                process_fetched_shard(package, shard_result.value());
+            }
+        };
+
+        if (max_threads == 1 || task_count == 1)
+        {
+            worker(0, task_count);
+        }
+        else
+        {
+            std::vector<std::thread> threads;
+            threads.reserve(max_threads);
+
+            const std::size_t base = task_count / max_threads;
+            const std::size_t rem = task_count % max_threads;
+            std::size_t begin = 0;
+
+            for (std::size_t t = 0; t < max_threads; ++t)
+            {
+                const std::size_t chunk = base + (t < rem ? 1 : 0);
+                const std::size_t start = begin;
+                const std::size_t end = start + chunk;
+                begin = end;
+
+                if (start >= end)
+                {
+                    continue;
+                }
+
+                threads.emplace_back(worker, start, end);
             }
 
-            const auto& success = download_results[i].value();
-            LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
-                      << url << " (" << success.transfer.downloaded_size << " bytes)";
-
-            auto shard_result = process_downloaded_shard(package, success, package_to_cache_path);
-            if (!shard_result.has_value())
+            for (auto& th : threads)
             {
-                LOG_WARNING << "Failed to process downloaded shard for package '" << package
-                            << "': " << shard_result.error().what();
-                continue;
+                if (th.joinable())
+                {
+                    th.join();
+                }
             }
-
-            results[package] = shard_result.value();
-            process_fetched_shard(package, shard_result.value());
         }
 
         return results;
@@ -1129,17 +1257,20 @@ namespace mamba
         std::vector<std::pair<std::string, ShardPackageRecord>> all_packages;
         std::vector<std::pair<std::string, ShardPackageRecord>> all_conda_packages;
 
-        for (const auto& [package, shard] : m_visited)
         {
-            // Collect packages
-            for (const auto& [filename, record] : shard.packages)
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            for (const auto& [package, shard] : m_visited)
             {
-                all_packages.emplace_back(filename, record);
-            }
-            // Collect conda packages
-            for (const auto& [filename, record] : shard.conda_packages)
-            {
-                all_conda_packages.emplace_back(filename, record);
+                // Collect packages
+                for (const auto& [filename, record] : shard.packages)
+                {
+                    all_packages.emplace_back(filename, record);
+                }
+                // Collect conda packages
+                for (const auto& [filename, record] : shard.conda_packages)
+                {
+                    all_conda_packages.emplace_back(filename, record);
+                }
             }
         }
 
@@ -1210,9 +1341,12 @@ namespace mamba
 
     auto Shards::base_url() const -> std::string
     {
-        if (m_base_url_cache.has_value())
         {
-            return *m_base_url_cache;
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            if (m_base_url_cache.has_value())
+            {
+                return *m_base_url_cache;
+            }
         }
 
         std::string base_url_str = m_shards_index.info.base_url;
@@ -1235,8 +1369,11 @@ namespace mamba
             }
         }
 
-        m_base_url_cache = base_url_str;
-        return *m_base_url_cache;
+        {
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            m_base_url_cache = base_url_str;
+            return *m_base_url_cache;
+        }
     }
 
     auto Shards::url() const -> std::string

@@ -109,6 +109,10 @@ namespace mamba
                                 << node_id.channel << ": " << e.what();
                 }
             }
+
+            LOG_DEBUG << "Shard traversal produced done across " << packages_by_url.size()
+                      << " channel URL(s) from reachable subset";
+
             return packages_by_url;
         }
 
@@ -570,16 +574,27 @@ namespace mamba
         )
         {
             std::optional<solver::libsolv::RepoInfo> result_repo;
+            LOG_DEBUG << "Adding repos from shard-derived packages_by_url with "
+                      << packages_by_url.size() << " channel URL(s)";
+
             for (const auto& [channel_url, pkgs] : packages_by_url)
             {
                 std::string repo_name = subdirs.at(url_to_subdir_idx.at(channel_url)).name();
                 if (loaded_subdirs_with_shards.contains(repo_name))
                 {
+                    LOG_DEBUG << "Repo '" << repo_name
+                              << "' already loaded from shards; skipping additional load";
                     continue;
                 }
                 loaded_subdirs_with_shards.insert(repo_name);
 
+                LOG_DEBUG << "Preparing repo '" << repo_name << "' from shards for URL "
+                          << channel_url << " with " << pkgs.size()
+                          << " package(s) before version/build sort";
+
                 auto sorted_pkgs = pkgs;
+                LOG_DEBUG << "Sorting shard-derived packages for repo '" << repo_name
+                          << "' by version and build (descending)";
                 std::sort(
                     sorted_pkgs.begin(),
                     sorted_pkgs.end(),
@@ -589,6 +604,16 @@ namespace mamba
                         return specs::compare_packages_by_version_and_build(rhs, lhs);
                     }
                 );
+                if (!sorted_pkgs.empty())
+                {
+                    const auto& newest = sorted_pkgs.front();
+                    const auto& oldest = sorted_pkgs.back();
+                    LOG_DEBUG << "After sort for repo '" << repo_name << "': newest=" << newest.name
+                              << "=" << newest.version << "-" << newest.build_string
+                              << ", oldest=" << oldest.name << "=" << oldest.version << "-"
+                              << oldest.build_string;
+                }
+
                 auto repo = database.add_repo_from_packages(
                     sorted_pkgs,
                     repo_name,
@@ -596,8 +621,15 @@ namespace mamba
                 );
                 std::size_t idx = url_to_subdir_idx.at(channel_url);
                 database.set_repo_priority(repo, priorities[idx]);
+
+                LOG_DEBUG << "Added repo '" << repo_name << "' from shards with priority {"
+                          << priorities[idx].priority << ", " << priorities[idx].subpriority
+                          << "} for URL " << channel_url;
+
                 if (channel_url == current_repodata_url)
                 {
+                    LOG_DEBUG << "Repo '" << repo_name
+                              << "' corresponds to current repodata URL; marking as result_repo";
                     result_repo = std::move(repo);
                 }
             }

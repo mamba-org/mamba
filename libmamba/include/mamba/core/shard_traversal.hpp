@@ -68,7 +68,7 @@ namespace mamba
     {
     public:
 
-        explicit RepodataSubset(std::vector<Shards> shards);
+        explicit RepodataSubset(std::vector<Shards> shards, std::size_t traversal_threads = 0);
 
         /**
          * Compute reachable packages from root_packages.
@@ -94,6 +94,7 @@ namespace mamba
         std::vector<Shards> m_shards;
 
         NodeMap m_nodes;
+        std::size_t m_traversal_threads = 0;
 
         void reachable_bfs(
             const std::vector<std::string>& root_packages,

@@ -9,6 +9,8 @@
 
 #include <functional>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -56,6 +58,20 @@ namespace mamba
             std::size_t download_threads = 10,
             std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
         );
+
+        /** Copy constructor (required because m_mutex is unique_ptr; creates a fresh mutex per
+         * copy). */
+        Shards(const Shards& other);
+
+        /** Move constructor (required when copy ops are user-declared; = default is sufficient). */
+        Shards(Shards&&) noexcept = default;
+
+        /** Copy assignment (required because m_mutex is unique_ptr; creates a fresh mutex per
+         * copy). */
+        Shards& operator=(const Shards& other);
+
+        /** Move assignment (required when copy ops are user-declared; = default is sufficient). */
+        Shards& operator=(Shards&&) noexcept = default;
 
         /** Return the names of all packages available in this shard collection. */
         [[nodiscard]] auto package_names() const -> std::vector<std::string>;
@@ -131,6 +147,10 @@ namespace mamba
 
         /** Directory for cached shard files: {pkgs_cache_root}/cache/shards */
         fs::u8path m_shard_cache_dir;
+
+        /** Mutex guarding mutable state such as m_visited and cached URLs.
+         * Uses unique_ptr to make Shards movable (required for std::vector<Shards>). */
+        mutable std::unique_ptr<std::mutex> m_mutex;
 
         /**
          * Get the base URL where shards are stored.

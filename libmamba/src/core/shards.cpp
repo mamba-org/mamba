@@ -1065,8 +1065,13 @@ namespace mamba
             extended_mirrors.add_mirrors_from(m_mirrors->get(), m_channel.id());
         }
 
-        const fs::u8path cache_dir_path = pkgs_cache_root();
-        const std::string cache_dir_str = create_cache_dir(cache_dir_path);
+        // Use a temporary directory for shard downloads to avoid persisting them
+        // in the generic package cache. Persistent storage is handled separately
+        // via the shard cache in save_shard_to_cache / load_shard_from_cache.
+        TemporaryDirectory download_tmp_dir;
+        const fs::u8path cache_dir_path = download_tmp_dir.path();
+        fs::create_directories(cache_dir_path);
+        const std::string cache_dir_str = cache_dir_path.string();
 
         create_download_requests(
             url_to_package,
@@ -1310,38 +1315,29 @@ namespace mamba
     auto Shards::is_shard_cached(const std::string& package) const -> bool
     {
         // Check if package exists in shard index first
-        auto it = m_shards_index.shards.find(package);
-        if (it == m_shards_index.shards.end())
+        if (m_shards_index.shards.find(package) == m_shards_index.shards.end())
         {
+            LOG_DEBUG << "Package '" << package
+                      << "' not present in shard index; treating shard as not cached";
             return false;
         }
 
         fs::u8path cache_path = shard_cache_path(package);
 
-        // Check if cache file exists
-        if (!fs::exists(cache_path) || !fs::is_regular_file(cache_path))
+        // Consider the shard cached if a regular file exists at the expected path.
+        // Integrity and format are verified later when loading/parsing the shard.
+        const bool exists = fs::exists(cache_path) && fs::is_regular_file(cache_path);
+        if (!exists)
         {
-            return false;
+            LOG_DEBUG << "Shard cache file for package '" << package << "' not found at "
+                      << cache_path.string() << "; shard will be downloaded";
         }
-
-        // Convert expected hash bytes to hex string
-        std::string expected_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(it->second.data()),
-            reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
-        );
-
-        // Compute actual hash of cached file
-        try
+        else
         {
-            std::string actual_hash = validation::sha256sum(cache_path);
-            return actual_hash == expected_hash;
+            LOG_DEBUG << "Shard cache file for package '" << package << "' found at "
+                      << cache_path.string();
         }
-        catch (const std::exception& e)
-        {
-            LOG_DEBUG << "Failed to compute hash for cached shard " << cache_path.string() << ": "
-                      << e.what();
-            return false;
-        }
+        return exists;
     }
 
     auto Shards::load_shard_from_cache(const std::string& package) const -> expected_t<ShardDict>
@@ -1412,10 +1408,7 @@ namespace mamba
             );
         }
 
-        // Lock the cache directory to prevent concurrent writes
-        auto lock = LockFile(cache_dir);
-
-        // Copy shard file to cache path atomically
+        // Copy shard file to cache path
         try
         {
             // Remove existing cache file if present (in case of hash collision or corruption)

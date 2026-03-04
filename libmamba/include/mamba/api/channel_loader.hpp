@@ -57,11 +57,21 @@ namespace mamba
     class MultiPackageCache;
 
     /**
-     * Creates channels and mirrors objects and loads channels.
+     * Creates channels and mirrors objects and loads channels into the libsolv database.
      *
-     * Creates and stores channels in the ChannelContext, and mirrors objects in the Context
-     * object. Then loads channels, i.e. download repodata.json files if they are not cached
-     * locally.
+     * High level workflow:
+     *   1. Expand mirrored and regular channel URLs into concrete channels, configure mirrors,
+     *      and build `SubdirIndexLoader`s with associated priorities.
+     *   2. Collect any channel-as-package URLs and add them as a dedicated repo.
+     *   3. Run lightweight HEAD checks for freshness, then download full repodata indexes only
+     *      for subdirs that will not use shards.
+     *   4. Optionally, when offline, add repos from local `pkgs_dir`.
+     *   5. For each subdir, load it into the database:
+     *        - when sharded repodata is enabled and up to date (and `root_packages` non-empty),
+     *          prefer `load_subdir_with_shards` and fall back to full repodata on failure;
+     *        - otherwise, load from full repodata (cached or freshly downloaded).
+     *      Recoverable errors are aggregated and, when cache corruption is detected, a single
+     *      retry with cache invalidation is performed before reporting failure.
      *
      * @param ctx The context object containing configuration and mirrors.
      * @param channel_context The channel context where channels are created and stored.

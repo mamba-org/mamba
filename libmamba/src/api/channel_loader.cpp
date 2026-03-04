@@ -112,6 +112,380 @@ namespace mamba
             return packages_by_url;
         }
 
+        // Forward declarations for helpers defined later in this namespace.
+        void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors);
+
+        void create_subdirs(
+            Context& ctx,
+            ChannelContext& channel_context,
+            const specs::Channel& channel,
+            MultiPackageCache& package_caches,
+            std::vector<SubdirIndexLoader>& subdir_index_loaders,
+            std::vector<mamba_error>& error_list,
+            std::vector<solver::libsolv::Priorities>& priorities,
+            int& max_prio,
+            specs::CondaURL& previous_channel_url
+        );
+
+        /**
+         * Prepare subdir loaders, priorities, and direct package URLs.
+         *
+         * This function:
+         *   - expands mirrored and regular channels into concrete channels,
+         *   - configures mirrors and creates `SubdirIndexLoader`s,
+         *   - computes priorities for each subdir,
+         *   - collects any channel-as-package URLs into `packages`,
+         *   - appends loader creation errors into `error_list`.
+         */
+        void prepare_subdirs_and_packages(
+            Context& ctx,
+            ChannelContext& channel_context,
+            MultiPackageCache& package_caches,
+            std::vector<SubdirIndexLoader>& subdirs,
+            std::vector<solver::libsolv::Priorities>& priorities,
+            std::vector<specs::PackageInfo>& packages,
+            std::vector<mamba_error>& error_list
+        )
+        {
+            int max_prio = static_cast<int>(ctx.channels.size());
+            specs::CondaURL previous_channel_url;
+
+            // Process mirrored channels: create channel objects, configure mirrors, and initialize
+            // subdirs for each platform.
+            for (const auto& mirror : ctx.mirrored_channels)
+            {
+                for (const specs::Channel& channel :
+                     channel_context.make_channel(mirror.first, mirror.second))
+                {
+                    create_mirrors(channel, ctx.mirrors);
+                    create_subdirs(
+                        ctx,
+                        channel_context,
+                        channel,
+                        package_caches,
+                        subdirs,
+                        error_list,
+                        priorities,
+                        max_prio,
+                        previous_channel_url
+                    );
+                }
+            }
+
+            // Process regular (non-mirrored) channels.
+            for (const auto& location : ctx.channels)
+            {
+                if (ctx.mirrored_channels.contains(location))
+                {
+                    continue;
+                }
+
+                for (const specs::Channel& channel : channel_context.make_channel(location))
+                {
+                    if (channel.is_package())
+                    {
+                        specs::PackageInfo pkg_info = specs::PackageInfo::from_url(channel.url().str())
+                                                          .or_else([](specs::ParseError&& err)
+                                                                   { throw std::move(err); })
+                                                          .value();
+                        packages.push_back(pkg_info);
+                        continue;
+                    }
+
+                    create_mirrors(channel, ctx.mirrors);
+                    create_subdirs(
+                        ctx,
+                        channel_context,
+                        channel,
+                        package_caches,
+                        subdirs,
+                        error_list,
+                        priorities,
+                        max_prio,
+                        previous_channel_url
+                    );
+                }
+            }
+        }
+
+        /**
+         * Load a single subdir into the database, using shards when available.
+         *
+         * When shards are enabled and up to date, this:
+         *   - attempts `load_subdir_with_shards`,
+         *   - falls back to cached full repodata when shard loading fails,
+         *   - optionally fetches fresh full repodata and loads it if there is no cache.
+         * Otherwise, it calls `load_subdir_in_database` directly.
+         */
+        expected_t<solver::libsolv::RepoInfo> load_single_subdir_with_fallback(
+            Context& ctx,
+            solver::libsolv::Database& database,
+            const std::vector<std::string>& root_packages,
+            std::vector<SubdirIndexLoader>& subdirs,
+            std::size_t subdir_idx,
+            std::set<std::string>& loaded_subdirs_with_shards,
+            const SubdirDownloadParams& subdir_params
+        )
+        {
+            auto& subdir = subdirs[subdir_idx];
+
+            bool use_shards = ctx.repodata_use_shards
+                              && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
+                              && !root_packages.empty();
+
+            if (use_shards)
+            {
+                auto res = load_subdir_with_shards(
+                    ctx,
+                    database,
+                    root_packages,
+                    subdirs,
+                    subdir_idx,
+                    loaded_subdirs_with_shards,
+                    {}  // priorities are set by the caller after loading
+                );
+
+                if (!res)
+                {
+                    if (subdir.valid_cache_found())
+                    {
+                        return load_subdir_in_database(ctx, database, subdir);
+                    }
+                    // Shards failed and no cache - try to fetch and load flat repodata.
+                    if (!ctx.offline)
+                    {
+                        LOG_WARNING << "Shard loading failed for " << subdir.name()
+                                    << ". Falling back to full repodata.json download.";
+                        std::vector<SubdirIndexLoader*> fallback_subdirs = { &subdir };
+                        auto fetch_res = SubdirIndexLoader::download_requests(
+                            SubdirIndexLoader::build_all_index_requests(
+                                fallback_subdirs.begin(),
+                                fallback_subdirs.end(),
+                                subdir_params
+                            ),
+                            ctx.authentication_info(),
+                            ctx.mirrors,
+                            ctx.download_options(),
+                            ctx.remote_fetch_params,
+                            nullptr
+                        );
+                        if (fetch_res)
+                        {
+                            return load_subdir_in_database(ctx, database, subdir);
+                        }
+                    }
+                }
+                return res;
+            }
+
+            return load_subdir_in_database(ctx, database, subdir);
+        }
+
+        /**
+         * Download and refresh repodata indexes for all relevant subdirs.
+         *
+         * Steps:
+         *   1. Run lightweight HEAD checks for all subdirs (records errors, aborts on
+         *      user interruption).
+         *   2. Identify subdirs that still require full repodata indexes (i.e. not using
+         *      shards for the current `root_packages`).
+         *   3. Download full indexes for those subdirs, again propagating user interruption
+         *      and adding recoverable errors to `error_list`.
+         *
+         * Returns an unexpected `mamba_aggregated_error` only when a user interrupt occurs;
+         * other errors are accumulated in `error_list`.
+         */
+        expected_t<void, mamba_aggregated_error> download_subdir_indexes(
+            Context& ctx,
+            const std::vector<std::string>& root_packages,
+            std::vector<SubdirIndexLoader>& subdirs,
+            const SubdirDownloadParams& subdir_params,
+            std::vector<mamba_error>& error_list
+        )
+        {
+            SubdirIndexMonitor check_monitor({ true, true });
+
+            auto check_res = SubdirIndexLoader::download_requests(
+                SubdirIndexLoader::build_all_check_requests(subdirs.begin(), subdirs.end(), subdir_params),
+                ctx.authentication_info(),
+                ctx.mirrors,
+                ctx.download_options(),
+                ctx.remote_fetch_params,
+                SubdirIndexMonitor::can_monitor(ctx) ? &check_monitor : nullptr
+            );
+
+            if (!check_res)
+            {
+                mamba_error error = check_res.error();
+                mamba_error_code error_code = error.error_code();
+                error_list.push_back(std::move(error));
+                if (error_code == mamba_error_code::user_interrupted)
+                {
+                    return tl::unexpected(mamba_aggregated_error(std::move(error_list), false));
+                }
+            }
+
+            // Collect only subdirs that still need full repodata indexes.
+            std::vector<SubdirIndexLoader*> subdirs_needing_index;
+            for (auto& s : subdirs)
+            {
+                bool use_shards = ctx.repodata_use_shards
+                                  && s.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
+                                  && !root_packages.empty();
+                if (!use_shards)
+                {
+                    subdirs_needing_index.push_back(&s);
+                }
+            }
+
+            expected_t<void> download_res = expected_t<void>();
+            if (!subdirs_needing_index.empty())
+            {
+                SubdirIndexMonitor index_monitor;
+                download_res = SubdirIndexLoader::download_requests(
+                    SubdirIndexLoader::build_all_index_requests(
+                        subdirs_needing_index.begin(),
+                        subdirs_needing_index.end(),
+                        subdir_params
+                    ),
+                    ctx.authentication_info(),
+                    ctx.mirrors,
+                    ctx.download_options(),
+                    ctx.remote_fetch_params,
+                    SubdirIndexMonitor::can_monitor(ctx) ? &index_monitor : nullptr
+                );
+            }
+
+            if (!download_res)
+            {
+                mamba_error error = download_res.error();
+                mamba_error_code error_code = error.error_code();
+                error_list.push_back(std::move(error));
+                if (error_code == mamba_error_code::user_interrupted)
+                {
+                    return tl::unexpected(mamba_aggregated_error(std::move(error_list), false));
+                }
+            }
+
+            return expected_t<void, mamba_aggregated_error>();
+        }
+
+        /**
+         * Add repos from local `pkgs_dir` when operating in offline mode.
+         *
+         * This is a no-op unless `ctx.offline` is true. In that case, it iterates over
+         * all configured `pkgs_dirs` and calls `create_repo_from_pkgs_dir` for each.
+         */
+        void add_offline_pkgs_dir_repos_if_needed(
+            Context& ctx,
+            ChannelContext& channel_context,
+            solver::libsolv::Database& database
+        )
+        {
+            if (!ctx.offline)
+            {
+                return;
+            }
+
+            LOG_INFO << "Creating repo from pkgs_dir for offline";
+            for (const auto& c : ctx.pkgs_dirs)
+            {
+                create_repo_from_pkgs_dir(ctx, channel_context, database, c);
+            }
+        }
+
+        /**
+         * Load all subdirs into the database, with a single retry on cache corruption.
+         *
+         * For each `SubdirIndexLoader`, this:
+         *   - skips subdirs already loaded via shards,
+         *   - verifies cache or skips when cache is missing and shards are not used,
+         *   - delegates actual loading (shards vs. full repodata) to
+         *     `load_single_subdir_with_fallback`,
+         *   - on first failure, clears the cache and marks `loading_failed` for a later retry,
+         *   - on second failure (`is_retry == true`), records a hard error in `error_list`.
+         *
+         * @return true if at least one subdir requested a retry (cache cleared), false otherwise.
+         */
+        bool load_all_subdirs_with_retry(
+            Context& ctx,
+            solver::libsolv::Database& database,
+            const std::vector<std::string>& root_packages,
+            std::vector<SubdirIndexLoader>& subdirs,
+            const std::vector<solver::libsolv::Priorities>& priorities,
+            const SubdirDownloadParams& subdir_params,
+            bool is_retry,
+            std::vector<mamba_error>& error_list
+        )
+        {
+            std::set<std::string> loaded_subdirs_with_shards;
+            bool loading_failed = false;
+
+            for (std::size_t i = 0; i < subdirs.size(); ++i)
+            {
+                auto& subdir = subdirs[i];
+                bool use_shards = ctx.repodata_use_shards
+                                  && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
+                                  && !root_packages.empty();
+
+                // Skip if this subdir was already loaded as part of a sharded same-channel load.
+                if (loaded_subdirs_with_shards.contains(subdir.name()))
+                {
+                    continue;
+                }
+
+                // When using shards we don't require valid cache here; the shard path may load
+                // anyway.
+                if (!subdir.valid_cache_found() && !use_shards)
+                {
+                    if (!ctx.offline && subdir.is_noarch())
+                    {
+                        error_list.push_back(mamba_error(
+                            "Subdir " + subdir.name() + " not loaded!",
+                            mamba_error_code::subdirdata_not_loaded
+                        ));
+                    }
+                    continue;
+                }
+
+                auto result = load_single_subdir_with_fallback(
+                    ctx,
+                    database,
+                    root_packages,
+                    subdirs,
+                    i,
+                    loaded_subdirs_with_shards,
+                    subdir_params
+                );
+
+                if (result)
+                {
+                    database.set_repo_priority(std::move(result).value(), priorities[i]);
+                }
+                else if (is_retry)
+                {
+                    // Already retried once, report error and exit
+                    std::stringstream error_message_stream;
+                    error_message_stream << "Could not load repodata.json for " << subdir.name()
+                                         << " after retry."
+                                         << "Please check repodata source. Exiting." << std::endl;
+                    error_list.push_back(
+                        mamba_error(error_message_stream.str(), mamba_error_code::repodata_not_loaded)
+                    );
+                }
+                else
+                {
+                    // First failure: clear cache and mark for retry
+                    LOG_WARNING << "Could not load repodata.json for " << subdir.name()
+                                << ". Deleting cache, and retrying.";
+                    subdir.clear_valid_cache_files();
+                    loading_failed = true;
+                }
+            }
+
+            return loading_failed;
+        }
+
         void create_subdirs(
             Context& ctx,
             ChannelContext& channel_context,
@@ -358,283 +732,61 @@ namespace mamba
     namespace
     {
 
-        auto load_channels_impl(
+        expected_t<void, mamba_aggregated_error> load_channels_impl(
             Context& ctx,
             ChannelContext& channel_context,
             solver::libsolv::Database& database,
             MultiPackageCache& package_caches,
             const std::vector<std::string>& root_packages,
             bool is_retry
-        ) -> expected_t<void, mamba_aggregated_error>
+        )
         {
             std::vector<SubdirIndexLoader> subdirs;
-
             std::vector<solver::libsolv::Priorities> priorities;
-            int max_prio = static_cast<int>(ctx.channels.size());
-            specs::CondaURL previous_channel_url;
-
             Console::instance().init_progress_bar_manager(ProgressBarMode::multi);
 
             std::vector<mamba_error> error_list;
-
-            // Process mirrored channels: create channel objects, configure mirrors, and initialize
-            // subdirs for each platform. Mirrored channels use alternative URLs for redundancy and
-            // performance.
-            for (const auto& mirror : ctx.mirrored_channels)
-            {
-                for (const specs::Channel& channel :
-                     channel_context.make_channel(mirror.first, mirror.second))
-                {
-                    create_mirrors(channel, ctx.mirrors);
-                    create_subdirs(
-                        ctx,
-                        channel_context,
-                        channel,
-                        package_caches,
-                        subdirs,
-                        error_list,
-                        priorities,
-                        max_prio,
-                        previous_channel_url
-                    );
-                }
-            }
-
             std::vector<specs::PackageInfo> packages;
-
-            // Process regular (non-mirrored) channels: skip channels already handled as mirrored
-            // channels, then handle two cases:
-            //  - (1) package URLs are extracted as PackageInfo and collected separately,
-            //  - (2) regular channel URLs have mirrors configured and subdirs initialized for each
-            //  platform.
-            for (const auto& location : ctx.channels)
-            {
-                if (!ctx.mirrored_channels.contains(location))
-                {
-                    for (const specs::Channel& channel : channel_context.make_channel(location))
-                    {
-                        if (channel.is_package())
-                        {
-                            specs::PackageInfo pkg_info = specs::PackageInfo::from_url(
-                                                              channel.url().str()
-                            )
-                                                              .or_else([](specs::ParseError&& err)
-                                                                       { throw std::move(err); })
-                                                              .value();
-                            packages.push_back(pkg_info);
-                            continue;
-                        }
-
-                        create_mirrors(channel, ctx.mirrors);
-                        create_subdirs(
-                            ctx,
-                            channel_context,
-                            channel,
-                            package_caches,
-                            subdirs,
-                            error_list,
-                            priorities,
-                            max_prio,
-                            previous_channel_url
-                        );
-                    }
-                }
-            }
+            prepare_subdirs_and_packages(
+                ctx,
+                channel_context,
+                package_caches,
+                subdirs,
+                priorities,
+                packages,
+                error_list
+            );
 
             if (!packages.empty())
             {
                 database.add_repo_from_packages(packages, "packages");
             }
 
-            // Two-phase download: check requests first (freshness), then download full repodata
-            // index only for subdirs that will not use shards (see subdirs_needing_index below).
             auto subdir_params = ctx.subdir_download_params();
-            SubdirIndexMonitor check_monitor({ true, true });
-
-            auto check_res = SubdirIndexLoader::download_requests(
-                SubdirIndexLoader::build_all_check_requests(subdirs.begin(), subdirs.end(), subdir_params),
-                ctx.authentication_info(),
-                ctx.mirrors,
-                ctx.download_options(),
-                ctx.remote_fetch_params,
-                SubdirIndexMonitor::can_monitor(ctx) ? &check_monitor : nullptr
+            auto download_status = download_subdir_indexes(
+                ctx,
+                root_packages,
+                subdirs,
+                subdir_params,
+                error_list
             );
-
-            // Handle check download errors: record them and propagate user interrupt so we avoid
-            // starting index downloads.
-            if (!check_res)
+            if (!download_status)
             {
-                mamba_error error = check_res.error();
-                mamba_error_code error_code = error.error_code();
-                error_list.push_back(std::move(error));
-                if (error_code == mamba_error_code::user_interrupted)
-                {
-                    return tl::unexpected(mamba_aggregated_error(std::move(error_list), false));
-                }
+                return download_status;
             }
 
-            // Subdirs using shards don't need the full repodata index; only collect those that do.
-            std::vector<SubdirIndexLoader*> subdirs_needing_index;
-            for (auto& s : subdirs)
-            {
-                bool use_shards = ctx.repodata_use_shards
-                                  && s.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
-                                  && !root_packages.empty();
-                if (!use_shards)
-                {
-                    subdirs_needing_index.push_back(&s);
-                }
-            }
+            add_offline_pkgs_dir_repos_if_needed(ctx, channel_context, database);
 
-            // Download full index only for subdirs that need it; skip when all use shards.
-            expected_t<void> download_res = expected_t<void>();
-            if (!subdirs_needing_index.empty())
-            {
-                SubdirIndexMonitor index_monitor;
-                download_res = SubdirIndexLoader::download_requests(
-                    SubdirIndexLoader::build_all_index_requests(
-                        subdirs_needing_index.begin(),
-                        subdirs_needing_index.end(),
-                        subdir_params
-                    ),
-                    ctx.authentication_info(),
-                    ctx.mirrors,
-                    ctx.download_options(),
-                    ctx.remote_fetch_params,
-                    SubdirIndexMonitor::can_monitor(ctx) ? &index_monitor : nullptr
-                );
-            }
-
-            // Handle index download errors: check for user interruption and add to error list
-            if (!download_res)
-            {
-                mamba_error error = download_res.error();
-                mamba_error_code error_code = error.error_code();
-                error_list.push_back(std::move(error));
-                if (error_code == mamba_error_code::user_interrupted)
-                {
-                    return tl::unexpected(mamba_aggregated_error(std::move(error_list), false));
-                }
-            }
-
-            // In offline mode, load packages from local pkgs_dir
-            if (ctx.offline)
-            {
-                LOG_INFO << "Creating repo from pkgs_dir for offline";
-                for (const auto& c : ctx.pkgs_dirs)
-                {
-                    create_repo_from_pkgs_dir(ctx, channel_context, database, c);
-                }
-            }
-
-            // Tracks subdir names already loaded via `load_subdir_with_shards` (one sharded load
-            // can populate multiple same-channel platforms, so we skip them in the loop).
-            std::set<std::string> loaded_subdirs_with_shards;
-            bool loading_failed = false;
-
-            // Load each subdir into the database, handling retry logic for corrupted cache
-            for (std::size_t i = 0; i < subdirs.size(); ++i)
-            {
-                auto& subdir = subdirs[i];
-                bool use_shards = ctx.repodata_use_shards
-                                  && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
-                                  && !root_packages.empty();
-
-                // Skip if this subdir was already loaded as part of a sharded same-channel load.
-                if (loaded_subdirs_with_shards.contains(subdir.name()))
-                {
-                    continue;
-                }
-
-                // When using shards we don't require valid cache here; the shard path may load
-                // anyway.
-                if (!subdir.valid_cache_found() && !use_shards)
-                {
-                    if (!ctx.offline && subdir.is_noarch())
-                    {
-                        error_list.push_back(mamba_error(
-                            "Subdir " + subdir.name() + " not loaded!",
-                            mamba_error_code::subdirdata_not_loaded
-                        ));
-                    }
-                    continue;
-                }
-
-                // When use_shards: try load_subdir_with_shards first; on failure fall back to
-                // cached full repodata or (if not offline) full repodata download then
-                // `load_subdir_in_database`.
-                auto result = [&]() -> expected_t<solver::libsolv::RepoInfo>
-                {
-                    if (use_shards)
-                    {
-                        auto res = load_subdir_with_shards(
-                            ctx,
-                            database,
-                            root_packages,
-                            subdirs,
-                            i,
-                            loaded_subdirs_with_shards,
-                            priorities
-                        );
-                        if (!res)
-                        {
-                            if (subdir.valid_cache_found())
-                            {
-                                return load_subdir_in_database(ctx, database, subdir);
-                            }
-                            // Shards failed and no cache - try to fetch and load flat repodata
-                            if (!ctx.offline)
-                            {
-                                LOG_WARNING << "Shard loading failed for " << subdir.name()
-                                            << ". Falling back to full repodata.json download.";
-                                std::vector<SubdirIndexLoader*> fallback_subdirs = { &subdir };
-                                auto fetch_res = SubdirIndexLoader::download_requests(
-                                    SubdirIndexLoader::build_all_index_requests(
-                                        fallback_subdirs.begin(),
-                                        fallback_subdirs.end(),
-                                        subdir_params
-                                    ),
-                                    ctx.authentication_info(),
-                                    ctx.mirrors,
-                                    ctx.download_options(),
-                                    ctx.remote_fetch_params,
-                                    nullptr
-                                );
-                                if (fetch_res)
-                                {
-                                    return load_subdir_in_database(ctx, database, subdir);
-                                }
-                            }
-                        }
-                        return res;
-                    }
-                    return load_subdir_in_database(ctx, database, subdir);
-                }();
-
-                if (result)
-                {
-                    database.set_repo_priority(std::move(result).value(), priorities[i]);
-                }
-                else if (is_retry)
-                {
-                    // Already retried once, report error and exit
-                    std::stringstream error_message_stream;
-                    error_message_stream << "Could not load repodata.json for " << subdir.name()
-                                         << " after retry."
-                                         << "Please check repodata source. Exiting." << std::endl;
-                    error_list.push_back(
-                        mamba_error(error_message_stream.str(), mamba_error_code::repodata_not_loaded)
-                    );
-                }
-                else
-                {
-                    // First failure: clear cache and mark for retry
-                    LOG_WARNING << "Could not load repodata.json for " << subdir.name()
-                                << ". Deleting cache, and retrying.";
-                    subdir.clear_valid_cache_files();
-                    loading_failed = true;
-                }
-            }
+            bool loading_failed = load_all_subdirs_with_retry(
+                ctx,
+                database,
+                root_packages,
+                subdirs,
+                priorities,
+                subdir_params,
+                is_retry,
+                error_list
+            );
 
             if (loading_failed)
             {

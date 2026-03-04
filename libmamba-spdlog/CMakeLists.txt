@@ -83,6 +83,19 @@ write_basic_package_version_file(
     VERSION 1.0
     COMPATIBILITY AnyNewerVersion
 )
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION "${PROJECT_BINARY_DIR}"
+)
+
+set(libmamba_spdlog_cmakedir "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigInstall.cmake"
+    INSTALL_DESTINATION "${libmamba_spdlog_cmakedir}"
+)
+
 install(
     TARGETS ${libmamba_spdlog_targets}
     EXPORT ${PROJECT_NAME}Targets
@@ -91,11 +104,6 @@ install(
     RUNTIME DESTINATION bin COMPONENT Runtime
     PUBLIC_HEADER DESTINATION include COMPONENT Development
     BUNDLE DESTINATION bin COMPONENT Runtime
-)
-configure_package_config_file(
-    "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
-    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 install(
@@ -107,8 +115,13 @@ export(EXPORT ${PROJECT_NAME}Targets NAMESPACE mamba::)
 
 install(
     FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Version.cmake"
-          "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+install(
+    FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigInstall.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+    RENAME "${PROJECT_NAME}Config.cmake"
 )
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)

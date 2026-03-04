@@ -93,9 +93,6 @@ namespace mamba
 
         std::vector<Shards> m_shards;
 
-        /** Map of shard URLs to shard indices in `m_shards`. */
-        ShardsByUrl m_shards_by_url;
-
         NodeMap m_nodes;
 
         void reachable_bfs(

@@ -92,10 +92,13 @@ namespace mamba
     RepodataSubset::RepodataSubset(std::vector<Shards> shards)
         : m_shards(std::move(shards))
     {
-        for (std::size_t i = 0; i < m_shards.size(); ++i)
-        {
-            m_shards_by_url[m_shards[i].url()] = i;
-        }
+        // Keep shards ordered by URL to ensure deterministic traversal
+        // Sorting here is inexpensive because we only have a few Subdir to explore (typically 2)
+        std::sort(
+            m_shards.begin(),
+            m_shards.end(),
+            [](const Shards& lhs, const Shards& rhs) { return lhs.url() < rhs.url(); }
+        );
     }
 
     void RepodataSubset::reachable(
@@ -148,9 +151,9 @@ namespace mamba
     {
         for (const auto& pkg : root_packages)
         {
-            for (const auto& [url, shard_index] : m_shards_by_url)
+            for (auto& shards : m_shards)
             {
-                auto& shards = m_shards[shard_index];
+                const std::string url = shards.url();
                 if (!shards.contains(pkg))
                 {
                     continue;
@@ -173,29 +176,36 @@ namespace mamba
     void RepodataSubset::fetch_missing_shards_for_batch(const std::vector<NodeId>& batch)
     {
         std::map<std::string, std::vector<std::string>> to_fetch_by_channel;
+
         for (const auto& id : batch)
         {
-            auto it = m_shards_by_url.find(id.channel);
-            if (it == m_shards_by_url.end())
+            for (auto& shards : m_shards)
             {
-                continue;
-            }
-            auto& shards = m_shards[it->second];
-            if (!shards.is_shard_present(id.package))
-            {
-                to_fetch_by_channel[id.channel].push_back(id.package);
+                if (shards.url() != id.channel)
+                {
+                    continue;
+                }
+                if (!shards.is_shard_present(id.package))
+                {
+                    to_fetch_by_channel[id.channel].push_back(id.package);
+                }
+                break;
             }
         }
+
         for (auto& [channel, to_fetch] : to_fetch_by_channel)
         {
             std::sort(to_fetch.begin(), to_fetch.end());
             to_fetch.erase(std::unique(to_fetch.begin(), to_fetch.end()), to_fetch.end());
             if (!to_fetch.empty())
             {
-                auto it = m_shards_by_url.find(channel);
-                if (it != m_shards_by_url.end())
+                for (auto& shards : m_shards)
                 {
-                    auto& shards = m_shards[it->second];
+                    if (shards.url() != channel)
+                    {
+                        continue;
+                    }
+
                     auto result = shards.fetch_shards(to_fetch);
                     if (result)
                     {
@@ -204,6 +214,7 @@ namespace mamba
                             shards.process_fetched_shard(pkg, shard);
                         }
                     }
+                    break;
                 }
             }
         }
@@ -262,12 +273,16 @@ namespace mamba
 
     void RepodataSubset::visit_node(const NodeId& node_id, std::vector<NodeId>& pending)
     {
-        auto it = m_shards_by_url.find(node_id.channel);
-        if (it == m_shards_by_url.end())
+        auto shards_it = std::find_if(
+            m_shards.begin(),
+            m_shards.end(),
+            [&node_id](const Shards& s) { return s.url() == node_id.channel; }
+        );
+        if (shards_it == m_shards.end())
         {
             return;
         }
-        auto& shards = m_shards[it->second];
+        Shards& shards = *shards_it;
 
         if (!shards.is_shard_present(node_id.package))
         {
@@ -301,9 +316,9 @@ namespace mamba
 
         for (const auto& dep : extract_dependencies_impl(shard))
         {
-            for (const auto& [url, shard_index] : m_shards_by_url)
+            for (auto& dep_shards : m_shards)
             {
-                auto& dep_shards = m_shards[shard_index];
+                const std::string url = dep_shards.url();
                 if (!dep_shards.contains(dep))
                 {
                     continue;
@@ -335,12 +350,16 @@ namespace mamba
 
     std::vector<NodeId> RepodataSubset::neighbors(const NodeId& node_id)
     {
-        auto it = m_shards_by_url.find(node_id.channel);
-        if (it == m_shards_by_url.end())
+        auto shards_it = std::find_if(
+            m_shards.begin(),
+            m_shards.end(),
+            [&node_id](const Shards& s) { return s.url() == node_id.channel; }
+        );
+        if (shards_it == m_shards.end())
         {
             return {};
         }
-        auto& shards = m_shards[it->second];
+        Shards& shards = *shards_it;
 
         if (!shards.is_shard_present(node_id.package))
         {
@@ -360,12 +379,13 @@ namespace mamba
         std::vector<NodeId> result;
         for (const auto& dep : extract_dependencies_impl(shard))
         {
-            for (const auto& [url, shard_index] : m_shards_by_url)
+            for (auto& dep_shards : m_shards)
             {
-                auto& dep_shards = m_shards[shard_index];
+                const std::string url = dep_shards.url();
                 if (dep_shards.contains(dep))
                 {
-                    result.push_back({ dep, url, dep_shards.shard_url(dep) });
+                    NodeId neighbor_id{ dep, url, dep_shards.shard_url(dep) };
+                    result.push_back(neighbor_id);
                 }
             }
         }

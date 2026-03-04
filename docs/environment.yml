@@ -6,5 +6,6 @@ dependencies:
   - six
   - sphinx=6.*
   - sphinx-book-theme
+  - sphinx-copybutton
   - doxygen
   - breathe

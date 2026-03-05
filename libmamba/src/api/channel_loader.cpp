@@ -304,6 +304,11 @@ namespace mamba
                 }
                 auto si = std::move(sidx_result.value().value());
                 std::string sdir_url = subdirs[j].repodata_url().str();
+
+                // Use the same writable pkgs_dir root as SubdirIndexLoader for shard caching,
+                // so that repodata, shard index, and per-package shard caches share a root.
+                fs::u8path pkgs_cache_root = subdirs[j].writable_cache_dir().parent_path();
+
                 auto shards_ptr = std::make_shared<Shards>(
                     std::move(si),
                     sdir_url,
@@ -311,7 +316,8 @@ namespace mamba
                     ctx.authentication_info(),
                     ctx.remote_fetch_params,
                     ctx.repodata_shards_threads,
-                    std::cref(ctx.mirrors)
+                    std::cref(ctx.mirrors),
+                    std::move(pkgs_cache_root)
                 );
                 all_shards.push_back(std::move(shards_ptr));
                 url_to_subdir_idx[sdir_url] = j;

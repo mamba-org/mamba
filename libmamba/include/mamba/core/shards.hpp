@@ -57,7 +57,8 @@ namespace mamba
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
             std::size_t download_threads = 10,
-            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
+            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt,
+            fs::u8path pkgs_cache_root = {}
         );
 
         /** Return the names of all packages available in this shard collection. */
@@ -129,10 +130,22 @@ namespace mamba
         /** Cached resolved base_url for packages. */
         mutable std::optional<std::string> m_base_url_cache;
 
+        /** Root directory of the writable packages cache (e.g. first writable pkgs_dir). */
+        fs::u8path m_pkgs_cache_root;
+
         /**
          * Get the base URL where shards are stored.
          */
         [[nodiscard]] auto shards_base_url() const -> std::string;
+
+        /**
+         * Get the root directory used for shard caching.
+         *
+         * When constructed with an explicit cache root, that path is used.
+         * Otherwise, this falls back to an environment-based default using
+         * XDG_CACHE_HOME or util::user_cache_dir().
+         */
+        [[nodiscard]] auto pkgs_cache_root() const -> fs::u8path;
 
         /**
          * Get the relative path for a shard (for use with download::Request).
@@ -184,15 +197,38 @@ namespace mamba
         /**
          * Decompress zstd compressed shard data.
          */
-        auto decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data)
+        auto decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data) const
             -> expected_t<std::vector<std::uint8_t>>;
 
         /**
          * Parse msgpack data into ShardDict.
          */
-        auto
-        parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data, const std::string& package)
-            -> expected_t<ShardDict>;
+        auto parse_shard_msgpack(
+            const std::vector<std::uint8_t>& decompressed_data,
+            const std::string& package
+        ) const -> expected_t<ShardDict>;
+
+        /**
+         * Get the cache path for a shard file.
+         * Returns path: {cache_dir}/cache/shards/{hex_hash}.msgpack.zst
+         */
+        [[nodiscard]] auto shard_cache_path(const std::string& package) const -> fs::u8path;
+
+        /**
+         * Check if a shard is cached and valid (matches expected hash).
+         */
+        [[nodiscard]] auto is_shard_cached(const std::string& package) const -> bool;
+
+        /**
+         * Load and parse a shard from cache.
+         */
+        auto load_shard_from_cache(const std::string& package) const -> expected_t<ShardDict>;
+
+        /**
+         * Save a downloaded shard to cache.
+         */
+        auto save_shard_to_cache(const std::string& package, const fs::u8path& shard_file)
+            -> expected_t<void>;
     };
 
 }

@@ -92,6 +92,7 @@ set(
     src/core/test_cpp.cpp
     src/core/test_env_file_reading.cpp
     src/core/test_env_lockfile.cpp
+    src/core/test_environment_yaml.cpp
     src/core/test_environments_manager.cpp
     src/core/test_execution.cpp
     src/core/test_filesystem.cpp

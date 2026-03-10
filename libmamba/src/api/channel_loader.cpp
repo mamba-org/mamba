@@ -189,21 +189,22 @@ namespace mamba
                                                                    { throw std::move(err); })
                                                           .value();
                         packages.push_back(pkg_info);
-                        continue;
                     }
-
-                    create_mirrors(channel, ctx.mirrors);
-                    create_subdirs(
-                        ctx,
-                        channel_context,
-                        channel,
-                        package_caches,
-                        subdirs,
-                        error_list,
-                        priorities,
-                        max_prio,
-                        previous_channel_url
-                    );
+                    else
+                    {
+                        create_mirrors(channel, ctx.mirrors);
+                        create_subdirs(
+                            ctx,
+                            channel_context,
+                            channel,
+                            package_caches,
+                            subdirs,
+                            error_list,
+                            priorities,
+                            max_prio,
+                            previous_channel_url
+                        );
+                    }
                 }
             }
         }
@@ -217,7 +218,7 @@ namespace mamba
          *   - optionally fetches fresh full repodata and loads it if there is no cache.
          * Otherwise, it calls `load_subdir_in_database` directly.
          */
-        expected_t<solver::libsolv::RepoInfo> load_single_subdir_with_fallback(
+        expected_t<solver::libsolv::RepoInfo> load_single_subdir(
             Context& ctx,
             solver::libsolv::Database& database,
             const std::vector<std::string>& root_packages,
@@ -376,7 +377,7 @@ namespace mamba
          * This is a no-op unless `ctx.offline` is true. In that case, it iterates over
          * all configured `pkgs_dirs` and calls `create_repo_from_pkgs_dir` for each.
          */
-        void add_offline_pkgs_dir_repos_if_needed(
+        void add_repos_from_pks_dir(
             Context& ctx,
             ChannelContext& channel_context,
             solver::libsolv::Database& database
@@ -401,13 +402,13 @@ namespace mamba
          *   - skips subdirs already loaded via shards,
          *   - verifies cache or skips when cache is missing and shards are not used,
          *   - delegates actual loading (shards vs. full repodata) to
-         *     `load_single_subdir_with_fallback`,
+         *     `load_single_subdir`,
          *   - on first failure, clears the cache and marks `loading_failed` for a later retry,
          *   - on second failure (`is_retry == true`), records a hard error in `error_list`.
          *
          * @return true if at least one subdir requested a retry (cache cleared), false otherwise.
          */
-        bool load_all_subdirs_with_retry(
+        bool load_all_subdirs(
             Context& ctx,
             solver::libsolv::Database& database,
             const std::vector<std::string>& root_packages,
@@ -448,7 +449,7 @@ namespace mamba
                     continue;
                 }
 
-                auto result = load_single_subdir_with_fallback(
+                auto result = load_single_subdir(
                     ctx,
                     database,
                     root_packages,
@@ -775,9 +776,9 @@ namespace mamba
                 return download_status;
             }
 
-            add_offline_pkgs_dir_repos_if_needed(ctx, channel_context, database);
+            add_repos_from_pks_dir(ctx, channel_context, database);
 
-            bool loading_failed = load_all_subdirs_with_retry(
+            bool loading_failed = load_all_subdirs(
                 ctx,
                 database,
                 root_packages,

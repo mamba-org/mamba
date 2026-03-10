@@ -329,6 +329,9 @@ jobs:
           export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
           unset CONDARC  # Interferes with tests
 
+          # Sanity check: ensure `securesystemslib` is importable in `build_env`
+          micromamba run -n build_env python -c "import securesystemslib; print('securesystemslib import OK:', securesystemslib.__version__)"
+
           # Ensure that `conda-content-trust` tests run inside `build_env`
           micromamba run -n build_env bash -lc '
             set -euo pipefail -x

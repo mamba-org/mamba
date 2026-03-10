@@ -325,9 +325,14 @@ jobs:
       - name: Run tests using conda-content-trust (server side)
         shell: bash -l {0} -euo pipefail -x
         run: |
-          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
+          export TEST_MAMBA_EXE="$(pwd)/build/micromamba/mamba"
           export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
           unset CONDARC  # Interferes with tests
-          cd micromamba/test-server
-          ./generate_gpg_keys.sh
-          ./testserver_auth_pkg_signing.sh
+
+          # Ensure that `conda-content-trust` tests run inside `build_env`
+          micromamba run -n build_env bash -lc '
+            set -euo pipefail -x
+            cd micromamba/test-server
+            ./generate_gpg_keys.sh
+            ./testserver_auth_pkg_signing.sh
+          '

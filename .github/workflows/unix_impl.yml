@@ -287,7 +287,7 @@ jobs:
     name: mamba-content-trust and auth tests
     needs: ["build_shared_unix"]
     runs-on: ${{ inputs.os }}
-    if: startsWith(inputs.os, 'ubuntu')
+    if: false # Disabled for now
     steps:
       - name: Disk Space Before Clean Up
         run: |

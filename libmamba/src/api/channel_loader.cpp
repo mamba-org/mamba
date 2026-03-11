@@ -225,7 +225,8 @@ namespace mamba
             std::vector<SubdirIndexLoader>& subdirs,
             std::size_t subdir_idx,
             std::set<std::string>& loaded_subdirs_with_shards,
-            const SubdirDownloadParams& subdir_params
+            const SubdirDownloadParams& subdir_params,
+            const std::vector<solver::libsolv::Priorities>& priorities
         )
         {
             auto& subdir = subdirs[subdir_idx];
@@ -243,7 +244,7 @@ namespace mamba
                     subdirs,
                     subdir_idx,
                     loaded_subdirs_with_shards,
-                    {}  // priorities are set by the caller after loading
+                    priorities
                 );
 
                 if (!res)
@@ -456,7 +457,8 @@ namespace mamba
                     subdirs,
                     i,
                     loaded_subdirs_with_shards,
-                    subdir_params
+                    subdir_params,
+                    priorities
                 );
 
                 if (result)

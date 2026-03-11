@@ -10,6 +10,12 @@ import pytest
 from .helpers import create, random_string, subprocess_run, umamba_run
 
 common_simple_flags = ["", "-d", "--detach", "--clean-env"]
+# -d/--detach are not available on Windows (see run.cpp)
+common_simple_flags_for_help = (
+    [f for f in common_simple_flags if f not in ("-d", "--detach")]
+    if platform == "win32"
+    else common_simple_flags
+)
 possible_characters_for_process_names = (
     "-_" + string.ascii_uppercase + string.digits + string.ascii_lowercase
 )
@@ -53,7 +59,7 @@ class TestRun:
         else:
             assert fails is True
 
-    @pytest.mark.parametrize("option_flag", common_simple_flags)
+    @pytest.mark.parametrize("option_flag", common_simple_flags_for_help)
     # @pytest.mark.parametrize("label_flags", naming_flags()) # TODO: reactivate after fixing help flag not disactivating the run
     @pytest.mark.parametrize("help_flag", ["-h", "--help"])
     @pytest.mark.parametrize("command", ["", simple_short_program()])

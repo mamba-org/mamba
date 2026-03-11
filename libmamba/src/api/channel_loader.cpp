@@ -255,8 +255,8 @@ namespace mamba
                     // Shards failed and no cache - try to fetch and load flat repodata.
                     if (!ctx.offline)
                     {
-                        LOG_WARNING << "Shard loading failed for " << subdir.name()
-                                    << ". Falling back to full repodata.json download.";
+                        LOG_DEBUG << "Shard loading failed for " << subdir.name()
+                                  << ". Falling back to full repodata.json download.";
                         std::vector<SubdirIndexLoader*> fallback_subdirs = { &subdir };
                         auto fetch_res = SubdirIndexLoader::download_requests(
                             SubdirIndexLoader::build_all_index_requests(
@@ -723,7 +723,7 @@ namespace mamba
             LOG_INFO << "Loaded subdir with shards: " << subdir.name();
             return std::move(*result_repo);
         }
-        LOG_WARNING << "No packages loaded from shards for " << subdir.name();
+        LOG_DEBUG << "No packages loaded from shards for " << subdir.name();
         return tl::unexpected(
             mamba_error("No packages for " + subdir.name(), mamba_error_code::subdirdata_not_loaded)
         );

@@ -2352,6 +2352,47 @@ def test_create_from_mirror(tmp_home, tmp_root_prefix):
     )
 
 
+def test_create_from_mirror_with_prefix(tmp_home, tmp_root_prefix, tmp_path):
+    """
+    Non-regression test for create with prefix path and sharded repodata.
+    Covers: emscripten-forge-dev channel, shard loading, priorities handling.
+    Verifies no warnings are emitted to stdout/stderr.
+    """
+    prefix = tmp_path / "cpp-env"
+
+    umamba = helpers.get_umamba()
+    cmd = [
+        umamba,
+        "create",
+        "cpp-tabulate",
+        "-p",
+        str(prefix),
+        "-c",
+        "https://repo.prefix.dev/emscripten-forge-dev",
+        "--platform=emscripten-wasm32",
+        "--json",
+        "-y",
+        "--no-rc",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+    res = json.loads(result.stdout)
+    assert res["success"]
+
+    assert any(
+        package["name"] == "cpp-tabulate"
+        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["subdir"] == "emscripten-wasm32"
+        for package in res["actions"]["LINK"]
+    )
+
+    # Verify no warnings in output
+    combined_output = result.stdout + result.stderr
+    assert "warning" not in combined_output.lower(), (
+        f"Unexpected warning in output:\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    )
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_create_with_multiple_files(tmp_home, tmp_root_prefix, tmpdir):
     env_name = "myenv"

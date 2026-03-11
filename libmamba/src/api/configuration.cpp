@@ -1514,7 +1514,7 @@ namespace mamba
                    .group("Repodata")
                    .set_rc_configurable()
                    .description(
-                       "Use sharded repodata when available for faster dependency resolution (default: false)"
+                       "Use sharded repodata when available for faster dependency resolution (default: true)"
                    ));
 
         insert(Configurable("repodata_shards_ttl", &m_context.repodata_shards_ttl)

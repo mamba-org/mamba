@@ -213,17 +213,16 @@ namespace mamba::validation::v0_6
                 url.str(util::URL::Credentials::Show),
                 tmp_metadata_path.string()
             );
+            auto download_opts = context.download_options();
+            download_opts.fail_fast = false;
+            download_opts.sort = true;
+            download_opts.verbose = context.output_params.verbosity >= 2;
             download::Result res = download::download(
                 std::move(request),
                 context.mirrors,
                 context.remote_fetch_params,
                 context.authentication_info(),
-                download::Options{
-                    /* .download_threads */ context.threads_params.download_threads,
-                    /* .fail_fast */ false,
-                    /* .sort */ true,
-                    /* .verbose */ context.output_params.verbosity >= 2,
-                }
+                download_opts
             );
             if (res)
             {

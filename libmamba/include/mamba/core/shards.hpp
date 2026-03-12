@@ -45,6 +45,7 @@ namespace mamba
          * @param auth_info Authentication information.
          * @param remote_fetch_params Remote fetch parameters.
          * @param download_threads Number of threads to use for parallel shard fetching.
+         *        0 means use std::thread::hardware_concurrency().
          * @param mirrors Optional base mirrors for channel-based downloads. When provided,
          *        extend_mirrors in fetch_shards will be initialized from these before adding
          *        absolute-URL mirrors.
@@ -55,7 +56,7 @@ namespace mamba
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
-            std::size_t download_threads = 10,
+            std::size_t download_threads = 0,
             std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
         );
 

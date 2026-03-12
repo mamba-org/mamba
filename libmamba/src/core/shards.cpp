@@ -352,7 +352,17 @@ namespace mamba
         , m_channel(std::move(channel))
         , m_auth_info(std::move(auth_info))
         , m_remote_fetch_params(std::move(remote_fetch_params))
-        , m_download_threads(download_threads)
+        , m_download_threads(
+              [](std::size_t n)
+              {
+                  if (n == 0)
+                  {
+                      n = std::thread::hardware_concurrency();
+                      return n != 0 ? n : std::size_t(1);
+                  }
+                  return n;
+              }(download_threads)
+          )
         , m_mirrors(std::move(mirrors))
         , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / "conda" / "pkgs")
         , m_shard_cache_dir(m_pkgs_cache_root / "cache" / "shards")

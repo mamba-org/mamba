@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 
 #include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
@@ -1052,15 +1053,37 @@ namespace mamba
 
         void download_threads_hook(std::size_t& value)
         {
-            if (!value)
+            if (value == 0)
             {
-                throw std::runtime_error(
-                    fmt::format("Number of download threads as to be positive (currently set to {})", value)
-                );
+                value = std::thread::hardware_concurrency();
+                if (value == 0)
+                {
+                    value = 1;
+                }
             }
         }
 
-        void extract_threads_hook(const Context& context)
+        void extract_threads_hook(int& value)
+        {
+            if (value == 0)
+            {
+                value = static_cast<int>(std::thread::hardware_concurrency());
+                if (value == 0)
+                {
+                    value = 1;
+                }
+            }
+            else if (value < 0)
+            {
+                value = static_cast<int>(std::thread::hardware_concurrency()) + value;
+                if (value < 1)
+                {
+                    value = 1;
+                }
+            }
+        }
+
+        void extract_threads_post_context_hook(const Context& context)
         {
             PackageFetcherSemaphore::set_max(context.threads_params.extract_threads);
         }
@@ -1529,7 +1552,9 @@ namespace mamba
         insert(Configurable("repodata_shards_threads", &m_context.repodata_shards_threads)
                    .group("Repodata")
                    .set_rc_configurable()
-                   .description("Number of threads for parallel shard fetching (default: 10)"));
+                   .description(
+                       "Number of threads for parallel shard fetching (default: number of logical cores)"
+                   ));
 
         // Network
         insert(Configurable("cacert_path", std::string(""))
@@ -1762,17 +1787,24 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .set_post_merge_hook(detail::download_threads_hook)
-                   .description("Defines the number of threads for package download")
+                   .description(
+                       "Defines the number of threads for package download (default: number of logical cores)"
+                   )
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
-                        It has to be strictly positive.)")));
+                        Zero (default) means use the number of logical CPU cores.)")));
 
         insert(Configurable("extract_threads", &m_context.threads_params.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_context_hook([this] { return detail::extract_threads_hook(m_context); })
-                   .description("Defines the number of threads for package extraction")
+                   .set_post_merge_hook(detail::extract_threads_hook)
+                   .set_post_context_hook(
+                       [this] { return detail::extract_threads_post_context_hook(m_context); }
+                   )
+                   .description(
+                       "Defines the number of threads for package extraction and pyc compilation during linking (default: number of logical cores)"
+                   )
                    .long_description(unindent(R"(
                         Defines the number of threads for package extraction.
                         Positive number gives the number of threads, negative number gives

@@ -604,7 +604,7 @@ namespace mamba
                 // Don't log if it's a user interruption.
                 if (!result.has_value() and not result.error().is_stop)
                 {
-                    LOG_WARNING << "Failed to load subdir: " << result.error().message;
+                    LOG_DEBUG << "Failed to load subdir: " << result.error().message;
                 }
             }
         }
@@ -883,13 +883,13 @@ namespace mamba
         {
             if (error.transfer.has_value())
             {
-                LOG_WARNING << "Unable to retrieve repodata (response: "
-                            << error.transfer.value().http_status << ") for '"
-                            << error.transfer.value().effective_url << "'";
+                LOG_DEBUG << "Unable to retrieve repodata (response: "
+                          << error.transfer.value().http_status << ") for '"
+                          << error.transfer.value().effective_url << "'";
             }
             else
             {
-                LOG_WARNING << error.message;
+                LOG_DEBUG << error.message;
             }
             if (error.retry_wait_seconds.has_value())
             {

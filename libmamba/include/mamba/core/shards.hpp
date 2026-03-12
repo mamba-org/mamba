@@ -24,9 +24,6 @@
 
 namespace mamba
 {
-    // Forward declaration
-    class TemporaryFile;
-
     /**
      * Handle repodata_shards.msgpack.zst and individual per-package shards.
      *
@@ -129,10 +126,30 @@ namespace mamba
         /** Cached resolved base_url for packages. */
         mutable std::optional<std::string> m_base_url_cache;
 
+        /** Root directory of the writable packages cache (e.g. first writable pkgs_dir). */
+        fs::u8path m_pkgs_cache_root;
+
+        /** Directory for cached shard files: {pkgs_cache_root}/cache/shards */
+        fs::u8path m_shard_cache_dir;
+
         /**
          * Get the base URL where shards are stored.
          */
         [[nodiscard]] auto shards_base_url() const -> std::string;
+
+        /**
+         * Get the root directory used for shard caching.
+         *
+         * When constructed with an explicit cache root, that path is used.
+         * Otherwise, this falls back to an environment-based default using
+         * XDG_CACHE_HOME or util::user_cache_dir().
+         */
+        [[nodiscard]] auto pkgs_cache_root() const -> fs::u8path;
+
+        /**
+         * Get the shard cache directory: {pkgs_cache_root}/cache/shards
+         */
+        [[nodiscard]] auto shard_cache_dir() const -> const fs::u8path&;
 
         /**
          * Get the relative path for a shard (for use with download::Request).
@@ -160,16 +177,15 @@ namespace mamba
 
         /**
          * Create download requests for shards with proper mirror handling.
+         * Downloads go directly to the shard cache path.
          */
         void create_download_requests(
             const std::map<std::string, std::string>& url_to_package,
-            const std::string& cache_dir_str,
             download::mirror_map& extended_mirrors,
             download::MultiRequest& requests,
             std::vector<std::string>& cache_miss_urls,
             std::vector<std::string>& cache_miss_packages,
-            std::map<std::string, fs::u8path>& package_to_artifact_path,
-            std::vector<std::shared_ptr<TemporaryFile>>& artifacts
+            std::map<std::string, fs::u8path>& package_to_cache_path
         ) const;
 
         /**
@@ -178,21 +194,46 @@ namespace mamba
         auto process_downloaded_shard(
             const std::string& package,
             const download::Success& success,
-            const std::map<std::string, fs::u8path>& package_to_artifact_path
+            const std::map<std::string, fs::u8path>& package_to_cache_path
         ) -> expected_t<ShardDict>;
 
         /**
          * Decompress zstd compressed shard data.
          */
-        auto decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data)
+        auto decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data) const
             -> expected_t<std::vector<std::uint8_t>>;
 
         /**
          * Parse msgpack data into ShardDict.
          */
-        auto
-        parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data, const std::string& package)
-            -> expected_t<ShardDict>;
+        auto parse_shard_msgpack(
+            const std::vector<std::uint8_t>& decompressed_data,
+            const std::string& package
+        ) const -> expected_t<ShardDict>;
+
+        /**
+         * Get the cache path for a shard file.
+         * Returns path: {cache_dir}/cache/shards/{hex_hash}.msgpack.zst
+         */
+        [[nodiscard]] auto shard_cache_path(const std::string& package) const -> fs::u8path;
+
+        /**
+         * Check if a shard is cached and valid (matches expected hash).
+         */
+        [[nodiscard]] auto is_shard_cached(const std::string& package) const -> bool;
+
+        /**
+         * Load and parse a shard from cache.
+         */
+        auto load_shard_from_cache(const std::string& package) const -> expected_t<ShardDict>;
+
+        /** For unit testing. */
+        friend auto test_process_downloaded_shard(
+            Shards& shards,
+            const std::string& package,
+            const download::Success& success,
+            const std::map<std::string, fs::u8path>& package_to_cache_path
+        ) -> expected_t<ShardDict>;
     };
 
 }

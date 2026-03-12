@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
@@ -165,8 +166,17 @@ namespace mamba
 
         download::Options download_options() const
         {
+            auto dt = this->threads_params.download_threads;
+            if (dt == 0)
+            {
+                dt = std::thread::hardware_concurrency();
+                if (dt == 0)
+                {
+                    dt = 1;
+                }
+            }
             return {
-                .download_threads = this->threads_params.download_threads,
+                .download_threads = dt,
                 .fail_fast = false,
                 .sort = true,
                 .verbose = this->output_params.verbosity >= 2,
@@ -202,6 +212,7 @@ namespace mamba
             return {
                 .offline = this->offline,
                 .repodata_check_zst = this->repodata_use_zst,
+                .repodata_shards_ttl = this->repodata_shards_ttl,
             };
         }
 
@@ -263,7 +274,8 @@ namespace mamba
 
         bool repodata_use_shards = false;
         std::size_t repodata_shards_ttl = 86400;
-        std::size_t repodata_shards_threads = 10;
+        /** 0 means use std::thread::hardware_concurrency(). */
+        std::size_t repodata_shards_threads = 0;
 
         // FIXME: Should not be stored here
         // Notice that we cannot build this map directly from mirrored_channels,

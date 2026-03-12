@@ -42,7 +42,8 @@ namespace mamba
 
     struct ThreadsParams
     {
-        std::size_t download_threads{ 5 };
+        /** 0 means use std::thread::hardware_concurrency(). */
+        std::size_t download_threads{ 0 };
         int extract_threads{ 0 };
     };
 

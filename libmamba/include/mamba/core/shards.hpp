@@ -9,6 +9,8 @@
 
 #include <functional>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -21,6 +23,7 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/util/concurrent_map.hpp"
 
 namespace mamba
 {
@@ -43,6 +46,7 @@ namespace mamba
          * @param auth_info Authentication information.
          * @param remote_fetch_params Remote fetch parameters.
          * @param download_threads Number of threads to use for parallel shard fetching.
+         *        0 means use std::thread::hardware_concurrency().
          * @param mirrors Optional base mirrors for channel-based downloads. When provided,
          *        extend_mirrors in fetch_shards will be initialized from these before adding
          *        absolute-URL mirrors.
@@ -53,9 +57,23 @@ namespace mamba
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
-            std::size_t download_threads = 10,
+            std::size_t download_threads = 0,
             std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
         );
+
+        /** Copy constructor (required because m_mutex is unique_ptr; creates a fresh mutex per
+         * copy). */
+        Shards(const Shards& other);
+
+        /** Move constructor (required when copy ops are user-declared; = default is sufficient). */
+        Shards(Shards&&) noexcept = default;
+
+        /** Copy assignment (required because m_mutex is unique_ptr; creates a fresh mutex per
+         * copy). */
+        Shards& operator=(const Shards& other);
+
+        /** Move assignment (required when copy ops are user-declared; = default is sufficient). */
+        Shards& operator=(Shards&&) noexcept = default;
 
         /** Return the names of all packages available in this shard collection. */
         [[nodiscard]] auto package_names() const -> std::vector<std::string>;
@@ -117,8 +135,8 @@ namespace mamba
         /** Optional base mirrors for channel-based downloads. */
         std::optional<std::reference_wrapper<const download::mirror_map>> m_mirrors;
 
-        /** Visited shards, keyed by package name. */
-        std::map<std::string, ShardDict> m_visited;
+        /** Visited shards, keyed by package name. Uses concurrent map for parallel writes. */
+        util::concurrent_map<std::string, ShardDict> m_visited;
 
         /** Cached shards_base_url. */
         mutable std::optional<std::string> m_shards_base_url;
@@ -131,6 +149,10 @@ namespace mamba
 
         /** Directory for cached shard files: {pkgs_cache_root}/cache/shards */
         fs::u8path m_shard_cache_dir;
+
+        /** Mutex guarding cached URLs (m_shards_base_url, m_base_url_cache).
+         * Uses unique_ptr to make Shards movable (required for std::vector<Shards>). */
+        mutable std::unique_ptr<std::mutex> m_mutex;
 
         /**
          * Get the base URL where shards are stored.

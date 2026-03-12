@@ -5,12 +5,15 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <future>
 #include <set>
+#include <thread>
 #include <vector>
 
 #include <fmt/format.h>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/execution.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shard_traversal.hpp"
@@ -43,6 +46,72 @@ namespace mamba
 
     namespace
     {
+        class ShardTraversalExecutor
+        {
+        public:
+
+            explicit ShardTraversalExecutor(std::size_t max_workers)
+            {
+                if (max_workers == 0)
+                {
+                    max_workers = std::thread::hardware_concurrency();
+                }
+                if (max_workers == 0)
+                {
+                    max_workers = 1;
+                }
+                m_max_workers = max_workers;
+            }
+
+            template <class Func>
+            void parallel_for(std::size_t count, Func&& func) const
+            {
+                if (count == 0 || m_max_workers <= 1)
+                {
+                    if (count != 0)
+                    {
+                        func(std::size_t(0), count);
+                    }
+                    return;
+                }
+
+                const std::size_t workers = std::min(m_max_workers, count);
+                std::vector<std::future<void>> futures;
+                futures.reserve(workers);
+
+                const std::size_t base = count / workers;
+                const std::size_t rem = count % workers;
+                std::size_t begin = 0;
+
+                for (std::size_t w = 0; w < workers; ++w)
+                {
+                    const std::size_t chunk = base + (w < rem ? 1 : 0);
+                    const std::size_t start = begin;
+                    const std::size_t end = start + chunk;
+                    begin = end;
+
+                    if (start >= end)
+                    {
+                        continue;
+                    }
+
+                    auto task = std::make_shared<std::packaged_task<void()>>([start, end, func]() mutable
+                                                                             { func(start, end); });
+                    futures.push_back(task->get_future());
+                    MainExecutor::instance().schedule([task]() { (*task)(); });
+                }
+
+                for (auto& f : futures)
+                {
+                    f.wait();
+                }
+            }
+
+        private:
+
+            std::size_t m_max_workers;
+        };
+
         void add_names_from_specs(const std::vector<std::string>& specs, std::set<std::string>& names)
         {
             for (const auto& spec : specs)
@@ -89,11 +158,20 @@ namespace mamba
      * RepodataSubset *
      ******************/
 
-    RepodataSubset::RepodataSubset(std::vector<Shards> shards)
+    RepodataSubset::RepodataSubset(std::vector<Shards> shards, std::size_t traversal_threads)
         : m_shards(std::move(shards))
+        , m_traversal_threads(traversal_threads)
     {
+        if (m_traversal_threads == 0)
+        {
+            m_traversal_threads = std::thread::hardware_concurrency();
+        }
+        if (m_traversal_threads == 0)
+        {
+            m_traversal_threads = 1;
+        }
+
         // Keep shards ordered by URL to ensure deterministic traversal
-        // Sorting here is inexpensive because we only have a few Subdir to explore (typically 2)
         std::sort(
             m_shards.begin(),
             m_shards.end(),
@@ -257,7 +335,43 @@ namespace mamba
             std::vector<NodeId> batch;
             std::swap(batch, pending);
             fetch_missing_shards_for_batch(batch);
-            process_bfs_batch(batch, pending);
+            const ShardTraversalExecutor executor(m_traversal_threads);
+
+            const std::size_t count = batch.size();
+            std::vector<std::vector<NodeId>> neighbors_per_index(count);
+
+            executor.parallel_for(
+                count,
+                [this, &batch, &neighbors_per_index](std::size_t start, std::size_t end)
+                {
+                    for (std::size_t idx = start; idx < end; ++idx)
+                    {
+                        neighbors_per_index[idx] = neighbors(batch[idx]);
+                    }
+                }
+            );
+
+            for (std::size_t idx = 0; idx < count; ++idx)
+            {
+                const NodeId& id = batch[idx];
+                auto& node = m_nodes[id];
+                node.visited = true;
+
+                for (const auto& neighbor_id : neighbors_per_index[idx])
+                {
+                    if (!m_nodes.contains(neighbor_id))
+                    {
+                        m_nodes[neighbor_id] = Node{
+                            node.distance + 1,
+                            neighbor_id.package,
+                            neighbor_id.channel,
+                            neighbor_id.shard_url,
+                            false,
+                        };
+                        pending.push_back(neighbor_id);
+                    }
+                }
+            }
         }
     }
 

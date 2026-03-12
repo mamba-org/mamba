@@ -83,6 +83,11 @@ namespace mamba
          */
         static auto parse_shard_index(const fs::u8path& file_path) -> expected_t<ShardsIndexDict>;
 
+        /**
+         * Get cache path for shard index.
+         */
+        static auto shard_index_cache_path(const SubdirIndexLoader& subdir) -> fs::u8path;
+
     private:
 
         /**
@@ -93,11 +98,6 @@ namespace mamba
             const SubdirDownloadParams& params,
             const fs::u8path& cache_dir
         ) -> std::optional<download::Request>;
-
-        /**
-         * Get cache path for shard index.
-         */
-        static auto shard_index_cache_path(const SubdirIndexLoader& subdir) -> fs::u8path;
     };
 
 }

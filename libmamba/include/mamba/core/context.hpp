@@ -202,6 +202,7 @@ namespace mamba
             return {
                 .offline = this->offline,
                 .repodata_check_zst = this->repodata_use_zst,
+                .repodata_shards_ttl = this->repodata_shards_ttl,
             };
         }
 

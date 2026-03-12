@@ -331,6 +331,14 @@ namespace mamba
                 }
             }
 
+            // Ensure shards availability is set from cache for all subdirs (including those with
+            // valid repodata cache, which skip build_check_requests). This avoids fetching full
+            // repodata when shard index cache is within TTL.
+            for (auto& s : subdirs)
+            {
+                s.maybe_set_shards_from_cache(subdir_params);
+            }
+
             // Collect only subdirs that still need full repodata indexes.
             std::vector<SubdirIndexLoader*> subdirs_needing_index;
             for (auto& s : subdirs)

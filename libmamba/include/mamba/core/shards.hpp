@@ -23,6 +23,7 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/util/concurrent_map.hpp"
 
 namespace mamba
 {
@@ -134,8 +135,8 @@ namespace mamba
         /** Optional base mirrors for channel-based downloads. */
         std::optional<std::reference_wrapper<const download::mirror_map>> m_mirrors;
 
-        /** Visited shards, keyed by package name. */
-        std::map<std::string, ShardDict> m_visited;
+        /** Visited shards, keyed by package name. Uses concurrent map for parallel writes. */
+        util::concurrent_map<std::string, ShardDict> m_visited;
 
         /** Cached shards_base_url. */
         mutable std::optional<std::string> m_shards_base_url;
@@ -149,7 +150,7 @@ namespace mamba
         /** Directory for cached shard files: {pkgs_cache_root}/cache/shards */
         fs::u8path m_shard_cache_dir;
 
-        /** Mutex guarding mutable state such as m_visited and cached URLs.
+        /** Mutex guarding cached URLs (m_shards_base_url, m_base_url_cache).
          * Uses unique_ptr to make Shards movable (required for std::vector<Shards>). */
         mutable std::unique_ptr<std::mutex> m_mutex;
 

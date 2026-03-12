@@ -586,19 +586,17 @@ namespace mamba
 
     auto Shards::is_shard_present(const std::string& package) const -> bool
     {
-        std::lock_guard<std::mutex> lock(*m_mutex);
-        return m_visited.find(package) != m_visited.end();
+        return m_visited.contains(package);
     }
 
     auto Shards::visit_package(const std::string& package) const -> ShardDict
     {
-        std::lock_guard<std::mutex> lock(*m_mutex);
-        auto it = m_visited.find(package);
-        if (it == m_visited.end())
+        auto value = m_visited.find(package);
+        if (!value.has_value())
         {
             throw std::runtime_error("Package " + package + " shard not visited");
         }
-        return it->second;
+        return *value;
     }
 
     void Shards::process_fetched_shard(const std::string& package, const ShardDict& shard)
@@ -628,10 +626,7 @@ namespace mamba
             }
         }
 
-        {
-            std::lock_guard<std::mutex> lock(*m_mutex);
-            m_visited[package] = shard;
-        }
+        m_visited.insert_or_assign(package, shard);
     }
 
     auto Shards::fetch_shard(const std::string& package) -> expected_t<ShardDict>
@@ -662,15 +657,12 @@ namespace mamba
         for (const auto& package : packages)
         {
             // Check in-memory cache first
+            if (auto value = m_visited.find(package); value.has_value())
             {
-                std::lock_guard<std::mutex> lock(*m_mutex);
-                if (auto it = m_visited.find(package); it != m_visited.end())
-                {
-                    LOG_DEBUG << "Shard for package '" << package
-                              << "' already in memory, skipping download";
-                    results[package] = it->second;
-                    continue;
-                }
+                LOG_DEBUG << "Shard for package '" << package
+                          << "' already in memory, skipping download";
+                results[package] = *value;
+                continue;
             }
             // Check disk cache
             if (is_shard_cached(package))
@@ -1267,9 +1259,9 @@ namespace mamba
         std::vector<std::pair<std::string, ShardPackageRecord>> all_packages;
         std::vector<std::pair<std::string, ShardPackageRecord>> all_conda_packages;
 
-        {
-            std::lock_guard<std::mutex> lock(*m_mutex);
-            for (const auto& [package, shard] : m_visited)
+        m_visited.for_each(
+            [&all_packages,
+             &all_conda_packages]([[maybe_unused]] const std::string& package, const ShardDict& shard)
             {
                 // Collect packages
                 for (const auto& [filename, record] : shard.packages)
@@ -1282,7 +1274,7 @@ namespace mamba
                     all_conda_packages.emplace_back(filename, record);
                 }
             }
-        }
+        );
 
         // Sort packages by name, then by version (descending), then by build number (descending)
         // This ensures that when multiple versions exist, the highest version/build is processed

@@ -919,3 +919,54 @@ TEST_CASE(
     REQUIRE(min_version.has_value());
     REQUIRE(python_version_obj.value() >= min_version.value());
 }
+
+TEST_CASE(
+    "Sharded repodata - offline recreate uses cache without network",
+    "[mamba::core][sharded][.integration][!mayfail]"
+)
+{
+    auto& ctx = mambatests::context();
+    const bool original_offline = ctx.offline;
+    on_scope_exit restore_offline{ [&] { ctx.offline = original_offline; } };
+
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.repodata_use_shards = true;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> specs = { "xtensor" };
+    const fs::u8path prefix_online = tmp_dir.path() / "env_online";
+    const fs::u8path prefix_offline = tmp_dir.path() / "env_offline";
+
+    // First create: online, populates shard index cache and package cache
+    ctx.offline = false;
+    expected_t<void> install_online = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_online,
+        cache_dir
+    );
+    REQUIRE(install_online.has_value());
+
+    // Second create: offline, must succeed using only cached data (no network requests)
+    ctx.offline = true;
+    expected_t<void> install_offline = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_offline,
+        cache_dir
+    );
+    REQUIRE(install_offline.has_value());
+
+    // Verify both environments are equivalent (confirms offline used only cached data)
+    REQUIRE(compare_environments(prefix_online, prefix_offline, channel_context));
+}

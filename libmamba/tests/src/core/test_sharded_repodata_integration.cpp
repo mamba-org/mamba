@@ -517,6 +517,12 @@ TEST_CASE("Sharded repodata - environment consistency", "[mamba::core][sharded][
         run_environment_consistency_case(ctx, channel_context, tmp_dir, cache_dir, specs);
     }
 
+    SECTION("scikit-learn installation")
+    {
+        std::vector<std::string> specs = { "scikit-learn" };
+        run_environment_consistency_case(ctx, channel_context, tmp_dir, cache_dir, specs);
+    }
+
     SECTION("Version constrained installation")
     {
         std::vector<std::string> specs = { "python>=3.10,<3.12" };

@@ -488,16 +488,12 @@ namespace mamba
 
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            const auto& channels = channel_context.make_channel(pkg.channel);
-            assert(not channels.empty());
-
-            const auto channel_url = channels.front().platform_url(pkg.platform).str();
-            pkg.channel = channel_url;
-
-            if (pkg.package_url.empty())
-            {
-                pkg.package_url = pkg.url_for_channel_platform(channel_url);
-            }
+            using namespace mamba::specs;
+            const auto unresolved_pkg_channel = UnresolvedChannel::parse(pkg.channel).value();
+            const auto pkg_channel = Channel::resolve(unresolved_pkg_channel, channel_context.params())
+                                         .value();
+            assert(not pkg_channel.empty());
+            const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
         };
 
 
@@ -1393,15 +1389,18 @@ namespace mamba
             for (const EnvironmentLockFile::Channel& channel_info :
                  lockfile_data.get_metadata().channels)
             {
-                 // TODO C++23: replace all this by  std::vector(from_range_t, ...) 
-                 // or `channel_info.urls | as_conda_urls | to<vector>`
+                // TODO C++23: replace all this by  std::vector(from_range_t, ...)
+                // or `channel_info.urls | as_conda_urls | to<vector>`
                 auto urls_view = specs::as_conda_urls(channel_info.urls);
                 std::vector<specs::CondaURL> mirror_urls(urls_view.begin(), urls_view.end());
 
                 auto channel_it = channel_context_params.custom_channels.find(channel_info.name);
-                if(channel_it == channel_context_params.custom_channels.end())
+                if (channel_it == channel_context_params.custom_channels.end())
                 {
-                    channel_context_params.custom_channels.emplace(channel_info.name, specs::Channel{ std::move(mirror_urls), channel_info.name });
+                    channel_context_params.custom_channels.emplace(
+                        channel_info.name,
+                        specs::Channel{ std::move(mirror_urls), channel_info.name }
+                    );
                 }
                 else
                 {
@@ -1409,9 +1408,11 @@ namespace mamba
                 }
             }
 
-            channel_context = ChannelContext{ std::move(channel_context_params), std::move(zst_channels) };
+            channel_context = ChannelContext{ std::move(channel_context_params),
+                                              std::move(zst_channels) };
 
-            init_channels(ctx, channel_context, specs::Channel::UrlPriority::high); // update the context too
+            init_channels(ctx, channel_context, specs::Channel::UrlPriority::high);  // update the
+                                                                                     // context too
         }
 
         std::vector<specs::PackageInfo> conda_packages = {};

@@ -78,6 +78,7 @@ namespace mamba
         std::optional<std::string> md5;
         std::vector<std::string> depends;
         std::vector<std::string> constrains;
+        std::vector<std::string> track_features;
         std::optional<std::string> noarch;
         std::size_t size = 0;
         std::optional<std::string> license;

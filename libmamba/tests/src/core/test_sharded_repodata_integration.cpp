@@ -492,7 +492,7 @@ TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharde
     }
 }
 
-TEST_CASE("Sharded repodata - environment consistency", "[mamba::core][sharded][.integration][!mayfail]")
+TEST_CASE("Sharded repodata - environment consistency", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };
@@ -536,7 +536,7 @@ TEST_CASE("Sharded repodata - environment consistency", "[mamba::core][sharded][
     }
 }
 
-TEST_CASE("Sharded repodata - cross-subdir dependencies", "[mamba::core][sharded][.integration][!mayfail]")
+TEST_CASE("Sharded repodata - cross-subdir dependencies", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };
@@ -592,7 +592,7 @@ TEST_CASE("Sharded repodata - cross-subdir dependencies", "[mamba::core][sharded
     // which is verified by the successful loading and solving.
 }
 
-TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integration][!mayfail]")
+TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };
@@ -718,7 +718,7 @@ TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integr
     REQUIRE(solution_traditional == solution_sharded);
 }
 
-TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integration][!mayfail]")
+TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };
@@ -867,7 +867,7 @@ TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integr
 
 TEST_CASE(
     "Sharded repodata - python install includes pip and version >= 3.14",
-    "[mamba::core][sharded][.integration][!mayfail]"
+    "[mamba::core][sharded][.integration]"
 )
 {
     auto& ctx = mambatests::context();
@@ -918,4 +918,40 @@ TEST_CASE(
     auto min_version = specs::Version::parse("3.14");
     REQUIRE(min_version.has_value());
     REQUIRE(python_version_obj.value() >= min_version.value());
+}
+
+TEST_CASE("Sharded repodata - libblas implementation preference", "[mamba::core][sharded][.integration]")
+{
+    auto& ctx = mambatests::context();
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.offline = false;
+
+    const auto tmp_dir = TemporaryDirectory();
+    const auto cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> install_specs = { "libblas" };
+
+    const bool use_shards = true;
+    expected_t<Solution>
+        solution = solve_environment(ctx, channel_context, install_specs, use_shards, cache_dir);
+    REQUIRE(solution.has_value());
+
+    bool libblas_found = false;
+    for (const auto& pkg : solution.value().packages())
+    {
+        if (pkg.name == "libblas")
+        {
+            libblas_found = true;
+            // OpenBLAS builds do not carry BLAS track_features, whereas
+            // netlib / MKL / BLIS variants do. Ensuring an empty
+            // track_features set corresponds to selecting the openblas
+            // implementation from the available libblas builds.
+            REQUIRE(pkg.track_features.empty());
+        }
+    }
+    REQUIRE(libblas_found);
 }

@@ -67,7 +67,8 @@ namespace
         const std::string& package_name,
         const std::string& version,
         const std::string& build,
-        const std::vector<std::string>& depends = {}
+        const std::vector<std::string>& depends = {},
+        const std::vector<std::string>& track_features = {}
     ) -> std::vector<std::uint8_t>
     {
         // Create package record with checksum
@@ -82,7 +83,8 @@ namespace
             {},
             std::nullopt,
             HashFormat::String,
-            HashFormat::String
+            HashFormat::String,
+            track_features
         );
 
         // Wrap in shard structure: {"packages": {filename: record}}
@@ -844,6 +846,49 @@ TEST_CASE("Shards - build_repodata")
         }
         REQUIRE(found_1_0);
         REQUIRE(found_2_0);
+    }
+
+    SECTION("Track-features ordering prefers fewer features for same version")
+    {
+        ShardDict shard;
+
+        // libblas 3.11.0 netlib variant with track_features
+        ShardPackageRecord netlib;
+        netlib.name = "libblas";
+        netlib.version = "3.11.0";
+        netlib.build = "7_hc00574d_netlib";
+        netlib.build_number = 7;
+        netlib.track_features = { "blas_netlib", "blas_netlib_2" };
+        shard.packages["libblas-3.11.0-7_hc00574d_netlib.conda"] = netlib;
+
+        // libblas 3.11.0 openblas variant without track_features
+        ShardPackageRecord openblas;
+        openblas.name = "libblas";
+        openblas.version = "3.11.0";
+        openblas.build = "5_h4a7cf45_openblas";
+        openblas.build_number = 5;
+        openblas.track_features = {};
+        shard.packages["libblas-3.11.0-5_h4a7cf45_openblas.conda"] = openblas;
+
+        shards.process_fetched_shard("libblas", shard);
+
+        auto repodata = shards.build_repodata();
+
+        // Collect libblas entries in the order seen after sorting.
+        std::vector<std::string> keys;
+        for (const auto& [filename, record] : repodata.shard_dict.packages)
+        {
+            if (record.name == "libblas" && record.version == "3.11.0")
+            {
+                keys.push_back(filename);
+            }
+        }
+
+        REQUIRE(keys.size() == 2);
+        // The first entry must be the openblas build (no track_features),
+        // followed by the netlib build (with track_features).
+        REQUIRE(keys[0].find("5_h4a7cf45_openblas") != std::string::npos);
+        REQUIRE(keys[1].find("7_hc00574d_netlib") != std::string::npos);
     }
 
     SECTION("Build repodata with conda packages")

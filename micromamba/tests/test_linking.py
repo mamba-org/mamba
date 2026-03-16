@@ -49,7 +49,11 @@ class TestLinking:
         assert not linked_file_path.is_symlink()
 
         linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
-        cache_file = existing_cache / test_pkg / linked_file_rel_path
+        # test_pkg is now a Path object (relative or absolute) pointing to the package directory
+        if test_pkg.is_absolute():
+            cache_file = test_pkg / linked_file_rel_path
+        else:
+            cache_file = existing_cache / test_pkg / linked_file_rel_path
         assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
         assert cache_file.stat().st_ino == linked_file_path.stat().st_ino
 
@@ -70,7 +74,11 @@ class TestLinking:
         assert not linked_file_path.is_symlink()
 
         linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
-        cache_file = existing_cache / test_pkg / linked_file_rel_path
+        # test_pkg is now a Path object (relative or absolute) pointing to the package directory
+        if test_pkg.is_absolute():
+            cache_file = test_pkg / linked_file_rel_path
+        else:
+            cache_file = existing_cache / test_pkg / linked_file_rel_path
         assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
         assert cache_file.stat().st_ino != linked_file_path.stat().st_ino
 
@@ -95,7 +103,11 @@ class TestLinking:
         assert linked_file_path.is_symlink()
 
         linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
-        cache_file = existing_cache / test_pkg / linked_file_rel_path
+        # test_pkg is now a Path object (relative or absolute) pointing to the package directory
+        if test_pkg.is_absolute():
+            cache_file = test_pkg / linked_file_rel_path
+        else:
+            cache_file = existing_cache / test_pkg / linked_file_rel_path
 
         assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
         assert cache_file.stat().st_ino == linked_file_path.stat().st_ino
@@ -125,7 +137,11 @@ class TestLinking:
         assert linked_file_path.exists()
 
         linked_file_rel_path = linked_file_path.relative_to(install_env_dir)
-        cache_file = existing_cache / test_pkg / linked_file_rel_path
+        # test_pkg is now a Path object (relative or absolute) pointing to the package directory
+        if test_pkg.is_absolute():
+            cache_file = test_pkg / linked_file_rel_path
+        else:
+            cache_file = existing_cache / test_pkg / linked_file_rel_path
         assert cache_file.stat().st_dev == linked_file_path.stat().st_dev
         assert (cache_file.stat().st_ino == linked_file_path.stat().st_ino) == is_hardlink
         assert linked_file_path.is_symlink() == is_softlink

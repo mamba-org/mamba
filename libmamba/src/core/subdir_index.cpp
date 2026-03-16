@@ -26,6 +26,11 @@
 
 namespace mamba
 {
+    namespace
+    {
+        constinit const char REPODATA_SHARDS_MSGPACK_ZST[] = "repodata_shards.msgpack.zst";
+    }
+
     /*******************
      * MSubdirMetadata *
      *******************/
@@ -599,7 +604,7 @@ namespace mamba
                 // Don't log if it's a user interruption.
                 if (!result.has_value() and not result.error().is_stop)
                 {
-                    LOG_WARNING << "Failed to load subdir: " << result.error().message;
+                    LOG_DEBUG << "Failed to load subdir: " << result.error().message;
                 }
             }
         }
@@ -640,7 +645,7 @@ namespace mamba
 
     auto SubdirIndexLoader::shard_index_url_path() const -> std::string
     {
-        return util::url_concat(m_platform, "/", "repodata_shards.msgpack.zst");
+        return util::url_concat(m_platform, "/", REPODATA_SHARDS_MSGPACK_ZST);
     }
 
     auto SubdirIndexLoader::valid_json_cache_path_unchecked() const -> fs::u8path
@@ -878,13 +883,13 @@ namespace mamba
         {
             if (error.transfer.has_value())
             {
-                LOG_WARNING << "Unable to retrieve repodata (response: "
-                            << error.transfer.value().http_status << ") for '"
-                            << error.transfer.value().effective_url << "'";
+                LOG_DEBUG << "Unable to retrieve repodata (response: "
+                          << error.transfer.value().http_status << ") for '"
+                          << error.transfer.value().effective_url << "'";
             }
             else
             {
-                LOG_WARNING << error.message;
+                LOG_DEBUG << error.message;
             }
             if (error.retry_wait_seconds.has_value())
             {

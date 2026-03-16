@@ -55,7 +55,13 @@ from pathlib import Path  # noqa: E402
 sys.path.insert(0, str(Path.cwd().resolve() / "tools"))
 
 # Add Sphinx extension modules
-extensions = ["mermaid", "mermaid_inheritance", "myst_parser", "breathe"]
+extensions = [
+    "mermaid",
+    "mermaid_inheritance",
+    "myst_parser",
+    "breathe",
+    "sphinx_copybutton",
+]
 
 # Configuration of Breathe Doxygen interopt
 breathe_projects = {"libmamba": os.environ.get("MAMBA_DEV_DOXYGEN_XML_DIR", "../xml")}

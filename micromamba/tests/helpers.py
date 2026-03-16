@@ -445,6 +445,35 @@ def write_windows_registry(target_path, value_value, value_type):  # pragma: no 
         winreg.CloseKey(key)
 
 
+def find_pkg_dir_in_cache(cache: Path, pkg_name: str) -> Path:
+    """Find the package directory in the cache, handling nested cache structures.
+
+    With the new cache structure, packages may be stored at paths like:
+    cache/https/repo.example.com/channel/platform/package-name/
+    instead of directly at cache/package-name/
+
+    This function searches recursively for the package directory.
+    """
+    # First try direct lookup (old structure)
+    direct_path = cache / pkg_name
+    if direct_path.exists() and direct_path.is_dir():
+        return direct_path
+
+    # Search recursively for the package directory
+    matches = list(cache.rglob(pkg_name))
+    # Filter to only directories
+    dir_matches = [p for p in matches if p.is_dir()]
+
+    if len(dir_matches) == 0:
+        raise RuntimeError(f"Package directory '{pkg_name}' not found in cache '{cache}'")
+    if len(dir_matches) > 1:
+        raise RuntimeError(
+            f"Multiple package directories found for '{pkg_name}' in cache '{cache}': {dir_matches}"
+        )
+
+    return dir_matches[0]
+
+
 @pytest.fixture(scope="session")
 def cache_warming():
     cache = Path(os.path.expanduser(os.path.join("~", "cache" + random_string())))
@@ -456,7 +485,10 @@ def cache_warming():
     res = create("-p", tmp_prefix, "xtensor", "--json", no_dry_run=True)
     pkg_name = get_concrete_pkg(res, "xtensor")
 
-    yield cache, pkg_name
+    # Find the actual package directory in the cache (may be nested)
+    pkg_dir = find_pkg_dir_in_cache(cache, pkg_name)
+
+    yield cache, pkg_name, pkg_dir
 
     if "CONDA_PKGS_DIRS" in os.environ:
         os.environ.pop("CONDA_PKGS_DIRS")
@@ -476,7 +508,18 @@ def repodata_files(existing_cache):
 
 @pytest.fixture(scope="session")
 def test_pkg(cache_warming):
-    yield cache_warming[1]
+    """Return the package directory path (relative to cache root or absolute).
+
+    With the new cache structure, this returns a Path to the package directory,
+    which may be nested like cache/https/.../platform/package-name/
+    """
+    cache_root = cache_warming[0]
+    pkg_dir = cache_warming[2]
+
+    try:
+        return pkg_dir.relative_to(cache_root)
+    except ValueError:
+        return pkg_dir
 
 
 @pytest.fixture

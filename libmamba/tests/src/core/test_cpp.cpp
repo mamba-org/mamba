@@ -17,6 +17,7 @@
 #include "mamba/core/history.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/subdir_index.hpp"
+#include "mamba/core/util.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/path_manip.hpp"
 
@@ -75,6 +76,257 @@ namespace mamba
 
             res = Console::instance().hide_secrets("root:secretpassword@myweb.com/test.repo");
             REQUIRE(res == "root:*****@myweb.com/test.repo");
+        }
+
+        TEST_CASE("remove_secrets_and_login_credentials")
+        {
+            SECTION("HTTP URLs with tokens")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "http://myweb.com/t/my-12345-token/test.repo"
+                );
+                REQUIRE(res == "http://myweb.com/test.repo");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://example.com/t/abc123def/path/to/file.tar.bz2"
+                );
+                REQUIRE(res == "http://example.com/path/to/file.tar.bz2");
+            }
+
+            SECTION("HTTP URLs with authentication")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "http://root:secretpassword@myweb.com/test.repo"
+                );
+                REQUIRE(res == "http://myweb.com/test.repo");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://user:pass@example.com/channel/noarch/pkg.conda"
+                );
+                REQUIRE(res == "http://example.com/channel/noarch/pkg.conda");
+            }
+
+            SECTION("HTTPS URLs with authentication")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://user:pass@repo.example.com/channel/noarch/auth-pkg-1.0-0.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.example.com/channel/noarch/auth-pkg-1.0-0.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "https://admin:secret123@conda-forge.org/packages/pkg.tar.bz2"
+                );
+                REQUIRE(res == "https://conda-forge.org/packages/pkg.tar.bz2");
+            }
+
+            SECTION("Multiple URLs in same string")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "http://root:secretpassword@myweb.com/test.repo http://user:pass@other.com/file.repo"
+                );
+                REQUIRE(res == "http://myweb.com/test.repo http://other.com/file.repo");
+
+                res = remove_secrets_and_login_credentials(
+                    "https://user1:pass1@repo1.com/file1.tar.bz2 https://user2:pass2@repo2.com/file2.tar.bz2"
+                );
+                REQUIRE(res == "https://repo1.com/file1.tar.bz2 https://repo2.com/file2.tar.bz2");
+            }
+
+            SECTION("URLs with newlines")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "http://root:secretpassword@myweb.com/test.repo\nhttp://myweb.com/t/my-12345-token/test.repo"
+                );
+                REQUIRE(res == "http://myweb.com/test.repo\nhttp://myweb.com/test.repo");
+
+                res = remove_secrets_and_login_credentials(
+                    "https://user:pass@repo.com/file1.tar.bz2\nhttps://repo.com/t/token/file2.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.com/file1.tar.bz2\nhttps://repo.com/file2.tar.bz2");
+            }
+
+            SECTION("URLs without scheme")
+            {
+                auto res = remove_secrets_and_login_credentials("myweb.com/t/my-12345-token/test.repo");
+                REQUIRE(res == "myweb.com/test.repo");
+
+                res = remove_secrets_and_login_credentials("root:secretpassword@myweb.com/test.repo");
+                REQUIRE(res == "myweb.com/test.repo");
+
+                res = remove_secrets_and_login_credentials(
+                    "user:pass@example.com/path/to/file.tar.bz2"
+                );
+                REQUIRE(res == "example.com/path/to/file.tar.bz2");
+            }
+
+            SECTION("URLs with already masked credentials (Windows compatibility)")
+            {
+                // Test URLs that already have masked passwords (*****)
+                // This can happen when URLs are processed multiple times
+                auto res = remove_secrets_and_login_credentials(
+                    "http://user:*****@localhost:1234/noarch/pkg.tar.bz2"
+                );
+                REQUIRE(res == "http://localhost:1234/noarch/pkg.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "https://testuser:*****@example.com/channel/linux-64/pkg.conda"
+                );
+                REQUIRE(res == "https://example.com/channel/linux-64/pkg.conda");
+
+                // Test masked tokens
+                res = remove_secrets_and_login_credentials(
+                    "http://repo.com/t/*****/noarch/pkg.tar.bz2"
+                );
+                REQUIRE(res == "http://repo.com/noarch/pkg.tar.bz2");
+
+                // Test URLs with ports and masked credentials
+                res = remove_secrets_and_login_credentials(
+                    "http://user:*****@localhost:8080/path/to/file.tar.bz2"
+                );
+                REQUIRE(res == "http://localhost:8080/path/to/file.tar.bz2");
+            }
+
+            SECTION("OCI URLs")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "oci://ghcr.io/channel-mirrors/conda-forge/linux-64/pkg.conda"
+                );
+                REQUIRE(res == "oci://ghcr.io/channel-mirrors/conda-forge/linux-64/pkg.conda");
+
+                res = remove_secrets_and_login_credentials(
+                    "oci://user:pass@registry.example.com/repo/pkg.conda"
+                );
+                REQUIRE(res == "oci://registry.example.com/repo/pkg.conda");
+            }
+
+            SECTION("URLs with tokens in path")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://repo.example.com/t/token123/path/to/file.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.example.com/path/to/file.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://example.com/t/abc-def-123/packages/pkg.tar.bz2"
+                );
+                REQUIRE(res == "http://example.com/packages/pkg.tar.bz2");
+            }
+
+            SECTION("URLs with both auth and token")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://user:pass@repo.com/t/token123/file.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.com/file.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://admin:secret@example.com/t/xyz789/path/file.tar.bz2"
+                );
+                REQUIRE(res == "http://example.com/path/file.tar.bz2");
+            }
+
+            SECTION("URLs with ports")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://user:pass@repo.example.com:8080/path/to/file.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.example.com:8080/path/to/file.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://admin:secret@localhost:9000/packages/pkg.tar.bz2"
+                );
+                REQUIRE(res == "http://localhost:9000/packages/pkg.tar.bz2");
+            }
+
+            SECTION("URLs with query parameters")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://user:pass@repo.com/path/file.tar.bz2?version=1.0&arch=x86_64"
+                );
+                REQUIRE(res == "https://repo.com/path/file.tar.bz2?version=1.0&arch=x86_64");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://admin:secret@example.com/pkg.tar.bz2?token=abc123"
+                );
+                REQUIRE(res == "http://example.com/pkg.tar.bz2?token=abc123");
+            }
+
+            SECTION("File URLs")
+            {
+                auto res = remove_secrets_and_login_credentials("file:///path/to/local/file.tar.bz2");
+                REQUIRE(res == "file:///path/to/local/file.tar.bz2");
+
+                res = remove_secrets_and_login_credentials("file://localhost/path/to/file.tar.bz2");
+                REQUIRE(res == "file://localhost/path/to/file.tar.bz2");
+            }
+
+            SECTION("URLs with special characters in credentials")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://user%40domain:pass%21word@repo.com/file.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.com/file.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://user_name:pass-word@example.com/pkg.tar.bz2"
+                );
+                REQUIRE(res == "http://example.com/pkg.tar.bz2");
+            }
+
+            SECTION("URLs with complex paths")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://user:pass@repo.com/channel/noarch/subdir/pkg-1.0-py39_0.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.com/channel/noarch/subdir/pkg-1.0-py39_0.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "http://admin:secret@example.com/conda-forge/linux-64/python-3.9.0.tar.bz2"
+                );
+                REQUIRE(res == "http://example.com/conda-forge/linux-64/python-3.9.0.tar.bz2");
+            }
+
+            SECTION("Edge cases")
+            {
+                // Empty string
+                auto res = remove_secrets_and_login_credentials("");
+                REQUIRE(res == "");
+
+                // URL without path
+                res = remove_secrets_and_login_credentials("https://user:pass@repo.com");
+                REQUIRE(res == "https://repo.com");
+
+                // URL with just root path
+                res = remove_secrets_and_login_credentials("https://user:pass@repo.com/");
+                REQUIRE(res == "https://repo.com/");
+
+                // Multiple tokens
+                res = remove_secrets_and_login_credentials(
+                    "https://repo.com/t/token1/path/t/token2/file.tar.bz2"
+                );
+                REQUIRE(res == "https://repo.com/path/file.tar.bz2");
+            }
+
+            SECTION("Different URL schemes")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "ftp://user:pass@ftp.example.com/file.tar.bz2"
+                );
+                REQUIRE(res == "ftp://ftp.example.com/file.tar.bz2");
+
+                res = remove_secrets_and_login_credentials(
+                    "s3://access_key:secret_key@s3.amazonaws.com/bucket/file.tar.bz2"
+                );
+                REQUIRE(res == "s3://s3.amazonaws.com/bucket/file.tar.bz2");
+            }
+
+            SECTION("URLs with fragments")
+            {
+                auto res = remove_secrets_and_login_credentials(
+                    "https://user:pass@repo.com/path/file.tar.bz2#section1"
+                );
+                REQUIRE(res == "https://repo.com/path/file.tar.bz2#section1");
+            }
         }
 
         // Note: this was initially a value-parametrized test; unfortunately,

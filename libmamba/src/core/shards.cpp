@@ -21,6 +21,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/shards.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -31,6 +32,7 @@
 #include "mamba/util/string.hpp"
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
+#include "mamba/validation/tools.hpp"
 
 namespace mamba
 {
@@ -90,9 +92,15 @@ namespace mamba
 
         /**
          * Extract a hash value (sha256 or md5) from a msgpack object.
-         * Handles string, binary, and extension types, converting bytes to hex strings.
+         * Handles string, binary, extension, and array types, converting bytes to hex strings.
+         *
+         * @param obj The msgpack object containing the hash
+         * @param field_name The name of the field (for error messages)
+         * @return The hash as a hex string, or empty string if parsing fails
          */
-        auto msgpack_object_to_hash_string(const msgpack_object& obj) -> std::string
+        auto
+        msgpack_object_to_hash_string(const msgpack_object& obj, const std::string& field_name = "")
+            -> std::string
         {
             if (obj.type == MSGPACK_OBJECT_STR)
             {
@@ -114,16 +122,56 @@ namespace mamba
                     reinterpret_cast<const std::byte*>(obj.via.ext.ptr + obj.via.ext.size)
                 );
             }
+            else if (obj.type == MSGPACK_OBJECT_ARRAY)
+            {
+                // Handle array type - array of positive integers (bytes)
+                if (obj.via.array.size == 0)
+                {
+                    return std::string();
+                }
+
+                // Array of bytes (positive integers) - convert to hex string
+                std::vector<std::byte> bytes;
+                bytes.reserve(obj.via.array.size);
+                for (std::uint32_t i = 0; i < obj.via.array.size; ++i)
+                {
+                    const msgpack_object& elem = obj.via.array.ptr[i];
+                    if (elem.type == MSGPACK_OBJECT_POSITIVE_INTEGER)
+                    {
+                        bytes.push_back(static_cast<std::byte>(elem.via.u64 & 0xFF));
+                    }
+                    else
+                    {
+                        LOG_WARNING
+                            << "Array element " << i << " in " << field_name
+                            << " is not a positive integer (type: " << static_cast<int>(elem.type)
+                            << "), cannot convert to bytes";
+                        return std::string();
+                    }
+                }
+                return util::bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size());
+            }
+            else if (obj.type == MSGPACK_OBJECT_NIL)
+            {
+                // Nil is allowed for optional fields, return empty string
+                return std::string();
+            }
             else
             {
-                // Try to convert as string
+                // Try to convert as string for other types (e.g., positive/negative integers)
                 try
                 {
                     return msgpack_object_to_string(obj);
                 }
-                catch (...)
+                catch (const std::exception& e)
                 {
-                    // Return empty string if conversion fails
+                    std::string error_msg = "Failed to parse "
+                                            + (field_name.empty() ? "hash" : field_name)
+                                            + " from msgpack: unexpected type "
+                                            + std::to_string(static_cast<int>(obj.type));
+                    LOG_ERROR << error_msg << ": " << e.what();
+                    // Return empty string - validation will check that at least one checksum is
+                    // present
                     return std::string();
                 }
             }
@@ -191,11 +239,19 @@ namespace mamba
                     }
                     else if (key == "sha256")
                     {
-                        record.sha256 = msgpack_object_to_hash_string(val_obj);
+                        std::string hash = msgpack_object_to_hash_string(val_obj, "sha256");
+                        if (!hash.empty())
+                        {
+                            record.sha256 = hash;
+                        }
                     }
                     else if (key == "md5")
                     {
-                        record.md5 = msgpack_object_to_hash_string(val_obj);
+                        std::string hash = msgpack_object_to_hash_string(val_obj, "md5");
+                        if (!hash.empty())
+                        {
+                            record.md5 = hash;
+                        }
                     }
                     else if (key == "depends")
                     {
@@ -263,6 +319,17 @@ namespace mamba
                 }
             }
 
+            // Validate that at least one checksum (md5 or sha256) is present
+            // Shards must have checksums for package verification
+            if (!record.sha256.has_value() && !record.md5.has_value())
+            {
+                throw std::runtime_error(
+                    "Shard package record for '" + record.name
+                    + "' is missing both md5 and sha256 checksums. "
+                    + "At least one checksum is required."
+                );
+            }
+
             return record;
         }
     }
@@ -277,7 +344,8 @@ namespace mamba
         specs::Channel channel,
         specs::AuthenticationDataBase auth_info,
         download::RemoteFetchParams remote_fetch_params,
-        std::size_t download_threads
+        std::size_t download_threads,
+        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -285,6 +353,9 @@ namespace mamba
         , m_auth_info(std::move(auth_info))
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(download_threads)
+        , m_mirrors(std::move(mirrors))
+        , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / "conda" / "pkgs")
+        , m_shard_cache_dir(m_pkgs_cache_root / "cache" / "shards")
     {
     }
 
@@ -339,15 +410,21 @@ namespace mamba
         return result;
     }
 
+    auto Shards::pkgs_cache_root() const -> fs::u8path
+    {
+        return m_pkgs_cache_root;
+    }
+
+    auto Shards::shard_cache_dir() const -> const fs::u8path&
+    {
+        return m_shard_cache_dir;
+    }
+
     auto Shards::shard_url(const std::string& package) const -> std::string
     {
-        LOG_DEBUG << "Constructing shard URL for package '" << package
-                  << "' from base_url: " << shards_base_url();
         auto it = m_shards_index.shards.find(package);
         if (it == m_shards_index.shards.end())
         {
-            LOG_DEBUG << "Package '" << package << "' not found in shard index (index contains "
-                      << m_shards_index.shards.size() << " packages)";
             throw std::runtime_error("Package " + package + " not found in shard index");
         }
 
@@ -356,10 +433,8 @@ namespace mamba
             reinterpret_cast<const std::byte*>(it->second.data()),
             reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
         );
-        LOG_DEBUG << "Package '" << package << "' found in shard index with hash: " << hex_hash;
         std::string shard_name = hex_hash + ".msgpack.zst";
         std::string url = shards_base_url() + shard_name;
-        LOG_DEBUG << "Constructed shard URL for package '" << package << "': " << url;
         return url;
     }
 
@@ -526,11 +601,32 @@ namespace mamba
     {
         for (const auto& package : packages)
         {
+            // Check in-memory cache first
             if (auto it = m_visited.find(package); it != m_visited.end())
             {
                 LOG_DEBUG << "Shard for package '" << package
                           << "' already in memory, skipping download";
                 results[package] = it->second;
+            }
+            // Check disk cache
+            else if (is_shard_cached(package))
+            {
+                LOG_DEBUG << "Shard for package '" << package
+                          << "' found in cache, attempting to load";
+                auto cached_result = load_shard_from_cache(package);
+                if (cached_result.has_value())
+                {
+                    LOG_DEBUG << "Successfully loaded shard for package '" << package
+                              << "' from cache";
+                    results[package] = cached_result.value();
+                }
+                else
+                {
+                    LOG_WARNING << "Failed to load shard for package '" << package
+                                << "' from cache: " << cached_result.error().what()
+                                << ", will download";
+                    packages_to_fetch.push_back(package);
+                }
             }
             else
             {
@@ -568,13 +664,11 @@ namespace mamba
 
     void Shards::create_download_requests(
         const std::map<std::string, std::string>& url_to_package,
-        const std::string& cache_dir_str,
         download::mirror_map& extended_mirrors,
         download::MultiRequest& requests,
         std::vector<std::string>& cache_miss_urls,
         std::vector<std::string>& cache_miss_packages,
-        std::map<std::string, fs::u8path>& package_to_artifact_path,
-        std::vector<std::shared_ptr<TemporaryFile>>& artifacts
+        std::map<std::string, fs::u8path>& package_to_cache_path
     ) const
     {
         // Reserve space in the vectors
@@ -582,18 +676,14 @@ namespace mamba
 
         cache_miss_urls.reserve(num_file_to_fetch);
         cache_miss_packages.reserve(num_file_to_fetch);
-        artifacts.reserve(num_file_to_fetch);
 
         for (const auto& [url, package] : url_to_package)
         {
             cache_miss_urls.push_back(url);
             cache_miss_packages.push_back(package);
 
-            auto artifact = std::make_shared<TemporaryFile>("mambashard", "", cache_dir_str);
-            artifacts.push_back(artifact);
-
-            fs::u8path artifact_path = artifact->path();
-            package_to_artifact_path[package] = artifact_path;
+            const fs::u8path cache_path = shard_cache_path(package);
+            package_to_cache_path[package] = cache_path;
 
             std::string shard_path_str = relative_shard_path(package);
             bool is_full_url = util::url_has_scheme(shard_path_str);
@@ -609,12 +699,10 @@ namespace mamba
                 {
                     const auto& parsed_url = url_parsed.value();
                     // Construct base URL: scheme://host/
-                    std::string base_url = util::url_concat(
-                        parsed_url.scheme(),
-                        "://",
-                        parsed_url.host(),
-                        "/"
-                    );
+                    // Note: do not use url_concat here - it inserts '/' between segments when
+                    // neither ends/starts with '/', which would turn "https"+"://" into "https/://"
+                    std::string base_url = std::string(parsed_url.scheme()) + "://"
+                                           + parsed_url.host() + "/";
                     // Get relative path (remove leading '/')
                     std::string path = parsed_url.path();
                     if (path.size() > 1)
@@ -654,7 +742,7 @@ namespace mamba
                 package + "-shard",
                 download::MirrorName(mirror_name),
                 url_path,
-                artifact->path().string(),
+                cache_path.string(),
                 /*head_only*/ false,
                 /*ignore_failure*/ false
             );
@@ -677,7 +765,7 @@ namespace mamba
         }
     }
 
-    auto Shards::decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data)
+    auto Shards::decompress_zstd_shard(const std::vector<std::uint8_t>& compressed_data) const
         -> expected_t<std::vector<std::uint8_t>>
     {
         LOG_DEBUG << "Decompressing shard using zstd";
@@ -734,7 +822,7 @@ namespace mamba
     auto Shards::parse_shard_msgpack(
         const std::vector<std::uint8_t>& decompressed_data,
         const std::string& package
-    ) -> expected_t<ShardDict>
+    ) const -> expected_t<ShardDict>
     {
         LOG_DEBUG << "Parsing msgpack data for package '" << package << "' shard";
         msgpack_unpacked unpacked = {};
@@ -864,20 +952,20 @@ namespace mamba
     auto Shards::process_downloaded_shard(
         const std::string& package,
         const download::Success& success,
-        const std::map<std::string, fs::u8path>& package_to_artifact_path
+        const std::map<std::string, fs::u8path>& package_to_cache_path
     ) -> expected_t<ShardDict>
     {
         fs::u8path shard_file;
-        auto artifact_it = package_to_artifact_path.find(package);
-        if (artifact_it != package_to_artifact_path.end())
+        auto cache_it = package_to_cache_path.find(package);
+        if (cache_it != package_to_cache_path.end())
         {
-            shard_file = artifact_it->second;
-            LOG_DEBUG << "Using artifact path for shard: " << shard_file.string();
+            shard_file = cache_it->second;
+            LOG_DEBUG << "Using cache path for shard: " << shard_file.string();
         }
         else
         {
             return make_unexpected(
-                "No artifact path found for package: " + package,
+                "No cache path found for package: " + package,
                 mamba_error_code::unknown
             );
         }
@@ -963,28 +1051,24 @@ namespace mamba
         download::MultiRequest requests;
         std::vector<std::string> cache_miss_urls;
         std::vector<std::string> cache_miss_packages;
-        std::map<std::string, fs::u8path> package_to_artifact_path;
-        std::vector<std::shared_ptr<TemporaryFile>> artifacts;
+        std::map<std::string, fs::u8path> package_to_cache_path;
         download::mirror_map extended_mirrors;
+        if (m_mirrors.has_value())
+        {
+            extended_mirrors.add_mirrors_from(m_mirrors->get(), m_channel.id());
+        }
 
-        const bool XDG_CACHE_HOME_SET = util::get_env("XDG_CACHE_HOME").has_value();
-        const fs::u8path cache_dir_path = fs::u8path(
-                                              XDG_CACHE_HOME_SET
-                                                  ? util::get_env("XDG_CACHE_HOME").value()
-                                                  : util::user_cache_dir()
-                                          )
-                                          / "conda" / "pkgs";
-        const std::string cache_dir_str = create_cache_dir(cache_dir_path);
+        // Download directly to the shard cache path
+        // ({pkgs_cache_root}/cache/shards/{hash}.msgpack.zst)
+        fs::create_directories(shard_cache_dir());
 
         create_download_requests(
             url_to_package,
-            cache_dir_str,
             extended_mirrors,
             requests,
             cache_miss_urls,
             cache_miss_packages,
-            package_to_artifact_path,
-            artifacts
+            package_to_cache_path
         );
 
         LOG_DEBUG << "Downloading " << requests.size() << " shard(s) for packages: ["
@@ -1008,8 +1092,9 @@ namespace mamba
 
             if (!download_results[i].has_value())
             {
+                const auto& err = download_results[i].error();
                 LOG_WARNING << "Failed to download shard " << url << " for package '" << package
-                            << "'";
+                            << "': " << err.message;
                 continue;
             }
 
@@ -1017,7 +1102,7 @@ namespace mamba
             LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
                       << url << " (" << success.transfer.downloaded_size << " bytes)";
 
-            auto shard_result = process_downloaded_shard(package, success, package_to_artifact_path);
+            auto shard_result = process_downloaded_shard(package, success, package_to_cache_path);
             if (!shard_result.has_value())
             {
                 LOG_WARNING << "Failed to process downloaded shard for package '" << package
@@ -1125,11 +1210,137 @@ namespace mamba
 
     auto Shards::base_url() const -> std::string
     {
-        return m_shards_index.info.base_url;
+        if (m_base_url_cache.has_value())
+        {
+            return *m_base_url_cache;
+        }
+
+        std::string base_url_str = m_shards_index.info.base_url;
+
+        // When base_url is relative (no URL scheme), resolve it against the channel URL.
+        // Shard indices may store paths like "/conda-forge/linux-64" which would be
+        // interpreted as file:// paths when used directly.
+        if (!util::url_has_scheme(base_url_str))
+        {
+            auto url_parsed = util::URL::parse(m_url);
+            if (url_parsed.has_value())
+            {
+                const auto& parsed = url_parsed.value();
+                std::string origin = std::string(parsed.scheme()) + "://" + parsed.host();
+                if (const auto& port = parsed.port(); !port.empty())
+                {
+                    origin += ":" + port;
+                }
+                base_url_str = util::url_concat(origin, base_url_str);
+            }
+        }
+
+        m_base_url_cache = base_url_str;
+        return *m_base_url_cache;
     }
 
     auto Shards::url() const -> std::string
     {
         return m_url;
     }
+
+    auto Shards::subdir() const -> const std::string&
+    {
+        return m_shards_index.info.subdir;
+    }
+
+    auto Shards::shard_cache_path(const std::string& package) const -> fs::u8path
+    {
+        // Get hash from shard index
+        auto it = m_shards_index.shards.find(package);
+        if (it == m_shards_index.shards.end())
+        {
+            throw std::runtime_error("Package " + package + " not found in shard index");
+        }
+
+        // Convert hash bytes to hex string
+        std::string hex_hash = util::bytes_to_hex_str(
+            reinterpret_cast<const std::byte*>(it->second.data()),
+            reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
+        );
+
+        // Return full cache path: {pkgs_cache_root}/cache/shards/{hex_hash}.msgpack.zst
+        return shard_cache_dir() / (hex_hash + ".msgpack.zst");
+    }
+
+    auto Shards::is_shard_cached(const std::string& package) const -> bool
+    {
+        // Check if package exists in shard index first
+        if (m_shards_index.shards.find(package) == m_shards_index.shards.end())
+        {
+            LOG_DEBUG << "Package '" << package
+                      << "' not present in shard index; treating shard as not cached";
+            return false;
+        }
+
+        fs::u8path cache_path = shard_cache_path(package);
+
+        // Consider the shard cached if a regular file exists at the expected path.
+        // Integrity and format are verified later when loading/parsing the shard.
+        const bool exists = fs::exists(cache_path) && fs::is_regular_file(cache_path);
+        if (!exists)
+        {
+            LOG_DEBUG << "Shard cache file for package '" << package << "' not found at "
+                      << cache_path.string() << "; shard will be downloaded";
+        }
+        else
+        {
+            LOG_DEBUG << "Shard cache file for package '" << package << "' found at "
+                      << cache_path.string();
+        }
+        return exists;
+    }
+
+    auto Shards::load_shard_from_cache(const std::string& package) const -> expected_t<ShardDict>
+    {
+        fs::u8path cache_path = shard_cache_path(package);
+
+        // Read cached file
+        std::ifstream file(cache_path.string(), std::ios::binary);
+        if (!file.is_open())
+        {
+            return make_unexpected(
+                "Failed to open cached shard file: " + cache_path.string(),
+                mamba_error_code::unknown
+            );
+        }
+
+        std::vector<std::uint8_t> compressed_data{ std::istreambuf_iterator<char>(file),
+                                                   std::istreambuf_iterator<char>() };
+        file.close();
+
+        if (compressed_data.empty())
+        {
+            return make_unexpected(
+                "Cached shard file is empty: " + cache_path.string(),
+                mamba_error_code::unknown
+            );
+        }
+
+        // Decompress zstd data
+        auto decompressed_result = decompress_zstd_shard(compressed_data);
+        if (!decompressed_result.has_value())
+        {
+            return make_unexpected(
+                decompressed_result.error().what(),
+                decompressed_result.error().error_code()
+            );
+        }
+
+        // Parse msgpack
+        auto parse_result = parse_shard_msgpack(decompressed_result.value(), package);
+        if (!parse_result.has_value())
+        {
+            return make_unexpected(parse_result.error().what(), parse_result.error().error_code());
+        }
+
+        LOG_DEBUG << "Successfully loaded shard for package '" << package << "' from cache";
+        return parse_result.value();
+    }
+
 }

@@ -25,6 +25,8 @@ namespace mamba::download
     namespace
     {
         const auto PASSTHROUGH_MIRROR_ID = MirrorID("");
+        constexpr const char REPODATA_SHARDS_MSGPACK[] = "repodata_shards.msgpack";
+        constexpr const char REPODATA_SHARDS_MSGPACK_ZST[] = "repodata_shards.msgpack.zst";
     }
 
     PassThroughMirror::PassThroughMirror()
@@ -77,9 +79,16 @@ namespace mamba::download
             // for OCI, if we have a filename like "xtensor-0.23.10-h2acdbc0_0.tar.bz2"
             // we want to split it to `xtensor:0.23.10-h2acdbc0-0`
 
-            // If the file corresponds to repodata: i.e `repodata.json` or `repodata.json.zst`,
-            // the tag is `latest`, and there is no need for splitting parts
-            if (util::ends_with(path, ".json") || util::ends_with(path, ".json.zst"))
+            // If the file corresponds to repodata or repodata shards index, the tag is `latest`,
+            // and there is no need for splitting parts.
+            // Examples:
+            //   linux-64/repodata.json
+            //   linux-64/repodata.json.zst
+            //   linux-64/repodata_shards.msgpack.zst
+            //   noarch/repodata_shards.msgpack.zst
+            if (util::ends_with(path, ".json") || util::ends_with(path, ".json.zst")
+                || util::ends_with(path, REPODATA_SHARDS_MSGPACK)
+                || util::ends_with(path, REPODATA_SHARDS_MSGPACK_ZST))
             {
                 return { path, "latest" };
             }

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include "mamba/download/mirror.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/specs/channel.hpp"
 
@@ -73,5 +74,17 @@ namespace mamba::download
             insert_mirror(m_mirrors[std::string(mirror_name)]);
         }
         return true;
+    }
+
+    void mirror_map::add_mirrors_from(const mirror_map& other, std::string_view mirror_name)
+    {
+        for (const auto& mirror : other.get_mirrors(mirror_name))
+        {
+            auto new_mirror = make_mirror(mirror->id().to_string());
+            if (new_mirror)
+            {
+                add_unique_mirror(mirror_name, std::move(new_mirror));
+            }
+        }
     }
 }

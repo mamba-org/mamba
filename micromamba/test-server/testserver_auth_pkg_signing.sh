@@ -28,10 +28,11 @@ start_server() {
 }
 
 check_dwd_pkg() {
-    if [ -e "${test_dir}/pkgs/test-package-0.1-0.tar.bz2" ]; then
-        echo -e "\e[32mtest-package-0.1-0.tar.bz2 successfully (verified) and downloaded!\e[0m"
+    tarball_path=$(find "${test_dir}/pkgs" -name "test-package-0.1-0.tar.bz2" -type f 2>/dev/null | head -1)
+    if [ -n "$tarball_path" ]; then
+        echo -e "\e[32mtest-package-0.1-0.tar.bz2 was successfully verified and downloaded!\e[0m"
     else
-        echo -e "\e[31mtest-package-0.1-0.tar.bz2 does not exist!\e[0m"
+        echo -e "\e[31mtest-package-0.1-0.tar.bz2 does not exist in cache!\e[0m"
         exit 1
     fi
 }

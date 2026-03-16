@@ -16,7 +16,9 @@
 
 #include "mamba/specs/archive.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/specs/version.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -589,5 +591,22 @@ namespace mamba::specs
         // TODO: add more input checks
         // TODO: add checks about members that need to have a valid value
         return fmt::format("{}/{}", channel_mirror_platform_url, filename);
+    }
+
+    bool compare_packages_by_version_and_build(const PackageInfo& lhs, const PackageInfo& rhs)
+    {
+        // First compare by version
+        auto lhs_version = Version::parse(lhs.version).value_or(Version());
+        auto rhs_version = Version::parse(rhs.version).value_or(Version());
+        if (lhs_version < rhs_version)
+        {
+            return true;
+        }
+        if (rhs_version < lhs_version)
+        {
+            return false;
+        }
+        // Versions are equal, compare by build number
+        return lhs.build_number < rhs.build_number;
     }
 }

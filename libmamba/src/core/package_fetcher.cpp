@@ -136,7 +136,6 @@ namespace mamba
     };
 
     PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
-
         : m_package_info(pkg_info)
     {
         const fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
@@ -144,7 +143,8 @@ namespace mamba
         {
             const fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
             auto& cache = caches.first_writable_cache(true);
-            m_cache_path = cache.path();
+            m_cache_path = cache.path() / package_cache_folder_relative_path(m_package_info);
+            fs::create_directories(m_cache_path);
 
             if (!tarball_cache.empty())
             {

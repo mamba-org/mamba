@@ -273,10 +273,8 @@ namespace mamba
         return it->second;
     }
 
-    auto ChannelContext::make_channel(
-        std::string_view name,
-        const std::vector<std::string>& mirrors
-    ) -> const channel_list&
+    auto ChannelContext::make_channel(std::string_view name, const std::vector<std::string>& mirrors)
+        -> const channel_list&
     {
         if (const auto it = m_channel_cache.find(std::string(name)); it != m_channel_cache.end())
         {
@@ -315,9 +313,10 @@ namespace mamba
 
     auto ChannelContext::has_zst(const Channel& chan) const -> bool
     {
-        return std::ranges::any_of(m_has_zst, [&](const auto& zst_chan){
-            return zst_chan.contains_equivalent(chan);
-        });
+        return std::ranges::any_of(
+            m_has_zst,
+            [&](const auto& zst_chan) { return zst_chan.contains_equivalent(chan); }
+        );
     }
 
 }

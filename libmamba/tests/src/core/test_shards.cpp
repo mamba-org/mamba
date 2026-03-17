@@ -17,17 +17,34 @@
 #include "mamba/core/util.hpp"
 #include "mamba/download/mirror.hpp"
 #include "mamba/download/parameters.hpp"
+#include "mamba/download/request.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version.hpp"
+#include "mamba/util/encoding.hpp"
+#include "mamba/util/environment.hpp"
+#include "mamba/validation/tools.hpp"
 
 #include "mambatests.hpp"
 #include "test_shard_utils.hpp"
 
 using namespace mamba;
 using namespace mambatests::shard_test_utils;
+
+namespace mamba
+{
+    auto test_process_downloaded_shard(
+        Shards& shards,
+        const std::string& package,
+        const download::Success& success,
+        const std::map<std::string, fs::u8path>& package_to_cache_path
+    ) -> expected_t<ShardDict>
+    {
+        return shards.process_downloaded_shard(package, success, package_to_cache_path);
+    }
+}
 
 namespace
 {
@@ -41,6 +58,59 @@ namespace
         return specs::Channel::resolve(specs::UnresolvedChannel::parse(chan).value(), resolve_params)
             .value()
             .front();
+    }
+
+    /**
+     * Create a valid shard data with checksums (required for validation).
+     */
+    auto create_shard_with_checksum(
+        const std::string& package_name,
+        const std::string& version,
+        const std::string& build,
+        const std::vector<std::string>& depends = {},
+        const std::vector<std::string>& track_features = {}
+    ) -> std::vector<std::uint8_t>
+    {
+        // Create package record with checksum
+        auto package_record = create_shard_package_record_msgpack(
+            package_name,
+            version,
+            build,
+            0,
+            "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",  // sha256
+            std::nullopt,                                                        // md5
+            depends,
+            {},
+            std::nullopt,
+            HashFormat::String,
+            HashFormat::String,
+            track_features
+        );
+
+        // Wrap in shard structure: {"packages": {filename: record}}
+        msgpack_sbuffer sbuf;
+        msgpack_sbuffer_init(&sbuf);
+        msgpack_packer pk;
+        msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
+        msgpack_pack_map(&pk, 1);  // One key: "packages"
+        msgpack_pack_str(&pk, 8);
+        msgpack_pack_str_body(&pk, "packages", 8);
+        msgpack_pack_map(&pk, 1);  // One package
+        std::string filename = package_name + "-" + version + "-" + build + ".tar.bz2";
+        msgpack_pack_str(&pk, filename.size());
+        msgpack_pack_str_body(&pk, filename.c_str(), filename.size());
+        // Write the package record msgpack data
+        msgpack_sbuffer_write(
+            &sbuf,
+            reinterpret_cast<const char*>(package_record.data()),
+            package_record.size()
+        );
+        std::vector<std::uint8_t> shard_msgpack(
+            reinterpret_cast<const std::uint8_t*>(sbuf.data),
+            reinterpret_cast<const std::uint8_t*>(sbuf.data + sbuf.size)
+        );
+        msgpack_sbuffer_destroy(&sbuf);
+        return compress_zstd(shard_msgpack);
     }
 }
 
@@ -776,6 +846,49 @@ TEST_CASE("Shards - build_repodata")
         }
         REQUIRE(found_1_0);
         REQUIRE(found_2_0);
+    }
+
+    SECTION("Track-features ordering prefers fewer features for same version")
+    {
+        ShardDict shard;
+
+        // libblas 3.11.0 netlib variant with track_features
+        ShardPackageRecord netlib;
+        netlib.name = "libblas";
+        netlib.version = "3.11.0";
+        netlib.build = "7_hc00574d_netlib";
+        netlib.build_number = 7;
+        netlib.track_features = { "blas_netlib", "blas_netlib_2" };
+        shard.packages["libblas-3.11.0-7_hc00574d_netlib.conda"] = netlib;
+
+        // libblas 3.11.0 openblas variant without track_features
+        ShardPackageRecord openblas;
+        openblas.name = "libblas";
+        openblas.version = "3.11.0";
+        openblas.build = "5_h4a7cf45_openblas";
+        openblas.build_number = 5;
+        openblas.track_features = {};
+        shard.packages["libblas-3.11.0-5_h4a7cf45_openblas.conda"] = openblas;
+
+        shards.process_fetched_shard("libblas", shard);
+
+        auto repodata = shards.build_repodata();
+
+        // Collect libblas entries in the order seen after sorting.
+        std::vector<std::string> keys;
+        for (const auto& [filename, record] : repodata.shard_dict.packages)
+        {
+            if (record.name == "libblas" && record.version == "3.11.0")
+            {
+                keys.push_back(filename);
+            }
+        }
+
+        REQUIRE(keys.size() == 2);
+        // The first entry must be the openblas build (no track_features),
+        // followed by the netlib build (with track_features).
+        REQUIRE(keys[0].find("5_h4a7cf45_openblas") != std::string::npos);
+        REQUIRE(keys[1].find("7_hc00574d_netlib") != std::string::npos);
     }
 
     SECTION("Build repodata with conda packages")
@@ -2175,5 +2288,405 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "shards"));
         REQUIRE(util::ends_with(url, ".msgpack.zst"));
+    }
+}
+
+TEST_CASE("Shards - Disk caching")
+{
+    const auto tmp_dir = TemporaryDirectory();
+    // Cache path should match shard_cache_path: {XDG_CACHE_HOME}/conda/pkgs/cache/shards/
+    const auto cache_dir = tmp_dir.path() / "conda" / "pkgs" / "cache" / "shards";
+
+    // Set up environment to use our test cache directory
+    mambatests::EnvironmentCleaner env_cleaner;
+    util::set_env("XDG_CACHE_HOME", tmp_dir.path().string());
+
+    ShardsIndexDict index;
+    index.info.base_url = "https://example.com/packages";
+    index.info.shards_base_url = "shards";
+    index.info.subdir = "linux-64";
+    index.version = 1;
+
+    // Create hash for test package
+    std::vector<std::uint8_t> hash_bytes(32);
+    hash_bytes[0] = 0xAA;
+    hash_bytes[1] = 0xBB;
+    hash_bytes[2] = 0xCC;
+    hash_bytes[3] = 0xDD;
+    for (size_t i = 4; i < 32; ++i)
+    {
+        hash_bytes[i] = static_cast<std::uint8_t>(i);
+    }
+    index.shards["test-pkg"] = hash_bytes;
+
+    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::AuthenticationDataBase auth_info;
+    download::RemoteFetchParams remote_fetch_params;
+
+    SECTION("Cache hit - shard loaded from disk cache")
+    {
+        // Create cache directory and shard file
+        fs::create_directories(cache_dir);
+
+        // Create valid shard data with checksum (required for validation)
+        auto shard_data = create_shard_with_checksum("test-pkg", "1.0.0", "0", { "dep1" });
+
+        // Write shard to temporary file first to compute its hash
+        auto temp_file = tmp_dir.path() / "temp_shard.msgpack.zst";
+        {
+            std::ofstream file(temp_file.string(), std::ios::binary);
+            file.write(
+                reinterpret_cast<const char*>(shard_data.data()),
+                static_cast<std::streamsize>(shard_data.size())
+            );
+            file.close();
+        }
+
+        // Compute SHA256 hash of the shard file
+        std::string file_hash_hex = validation::sha256sum(temp_file);
+
+        // Convert hex string to bytes for the index
+        std::vector<std::uint8_t> file_hash_bytes;
+        file_hash_bytes.reserve(32);
+        for (size_t i = 0; i < file_hash_hex.size(); i += 2)
+        {
+            if (i + 1 < file_hash_hex.size())
+            {
+                std::string byte_str = file_hash_hex.substr(i, 2);
+                file_hash_bytes.push_back(static_cast<std::uint8_t>(std::stoul(byte_str, nullptr, 16)));
+            }
+        }
+
+        // Update index with the correct hash
+        index.shards["test-pkg"] = file_hash_bytes;
+
+        // Write shard to cache with correct hash-based filename
+        auto cache_file = cache_dir / (file_hash_hex + ".msgpack.zst");
+        fs::copy_file(temp_file, cache_file);
+
+        Shards shards(
+            index,
+            "https://example.com/conda-forge/linux-64/repodata.json",
+            channel,
+            auth_info,
+            remote_fetch_params
+        );
+
+        // Fetch shard - should load from cache
+        auto result = shards.fetch_shard("test-pkg");
+
+        REQUIRE(result.has_value());
+        REQUIRE(
+            result.value().packages.find("test-pkg-1.0.0-0.tar.bz2") != result.value().packages.end()
+        );
+        const auto& record = result.value().packages.at("test-pkg-1.0.0-0.tar.bz2");
+        REQUIRE(record.name == "test-pkg");
+        REQUIRE(record.version == "1.0.0");
+    }
+
+    SECTION("Cache miss - shard not in cache")
+    {
+        // Don't create cache directory - cache miss expected
+        Shards shards(
+            index,
+            "https://example.com/conda-forge/linux-64/repodata.json",
+            channel,
+            auth_info,
+            remote_fetch_params
+        );
+
+        // Fetch shard - should fail (no download server available in test)
+        // This test verifies that cache miss path is taken
+        // In real scenario, this would trigger a download
+        auto result = shards.fetch_shard("test-pkg");
+        // Should fail because cache doesn't exist and no download server
+        REQUIRE(!result.has_value());
+    }
+
+    SECTION("Cache invalidation - hash mismatch")
+    {
+        // Create cache directory
+        fs::create_directories(cache_dir);
+
+        // Create shard data with wrong hash (different content)
+        auto shard_data = create_valid_shard_data("wrong-pkg", "2.0.0", "1", {});
+
+        // Use wrong hash (different from index)
+        std::vector<std::uint8_t> wrong_hash(32, 0xFF);
+        std::string wrong_hex_hash = util::bytes_to_hex_str(
+            reinterpret_cast<const std::byte*>(wrong_hash.data()),
+            reinterpret_cast<const std::byte*>(wrong_hash.data() + wrong_hash.size())
+        );
+
+        // Write shard with wrong hash to cache
+        auto cache_file = cache_dir / (wrong_hex_hash + ".msgpack.zst");
+        std::ofstream file(cache_file.string(), std::ios::binary);
+        file.write(
+            reinterpret_cast<const char*>(shard_data.data()),
+            static_cast<std::streamsize>(shard_data.size())
+        );
+        file.close();
+
+        Shards shards(
+            index,
+            "https://example.com/conda-forge/linux-64/repodata.json",
+            channel,
+            auth_info,
+            remote_fetch_params
+        );
+
+        // Cache should not be valid (hash mismatch) - fetch should fail
+        auto result = shards.fetch_shard("test-pkg");
+        REQUIRE(!result.has_value());
+    }
+
+    SECTION("Cache invalidation - corrupted file")
+    {
+        // Create cache directory
+        fs::create_directories(cache_dir);
+
+        // Compute expected hash
+        std::string hex_hash = util::bytes_to_hex_str(
+            reinterpret_cast<const std::byte*>(hash_bytes.data()),
+            reinterpret_cast<const std::byte*>(hash_bytes.data() + hash_bytes.size())
+        );
+
+        // Write corrupted data to cache
+        auto cache_file = cache_dir / (hex_hash + ".msgpack.zst");
+        std::ofstream file(cache_file.string(), std::ios::binary);
+        file.write("corrupted data", 14);
+        file.close();
+
+        Shards shards(
+            index,
+            "https://example.com/conda-forge/linux-64/repodata.json",
+            channel,
+            auth_info,
+            remote_fetch_params
+        );
+
+        // Cache should not be valid (corrupted file) - fetch should fail
+        auto result = shards.fetch_shard("test-pkg");
+        REQUIRE(!result.has_value());
+    }
+
+    SECTION("Cache path computation - verify cache file location")
+    {
+        // Create cache directory
+        fs::create_directories(cache_dir);
+
+        // Create valid shard data with checksum (required for validation)
+        auto shard_data = create_shard_with_checksum("test-pkg", "1.0.0", "0", { "dep1" });
+
+        // Write shard to temporary file first to compute its hash
+        auto temp_file = tmp_dir.path() / "temp_shard2.msgpack.zst";
+        {
+            std::ofstream file(temp_file.string(), std::ios::binary);
+            file.write(
+                reinterpret_cast<const char*>(shard_data.data()),
+                static_cast<std::streamsize>(shard_data.size())
+            );
+            file.close();
+        }
+
+        // Compute SHA256 hash of the shard file
+        std::string file_hash_hex = validation::sha256sum(temp_file);
+
+        // Convert hex string to bytes for the index
+        std::vector<std::uint8_t> file_hash_bytes;
+        file_hash_bytes.reserve(32);
+        for (size_t i = 0; i < file_hash_hex.size(); i += 2)
+        {
+            if (i + 1 < file_hash_hex.size())
+            {
+                std::string byte_str = file_hash_hex.substr(i, 2);
+                file_hash_bytes.push_back(static_cast<std::uint8_t>(std::stoul(byte_str, nullptr, 16)));
+            }
+        }
+
+        // Update index with the correct hash
+        index.shards["test-pkg"] = file_hash_bytes;
+
+        // Write shard to cache with correct hash-based filename
+        auto expected_cache_file = cache_dir / (file_hash_hex + ".msgpack.zst");
+        fs::copy_file(temp_file, expected_cache_file);
+
+        Shards shards(
+            index,
+            "https://example.com/conda-forge/linux-64/repodata.json",
+            channel,
+            auth_info,
+            remote_fetch_params
+        );
+
+        // Fetch shard - should load from cache
+        auto result = shards.fetch_shard("test-pkg");
+
+        // Verify cache file exists at expected location
+        REQUIRE(fs::exists(expected_cache_file));
+        REQUIRE(result.has_value());
+    }
+}
+
+TEST_CASE("Shards - process_downloaded_shard")
+{
+    ShardsIndexDict index;
+    index.info.base_url = "https://example.com/packages";
+    index.info.shards_base_url = "shards";
+    index.info.subdir = "linux-64";
+    index.version = 1;
+    index.shards["test-pkg"] = std::vector<std::uint8_t>(32, 0xAB);
+
+    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::AuthenticationDataBase auth_info;
+    download::RemoteFetchParams remote_fetch_params;
+
+    Shards shards(
+        index,
+        "https://example.com/conda-forge/linux-64/repodata.json",
+        channel,
+        auth_info,
+        remote_fetch_params
+    );
+
+    SECTION("No cache path found for package")
+    {
+        download::Success success;
+        success.content = download::Filename{ "/nonexistent/path.msgpack.zst" };
+        success.transfer.downloaded_size = 100;
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        // Intentionally empty - "test-pkg" not in map
+
+        auto result = test_process_downloaded_shard(shards, "test-pkg", success, package_to_cache_path);
+
+        REQUIRE(!result.has_value());
+        REQUIRE(util::contains(result.error().what(), "No cache path found for package"));
+    }
+
+    SECTION("Filename variant - file not found")
+    {
+        const auto tmp_dir = TemporaryDirectory();
+        const auto nonexistent_file = tmp_dir.path() / "nonexistent.msgpack.zst";
+
+        download::Success success;
+        success.content = download::Filename{ nonexistent_file.string() };
+        success.transfer.downloaded_size = 100;
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["test-pkg"] = nonexistent_file;
+
+        auto result = test_process_downloaded_shard(shards, "test-pkg", success, package_to_cache_path);
+
+        REQUIRE(!result.has_value());
+        REQUIRE(util::contains(result.error().what(), "Failed to open downloaded shard file"));
+    }
+
+    SECTION("Filename variant - valid shard file")
+    {
+        const auto tmp_dir = TemporaryDirectory();
+        const auto shard_file = tmp_dir.path() / "test-pkg.msgpack.zst";
+
+        auto shard_data = create_shard_with_checksum("test-pkg", "1.0.0", "0", { "dep1" });
+        {
+            std::ofstream file(shard_file.string(), std::ios::binary);
+            file.write(
+                reinterpret_cast<const char*>(shard_data.data()),
+                static_cast<std::streamsize>(shard_data.size())
+            );
+        }
+
+        download::Success success;
+        success.content = download::Filename{ shard_file.string() };
+        success.transfer.downloaded_size = shard_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["test-pkg"] = shard_file;
+
+        auto result = test_process_downloaded_shard(shards, "test-pkg", success, package_to_cache_path);
+
+        REQUIRE(result.has_value());
+        REQUIRE(
+            result.value().packages.find("test-pkg-1.0.0-0.tar.bz2") != result.value().packages.end()
+        );
+        const auto& record = result.value().packages.at("test-pkg-1.0.0-0.tar.bz2");
+        REQUIRE(record.name == "test-pkg");
+        REQUIRE(record.version == "1.0.0");
+        REQUIRE(record.build == "0");
+        REQUIRE(record.depends == std::vector<std::string>{ "dep1" });
+    }
+
+    SECTION("Buffer variant - valid shard data")
+    {
+        auto shard_data = create_shard_with_checksum("test-pkg", "2.0.0", "1", { "dep-a", "dep-b" });
+
+        download::Success success;
+        success.content = download::Buffer{
+            std::string(reinterpret_cast<const char*>(shard_data.data()), shard_data.size())
+        };
+        success.transfer.downloaded_size = shard_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["test-pkg"] = fs::u8path("/dummy/cache/path.msgpack.zst");
+
+        auto result = test_process_downloaded_shard(shards, "test-pkg", success, package_to_cache_path);
+
+        REQUIRE(result.has_value());
+        REQUIRE(
+            result.value().packages.find("test-pkg-2.0.0-1.tar.bz2") != result.value().packages.end()
+        );
+        const auto& record = result.value().packages.at("test-pkg-2.0.0-1.tar.bz2");
+        REQUIRE(record.name == "test-pkg");
+        REQUIRE(record.version == "2.0.0");
+        REQUIRE(record.build == "1");
+        REQUIRE(record.depends == std::vector<std::string>{ "dep-a", "dep-b" });
+    }
+
+    SECTION("Buffer variant - corrupted zstd data")
+    {
+        auto corrupted_data = create_corrupted_zstd_data();
+
+        download::Success success;
+        success.content = download::Buffer{
+            std::string(reinterpret_cast<const char*>(corrupted_data.data()), corrupted_data.size())
+        };
+        success.transfer.downloaded_size = corrupted_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["test-pkg"] = fs::u8path("/dummy/path.msgpack.zst");
+
+        auto result = test_process_downloaded_shard(shards, "test-pkg", success, package_to_cache_path);
+
+        REQUIRE(!result.has_value());
+        const auto& err_msg = result.error().what();
+        REQUIRE(
+            (util::contains(err_msg, "zstd") || util::contains(err_msg, "Zstd")
+             || util::contains(err_msg, "decompress"))
+        );
+    }
+
+    SECTION("Buffer variant - invalid msgpack after decompression")
+    {
+        // Valid zstd compression of invalid msgpack
+        auto invalid_msgpack = create_invalid_msgpack_data();
+        auto compressed_data = compress_zstd(invalid_msgpack);
+
+        download::Success success;
+        success.content = download::Buffer{
+            std::string(reinterpret_cast<const char*>(compressed_data.data()), compressed_data.size())
+        };
+        success.transfer.downloaded_size = compressed_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["test-pkg"] = fs::u8path("/dummy/path.msgpack.zst");
+
+        auto result = test_process_downloaded_shard(shards, "test-pkg", success, package_to_cache_path);
+
+        REQUIRE(!result.has_value());
+        const auto& err_msg = result.error().what();
+        REQUIRE(
+            (util::contains(err_msg, "msgpack") || util::contains(err_msg, "parse")
+             || util::contains(err_msg, "MAP"))
+        );
     }
 }

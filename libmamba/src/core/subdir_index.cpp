@@ -866,7 +866,7 @@ namespace mamba
         {
             if (params.repodata_shards_ttl > 0)
             {
-                fs::u8path cache_path = ShardIndexLoader::shard_index_cache_path(*this);
+                const fs::u8path cache_path = ShardIndexLoader::shard_index_cache_path(*this);
                 if (fs::exists(cache_path))
                 {
                     if (auto age_sec = shard_index_cache_age_seconds(cache_path, name()))

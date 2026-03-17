@@ -946,12 +946,14 @@ namespace mamba::solver::libsolv
         // untouched, allowing environments to be solved without ``pip``.
         bool has_pip = false;
         repo.for_each_solvable(
-            [&](solv::ObjSolvableView s)
+            [&](solv::ObjSolvableView s) -> solv::LoopControl
             {
                 if (s.name() == "pip")
                 {
                     has_pip = true;
+                    return solv::LoopControl::Break;
                 }
+                return solv::LoopControl::Continue;
             }
         );
 

@@ -11,6 +11,7 @@
 #include <map>
 #include <optional>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 #include <fmt/format.h>
@@ -290,22 +291,18 @@ namespace mamba
     std::optional<std::int64_t>
     shard_index_cache_age_seconds(const fs::u8path& cache_path, std::string_view subdir_name)
     {
-        try
-        {
-            const fs::file_time_type last_write = fs::last_write_time(cache_path);
-            const fs::file_time_type now = fs::file_time_type::clock::now();
-            const std::int64_t age_sec = std::chrono::duration_cast<std::chrono::seconds>(
-                                             now - last_write
-            )
-                                             .count();
-            return age_sec;
-        }
-        catch (const std::exception& e)
+        std::error_code ec;
+        const fs::file_time_type last_write = fs::last_write_time(cache_path, ec);
+        if (ec)
         {
             LOG_DEBUG << "Could not check shard index cache age for " << subdir_name << ": "
-                      << e.what();
+                      << ec.message();
             return std::nullopt;
         }
+        const fs::file_time_type now = fs::file_time_type::clock::now();
+        const std::int64_t age_sec = std::chrono::duration_cast<std::chrono::seconds>(now - last_write)
+                                         .count();
+        return age_sec;
     }
 
     auto ShardIndexLoader::shard_index_cache_path(const SubdirIndexLoader& subdir) -> fs::u8path

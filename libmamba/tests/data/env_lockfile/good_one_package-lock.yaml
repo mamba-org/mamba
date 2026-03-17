@@ -23,6 +23,8 @@ package:
     dependencies:
       vc: ">=14.1,<15.0a0"
       vs2015_runtime: ">=14.16.27012"
+    constrains:
+      zlib: "==1.2.11 *_1013"
     hash:
       md5: b28dd2488b4e5f892c67071acc1d0a8c
       sha256: 5b7e002932c0138d78d251caae0c571d13f857ff90e7ce21d58d67073381250e

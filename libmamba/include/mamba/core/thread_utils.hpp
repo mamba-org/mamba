@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_THREAD_UTILS_HPP
 #define MAMBA_CORE_THREAD_UTILS_HPP
 
+#include <algorithm>
 #include <condition_variable>
 #include <csignal>
 #include <exception>
@@ -66,6 +67,20 @@ namespace mamba
     // it won't free resources that could be required
     // by threads still active.
     void wait_for_all_threads();
+
+    /**
+     * Returns the number of hardware threads effectively available to this process.
+     *
+     * On platforms where we can query a process affinity mask (currently Linux and Windows),
+     * this takes the current affinity mask into account. For example, running
+     * `taskset -c 0 micromamba` on Linux or constraining the process with
+     * `SetProcessAffinityMask` on Windows will report a single available thread even if
+     * the machine has more cores.
+     *
+     * On other platforms (such as macOS), this falls back to
+     * `std::thread::hardware_concurrency()`. In all cases, the return value is at least 1.
+     */
+    int get_affinity_concurrency();
 
     /**********
      * thread *
@@ -213,16 +228,19 @@ namespace mamba
         std::ptrdiff_t new_max;
         if (value == 0)
         {
-            new_max = std::thread::hardware_concurrency();
+            new_max = static_cast<std::ptrdiff_t>(get_affinity_concurrency());
         }
         else if (value < 0)
         {
-            new_max = std::thread::hardware_concurrency() + value;
+            new_max = static_cast<std::ptrdiff_t>(get_affinity_concurrency()) + value;
         }
         else
         {
             new_max = value;
         }
+
+        // Ensure the semaphore always allows at least one concurrent operation.
+        new_max = std::max<std::ptrdiff_t>(1, new_max);
 
         m_value += new_max - m_max;
         m_max = new_max;

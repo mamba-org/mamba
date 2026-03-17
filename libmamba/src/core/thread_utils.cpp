@@ -5,7 +5,16 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <atomic>
-#ifndef _WIN32
+#include <thread>
+
+#if defined(__linux__)
+#include <sched.h>
+#endif
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#else
 #include <signal.h>
 #endif
 
@@ -157,6 +166,40 @@ namespace mamba
         std::mutex main_mutex;
         std::condition_variable main_var;
     }  // namespace
+
+    int get_affinity_concurrency()
+    {
+#if defined(__linux__)
+        cpu_set_t set;
+        CPU_ZERO(&set);
+        if (sched_getaffinity(0, sizeof(set), &set) == 0)
+        {
+            const int count = CPU_COUNT(&set);
+            if (count > 0)
+            {
+                return count;
+            }
+        }
+#elif defined(_WIN32)
+        DWORD_PTR process_mask = 0;
+        DWORD_PTR system_mask = 0;
+        if (GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask) != 0)
+        {
+            unsigned int count = 0;
+            for (DWORD_PTR bits = process_mask; bits != 0; bits &= (bits - 1))
+            {
+                ++count;
+            }
+            if (static_cast<int>(count) > 0)
+            {
+                return static_cast<int>(count);
+            }
+        }
+#endif
+
+        const auto hc = static_cast<int>(std::thread::hardware_concurrency());
+        return hc > 0 ? hc : 1;
+    }
 
     void increase_thread_count()
     {

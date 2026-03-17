@@ -1052,11 +1052,10 @@ namespace mamba
 
         void download_threads_hook(std::size_t& value)
         {
-            if (!value)
+            if (value == 0)
             {
-                throw std::runtime_error(
-                    fmt::format("Number of download threads as to be positive (currently set to {})", value)
-                );
+                // 0 means: auto, use process-affinity-based concurrency.
+                value = static_cast<std::size_t>(get_affinity_concurrency());
             }
         }
 
@@ -1765,7 +1764,9 @@ namespace mamba
                    .description("Defines the number of threads for package download")
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
-                        It has to be strictly positive.)")));
+                        If set to 0, the number of threads is chosen automatically
+                        based on the CPUs available to the current process (for example,
+                        when using `taskset`). It has to be non-negative.)")));
 
         insert(Configurable("extract_threads", &m_context.threads_params.extract_threads)
                    .group("Extract, Link & Install")
@@ -1775,9 +1776,11 @@ namespace mamba
                    .description("Defines the number of threads for package extraction")
                    .long_description(unindent(R"(
                         Defines the number of threads for package extraction.
-                        Positive number gives the number of threads, negative number gives
-                        host max concurrency minus the value, zero (default) is the host max
-                        concurrency value.)")));
+                        Positive values give the exact number of threads.
+                        Negative values are interpreted as (available CPUs for this process
+                        minus the absolute value). Zero (the default) means the number of
+                        threads is chosen automatically based on the CPUs available to the
+                        current process (for example, when using `taskset`).)")));
 
         insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")

@@ -12,6 +12,8 @@
 #include <optional>
 #include <string>
 
+#include "mamba/core/thread_utils.hpp"
+
 namespace mamba::download
 {
     struct RemoteFetchParams
@@ -38,7 +40,7 @@ namespace mamba::download
     {
         using termination_function = std::optional<std::function<void()>>;
 
-        std::size_t download_threads = 1;
+        std::size_t download_threads = static_cast<std::size_t>(get_affinity_concurrency());
         bool fail_fast = false;
         bool sort = true;
         bool verbose = false;

@@ -16,6 +16,7 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/subdir_index.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -53,7 +54,7 @@ namespace mamba
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
-            std::size_t download_threads = 10,
+            std::size_t download_threads = static_cast<std::size_t>(get_affinity_concurrency()),
             std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
         );
 

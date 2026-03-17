@@ -967,10 +967,7 @@ TEST_CASE(
     "[mamba::core][sharded][.integration][!mayfail]"
 )
 {
-    auto& ctx = mambatests::context();
-    const bool original_offline = ctx.offline;
-    on_scope_exit restore_offline{ [&] { ctx.offline = original_offline; } };
-
+    Context ctx;
     ctx.channels = { "https://prefix.dev/conda-forge" };
     ctx.repodata_use_shards = true;
 

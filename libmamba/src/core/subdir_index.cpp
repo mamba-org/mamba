@@ -527,21 +527,14 @@ namespace mamba
         {
             return;
         }
-        try
+        if (auto age_sec = shard_index_cache_age_seconds(cache_path, name()))
         {
-            auto last_write = fs::last_write_time(cache_path);
-            auto now = fs::file_time_type::clock::now();
-            auto age = std::chrono::duration_cast<std::chrono::seconds>(now - last_write).count();
-            if (age >= 0 && static_cast<std::size_t>(age) <= params.repodata_shards_ttl)
+            if (*age_sec >= 0 && static_cast<std::size_t>(*age_sec) <= params.repodata_shards_ttl)
             {
-                LOG_DEBUG << "Shard index cache valid for " << name() << " (" << age << "s old), "
-                          << "skipping full repodata download";
+                LOG_DEBUG << "Shard index cache valid for " << name() << " (" << *age_sec
+                          << "s old), skipping full repodata download";
                 set_shards_availability(true);
             }
-        }
-        catch (const std::exception& e)
-        {
-            LOG_DEBUG << "Could not check shard index cache age for " << name() << ": " << e.what();
         }
     }
 
@@ -876,16 +869,13 @@ namespace mamba
                 fs::u8path cache_path = ShardIndexLoader::shard_index_cache_path(*this);
                 if (fs::exists(cache_path))
                 {
-                    try
+                    if (auto age_sec = shard_index_cache_age_seconds(cache_path, name()))
                     {
-                        auto last_write = fs::last_write_time(cache_path);
-                        auto now = fs::file_time_type::clock::now();
-                        auto age = std::chrono::duration_cast<std::chrono::seconds>(now - last_write)
-                                       .count();
-                        if (age >= 0 && static_cast<std::size_t>(age) <= params.repodata_shards_ttl)
+                        if (*age_sec >= 0
+                            && static_cast<std::size_t>(*age_sec) <= params.repodata_shards_ttl)
                         {
                             LOG_DEBUG << "Skipping shards HEAD check for " << name()
-                                      << " (cached index within TTL, " << age << "s old)";
+                                      << " (cached index within TTL, " << *age_sec << "s old)";
                             // Mark shards as available so load_subdir_with_shards is used
                             set_shards_availability(true);
                         }
@@ -896,10 +886,8 @@ namespace mamba
                             );
                         }
                     }
-                    catch (const std::exception& e)
+                    else
                     {
-                        LOG_DEBUG << "Could not check shard index cache age for " << name() << ": "
-                                  << e.what();
                         request.push_back(
                             ShardIndexLoader::build_shards_availability_check_request(*this)
                         );

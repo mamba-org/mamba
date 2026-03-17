@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <chrono>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -286,6 +287,27 @@ namespace
 
 namespace mamba
 {
+    std::optional<std::int64_t>
+    shard_index_cache_age_seconds(const fs::u8path& cache_path, std::string_view subdir_name)
+    {
+        try
+        {
+            const fs::file_time_type last_write = fs::last_write_time(cache_path);
+            const fs::file_time_type now = fs::file_time_type::clock::now();
+            const std::int64_t age_sec = std::chrono::duration_cast<std::chrono::seconds>(
+                                             now - last_write
+            )
+                                             .count();
+            return age_sec;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_DEBUG << "Could not check shard index cache age for " << subdir_name << ": "
+                      << e.what();
+            return std::nullopt;
+        }
+    }
+
     auto ShardIndexLoader::shard_index_cache_path(const SubdirIndexLoader& subdir) -> fs::u8path
     {
         // Use similar naming as repodata.json cache but with .msgpack.zst extension
@@ -510,18 +532,15 @@ namespace mamba
         fs::u8path cache_path = shard_index_cache_path(subdir);
         if (fs::exists(cache_path) && shards_ttl > 0)
         {
-            try
+            if (auto age_sec = shard_index_cache_age_seconds(cache_path, subdir.name()))
             {
-                auto last_write = fs::last_write_time(cache_path);
-                auto now = fs::file_time_type::clock::now();
-                auto age = std::chrono::duration_cast<std::chrono::seconds>(now - last_write).count();
-                if (age >= 0 && static_cast<std::size_t>(age) <= shards_ttl)
+                if (*age_sec >= 0 && static_cast<std::size_t>(*age_sec) <= shards_ttl)
                 {
                     auto cached_index = parse_shard_index(cache_path);
                     if (cached_index.has_value())
                     {
                         LOG_DEBUG << "Using cached shard index for " << subdir.name()
-                                  << " (within TTL, " << age << "s old)";
+                                  << " (within TTL, " << *age_sec << "s old)";
                         if (Console::can_report_status())
                         {
                             std::string label = "Using Cached Shard Index for " + subdir.name();
@@ -534,10 +553,6 @@ namespace mamba
                         return std::optional<ShardsIndexDict>(std::move(cached_index.value()));
                     }
                 }
-            }
-            catch (const std::exception& e)
-            {
-                LOG_DEBUG << "Could not check cache age for " << subdir.name() << ": " << e.what();
             }
         }
 

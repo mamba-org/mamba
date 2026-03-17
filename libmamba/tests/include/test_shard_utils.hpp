@@ -165,7 +165,8 @@ namespace mambatests
             const std::vector<std::string>& constrains = {},
             const std::optional<std::string>& noarch = std::nullopt,
             HashFormat sha256_format = HashFormat::String,
-            HashFormat md5_format = HashFormat::String
+            HashFormat md5_format = HashFormat::String,
+            const std::vector<std::string>& track_features = {}
         ) -> std::vector<std::uint8_t>;
     }
 }

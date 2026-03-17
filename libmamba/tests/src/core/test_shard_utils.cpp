@@ -324,7 +324,8 @@ namespace mambatests
             const std::vector<std::string>& constrains,
             const std::optional<std::string>& noarch,
             HashFormat sha256_format,
-            HashFormat md5_format
+            HashFormat md5_format,
+            const std::vector<std::string>& track_features
         ) -> std::vector<std::uint8_t>
         {
             msgpack_sbuffer sbuf;
@@ -351,6 +352,10 @@ namespace mambatests
                 field_count++;
             }
             if (noarch.has_value())
+            {
+                field_count++;
+            }
+            if (!track_features.empty())
             {
                 field_count++;
             }
@@ -519,6 +524,19 @@ namespace mambatests
                 msgpack_pack_str_body(&pk, "noarch", 6);
                 msgpack_pack_str(&pk, noarch->size());
                 msgpack_pack_str_body(&pk, noarch->c_str(), noarch->size());
+            }
+
+            // track_features (optional)
+            if (!track_features.empty())
+            {
+                msgpack_pack_str(&pk, 13);
+                msgpack_pack_str_body(&pk, "track_features", 13);
+                msgpack_pack_array(&pk, track_features.size());
+                for (const auto& feat : track_features)
+                {
+                    msgpack_pack_str(&pk, feat.size());
+                    msgpack_pack_str_body(&pk, feat.c_str(), feat.size());
+                }
             }
 
             std::vector<std::uint8_t> result(

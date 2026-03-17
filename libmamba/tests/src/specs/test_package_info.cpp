@@ -390,6 +390,29 @@ namespace
             CHECK(contains(pkg.defaulted_keys, "build_string"));
         }
 
+        SECTION("Wheel package with build tag (.whl) has correct defaulted_keys")
+        {
+            // Wheel filenames may include an optional build tag (integer) between
+            // version and python tag: {name}-{version}-{build_tag}-{python}-{abi}-{platform}.whl
+            // This exercises the else branch where the build tag is present.
+            static constexpr std::string_view url = "https://example.com/numpy-1.24.0-1-cp311-cp311-linux_x86_64.whl";
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+
+            CHECK(contains(pkg.defaulted_keys, "build_number"));
+            CHECK(contains(pkg.defaulted_keys, "license"));
+            CHECK(contains(pkg.defaulted_keys, "timestamp"));
+            CHECK(contains(pkg.defaulted_keys, "track_features"));
+            CHECK(contains(pkg.defaulted_keys, "depends"));
+            CHECK(contains(pkg.defaulted_keys, "constrains"));
+            CHECK(contains(pkg.defaulted_keys, "build"));
+            CHECK(contains(pkg.defaulted_keys, "build_string"));
+
+            CHECK(pkg.name == "numpy");
+            CHECK(pkg.version == "1.24.0");
+        }
+
         SECTION("TarGz package (.tar.gz) has correct defaulted_keys")
         {
             // PURPOSE: Verify .tar.gz packages (like wheels) mark build info as defaulted

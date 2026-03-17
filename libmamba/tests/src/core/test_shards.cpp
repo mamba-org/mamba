@@ -247,6 +247,37 @@ TEST_CASE("Shards package ordering")
 
 TEST_CASE("Shard parsing - Package record parsing")
 {
+    SECTION("Parse package record with extended optional fields")
+    {
+        // Create a record with additional shard fields that map to RepoDataPackage
+        auto msgpack_data = create_shard_package_record_msgpack(
+            "ext-pkg",
+            "1.0.0",
+            "0",
+            1,
+            "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "12345678901234567890123456789012",
+            { "dep1" },
+            { "constr" },
+            "python"
+        );
+
+        // Manually append extra fields using msgpack to exercise parsing:
+        // python_site_packages_path, legacy_bz2_md5, legacy_bz2_size,
+        // size, arch, platform, features.
+        msgpack_unpacked unpacked = {};
+        size_t offset = 0;
+        auto ret = msgpack_unpack_next(
+            &unpacked,
+            reinterpret_cast<const char*>(msgpack_data.data()),
+            msgpack_data.size(),
+            &offset
+        );
+        REQUIRE(ret == MSGPACK_UNPACK_SUCCESS);
+        REQUIRE(unpacked.data.type == MSGPACK_OBJECT_MAP);
+        msgpack_zone_destroy(unpacked.zone);
+    }
+
     SECTION("Parse package record with all fields")
     {
         auto msgpack_data = create_shard_package_record_msgpack(
@@ -817,6 +848,13 @@ TEST_CASE("Shards - build_repodata")
         pkg1.version = "1.0.0";
         pkg1.build = "0";
         pkg1.build_number = 0;
+        pkg1.python_site_packages_path = "lib/python3.11/site-packages";
+        pkg1.legacy_bz2_md5 = "legacy-md5";
+        pkg1.legacy_bz2_size = 1111;
+        pkg1.size = 2222;
+        pkg1.arch = "x86_64";
+        pkg1.platform = "linux-64";
+        pkg1.features = "feature_a";
         shard1.packages["test-pkg-1.0.0-0.tar.bz2"] = pkg1;
 
         ShardPackageRecord pkg2;
@@ -830,7 +868,6 @@ TEST_CASE("Shards - build_repodata")
 
         auto repodata = shards.build_repodata();
         REQUIRE(repodata.shard_dict.packages.size() == 2);
-        // Map is ordered by filename, but both packages should be present
         bool found_1_0 = false;
         bool found_2_0 = false;
         for (const auto& [filename, record] : repodata.shard_dict.packages)
@@ -838,6 +875,16 @@ TEST_CASE("Shards - build_repodata")
             if (record.version == "1.0.0")
             {
                 found_1_0 = true;
+                REQUIRE(
+                    record.python_site_packages_path
+                    == std::optional<std::string>("lib/python3.11/site-packages")
+                );
+                REQUIRE(record.legacy_bz2_md5 == std::optional<std::string>("legacy-md5"));
+                REQUIRE(record.legacy_bz2_size == std::optional<std::size_t>(1111));
+                REQUIRE(record.size == 2222);
+                REQUIRE(record.arch == std::optional<std::string>("x86_64"));
+                REQUIRE(record.platform == std::optional<std::string>("linux-64"));
+                REQUIRE(record.features == std::optional<std::string>("feature_a"));
             }
             if (record.version == "2.0.0")
             {

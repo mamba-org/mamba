@@ -76,11 +76,23 @@ namespace mamba
         std::size_t build_number = 0;
         std::optional<std::string> sha256;
         std::optional<std::string> md5;
+        /** Optional path to the site-packages directory for Python packages. */
+        std::optional<std::string> python_site_packages_path;
+        /** Deprecated md5 hash for legacy .tar.bz2 archives. */
+        std::optional<std::string> legacy_bz2_md5;
+        /** Deprecated size for legacy .tar.bz2 archives. */
+        std::optional<std::size_t> legacy_bz2_size;
+        std::size_t size = 0;
+        /** Optional architecture string. */
+        std::optional<std::string> arch;
+        /** Optional platform string. */
+        std::optional<std::string> platform;
         std::vector<std::string> depends;
         std::vector<std::string> constrains;
         std::vector<std::string> track_features;
+        /** Deprecated features string. */
+        std::optional<std::string> features;
         std::optional<std::string> noarch;
-        std::size_t size = 0;
         std::optional<std::string> license;
         std::optional<std::string> license_family;
         std::optional<std::string> subdir;

@@ -35,29 +35,29 @@ namespace mamba
             // If noarch_str doesn't match known values, leave as nullopt
         }
 
-        return specs::RepoDataPackage{ .name = record.name,
-                                       .version = parsed_version,
-                                       .build_string = record.build,
-                                       .build_number = record.build_number,
-                                       .subdir = record.subdir,
-                                       .md5 = record.md5,
-                                       .sha256 = record.sha256,
-                                       .python_site_packages_path = {},
-                                       .legacy_bz2_md5 = {},
-                                       .legacy_bz2_size = {},
-                                       .size = record.size > 0
-                                                   ? std::optional<std::size_t>(record.size)
-                                                   : std::nullopt,
-                                       .arch = {},
-                                       .platform = {},
-                                       .depends = record.depends,
-                                       .constrains = record.constrains,
-                                       .track_features = record.track_features,
-                                       .features = {},
-                                       .noarch = noarch_value,
-                                       .license = record.license,
-                                       .license_family = record.license_family,
-                                       .timestamp = record.timestamp };
+        return specs::RepoDataPackage{
+            .name = record.name,
+            .version = parsed_version,
+            .build_string = record.build,
+            .build_number = record.build_number,
+            .subdir = record.subdir,
+            .md5 = record.md5,
+            .sha256 = record.sha256,
+            .python_site_packages_path = record.python_site_packages_path,
+            .legacy_bz2_md5 = record.legacy_bz2_md5,
+            .legacy_bz2_size = record.legacy_bz2_size,
+            .size = record.size > 0 ? std::optional<std::size_t>(record.size) : std::nullopt,
+            .arch = record.arch,
+            .platform = record.platform,
+            .depends = record.depends,
+            .constrains = record.constrains,
+            .track_features = record.track_features,
+            .features = record.features,
+            .noarch = noarch_value,
+            .license = record.license,
+            .license_family = record.license_family,
+            .timestamp = record.timestamp,
+        };
     }
 
     ShardPackageRecord from_repo_data_package(const specs::RepoDataPackage& record)
@@ -80,21 +80,29 @@ namespace mamba
             }
         }
 
-        return ShardPackageRecord{ .name = record.name,
-                                   .version = record.version.to_string(),
-                                   .build = record.build_string,
-                                   .build_number = record.build_number,
-                                   .sha256 = record.sha256,
-                                   .md5 = record.md5,
-                                   .depends = record.depends,
-                                   .constrains = record.constrains,
-                                   .track_features = record.track_features,
-                                   .noarch = noarch_value,
-                                   .size = record.size.value_or(0),
-                                   .license = record.license,
-                                   .license_family = record.license_family,
-                                   .subdir = record.subdir,
-                                   .timestamp = record.timestamp };
+        return ShardPackageRecord{
+            .name = record.name,
+            .version = record.version.to_string(),
+            .build = record.build_string,
+            .build_number = record.build_number,
+            .sha256 = record.sha256,
+            .md5 = record.md5,
+            .python_site_packages_path = record.python_site_packages_path,
+            .legacy_bz2_md5 = record.legacy_bz2_md5,
+            .legacy_bz2_size = record.legacy_bz2_size,
+            .size = record.size.value_or(0),
+            .arch = record.arch,
+            .platform = record.platform,
+            .depends = record.depends,
+            .constrains = record.constrains,
+            .track_features = record.track_features,
+            .features = record.features,
+            .noarch = noarch_value,
+            .license = record.license,
+            .license_family = record.license_family,
+            .subdir = record.subdir,
+            .timestamp = record.timestamp,
+        };
     }
 
     specs::RepoData to_repo_data(const RepodataDict& repodata)

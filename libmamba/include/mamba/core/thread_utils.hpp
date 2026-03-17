@@ -69,18 +69,21 @@ namespace mamba
     void wait_for_all_threads();
 
     /**
-     * Returns the number of hardware threads effectively available to this process.
+     * Cap a requested thread count to the process's effective concurrency.
      *
-     * On platforms where we can query a process affinity mask (currently Linux and Windows),
-     * this takes the current affinity mask into account. For example, running
-     * `taskset -c 0 micromamba` on Linux or constraining the process with
-     * `SetProcessAffinityMask` on Windows will report a single available thread even if
-     * the machine has more cores.
+     * The `threads` parameter follows the same semantics as `extract_threads`:
+     * - `threads > 0`: request exactly this many threads;
+     * - `threads == 0`: request the maximum concurrency available to this process;
+     * - `threads < 0`: request (available_concurrency + threads).
      *
-     * On other platforms (such as macOS), this falls back to
-     * `std::thread::hardware_concurrency()`. In all cases, the return value is at least 1.
+     * The result is always clamped to the range \[1, available_concurrency\], where
+     * `available_concurrency` is the number of hardware threads effectively available
+     * to this process. On platforms where we can query a process affinity mask
+     * (currently Linux and Windows), this takes the current affinity mask into account
+     * (e.g. `taskset -c 0 micromamba` or `SetProcessAffinityMask`). On other platforms
+     * (such as macOS), it falls back to `std::thread::hardware_concurrency()`.
      */
-    int get_affinity_concurrency();
+    std::size_t cap_to_affinity_concurrency(int requested_n_threads = 0);
 
     /**********
      * thread *
@@ -225,22 +228,8 @@ namespace mamba
 
     inline void counting_semaphore::set_max(std::ptrdiff_t value)
     {
-        std::ptrdiff_t new_max;
-        if (value == 0)
-        {
-            new_max = static_cast<std::ptrdiff_t>(get_affinity_concurrency());
-        }
-        else if (value < 0)
-        {
-            new_max = static_cast<std::ptrdiff_t>(get_affinity_concurrency()) + value;
-        }
-        else
-        {
-            new_max = value;
-        }
-
-        // Ensure the semaphore always allows at least one concurrent operation.
-        new_max = std::max<std::ptrdiff_t>(1, new_max);
+        const auto capped = cap_to_affinity_concurrency(static_cast<int>(value));
+        const std::ptrdiff_t new_max = static_cast<std::ptrdiff_t>(capped);
 
         m_value += new_max - m_max;
         m_max = new_max;

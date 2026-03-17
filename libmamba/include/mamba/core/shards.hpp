@@ -54,7 +54,8 @@ namespace mamba
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
-            std::size_t download_threads = static_cast<std::size_t>(get_affinity_concurrency()),
+            // 0 means: auto; value is normalized and capped with cap_to_affinity_concurrency().
+            std::size_t download_threads = 0,
             std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
         );
 

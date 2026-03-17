@@ -167,38 +167,73 @@ namespace mamba
         std::condition_variable main_var;
     }  // namespace
 
-    int get_affinity_concurrency()
+    namespace
     {
+        std::size_t affinity_concurrency()
+        {
 #if defined(__linux__)
-        cpu_set_t set;
-        CPU_ZERO(&set);
-        if (sched_getaffinity(0, sizeof(set), &set) == 0)
-        {
-            const int count = CPU_COUNT(&set);
-            if (count > 0)
+            cpu_set_t set;
+            CPU_ZERO(&set);
+            if (sched_getaffinity(0, sizeof(set), &set) == 0)
             {
-                return count;
+                const int count = CPU_COUNT(&set);
+                if (count > 0)
+                {
+                    return static_cast<std::size_t>(count);
+                }
             }
-        }
 #elif defined(_WIN32)
-        DWORD_PTR process_mask = 0;
-        DWORD_PTR system_mask = 0;
-        if (GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask) != 0)
-        {
-            unsigned int count = 0;
-            for (DWORD_PTR bits = process_mask; bits != 0; bits &= (bits - 1))
+            DWORD_PTR process_mask = 0;
+            DWORD_PTR system_mask = 0;
+            if (GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask) != 0)
             {
-                ++count;
+                unsigned int count = 0;
+                for (DWORD_PTR bits = process_mask; bits != 0; bits &= (bits - 1))
+                {
+                    ++count;
+                }
+                if (count > 0)
+                {
+                    return static_cast<std::size_t>(count);
+                }
             }
-            if (static_cast<int>(count) > 0)
-            {
-                return static_cast<int>(count);
-            }
-        }
 #endif
 
-        const auto hc = static_cast<int>(std::thread::hardware_concurrency());
-        return hc > 0 ? hc : 1;
+            const auto hc = std::thread::hardware_concurrency();
+            return hc > 0 ? static_cast<std::size_t>(hc) : std::size_t{ 1 };
+        }
+    }  // namespace
+
+    std::size_t cap_to_affinity_concurrency(int requested_n_threads)
+    {
+        const auto available = static_cast<long>(affinity_concurrency());
+
+        long requested = 0;
+        if (requested_n_threads == 0)
+        {
+            requested = available;
+        }
+        else if (requested_n_threads < 0)
+        {
+            requested = available + requested_n_threads;
+        }
+        else
+        {
+            requested = requested_n_threads;
+        }
+
+        // Clamp to [1, available]. In particular, if requested_n_threads is so negative
+        // that (available + requested_n_threads) is <= 0, we still return at least 1.
+        if (requested < 1)
+        {
+            requested = 1;
+        }
+        if (requested > available)
+        {
+            requested = available;
+        }
+
+        return static_cast<std::size_t>(requested);
     }
 
     void increase_thread_count()

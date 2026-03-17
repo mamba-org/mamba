@@ -1052,11 +1052,8 @@ namespace mamba
 
         void download_threads_hook(std::size_t& value)
         {
-            if (value == 0)
-            {
-                // 0 means: auto, use process-affinity-based concurrency.
-                value = static_cast<std::size_t>(get_affinity_concurrency());
-            }
+            // Normalize and cap download threads to the process affinity.
+            value = cap_to_affinity_concurrency(static_cast<int>(value));
         }
 
         void extract_threads_hook(const Context& context)

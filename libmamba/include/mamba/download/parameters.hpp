@@ -40,7 +40,7 @@ namespace mamba::download
     {
         using termination_function = std::optional<std::function<void()>>;
 
-        std::size_t download_threads = static_cast<std::size_t>(get_affinity_concurrency());
+        std::size_t download_threads = 1;
         bool fail_fast = false;
         bool sort = true;
         bool verbose = false;

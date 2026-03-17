@@ -687,7 +687,7 @@ namespace mamba
                     subdirs[j].channel(),
                     ctx.authentication_info(),
                     ctx.remote_fetch_params,
-                    ctx.repodata_shards_threads,
+                    cap_to_affinity_concurrency(static_cast<int>(ctx.repodata_shards_threads)),
                     std::cref(ctx.mirrors)
                 );
                 url_to_subdir_idx[sdir_url] = j;

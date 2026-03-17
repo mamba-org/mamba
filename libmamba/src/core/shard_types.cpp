@@ -52,7 +52,7 @@ namespace mamba
                                        .platform = {},
                                        .depends = record.depends,
                                        .constrains = record.constrains,
-                                       .track_features = {},
+                                       .track_features = record.track_features,
                                        .features = {},
                                        .noarch = noarch_value,
                                        .license = record.license,
@@ -88,6 +88,7 @@ namespace mamba
                                    .md5 = record.md5,
                                    .depends = record.depends,
                                    .constrains = record.constrains,
+                                   .track_features = record.track_features,
                                    .noarch = noarch_value,
                                    .size = record.size.value_or(0),
                                    .license = record.license,
@@ -164,6 +165,7 @@ namespace mamba
         pkg_info.sha256 = record.sha256.value_or("");
         pkg_info.dependencies = record.depends;
         pkg_info.constrains = record.constrains;
+        pkg_info.track_features = record.track_features;
         pkg_info.noarch = noarch_value;
         pkg_info.size = record.size;
         pkg_info.timestamp = record.timestamp.value_or(0);

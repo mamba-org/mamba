@@ -292,6 +292,23 @@ namespace mamba
                                       << static_cast<int>(val_obj.type);
                         }
                     }
+                    else if (key == "track_features")
+                    {
+                        // Track features may be stored as a string (e.g. "feat_a,feat_b")
+                        // or as an array of strings; normalize to a vector of strings.
+                        if (val_obj.type == MSGPACK_OBJECT_ARRAY)
+                        {
+                            record.track_features = msgpack_object_to_string_array(val_obj);
+                        }
+                        else
+                        {
+                            const auto features_str = msgpack_object_to_string(val_obj);
+                            if (!features_str.empty())
+                            {
+                                record.track_features = util::split(features_str, ", ");
+                            }
+                        }
+                    }
                     else if (key == "noarch")
                     {
                         if (val_obj.type == MSGPACK_OBJECT_NIL)
@@ -1180,6 +1197,15 @@ namespace mamba
             if (record_a.version != record_b.version)
             {
                 return record_b.version < record_a.version;  // Descending order
+            }
+
+            // Prefer packages with fewer track features when version is equal.
+            const auto track_count_a = record_a.track_features.size();
+            const auto track_count_b = record_b.track_features.size();
+            if (track_count_a != track_count_b)
+            {
+                // Smaller number of track features first.
+                return track_count_a < track_count_b;
             }
 
             // Finally compare by build number (descending - highest first)

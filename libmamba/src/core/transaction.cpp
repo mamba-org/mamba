@@ -1485,6 +1485,20 @@ namespace mamba
             LOG_DEBUG << "pip package to install: " << package.name;
         }
 
+        // Make sure package urls are set for conda packages if a channel is specified
+        for (auto& package : conda_packages)
+        {
+            if (package.package_url.empty() and not package.channel.empty())
+            {
+                using Credentials = typename specs::CondaURL::Credentials;
+                auto channels = channel_context.make_channel(package.channel);
+                assert(channels.size() == 1);  // A URL can only resolve to one channel
+                const auto& channel = channels.front();
+
+                package.package_url = package.url_for_channel(channel.url().str(Credentials::Show));
+            }
+        }
+
         return MTransaction{ ctx, database, std::move(conda_packages), package_caches };
     }
 

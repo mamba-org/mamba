@@ -1525,7 +1525,10 @@ namespace mamba
         insert(Configurable("repodata_shards_threads", &m_context.repodata_shards_threads)
                    .group("Repodata")
                    .set_rc_configurable()
-                   .description("Number of threads for parallel shard fetching (default: 10)"));
+                   .description(
+                       "Number of threads for parallel shard fetching (default: 0 (auto)). "
+                       "0 means: use process-affinity-based concurrency."
+                   ));
 
         // Network
         insert(Configurable("cacert_path", std::string(""))

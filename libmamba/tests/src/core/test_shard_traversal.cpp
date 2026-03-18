@@ -22,6 +22,12 @@
 
 using namespace mamba;
 
+// Internal helper declared in shard_traversal.cpp for testing.
+namespace mamba::detail
+{
+    std::vector<std::string> extract_dependencies_impl(const ShardDict& shard);
+}
+
 namespace
 {
     auto make_simple_channel(std::string_view chan) -> specs::Channel
@@ -129,7 +135,7 @@ TEST_CASE("Node to_id", "[mamba::core][mamba::core::shard_traversal]")
     REQUIRE(id.shard_url == "url");
 }
 
-TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversal]")
+TEST_CASE("extract_dependencies_impl", "[mamba::core][mamba::core::shard_traversal]")
 {
     SECTION("Extract from depends")
     {
@@ -141,7 +147,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
         record.depends = { "libffi", "libzstd>=1.4" };
         shard.packages["python-3.11-0.conda"] = record;
 
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(packages.size() >= 2);
         REQUIRE(std::find(packages.begin(), packages.end(), "libffi") != packages.end());
         REQUIRE(std::find(packages.begin(), packages.end(), "libzstd") != packages.end());
@@ -157,7 +163,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
         record.constrains = { "python>=3.9" };
         shard.conda_packages["numpy-1.24-0.conda"] = record;
 
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(packages.size() >= 1);
         REQUIRE(std::find(packages.begin(), packages.end(), "python") != packages.end());
     }
@@ -175,7 +181,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
         rec2.depends = { "dep_b" };
         shard.conda_packages["pkg2-1.0.conda"] = rec2;
 
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(packages.size() >= 2);
         REQUIRE(std::find(packages.begin(), packages.end(), "dep_a") != packages.end());
         REQUIRE(std::find(packages.begin(), packages.end(), "dep_b") != packages.end());
@@ -194,7 +200,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
         rec2.depends = { "common_dep" };
         shard.packages["pkg2-1.0.tar.bz2"] = rec2;
 
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(std::count(packages.begin(), packages.end(), "common_dep") == 1);
     }
 
@@ -206,7 +212,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
         record.depends = { "valid>=1.0", "!!!invalid!!!", "another_valid" };
         shard.packages["pkg-1.0.conda"] = record;
 
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(std::find(packages.begin(), packages.end(), "valid") != packages.end());
         REQUIRE(std::find(packages.begin(), packages.end(), "another_valid") != packages.end());
     }
@@ -219,7 +225,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
         record.depends = { "normal_pkg", "*" };
         shard.packages["pkg-1.0.conda"] = record;
 
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(std::find(packages.begin(), packages.end(), "normal_pkg") != packages.end());
         REQUIRE(std::find(packages.begin(), packages.end(), "*") == packages.end());
     }
@@ -227,7 +233,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Empty shard")
     {
         ShardDict shard;
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(packages.empty());
     }
 
@@ -240,7 +246,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
         record.constrains = {};
         shard.packages["pkg-1.0.conda"] = record;
 
-        auto packages = shard_mentioned_packages(shard);
+        auto packages = mamba::detail::extract_dependencies_impl(shard);
         REQUIRE(packages.empty());
     }
 }

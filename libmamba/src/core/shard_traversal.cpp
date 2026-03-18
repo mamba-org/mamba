@@ -5,7 +5,8 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
-#include <set>
+#include <cctype>
+#include <optional>
 #include <vector>
 
 #include <fmt/format.h>
@@ -41,9 +42,10 @@ namespace mamba
         return NodeId{ package, channel, shard_url };
     }
 
-    namespace
+    namespace detail
     {
-        void add_names_from_specs(const std::vector<std::string>& specs, std::set<std::string>& names)
+        void
+        add_names_from_specs(const std::vector<std::string>& specs, std::vector<std::string>& names)
         {
             for (const auto& spec : specs)
             {
@@ -53,13 +55,13 @@ namespace mamba
                     auto name = parsed->name().to_string();
                     if (!name.empty() && !parsed->name().is_free())
                     {
-                        names.insert(std::move(name));
+                        names.push_back(std::move(name));
                     }
                 }
             }
         }
 
-        void add_names_from_record(const ShardPackageRecord& record, std::set<std::string>& names)
+        void add_names_from_record(const ShardPackageRecord& record, std::vector<std::string>& names)
         {
             add_names_from_specs(record.depends, names);
             add_names_from_specs(record.constrains, names);
@@ -67,7 +69,13 @@ namespace mamba
 
         std::vector<std::string> extract_dependencies_impl(const ShardDict& shard)
         {
-            std::set<std::string> names;
+            // We collect dependency names in a flat vector, then sort + unique.
+            // This is typically faster than inserting into a std::set one-by-one:
+            // it minimizes per-insert allocator traffic and takes advantage of
+            // contiguous storage and cache locality, while still producing a
+            // deterministically ordered, deduplicated list of names.
+            std::vector<std::string> names;
+            names.reserve(shard.packages.size() + shard.conda_packages.size());
             for (const auto& [_, record] : shard.packages)
             {
                 add_names_from_record(record, names);
@@ -76,14 +84,11 @@ namespace mamba
             {
                 add_names_from_record(record, names);
             }
-            return std::vector<std::string>(names.begin(), names.end());
+            std::sort(names.begin(), names.end());
+            names.erase(std::unique(names.begin(), names.end()), names.end());
+            return names;
         }
     }  // namespace
-
-    std::vector<std::string> shard_mentioned_packages(const ShardDict& shard)
-    {
-        return extract_dependencies_impl(shard);
-    }
 
     /******************
      * RepodataSubset *
@@ -227,18 +232,49 @@ namespace mamba
         {
             auto& node = m_nodes[id];
             node.visited = true;
-            for (const auto& neighbor_id : neighbors(id))
+
+            auto shards_it = std::find_if(
+                m_shards.begin(),
+                m_shards.end(),
+                [&id](const Shards& s) { return s.url() == id.channel; }
+            );
+            if (shards_it == m_shards.end())
             {
-                if (!m_nodes.contains(neighbor_id))
+                continue;
+            }
+
+            ShardDict shard;
+            try
+            {
+                shard = shards_it->visit_package(id.package);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_WARNING << "Could not visit shard for " << id.package << ": " << e.what();
+                continue;
+            }
+
+            for (const std::string& dep : mentioned_packages(id, shard))
+            {
+                for (auto& dep_shards : m_shards)
                 {
-                    m_nodes[neighbor_id] = Node{
-                        node.distance + 1,
-                        neighbor_id.package,
-                        neighbor_id.channel,
-                        neighbor_id.shard_url,
-                        false,
-                    };
-                    pending.push_back(neighbor_id);
+                    const std::string url = dep_shards.url();
+                    if (!dep_shards.contains(dep))
+                    {
+                        continue;
+                    }
+                    NodeId neighbor_id{ dep, url, dep_shards.shard_url(dep) };
+                    if (!m_nodes.contains(neighbor_id))
+                    {
+                        m_nodes[neighbor_id] = Node{
+                            node.distance + 1,
+                            neighbor_id.package,
+                            neighbor_id.channel,
+                            neighbor_id.shard_url,
+                            false,
+                        };
+                        pending.push_back(neighbor_id);
+                    }
                 }
             }
         }
@@ -303,18 +339,9 @@ namespace mamba
         auto& node = m_nodes[node_id];
         node.visited = true;
 
-        ShardDict shard;
-        try
-        {
-            shard = shards.visit_package(node_id.package);
-        }
-        catch (const std::exception& e)
-        {
-            LOG_WARNING << "Could not visit shard for " << node_id.package << ": " << e.what();
-            return;
-        }
+        ShardDict shard = shards.visit_package(node_id.package);
 
-        for (const auto& dep : extract_dependencies_impl(shard))
+        for (const std::string& dep : mentioned_packages(node_id, shard))
         {
             for (auto& dep_shards : m_shards)
             {
@@ -348,6 +375,17 @@ namespace mamba
         }
     }
 
+    const std::vector<std::string>&
+    RepodataSubset::mentioned_packages(const NodeId& node_id, const ShardDict& shard)
+    {
+        auto [it, inserted] = m_mentioned_packages.emplace(node_id, std::vector<std::string>{});
+        if (inserted)
+        {
+            it->second = detail::extract_dependencies_impl(shard);
+        }
+        return it->second;
+    }
+
     std::vector<NodeId> RepodataSubset::neighbors(const NodeId& node_id)
     {
         auto shards_it = std::find_if(
@@ -366,18 +404,10 @@ namespace mamba
             return {};
         }
 
-        ShardDict shard;
-        try
-        {
-            shard = shards.visit_package(node_id.package);
-        }
-        catch (const std::exception&)
-        {
-            return {};
-        }
+        ShardDict shard = shards.visit_package(node_id.package);
 
         std::vector<NodeId> result;
-        for (const auto& dep : extract_dependencies_impl(shard))
+        for (const std::string& dep : mentioned_packages(node_id, shard))
         {
             for (auto& dep_shards : m_shards)
             {

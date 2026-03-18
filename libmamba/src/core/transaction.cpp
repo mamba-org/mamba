@@ -368,7 +368,7 @@ namespace mamba
     bool
     MTransaction::execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix)
     {
-        on_scope_exit _fail_json_if_exception{
+        /*on_scope_exit _fail_json_if_exception{
             []
             {
                 if (std::uncaught_exceptions() > 0)
@@ -376,7 +376,7 @@ namespace mamba
                     Console::instance().json_write({ { "success", false } });
                 }
             }
-        };
+        };*/
 
         // JSON output
         // back to the top level if any action was required

@@ -378,10 +378,27 @@ namespace mamba::util
                 return p.filename();
             };
 
+            const auto is_executable = [&_ec](const fs::u8path& p) -> bool
+            {
+                if (!fs::is_regular_file(p, _ec))
+                {
+                    return false;
+                }
+
+                if constexpr (util::on_win)
+                {
+                    return true;
+                }
+                else
+                {
+                    return ::access(p.string().c_str(), X_OK) == 0;
+                }
+            };
+
             const auto exe_striped = strip_ext(exe);
             for (const auto& entry : fs::directory_iterator(dir, _ec))
             {
-                if (auto p = entry.path(); strip_ext(p) == exe_striped)
+                if (auto p = entry.path(); strip_ext(p) == exe_striped && is_executable(p))
                 {
                     return p;
                 }

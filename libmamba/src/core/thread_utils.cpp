@@ -205,7 +205,7 @@ namespace mamba
         }
     }  // namespace
 
-    std::size_t cap_to_affinity_concurrency(std::ptrdiff_t requested_n_threads)
+    std::size_t normalize_to_affinity_concurrency(std::ptrdiff_t requested_n_threads)
     {
         if (requested_n_threads > 0)
         {

@@ -1053,7 +1053,7 @@ namespace mamba
         void download_threads_hook(std::size_t& value)
         {
             // Normalize and cap download threads to the process affinity.
-            value = cap_to_affinity_concurrency(static_cast<int>(value));
+            value = normalize_to_affinity_concurrency(static_cast<int>(value));
         }
 
         void extract_threads_hook(const Context& context)

@@ -69,18 +69,18 @@ namespace mamba
     void wait_for_all_threads();
 
     /**
-     * Cap a requested thread count to the process's effective concurrency.
+     * Normalize a requested thread count based on the process affinity.
      *
      * The `threads` parameter follows the same semantics as `extract_threads`:
-     * - `threads > 0`: request exactly this many threads;
-     * - `threads == 0`: request the maximum concurrency available to this process;
-     * - `threads < 0`: request (available_concurrency + threads).
+     * - `threads > 0`: user explicitly requested exactly this many threads (never capped);
+     * - `threads == 0`: use the maximum concurrency available to this process;
+     * - `threads < 0`: use (available_concurrency + threads).
      *
-     * The result is always clamped to the range \[1, available_concurrency\], where
-     * `available_concurrency` is the number of hardware threads effectively available
-     * to this process. On platforms where we can query a process affinity mask
-     * (currently Linux and Windows), this takes the current affinity mask into account
-     * (e.g. `taskset -c 0 micromamba` or `SetProcessAffinityMask`). On other platforms
+     * Only the auto/relative forms (`threads <= 0`) are clamped to the range
+     * \[1, available_concurrency\], where `available_concurrency` is the number of hardware
+     * threads effectively available to this process. On platforms where we can query a process
+     * affinity mask (currently Linux and Windows), this takes the current affinity mask into
+     * account (e.g. `taskset -c 0 micromamba` or `SetProcessAffinityMask`). On other platforms
      * (such as macOS), it falls back to `std::thread::hardware_concurrency()`.
      */
     std::size_t cap_to_affinity_concurrency(std::ptrdiff_t requested_n_threads = 0);

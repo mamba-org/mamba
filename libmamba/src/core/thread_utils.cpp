@@ -207,6 +207,12 @@ namespace mamba
 
     std::size_t cap_to_affinity_concurrency(std::ptrdiff_t requested_n_threads)
     {
+        if (requested_n_threads > 0)
+        {
+            // User explicitly requested a thread count; do not cap it to affinity.
+            return static_cast<std::size_t>(requested_n_threads);
+        }
+
         const std::size_t available_u = affinity_concurrency();
         const std::ptrdiff_t available = (available_u > static_cast<std::size_t>(
                                               std::numeric_limits<std::ptrdiff_t>::max()

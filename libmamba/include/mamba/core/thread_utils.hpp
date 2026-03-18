@@ -83,7 +83,7 @@ namespace mamba
      * (e.g. `taskset -c 0 micromamba` or `SetProcessAffinityMask`). On other platforms
      * (such as macOS), it falls back to `std::thread::hardware_concurrency()`.
      */
-    std::size_t cap_to_affinity_concurrency(int requested_n_threads = 0);
+    std::size_t cap_to_affinity_concurrency(std::ptrdiff_t requested_n_threads = 0);
 
     /**********
      * thread *
@@ -228,9 +228,7 @@ namespace mamba
 
     inline void counting_semaphore::set_max(std::ptrdiff_t value)
     {
-        const auto capped = cap_to_affinity_concurrency(static_cast<int>(value));
-        const std::ptrdiff_t new_max = static_cast<std::ptrdiff_t>(capped);
-
+        const std::ptrdiff_t new_max = static_cast<std::ptrdiff_t>(cap_to_affinity_concurrency(value));
         m_value += new_max - m_max;
         m_max = new_max;
     }

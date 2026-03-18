@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <atomic>
+#include <limits>
 #include <thread>
 
 #if defined(__linux__)
@@ -199,16 +200,21 @@ namespace mamba
             }
 #endif
 
-            const auto hc = std::thread::hardware_concurrency();
-            return hc > 0 ? static_cast<std::size_t>(hc) : std::size_t{ 1 };
+            const unsigned int hc = std::thread::hardware_concurrency();
+            return static_cast<std::size_t>(hc);
         }
     }  // namespace
 
-    std::size_t cap_to_affinity_concurrency(int requested_n_threads)
+    std::size_t cap_to_affinity_concurrency(std::ptrdiff_t requested_n_threads)
     {
-        const auto available = static_cast<long>(affinity_concurrency());
+        const std::size_t available_u = affinity_concurrency();
+        const std::ptrdiff_t available = (available_u > static_cast<std::size_t>(
+                                              std::numeric_limits<std::ptrdiff_t>::max()
+                                          ))
+                                             ? std::numeric_limits<std::ptrdiff_t>::max()
+                                             : static_cast<std::ptrdiff_t>(available_u);
 
-        long requested = 0;
+        std::ptrdiff_t requested = 0;
         if (requested_n_threads == 0)
         {
             requested = available;

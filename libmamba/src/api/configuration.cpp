@@ -1247,6 +1247,18 @@ namespace mamba
         set_configurables();
     }
 
+    namespace
+    {
+        // Immediately deactivates the logging system if feature is enabled.
+        void stop_logging_if_enabled(const bool enabled)
+        {
+            if (enabled)
+            {
+                logging::stop_logging();
+            }
+        }
+    }
+
     void Configuration::set_configurables()
     {
         // Basic
@@ -1968,6 +1980,7 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
+                   .set_post_merge_hook<bool>(stop_logging_if_enabled)
                    .set_env_var_names()
                    .description("Report all output as json"));
 
@@ -2048,6 +2061,7 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "json", "print_config_only", "print_context_only" })
+                   .set_post_merge_hook<bool>(stop_logging_if_enabled)
                    .description("Set quiet mode (print less output)"));
 
         insert(Configurable("verbose", 0)

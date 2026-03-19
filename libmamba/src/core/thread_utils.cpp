@@ -225,13 +225,9 @@ namespace mamba
         {
             requested = available;
         }
-        else if (requested_n_threads < 0)
+        else  // (requested_n_threads < 0)
         {
             requested = available + requested_n_threads;
-        }
-        else
-        {
-            requested = requested_n_threads;
         }
 
         // Clamp to [1, available]. In particular, if requested_n_threads is so negative

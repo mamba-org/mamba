@@ -163,7 +163,7 @@ namespace mamba
 
         /** Utilty to set `"success": false` on destruction of this object
             when it's destructor is invoked while an exception is in flight.
-            
+
             This helps avoiding situations where an exception that should be
             considered a failure of the overall operation is thrown but
             the json is still set with `"success": true`, while it should be `false`,

@@ -161,7 +161,7 @@ namespace mamba
         Console(const Context& context);
         ~Console();
 
-        /** Utilty to set `"success": false` on destruction of this object
+        /** Utility to set `"success": false` on destruction of this object
             when it's destructor is invoked while an exception is in flight.
 
             This helps avoiding situations where an exception that should be

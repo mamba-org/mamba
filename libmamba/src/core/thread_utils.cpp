@@ -223,7 +223,9 @@ namespace mamba
         std::ptrdiff_t requested = 0;
         if (requested_n_threads == 0)
         {
-            requested = available;
+            // Default to at most 10 threads so that shard-based and other parallel
+            // operations don't oversubscribe very wide machines by default.
+            requested = std::min<std::ptrdiff_t>(available, 10);
         }
         else  // (requested_n_threads < 0)
         {

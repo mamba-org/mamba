@@ -73,7 +73,7 @@ namespace mamba
      *
      * The `threads` parameter follows the same semantics as `extract_threads`:
      * - `threads > 0`: user explicitly requested exactly this many threads (never capped);
-     * - `threads == 0`: use the maximum concurrency available to this process;
+     * - `threads == 0`: use `min(10, available_concurrency)` as a conservative default;
      * - `threads < 0`: use (available_concurrency + threads).
      *
      * Only the auto/relative forms (`threads <= 0`) are clamped to the range

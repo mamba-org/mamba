@@ -1527,7 +1527,8 @@ namespace mamba
                    .set_rc_configurable()
                    .description(
                        "Number of threads for parallel shard fetching (default: 0 (auto)). "
-                       "0 means: use process-affinity-based concurrency."
+                       "If set to 0, the number of threads is chosen automatically as the "
+                       "minimum between 10 and the number of CPUs available to the process"
                    ));
 
         // Network
@@ -1764,9 +1765,8 @@ namespace mamba
                    .description("Defines the number of threads for package download")
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
-                        If set to 0, the number of threads is chosen automatically
-                        based on the CPUs available to the current process (for example,
-                        when using `taskset`). It has to be non-negative.)")));
+                        If set to 0, the number of threads is chosen automatically as the
+                        minimum between 10 and the number of CPUs available to the process.")));
 
         insert(Configurable("extract_threads", &m_context.threads_params.extract_threads)
                    .group("Extract, Link & Install")
@@ -1778,9 +1778,9 @@ namespace mamba
                         Defines the number of threads for package extraction.
                         Positive values give the exact number of threads.
                         Negative values are interpreted as (available CPUs for this process
-                        minus the absolute value). Zero (the default) means the number of
-                        threads is chosen automatically based on the CPUs available to the
-                        current process (for example, when using `taskset`).)")));
+                        minus the absolute value).
+                        If set to 0, the number of threads is chosen automatically as the
+                        minimum between 10 and the number of CPUs available to the process)")));
 
         insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")

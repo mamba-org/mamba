@@ -253,6 +253,18 @@ namespace mamba
                             record.md5 = hash;
                         }
                     }
+                    else if (key == "python_site_packages_path")
+                    {
+                        record.python_site_packages_path = msgpack_object_to_string(val_obj);
+                    }
+                    else if (key == "legacy_bz2_md5")
+                    {
+                        record.legacy_bz2_md5 = msgpack_object_to_hash_string(val_obj, "md5");
+                    }
+                    else if (key == "legacy_bz2_size")
+                    {
+                        record.legacy_bz2_size = msgpack_object_to_uint64(val_obj);
+                    }
                     else if (key == "depends")
                     {
                         // Handle nil or missing depends
@@ -324,6 +336,18 @@ namespace mamba
                     {
                         // Handle size as integer (uint64 or int)
                         record.size = msgpack_object_to_uint64(val_obj);
+                    }
+                    else if (key == "arch")
+                    {
+                        record.arch = msgpack_object_to_string(val_obj);
+                    }
+                    else if (key == "platform")
+                    {
+                        record.platform = msgpack_object_to_string(val_obj);
+                    }
+                    else if (key == "features")
+                    {
+                        record.features = msgpack_object_to_string(val_obj);
                     }
                     // Ignore unknown fields (they might be present in the data but not needed)
                 }

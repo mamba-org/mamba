@@ -42,9 +42,7 @@ namespace mamba
 
     struct ThreadsParams
     {
-        // 0 means: auto, use process-affinity-based concurrency (see
-        // normalize_to_affinity_concurrency()).
-        std::size_t download_threads{ 0 };
+        std::size_t download_threads{ 5 };
         int extract_threads{ 0 };
     };
 

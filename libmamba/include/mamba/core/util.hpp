@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_UTIL_HPP
 #define MAMBA_CORE_UTIL_HPP
 
+#include <array>
 #include <chrono>
 #include <fstream>
 #include <map>
@@ -14,6 +15,7 @@
 #include <regex>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
@@ -26,6 +28,12 @@
 
 namespace mamba
 {
+    // Common environment variables to keep pip/uv output stable and machine-readable.
+    // These are used when invoking Python package management commands (pip/uv).
+    inline constexpr std::array<std::pair<std::string_view, std::string_view>, 3> pip_environment_variables_kv{
+        { { "PYTHONIOENCODING", "utf-8" }, { "NO_COLOR", "1" }, { "PIP_NO_COLOR", "1" } }
+    };
+
     const std::regex& token_regex();
     const std::regex& http_basicauth_regex();
 

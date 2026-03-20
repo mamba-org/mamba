@@ -230,6 +230,11 @@ namespace mamba
         { return util::which_in("python", util::get_path_dirs(m_prefix_path)).string(); };
         const std::string python_path = get_python_path();
 
+        const std::vector<std::pair<std::string, std::string>> pip_environment_variables{
+            pip_environment_variables_kv.begin(),
+            pip_environment_variables_kv.end()
+        };
+
         const auto trim_right = [](std::string s)
         {
             while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
@@ -239,62 +244,77 @@ namespace mamba
             return s;
         };
 
+        struct ForceColorScope
+        {
+            decltype(util::get_env("FORCE_COLOR")) previous;
+
+            ForceColorScope()
+                : previous(util::get_env("FORCE_COLOR"))
+            {
+                // Avoid rich output; rich output breaks machine-readable parsing.
+                util::unset_env("FORCE_COLOR");
+            }
+
+            ~ForceColorScope()
+            {
+                if (previous)
+                {
+                    util::set_env("FORCE_COLOR", previous.value());
+                }
+            }
+        };
+
+        // Helper for invoking `python -m pip inspect` / `uv pip list` in a consistent,
+        // machine-readable way (avoid rich output by disabling FORCE_COLOR).
+        const auto run_site_package_inspection = [&](  //
+                                                     const std::string& error_message_prefix,
+                                                     const auto& cmd_args,
+                                                     const auto& env_vars,
+                                                     reproc::options& opts
+                                                 )
+        {
+            ForceColorScope force_color_scope;
+
+            LOG_TRACE << "Running command: "
+                      << fmt::format(
+                             "{}\n  env options (FORCE_COLOR is unset):{}",
+                             fmt::join(cmd_args, " "),
+                             fmt::join(env_vars, " ")
+                         );
+
+            auto [status, ec] = reproc::run(
+                cmd_args,
+                opts,
+                reproc::sink::string(out),
+                reproc::sink::string(err)
+            );
+
+            if (ec)
+            {
+                const auto message = fmt::format(
+                    "{}\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                    error_message_prefix,
+                    ec.message(),
+                    fmt::join(cmd_args, " "),
+                    fmt::join(env_vars, " "),
+                    out,
+                    err
+                );
+                throw mamba_error{ message, mamba_error_code::internal_failure };
+            }
+        };
+
         // Run an inspection command that returns installed distribution info.
         if (pip_pkg_record != m_package_records.end())
         {
             const auto args = std::array<std::string, 6>{ python_path, "-q",      "-m",
                                                           "pip",       "inspect", "--local" };
-            const std::vector<std::pair<std::string, std::string>> env{
-                { "PYTHONIOENCODING", "utf-8" },
-                { "NO_COLOR", "1" },
-                { "PIP_NO_COLOR", "1" },
-            };
+            const auto env = pip_environment_variables;
 
             reproc::options run_options;
             run_options.env.extra = reproc::env{ env };
 
-            {  // Scoped environment changes
-                // We need FORCE_COLOR to be removed to avoid rich output,
-                // we restore it as soon as the command is run.
-                const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
-                util::unset_env("FORCE_COLOR");
-                on_scope_exit _{
-                    [&]
-                    {
-                        if (maybe_previous_force_color)
-                        {
-                            util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                        }
-                    }
-                };
-
-                LOG_TRACE << "Running command: "
-                          << fmt::format(
-                                 "{}\n  env options (FORCE_COLOR is unset):{}",
-                                 fmt::join(args, " "),
-                                 fmt::join(env, " ")
-                             );
-
-                auto [status, ec] = reproc::run(
-                    args,
-                    run_options,
-                    reproc::sink::string(out),
-                    reproc::sink::string(err)
-                );
-
-                if (ec)
-                {
-                    const auto message = fmt::format(
-                        "failed to run python command :\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                        ec.message(),
-                        fmt::join(args, " "),
-                        fmt::join(env, " "),
-                        out,
-                        err
-                    );
-                    throw mamba_error{ message, mamba_error_code::internal_failure };
-                }
-            }
+            run_site_package_inspection("failed to run python command :", args, env, run_options);
 
             // Nothing installed with `pip`
             if (out.empty())
@@ -368,54 +388,13 @@ namespace mamba
             const std::string uv_path = get_uv_path();
 
             const auto args = std::array<std::string, 5>{ uv_path, "pip", "list", "--format", "json" };
-            const std::vector<std::pair<std::string, std::string>> env{
-                { "PYTHONIOENCODING", "utf-8" }, { "NO_COLOR", "1" },
-                { "UV_PYTHON", python_path },    { "UV_NO_PROGRESS", "1" },
-                { "PIP_NO_COLOR", "1" },
-            };
+            auto env = pip_environment_variables;
+            env.push_back({ "UV_PYTHON", python_path });
+            env.push_back({ "UV_NO_PROGRESS", "1" });
             reproc::options run_options;
             run_options.env.extra = reproc::env{ env };
 
-            {  // Scoped environment changes
-                const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
-                util::unset_env("FORCE_COLOR");
-                on_scope_exit _{
-                    [&]
-                    {
-                        if (maybe_previous_force_color)
-                        {
-                            util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                        }
-                    }
-                };
-
-                LOG_TRACE << "Running command: "
-                          << fmt::format(
-                                 "{}\n  env options (FORCE_COLOR is unset):{}",
-                                 fmt::join(args, " "),
-                                 fmt::join(env, " ")
-                             );
-
-                auto [status, ec] = reproc::run(
-                    args,
-                    run_options,
-                    reproc::sink::string(out),
-                    reproc::sink::string(err)
-                );
-
-                if (ec)
-                {
-                    const auto message = fmt::format(
-                        "failed to run uv command :\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                        ec.message(),
-                        fmt::join(args, " "),
-                        fmt::join(env, " "),
-                        out,
-                        err
-                    );
-                    throw mamba_error{ message, mamba_error_code::internal_failure };
-                }
-            }
+            run_site_package_inspection("failed to run uv command :", args, env, run_options);
 
             if (out.empty())
             {

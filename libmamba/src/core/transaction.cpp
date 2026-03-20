@@ -508,6 +508,11 @@ namespace mamba
             m_requested_specs
         );
 
+        const std::vector<std::pair<std::string, std::string>> pip_environment_variables{
+            pip_environment_variables_kv.begin(),
+            pip_environment_variables_kv.end()
+        };
+
         // Helper function to uninstall a pip package
         const auto uninstall_pip_package = [&](const std::string& name)
         {
@@ -520,11 +525,7 @@ namespace mamba
             const std::vector<std::string> full_args{ get_python_path(), "-m", "pip",
                                                       "uninstall",       "-y", name };
 
-            const std::vector<std::pair<std::string, std::string>> env{
-                { "PYTHONIOENCODING", "utf-8" },
-                { "NO_COLOR", "1" },
-                { "PIP_NO_COLOR", "1" },
-            };
+            const auto env = pip_environment_variables;
             reproc::options run_options;
             run_options.env.extra = reproc::env{ env };
             const auto working_dir = ctx.prefix_params.target_prefix.string();

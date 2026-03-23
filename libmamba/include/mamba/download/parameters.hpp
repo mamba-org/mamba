@@ -12,6 +12,8 @@
 #include <optional>
 #include <string>
 
+#include "mamba/core/thread_utils.hpp"
+
 namespace mamba::download
 {
     struct RemoteFetchParams

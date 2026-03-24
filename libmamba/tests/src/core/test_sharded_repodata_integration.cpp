@@ -418,6 +418,45 @@ TEST_CASE(
     REQUIRE(result.has_value());
 }
 
+TEST_CASE(
+    "Sharded repodata - noarch-only root package is installable",
+    "[mamba::core][sharded][.integration][!mayfail]"
+)
+{
+    auto& ctx = mambatests::context();
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    // `tzdata` is a noarch package with no dependencies; this exercises the edge case where
+    // the root package is resolved from a sibling subdir while iterating platform subdirs.
+    const std::vector<std::string> specs = { "tzdata" };
+
+    auto flat_solution = solve_environment(ctx, channel_context, specs, false, cache_dir);
+    REQUIRE(flat_solution.has_value());
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+    REQUIRE(flat_solution.value() == sharded_solution.value());
+
+    bool tzdata_found = false;
+    for (const auto& pkg : sharded_solution->packages_to_install())
+    {
+        if (pkg.name == "tzdata")
+        {
+            tzdata_found = true;
+            break;
+        }
+    }
+    REQUIRE(tzdata_found);
+}
+
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration][!mayfail]")
 {
     auto& ctx = mambatests::context();

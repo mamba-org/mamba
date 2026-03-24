@@ -416,9 +416,31 @@ namespace mamba
         }
         else
         {
-            // For relative URLs, join with repodata URL
-            // url_concat handles slashes automatically, no need for "/" separator
-            result = util::url_concat(m_url, shards_base_url_str);
+            // For relative URLs, resolve against the parent directory of m_url
+            // (m_url may point to repodata.json / repodata_shards.msgpack.zst).
+            if (auto parsed_url = util::URL::parse(m_url); parsed_url.has_value())
+            {
+                const auto& url = parsed_url.value();
+                std::string parent_path = url.path();
+                const auto slash_pos = parent_path.rfind('/');
+                if (slash_pos != std::string::npos)
+                {
+                    parent_path = parent_path.substr(0, slash_pos + 1);
+                }
+                else
+                {
+                    parent_path = "/";
+                }
+                const std::string base_dir = std::string(url.scheme()) + "://"
+                                             + url.authority(util::URL::Credentials::Show)
+                                             + parent_path;
+                result = util::url_concat(base_dir, shards_base_url_str);
+            }
+            else
+            {
+                // Fallback: keep previous behavior if parsing fails.
+                result = util::url_concat(m_url, shards_base_url_str);
+            }
         }
 
         // Ensure trailing slash
@@ -757,6 +779,14 @@ namespace mamba
             {
                 mirror_name = m_channel.id();
                 url_path = shard_path_str;
+
+                // Fallback: if channel mirrors are not registered for this channel id,
+                // download directly from the fully resolved shard URL.
+                if (!extended_mirrors.has_mirrors(mirror_name))
+                {
+                    mirror_name = "";
+                    url_path = url;
+                }
             }
 
             download::Request request(
@@ -1080,14 +1110,25 @@ namespace mamba
         download::Options download_options;
         download_options.download_threads = m_download_threads;
 
-        auto download_results = download::download(
-            std::move(requests),
-            extended_mirrors,
-            m_remote_fetch_params,
-            m_auth_info,
-            download_options,
-            nullptr  // monitor
-        );
+        download::MultiResult download_results;
+        try
+        {
+            download_results = download::download(
+                std::move(requests),
+                extended_mirrors,
+                m_remote_fetch_params,
+                m_auth_info,
+                download_options,
+                nullptr  // monitor
+            );
+        }
+        catch (const std::exception& e)
+        {
+            return make_unexpected(
+                std::string("Failed to download shards: ") + e.what(),
+                mamba_error_code::unknown
+            );
+        }
 
         for (std::size_t i = 0; i < download_results.size() && i < cache_miss_urls.size(); ++i)
         {
@@ -1106,7 +1147,21 @@ namespace mamba
             LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
                       << url << " (" << success.transfer.downloaded_size << " bytes)";
 
-            auto shard_result = process_downloaded_shard(package, success, package_to_cache_path);
+            expected_t<ShardDict> shard_result = make_unexpected(
+                "Unknown error",
+                mamba_error_code::unknown
+            );
+            try
+            {
+                shard_result = process_downloaded_shard(package, success, package_to_cache_path);
+            }
+            catch (const std::exception& e)
+            {
+                shard_result = make_unexpected(
+                    std::string("Exception while processing shard: ") + e.what(),
+                    mamba_error_code::unknown
+                );
+            }
             if (!shard_result.has_value())
             {
                 LOG_WARNING << "Failed to process downloaded shard for package '" << package

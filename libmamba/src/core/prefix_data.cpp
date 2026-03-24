@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <cctype>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
@@ -215,55 +216,75 @@ namespace mamba
     {
         LOG_INFO << "Loading site packages";
 
-        // Look for `pip` package and return if it doesn't exist
-        auto python_pkg_record = m_package_records.find("pip");
-        if (python_pkg_record == m_package_records.end())
+        auto pip_pkg_record = m_package_records.find("pip");
+        auto uv_pkg_record = m_package_records.find("uv");
+        if (pip_pkg_record == m_package_records.end() && uv_pkg_record == m_package_records.end())
         {
-            LOG_DEBUG << "`pip` not found";
+            LOG_DEBUG << "`pip` and `uv` not found";
             return;
         }
 
-        // Run `pip inspect`
         std::string out, err;
 
         const auto get_python_path = [&]
         { return util::which_in("python", util::get_path_dirs(m_prefix_path)).string(); };
+        const std::string python_path = get_python_path();
 
-        const auto args = std::array<std::string, 6>{ get_python_path(), "-q",     "-m", "pip",
-                                                      "inspect",         "--local" };
-
-        const std::vector<std::pair<std::string, std::string>> env{
-            { "PYTHONIOENCODING", "utf-8" },
-            { "NO_COLOR", "1" },
-            { "PIP_NO_COLOR", "1" },
+        const std::vector<std::pair<std::string, std::string>> pip_environment_variables{
+            pip_environment_variables_kv.begin(),
+            pip_environment_variables_kv.end()
         };
-        reproc::options run_options;
-        run_options.env.extra = reproc::env{ env };
 
-        {  // Scoped environment changes
+        const auto trim_right = [](std::string s)
+        {
+            while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+            {
+                s.pop_back();
+            }
+            return s;
+        };
 
-            // We need FORCE_COLOR to be removed to avoid rich output,
-            // we restore it as soon as the command is run.
-            const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
-            util::unset_env("FORCE_COLOR");
-            on_scope_exit _{ [&]
-                             {
-                                 if (maybe_previous_force_color)
-                                 {
-                                     util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                                 }
-                             } };
+        struct ForceColorScope
+        {
+            decltype(util::get_env("FORCE_COLOR")) previous;
+
+            ForceColorScope()
+                : previous(util::get_env("FORCE_COLOR"))
+            {
+                // Avoid rich output; rich output breaks machine-readable parsing.
+                util::unset_env("FORCE_COLOR");
+            }
+
+            ~ForceColorScope()
+            {
+                if (previous)
+                {
+                    util::set_env("FORCE_COLOR", previous.value());
+                }
+            }
+        };
+
+        // Helper for invoking `python -m pip inspect` / `uv pip list` in a consistent,
+        // machine-readable way (avoid rich output by disabling FORCE_COLOR).
+        const auto run_site_package_inspection = [&](  //
+                                                     const std::string& error_message_prefix,
+                                                     const auto& cmd_args,
+                                                     const auto& env_vars,
+                                                     reproc::options& opts
+                                                 )
+        {
+            ForceColorScope force_color_scope;
 
             LOG_TRACE << "Running command: "
                       << fmt::format(
                              "{}\n  env options (FORCE_COLOR is unset):{}",
-                             fmt::join(args, " "),
-                             fmt::join(env, " ")
+                             fmt::join(cmd_args, " "),
+                             fmt::join(env_vars, " ")
                          );
 
             auto [status, ec] = reproc::run(
-                args,
-                run_options,
+                cmd_args,
+                opts,
                 reproc::sink::string(out),
                 reproc::sink::string(err)
             );
@@ -271,8 +292,48 @@ namespace mamba
             if (ec)
             {
                 const auto message = fmt::format(
-                    "failed to run python command :\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                    "{}\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                    error_message_prefix,
                     ec.message(),
+                    fmt::join(cmd_args, " "),
+                    fmt::join(env_vars, " "),
+                    out,
+                    err
+                );
+                throw mamba_error{ message, mamba_error_code::internal_failure };
+            }
+        };
+
+        // Run an inspection command that returns installed distribution info.
+        if (pip_pkg_record != m_package_records.end())
+        {
+            const auto args = std::array<std::string, 6>{ python_path, "-q",      "-m",
+                                                          "pip",       "inspect", "--local" };
+            const auto env = pip_environment_variables;
+
+            reproc::options run_options;
+            run_options.env.extra = reproc::env{ env };
+
+            run_site_package_inspection("failed to run python command :", args, env, run_options);
+
+            // Nothing installed with `pip`
+            if (out.empty())
+            {
+                LOG_DEBUG << "Nothing installed with `pip`";
+                return;
+            }
+
+            LOG_TRACE << "Parsing `pip inspect` output:\n" << out;
+            nlohmann::json j;
+            try
+            {
+                j = nlohmann::json::parse(out);
+            }
+            catch (const std::exception& parse_error)
+            {
+                const auto message = fmt::format(
+                    "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                    parse_error.what(),
                     fmt::join(args, " "),
                     fmt::join(env, " "),
                     out,
@@ -280,65 +341,146 @@ namespace mamba
                 );
                 throw mamba_error{ message, mamba_error_code::internal_failure };
             }
-        }
 
-        // Nothing installed with `pip`
-        if (out.empty())
-        {
-            LOG_DEBUG << "Nothing installed with `pip`";
-            return;
-        }
-
-        LOG_TRACE << "Parsing `pip inspect` output:\n" << out;
-        nlohmann::json j;
-        try
-        {
-            j = nlohmann::json::parse(out);
-        }
-        catch (const std::exception& parse_error)
-        {
-            const auto message = fmt::format(
-                "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                parse_error.what(),
-                fmt::join(args, " "),
-                fmt::join(env, " "),
-                out,
-                err
-            );
-            throw mamba_error{ message, mamba_error_code::internal_failure };
-        }
-
-        if (j.contains("installed") && j["installed"].is_array())
-        {
-            for (const auto& package : j["installed"])
+            if (j.contains("installed") && j["installed"].is_array())
             {
-                // Get the package metadata, if installed with `pip`
-                if (package.contains("installer")
-                    && (package["installer"] == "pip" || package["installer"] == "uv"))
+                for (const auto& package : j["installed"])
                 {
-                    if (package.contains("metadata"))
+                    // Get the package metadata, if installed with `pip`
+                    if (package.contains("installer")
+                        && (package["installer"] == "pip" || package["installer"] == "uv"))
                     {
-                        // NOTE As checking the presence of all used keys in the json object can be
-                        // cumbersome and might affect the code readability, the elements where the
-                        // check with `contains` is skipped are considered mandatory. If a bug is
-                        // ever to occur in the future, checking the relevant key with `contains`
-                        // should be introduced then.
-                        auto prec = specs::PackageInfo(
-                            package["metadata"]["name"],
-                            package["metadata"]["version"],
-                            "pypi_0",
-                            "pypi"
-                        );
-                        // Set platform by concatenating `sys_platform` and `platform_machine` to
-                        // have something equivalent to `conda-forge`
-                        if (j.contains("environment"))
+                        if (package.contains("metadata"))
                         {
-                            prec.platform = j["environment"]["sys_platform"].get<std::string>() + "-"
-                                            + j["environment"]["platform_machine"].get<std::string>();
+                            // NOTE As checking the presence of all used keys in the json object can
+                            // be cumbersome and might affect the code readability, the elements
+                            // where the check with `contains` is skipped are considered mandatory.
+                            // If a bug is ever to occur in the future, checking the relevant key
+                            // with `contains` should be introduced then.
+                            auto prec = specs::PackageInfo(
+                                package["metadata"]["name"],
+                                package["metadata"]["version"],
+                                "pypi_0",
+                                "pypi"
+                            );
+                            // Set platform by concatenating `sys_platform` and `platform_machine`
+                            // to have something equivalent to `conda-forge`
+                            if (j.contains("environment"))
+                            {
+                                prec.platform = j["environment"]["sys_platform"].get<std::string>()
+                                                + "-"
+                                                + j["environment"]["platform_machine"]
+                                                      .get<std::string>();
+                            }
+                            m_pip_package_records.insert({ prec.name, std::move(prec) });
                         }
-                        m_pip_package_records.insert({ prec.name, std::move(prec) });
                     }
                 }
+            }
+            return;
+        }
+        else
+        {
+            // Run `uv pip list` when `pip` isn't available.
+            // This is mainly used when YAML installs `pip:` dependencies via `uv`.
+            const auto get_uv_path = [&]
+            { return util::which_in("uv", util::get_path_dirs(m_prefix_path)).string(); };
+            const std::string uv_path = get_uv_path();
+
+            const auto args = std::array<std::string, 5>{ uv_path, "pip", "list", "--format", "json" };
+            auto env = pip_environment_variables;
+            env.push_back({ "UV_PYTHON", python_path });
+            env.push_back({ "UV_NO_PROGRESS", "1" });
+            reproc::options run_options;
+            run_options.env.extra = reproc::env{ env };
+
+            run_site_package_inspection("failed to run uv command :", args, env, run_options);
+
+            if (out.empty())
+            {
+                LOG_DEBUG << "Nothing installed with `uv`";
+                return;
+            }
+
+            LOG_TRACE << "Parsing `uv pip list` output:\n" << out;
+            nlohmann::json j;
+            try
+            {
+                j = nlohmann::json::parse(out);
+            }
+            catch (const std::exception& parse_error)
+            {
+                const auto message = fmt::format(
+                    "failed to parse uv command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                    parse_error.what(),
+                    fmt::join(args, " "),
+                    fmt::join(env, " "),
+                    out,
+                    err
+                );
+                throw mamba_error{ message, mamba_error_code::internal_failure };
+            }
+
+            // Expected schema: an array of objects, each with `name` and `version`.
+            // We also accept the alternate form { "installed": [...] } if it exists.
+            const nlohmann::json packages = (j.contains("installed") && j["installed"].is_array())
+                                                ? j["installed"]
+                                                : j;
+            if (!packages.is_array())
+            {
+                return;
+            }
+
+            // Compute platform in the prefix (matches test expectations).
+            std::string platform;
+            {
+                const auto platform_args = std::array<std::string, 4>{
+                    python_path,
+                    "-q",
+                    "-c",
+                    "import sys, platform; print(f'{sys.platform}-{platform.machine()}')"
+                };
+                std::string platform_out, platform_err;
+                reproc::options platform_run_options;
+                auto [status, ec] = reproc::run(
+                    platform_args,
+                    platform_run_options,
+                    reproc::sink::string(platform_out),
+                    reproc::sink::string(platform_err)
+                );
+                if (ec)
+                {
+                    throw mamba_error{
+                        fmt::format(
+                            "failed to compute platform using python command:\n  error: {}\n  command ran: {}\n-> output:\n{}\n\n-> error output:{}",
+                            ec.message(),
+                            fmt::join(platform_args, " "),
+                            platform_out,
+                            platform_err
+                        ),
+                        mamba_error_code::internal_failure
+                    };
+                }
+                platform = trim_right(platform_out);
+            }
+
+            for (const auto& package : packages)
+            {
+                if (!package.contains("name") || !package.contains("version"))
+                {
+                    continue;
+                }
+                auto prec = specs::PackageInfo(
+                    package["name"].get<std::string>(),
+                    package["version"].get<std::string>(),
+                    "pypi_0",
+                    "pypi"
+                );
+                if (!platform.empty())
+                {
+                    prec.platform = platform;
+                }
+                m_pip_package_records.insert({ prec.name, std::move(prec) });
             }
         }
     }

@@ -939,6 +939,29 @@ namespace mamba::solver::libsolv
 
     void add_pip_as_python_dependency(solv::ObjPool& pool, solv::ObjRepoView repo)
     {
+        // If the repository does not contain any ``pip`` solvable, injecting a mandatory
+        // dependency on ``pip`` for every ``python`` package would make any environment
+        // with Python unsatisfiable (as seen when working with incomplete shard indexes).
+        // In that situation, we simply skip the injection and leave the original metadata
+        // untouched, allowing environments to be solved without ``pip``.
+        bool has_pip = false;
+        repo.for_each_solvable(
+            [&](solv::ObjSolvableView s) -> solv::LoopControl
+            {
+                if (s.name() == "pip")
+                {
+                    has_pip = true;
+                    return solv::LoopControl::Break;
+                }
+                return solv::LoopControl::Continue;
+            }
+        );
+
+        if (!has_pip)
+        {
+            return;
+        }
+
         // These matchspecs are so simple that there should be no surprises in using
         // the libsolv parser, or in getting back an error.
         const solv::DependencyId python_id =  //

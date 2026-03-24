@@ -389,90 +389,90 @@ namespace mamba
                     }
                 }
             }
-            return;
         }
-        // Run `uv pip list` when `pip` isn't available.
-        // This is mainly used when YAML installs `pip:` dependencies via `uv`.
-        const auto get_uv_path = [&]
-        { return util::which_in("uv", util::get_path_dirs(m_prefix_path)).string(); };
-        const std::string uv_path = get_uv_path();
-
-        const auto args = std::array<std::string, 5>{ uv_path, "pip", "list", "--format", "json" };
-        auto env = pip_environment_variables;
-        env.push_back({ "UV_PYTHON", python_path });
-        env.push_back({ "UV_NO_PROGRESS", "1" });
-        reproc::options run_options;
-        run_options.env.extra = reproc::env{ env };
-
-        auto inspection = run_site_package_inspection(
-            "failed to run uv command :",
-            "Parsing `uv pip list` output:\n",
-            "failed to parse uv command output:",
-            "Nothing installed with `uv`",
-            args,
-            env,
-            run_options
-        );
-        if (!inspection.has_packages)
+        else
         {
-            return;
-        }
+            // Run `uv pip list` when `pip` isn't available.
+            // This is mainly used when YAML installs `pip:` dependencies via `uv`.
+            const std::string uv_path = util::which_in("uv", util::get_path_dirs(m_prefix_path)).string();
 
-        // For `uv pip list --format json`, platform information is not included in the output.
-        // We therefore compute it from the prefix Python so generated PackageInfo records keep
-        // conda-like `platform` values (e.g. "linux-x86_64"), matching list JSON expectations.
-        //
-        // This extra subprocess is not needed for the `pip` path above because `pip inspect`
-        // already provides `environment.sys_platform` and `environment.platform_machine`.
-        const std::string platform = [&]
-        {
-            const auto platform_args = std::array<std::string, 4>{
-                python_path,
-                "-q",
-                "-c",
-                "import sys, platform; print(f'{sys.platform}-{platform.machine()}')"
-            };
-            std::string platform_out, platform_err;
-            reproc::options platform_run_options;
-            auto [status, ec] = reproc::run(
-                platform_args,
-                platform_run_options,
-                reproc::sink::string(platform_out),
-                reproc::sink::string(platform_err)
+            const auto args = std::array<std::string, 5>{ uv_path, "pip", "list", "--format", "json" };
+            auto env = pip_environment_variables;
+            env.push_back({ "UV_PYTHON", python_path });
+            env.push_back({ "UV_NO_PROGRESS", "1" });
+            reproc::options run_options;
+            run_options.env.extra = reproc::env{ env };
+
+            auto inspection = run_site_package_inspection(
+                "failed to run uv command :",
+                "Parsing `uv pip list` output:\n",
+                "failed to parse uv command output:",
+                "Nothing installed with `uv`",
+                args,
+                env,
+                run_options
             );
-            if (ec)
+            if (!inspection.has_packages)
             {
-                throw mamba_error{
-                    fmt::format(
-                        "failed to compute platform using python command:\n  error: {}\n  command ran: {}\n-> output:\n{}\n\n-> error output:{}",
-                        ec.message(),
-                        fmt::join(platform_args, " "),
-                        platform_out,
-                        platform_err
-                    ),
-                    mamba_error_code::internal_failure
+                return;
+            }
+
+            // For `uv pip list --format json`, platform information is not included in the output.
+            // We therefore compute it from the prefix Python so generated PackageInfo records keep
+            // conda-like `platform` values (e.g. "linux-x86_64"), matching list JSON expectations.
+            //
+            // This extra subprocess is not needed for the `pip` path above because `pip inspect`
+            // already provides `environment.sys_platform` and `environment.platform_machine`.
+            const std::string platform = [&]
+            {
+                const auto platform_args = std::array<std::string, 4>{
+                    python_path,
+                    "-q",
+                    "-c",
+                    "import sys, platform; print(f'{sys.platform}-{platform.machine()}')"
                 };
-            }
-            return trim_right(platform_out);
-        }();
+                std::string platform_out, platform_err;
+                reproc::options platform_run_options;
+                auto [status, ec] = reproc::run(
+                    platform_args,
+                    platform_run_options,
+                    reproc::sink::string(platform_out),
+                    reproc::sink::string(platform_err)
+                );
+                if (ec)
+                {
+                    throw mamba_error{
+                        fmt::format(
+                            "failed to compute platform using python command:\n  error: {}\n  command ran: {}\n-> output:\n{}\n\n-> error output:{}",
+                            ec.message(),
+                            fmt::join(platform_args, " "),
+                            platform_out,
+                            platform_err
+                        ),
+                        mamba_error_code::internal_failure
+                    };
+                }
+                return trim_right(platform_out);
+            }();
 
-        for (const auto& package : inspection.packages)
-        {
-            if (!package.contains("name") || !package.contains("version"))
+            for (const auto& package : inspection.packages)
             {
-                continue;
+                if (!package.contains("name") || !package.contains("version"))
+                {
+                    continue;
+                }
+                auto prec = specs::PackageInfo(
+                    package["name"].get<std::string>(),
+                    package["version"].get<std::string>(),
+                    "pypi_0",
+                    "pypi"
+                );
+                if (!platform.empty())
+                {
+                    prec.platform = platform;
+                }
+                m_pip_package_records.insert({ prec.name, std::move(prec) });
             }
-            auto prec = specs::PackageInfo(
-                package["name"].get<std::string>(),
-                package["version"].get<std::string>(),
-                "pypi_0",
-                "pypi"
-            );
-            if (!platform.empty())
-            {
-                prec.platform = platform;
-            }
-            m_pip_package_records.insert({ prec.name, std::move(prec) });
         }
     }
 }  // namespace mamba

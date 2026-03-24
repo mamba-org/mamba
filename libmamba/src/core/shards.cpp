@@ -80,8 +80,9 @@ namespace mamba
                     {
                         result.push_back(msgpack_object_to_string(obj.via.array.ptr[i]));
                     }
-                    catch (const std::exception&)
+                    catch (const std::exception& e)
                     {
+                        LOG_WARNING << "Failed to parse array element " << i << ": " << e.what();
                         // Skip invalid elements
                     }
                 }
@@ -94,9 +95,12 @@ namespace mamba
          * Handles string, binary, extension, and array types, converting bytes to hex strings.
          *
          * @param obj The msgpack object containing the hash
+         * @param field_name The name of the field (for warning messages)
          * @return The hash as a hex string, or empty string if parsing fails
          */
-        auto msgpack_object_to_hash_string(const msgpack_object& obj) -> std::string
+        auto
+        msgpack_object_to_hash_string(const msgpack_object& obj, const std::string& field_name = "")
+            -> std::string
         {
             if (obj.type == MSGPACK_OBJECT_STR)
             {
@@ -138,6 +142,10 @@ namespace mamba
                     }
                     else
                     {
+                        LOG_WARNING
+                            << "Array element " << i << " in " << field_name
+                            << " is not a positive integer (type: " << static_cast<int>(elem.type)
+                            << "), cannot convert to bytes";
                         return std::string();
                     }
                 }
@@ -155,8 +163,13 @@ namespace mamba
                 {
                     return msgpack_object_to_string(obj);
                 }
-                catch (const std::exception&)
+                catch (const std::exception& e)
                 {
+                    std::string error_msg = "Failed to parse "
+                                            + (field_name.empty() ? "hash" : field_name)
+                                            + " from msgpack: unexpected type "
+                                            + std::to_string(static_cast<int>(obj.type));
+                    LOG_WARNING << error_msg << ": " << e.what();
                     // Return empty string - validation will check that at least one checksum is
                     // present
                     return std::string();
@@ -221,7 +234,7 @@ namespace mamba
                     }
                     else if (key == "sha256")
                     {
-                        std::string hash = msgpack_object_to_hash_string(val_obj);
+                        std::string hash = msgpack_object_to_hash_string(val_obj, "sha256");
                         if (!hash.empty())
                         {
                             record.sha256 = hash;
@@ -229,7 +242,7 @@ namespace mamba
                     }
                     else if (key == "md5")
                     {
-                        std::string hash = msgpack_object_to_hash_string(val_obj);
+                        std::string hash = msgpack_object_to_hash_string(val_obj, "md5");
                         if (!hash.empty())
                         {
                             record.md5 = hash;
@@ -241,7 +254,7 @@ namespace mamba
                     }
                     else if (key == "legacy_bz2_md5")
                     {
-                        record.legacy_bz2_md5 = msgpack_object_to_hash_string(val_obj);
+                        record.legacy_bz2_md5 = msgpack_object_to_hash_string(val_obj, "md5");
                     }
                     else if (key == "legacy_bz2_size")
                     {
@@ -318,8 +331,11 @@ namespace mamba
                     }
                     // Ignore unknown fields (they might be present in the data but not needed)
                 }
-                catch (const std::exception&)
+                catch (const std::exception& e)
                 {
+                    LOG_WARNING << "Failed to parse field '" << key
+                                << "' (type=" << static_cast<int>(val_obj.type)
+                                << ") in ShardPackageRecord: " << e.what();
                     // Continue parsing other fields
                 }
             }
@@ -852,7 +868,8 @@ namespace mamba
             ShardDict shard;
 
             auto parse_package_records = [](const msgpack_object& map_obj,
-                                            std::map<std::string, ShardPackageRecord>& target_map)
+                                            std::map<std::string, ShardPackageRecord>& target_map,
+                                            const std::string& map_name)
             {
                 for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
                 {
@@ -864,8 +881,10 @@ namespace mamba
                         );
                         target_map[pkg_filename] = record;
                     }
-                    catch (const std::exception&)
+                    catch (const std::exception& e)
                     {
+                        LOG_WARNING << "Failed to parse package record in '" << map_name
+                                    << "': " << e.what();
                     }
                 }
             };
@@ -890,6 +909,7 @@ namespace mamba
                 }
                 catch (const std::exception&)
                 {
+                    LOG_WARNING << "Failed to parse msgpack object key at index " << j;
                     continue;
                 }
 
@@ -897,15 +917,16 @@ namespace mamba
                 {
                     if (key == "packages")
                     {
-                        parse_package_records(val_obj, shard.packages);
+                        parse_package_records(val_obj, shard.packages, "packages");
                     }
                     else if (key == "packages.conda")
                     {
-                        parse_package_records(val_obj, shard.conda_packages);
+                        parse_package_records(val_obj, shard.conda_packages, "packages.conda");
                     }
                 }
-                catch (const std::exception&)
+                catch (const std::exception& e)
                 {
+                    LOG_WARNING << "Failed to parse field '" << key << "' in shard: " << e.what();
                 }
             }
 
@@ -919,6 +940,7 @@ namespace mamba
         }
         catch (const std::exception& e)
         {
+            LOG_WARNING << "Failed to parse shard msgpack: " << e.what();
             if (unpacked.zone != nullptr)
             {
                 msgpack_zone_destroy(unpacked.zone);

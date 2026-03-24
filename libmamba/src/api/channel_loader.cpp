@@ -588,15 +588,7 @@ namespace mamba
                 loaded_subdirs_with_shards.insert(repo_name);
 
                 auto sorted_pkgs = pkgs;
-                std::sort(
-                    sorted_pkgs.begin(),
-                    sorted_pkgs.end(),
-                    [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                    {
-                        // Compare in reverse order for descending sort (newer versions first)
-                        return specs::compare_packages_by_version_and_build(rhs, lhs);
-                    }
-                );
+                specs::sort_packages_by_version_and_build_desc(sorted_pkgs);
                 auto repo = database.add_repo_from_packages(
                     sorted_pkgs,
                     repo_name,

@@ -593,20 +593,46 @@ namespace mamba::specs
         return fmt::format("{}/{}", channel_mirror_platform_url, filename);
     }
 
-    bool compare_packages_by_version_and_build(const PackageInfo& lhs, const PackageInfo& rhs)
+    void sort_packages_by_version_and_build_desc(std::vector<PackageInfo>& packages)
     {
-        // First compare by version
-        auto lhs_version = Version::parse(lhs.version).value_or(Version());
-        auto rhs_version = Version::parse(rhs.version).value_or(Version());
-        if (lhs_version < rhs_version)
+        struct VersionBuildSortKey
         {
-            return true;
-        }
-        if (rhs_version < lhs_version)
+            std::size_t idx;
+            Version version;
+            std::size_t build_number;
+        };
+
+        std::vector<VersionBuildSortKey> sort_keys;
+        sort_keys.reserve(packages.size());
+        for (std::size_t i = 0; i < packages.size(); ++i)
         {
-            return false;
+            auto version = Version::parse(packages[i].version).value_or(Version());
+            sort_keys.push_back(VersionBuildSortKey{ i, std::move(version), packages[i].build_number });
         }
-        // Versions are equal, compare by build number
-        return lhs.build_number < rhs.build_number;
+
+        std::sort(
+            sort_keys.begin(),
+            sort_keys.end(),
+            [](const VersionBuildSortKey& lhs, const VersionBuildSortKey& rhs)
+            {
+                if (rhs.version < lhs.version)
+                {
+                    return true;
+                }
+                if (lhs.version < rhs.version)
+                {
+                    return false;
+                }
+                return lhs.build_number > rhs.build_number;
+            }
+        );
+
+        std::vector<PackageInfo> sorted_packages;
+        sorted_packages.reserve(packages.size());
+        for (const auto& key : sort_keys)
+        {
+            sorted_packages.push_back(std::move(packages[key.idx]));
+        }
+        packages = std::move(sorted_packages);
     }
 }

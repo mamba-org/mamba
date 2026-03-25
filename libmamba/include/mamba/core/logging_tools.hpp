@@ -25,6 +25,19 @@ namespace mamba::logging
         { out.flush() };
     };
 
+    
+    /** Transforms a source location into a human-readable string ready for logging purpose. */
+    inline auto as_log(const std::source_location& location) -> std::string
+    {
+        return fmt::format(
+            "{}:{}:{} {}",
+            location.file_name(),
+            location.line(),
+            location.column(),
+            location.function_name()
+        );
+    }
+
     namespace details
     {
         inline auto queue_push(std::deque<LogRecord>& queue, size_t max_elements, LogRecord record)
@@ -138,17 +151,6 @@ namespace mamba::logging
             }
         };
 
-        inline auto as_log(const std::source_location& location) -> std::string
-        {
-            return fmt::format(
-                "{}:{}:{} {}",
-                location.file_name(),
-                location.line(),
-                location.column(),
-                location.function_name()
-            );
-        }
-
         struct log_to_stream_options
         {
             bool with_location = false;
@@ -159,7 +161,7 @@ namespace mamba::logging
             -> OutputStream auto&
         {
             auto location_str = options.with_location
-                                    ? fmt::format(" ({})", details::as_log(record.location))
+                                    ? fmt::format(" ({})", as_log(record.location))
                                     : std::string{};
 
             out << fmt::format(

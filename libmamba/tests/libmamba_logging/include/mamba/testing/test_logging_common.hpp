@@ -32,6 +32,7 @@ namespace mamba::logging::testing
         std::size_t stop_count = 0;
         std::size_t log_count = 0;
         std::size_t real_output_log_count = 0;
+        std::size_t filtered_out_log_count = 0; 
         std::size_t log_level_change_count = 0;
         std::size_t params_change_count = 0;
         std::size_t backtrace_size_change_count = 0;
@@ -103,6 +104,7 @@ namespace mamba::logging::testing
             if (stats->current_params.logging_level > record.level)
             {
                 // we ignore logs that should be filtered
+                ++stats->filtered_out_log_count;
                 return;
             }
 
@@ -292,6 +294,7 @@ namespace mamba::logging::testing
                 log({ .message = "this log record must be filtered out, if you read this from the log output this test has failed",
                       .level = log_level::trace,
                       .source = options.log_sources.front() });
+                ++stats.filtered_out_log_count;
             }
         }
 

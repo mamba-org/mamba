@@ -431,7 +431,7 @@ namespace mamba::logging
     inline auto LogHandler_History::log(LogRecord record) -> void
     {
         assert(pimpl);
-        if (pimpl->current_log_level < record.level)
+        if (pimpl->current_log_level > record.level)
         {
             return;
         }

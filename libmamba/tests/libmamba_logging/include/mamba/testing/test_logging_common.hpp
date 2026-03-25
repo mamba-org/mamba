@@ -97,9 +97,15 @@ namespace mamba::logging::testing
             stats->current_params = std::move(new_params);
         }
 
-        auto log(LogRecord) -> void
+        auto log(LogRecord record) -> void
         {
             auto stats = pimpl->stats.synchronize();
+            if (stats->current_params.logging_level > record.level)
+            {
+                // we ignore logs that should be filtered
+                return;
+            }
+
             stats->log_count++;
             if (stats->backtrace_size == 0)
             {
@@ -279,6 +285,14 @@ namespace mamba::logging::testing
             }
             stats.log_count += options.log_count;
             stats.real_output_log_count += options.log_count;
+
+            // log level handling
+            if (options.level > log_level::trace)
+            {
+                log({ .message = "this log record must be filtered out, if you read this from the log output this test has failed",
+                      .level = log_level::trace,
+                      .source = options.log_sources.front() });
+            }
         }
 
         // backtrace

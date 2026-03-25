@@ -109,11 +109,16 @@ namespace mamba
             start_logging(std::move(log_handler));
         }
 
-        if (output_params.json or output_params.quiet)
+        if (output_params.quiet)
         {
             // Explicitly stop logging in case a log-handler
             // has already been installed before `Context`'s creation.
             logging::stop_logging();
+        }
+        if (output_params.json)
+        {
+            // We still need to capture the log and put it into the json output.
+            Console::setup_log_handling_for_json();
         }
     }
 

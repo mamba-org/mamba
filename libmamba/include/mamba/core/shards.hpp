@@ -208,10 +208,8 @@ namespace mamba
         /**
          * Parse msgpack data into ShardDict.
          */
-        auto parse_shard_msgpack(
-            const std::vector<std::uint8_t>& decompressed_data,
-            const std::string& package
-        ) const -> expected_t<ShardDict>;
+        auto parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data) const
+            -> expected_t<ShardDict>;
 
         /**
          * Get the cache path for a shard file.

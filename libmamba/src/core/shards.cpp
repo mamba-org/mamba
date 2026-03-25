@@ -82,7 +82,7 @@ namespace mamba
                     }
                     catch (const std::exception& e)
                     {
-                        LOG_DEBUG << "Failed to parse array element " << i << ": " << e.what();
+                        LOG_WARNING << "Failed to parse array element " << i << ": " << e.what();
                         // Skip invalid elements
                     }
                 }
@@ -95,7 +95,7 @@ namespace mamba
          * Handles string, binary, extension, and array types, converting bytes to hex strings.
          *
          * @param obj The msgpack object containing the hash
-         * @param field_name The name of the field (for error messages)
+         * @param field_name The name of the field (for warning messages)
          * @return The hash as a hex string, or empty string if parsing fails
          */
         auto
@@ -169,7 +169,7 @@ namespace mamba
                                             + (field_name.empty() ? "hash" : field_name)
                                             + " from msgpack: unexpected type "
                                             + std::to_string(static_cast<int>(obj.type));
-                    LOG_ERROR << error_msg << ": " << e.what();
+                    LOG_WARNING << error_msg << ": " << e.what();
                     // Return empty string - validation will check that at least one checksum is
                     // present
                     return std::string();
@@ -210,11 +210,6 @@ namespace mamba
                 // Skip nil values for optional fields
                 if (val_obj.type == MSGPACK_OBJECT_NIL)
                 {
-                    // Only skip for optional fields, required fields should not be nil
-                    if (key != "sha256" && key != "md5" && key != "constrains" && key != "noarch")
-                    {
-                        LOG_DEBUG << "Field '" << key << "' is nil in ShardPackageRecord, skipping";
-                    }
                     continue;
                 }
 
@@ -275,16 +270,6 @@ namespace mamba
                         else if (val_obj.type == MSGPACK_OBJECT_ARRAY)
                         {
                             record.depends = msgpack_object_to_string_array(val_obj);
-                            if (!record.depends.empty())
-                            {
-                                LOG_DEBUG << "Parsed dependencies for package '" << record.name
-                                          << "': [" << util::join(", ", record.depends) << "]";
-                            }
-                        }
-                        else
-                        {
-                            LOG_DEBUG << "Field 'depends' has unexpected type: "
-                                      << static_cast<int>(val_obj.type);
                         }
                     }
                     else if (key == "constrains")
@@ -297,11 +282,6 @@ namespace mamba
                         else if (val_obj.type == MSGPACK_OBJECT_ARRAY)
                         {
                             record.constrains = msgpack_object_to_string_array(val_obj);
-                        }
-                        else
-                        {
-                            LOG_DEBUG << "Field 'constrains' has unexpected type: "
-                                      << static_cast<int>(val_obj.type);
                         }
                     }
                     else if (key == "track_features")
@@ -860,12 +840,9 @@ namespace mamba
         return full_decompressed;
     }
 
-    auto Shards::parse_shard_msgpack(
-        const std::vector<std::uint8_t>& decompressed_data,
-        const std::string& package
-    ) const -> expected_t<ShardDict>
+    auto Shards::parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data) const
+        -> expected_t<ShardDict>
     {
-        LOG_DEBUG << "Parsing msgpack data for package '" << package << "' shard";
         msgpack_unpacked unpacked = {};
         try
         {
@@ -890,12 +867,9 @@ namespace mamba
             const msgpack_object& obj = unpacked.data;
             ShardDict shard;
 
-            auto parse_package_records = [&package](
-                                             const msgpack_object& map_obj,
-                                             std::map<std::string, ShardPackageRecord>& target_map,
-                                             const std::string& log_prefix,
-                                             const std::string& map_name
-                                         )
+            auto parse_package_records = [](const msgpack_object& map_obj,
+                                            std::map<std::string, ShardPackageRecord>& target_map,
+                                            const std::string& map_name)
             {
                 for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
                 {
@@ -905,10 +879,6 @@ namespace mamba
                         ShardPackageRecord record = parse_shard_package_record(
                             map_obj.via.map.ptr[k].val
                         );
-                        LOG_DEBUG << "Parsed " << log_prefix
-                                  << " package record from shard for package '" << package
-                                  << "': " << record.name << "=" << record.version << "-"
-                                  << record.build;
                         target_map[pkg_filename] = record;
                     }
                     catch (const std::exception& e)
@@ -947,21 +917,16 @@ namespace mamba
                 {
                     if (key == "packages")
                     {
-                        parse_package_records(val_obj, shard.packages, "package", "packages");
+                        parse_package_records(val_obj, shard.packages, "packages");
                     }
                     else if (key == "packages.conda")
                     {
-                        parse_package_records(
-                            val_obj,
-                            shard.conda_packages,
-                            "conda package",
-                            "packages.conda"
-                        );
+                        parse_package_records(val_obj, shard.conda_packages, "packages.conda");
                     }
                 }
                 catch (const std::exception& e)
                 {
-                    LOG_DEBUG << "Failed to parse field '" << key << "' in shard: " << e.what();
+                    LOG_WARNING << "Failed to parse field '" << key << "' in shard: " << e.what();
                 }
             }
 
@@ -971,13 +936,11 @@ namespace mamba
                 unpacked.zone = nullptr;
             }
 
-            LOG_DEBUG << "Successfully parsed shard for package '" << package
-                      << "': " << shard.packages.size() << " .tar.bz2 packages, "
-                      << shard.conda_packages.size() << " .conda packages";
             return shard;
         }
         catch (const std::exception& e)
         {
+            LOG_WARNING << "Failed to parse shard msgpack: " << e.what();
             if (unpacked.zone != nullptr)
             {
                 msgpack_zone_destroy(unpacked.zone);
@@ -1058,7 +1021,7 @@ namespace mamba
             );
         }
 
-        auto parse_result = parse_shard_msgpack(decompressed_result.value(), package);
+        auto parse_result = parse_shard_msgpack(decompressed_result.value());
         if (!parse_result.has_value())
         {
             return make_unexpected(parse_result.error().what(), parse_result.error().error_code());
@@ -1383,7 +1346,7 @@ namespace mamba
         }
 
         // Parse msgpack
-        auto parse_result = parse_shard_msgpack(decompressed_result.value(), package);
+        auto parse_result = parse_shard_msgpack(decompressed_result.value());
         if (!parse_result.has_value())
         {
             return make_unexpected(parse_result.error().what(), parse_result.error().error_code());

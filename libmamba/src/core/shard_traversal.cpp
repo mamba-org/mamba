@@ -57,7 +57,7 @@ namespace mamba
             }
         }
 
-        void add_names_from_record(const ShardPackageRecord& record, std::set<std::string>& names)
+        void add_names_from_record(const specs::RepoDataPackage& record, std::set<std::string>& names)
         {
             add_names_from_specs(record.depends, names);
             add_names_from_specs(record.constrains, names);

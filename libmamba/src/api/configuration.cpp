@@ -815,14 +815,10 @@ namespace mamba
 
         mamba::log_level log_level_fallback_hook(Configuration& config)
         {
-            const auto& ctx = config.context();
 
-            if (ctx.output_params.json)
+            if (config.at("verbose").configured())
             {
-                return mamba::log_level::critical;
-            }
-            else if (config.at("verbose").configured())
-            {
+                const auto& ctx = config.context();
                 switch (ctx.output_params.verbosity)
                 {
                     case 0:
@@ -1245,18 +1241,6 @@ namespace mamba
         : m_context(ctx)
     {
         set_configurables();
-    }
-
-    namespace
-    {
-        // Immediately deactivates the logging system if feature is enabled.
-        void stop_logging_if_enabled(const bool enabled)
-        {
-            if (enabled)
-            {
-                logging::stop_logging();
-            }
-        }
     }
 
     void Configuration::set_configurables()
@@ -1980,7 +1964,15 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
-                   .set_post_merge_hook<bool>(stop_logging_if_enabled)
+                   .set_post_merge_hook<bool>(
+                       [](const bool enabled)
+                       {
+                           if (enabled)
+                           {
+                               Console::setup_log_handling_for_json();
+                           }
+                       }
+                   )
                    .set_env_var_names()
                    .description("Report all output as json"));
 
@@ -2061,7 +2053,15 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "json", "print_config_only", "print_context_only" })
-                   .set_post_merge_hook<bool>(stop_logging_if_enabled)
+                   .set_post_merge_hook<bool>(
+                       [](const bool enabled)
+                       {
+                           if (enabled)
+                           {
+                               logging::stop_logging();
+                           }
+                       }
+                   )
                    .description("Set quiet mode (print less output)"));
 
         insert(Configurable("verbose", 0)
@@ -2300,6 +2300,7 @@ namespace mamba
 
         if (this->at("print_config_only").value<bool>())
         {
+            // TOOD: fix this for the case where `--json` is used
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
             print_dump(*this, dump_opts);

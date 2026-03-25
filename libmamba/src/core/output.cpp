@@ -19,6 +19,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/logging_tools.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/tasksync.hpp"
 #include "mamba/core/thread_utils.hpp"
@@ -272,6 +273,52 @@ namespace mamba
      ***********/
 
 
+    namespace
+    {
+        std::unique_ptr<logging::LogHandler_History> log_history_handler;
+
+        auto to_json(const logging::LogRecord& record) -> nlohmann::json
+        {
+            nlohmann::json result = { { "message", record.message },
+                                      { "level", name_of(record.level) },
+                                      { "source", name_of(record.source) } };
+            if (strlen(record.location.file_name()) > 0 or strlen(record.location.function_name()) > 0)
+            {
+                result["location"] = logging::as_log(record.location);
+            }
+            return result;
+        }
+
+        auto capture_log_history_as_json() -> nlohmann::json
+        {
+            nlohmann::json json_history = nlohmann::json::array();
+
+            if (not log_history_handler)
+            {
+                return json_history;
+            }
+
+            const auto history = log_history_handler->capture_history();
+            for (const auto& log_record : history)
+            {
+                json_history.push_back(to_json(log_record));
+            }
+            return json_history;
+        }
+    }
+
+    void Console::setup_log_handling_for_json()
+    {
+        if (not log_history_handler)
+        {
+            log_history_handler = std::make_unique<logging::LogHandler_History>(
+                logging::LogHandler_History::Options{ .clear_on_stop = false }
+            );
+        }
+
+        logging::set_log_handler(log_history_handler.get()); // use the existing logging parameters
+    }
+
     using ConsoleBuffer = std::vector<std::string>;
 
     class ConsoleData
@@ -495,6 +542,12 @@ namespace mamba
 
     void Console::json_print()
     {
+        if (context().output_params.json and log_history_handler)
+        {
+            auto log_history = capture_log_history_as_json();
+            json_write({ { "log_history", std::move(log_history) } });
+        }
+
         print(p_data->json_log.unflatten().dump(4), true);
     }
 

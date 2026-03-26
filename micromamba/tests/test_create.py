@@ -376,6 +376,8 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
             no_dry_run=True,
         )
     stderr = info.value.stderr.decode()
+    print("stderr = " + stderr)
+    print("stdcout = " + info.value.stdout.decode())
     assert "Cannot use --clone together with package specs." in stderr
 
 

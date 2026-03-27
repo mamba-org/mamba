@@ -56,6 +56,13 @@ namespace mamba
      */
     void add_pip_if_python(std::vector<std::string>& root_packages);
 
+    /**
+     * Build root packages for sharded repodata loading.
+     *
+     * Starts from requested specs and adds ``pip`` when ``python`` is present.
+     */
+    std::vector<std::string> build_sharded_root_packages(const std::vector<std::string>& raw_specs);
+
 }
 
 #endif  // MAMBA_UTILS_HPP

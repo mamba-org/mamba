@@ -176,15 +176,9 @@ namespace mamba
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
 
-        auto root_packages = extract_package_names_from_specs(raw_update_specs);
-
-        // When updating python with sharded repodata, also include pip in root packages.
-        // This also avoids pulling old versions of python (1.x) which do not depend on
-        // other packages, which is a choice the solver can make.
-        if (ctx.repodata_use_shards)
-        {
-            add_pip_if_python(root_packages);
-        }
+        std::vector<std::string> root_packages = ctx.repodata_use_shards
+                                                     ? build_sharded_root_packages(raw_update_specs)
+                                                     : std::vector<std::string>{};
 
         auto exp_loaded = load_channels(ctx, channel_context, db, package_caches, root_packages);
         if (!exp_loaded)

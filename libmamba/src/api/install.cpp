@@ -549,14 +549,6 @@ namespace mamba
 
     namespace
     {
-        std::vector<std::string>
-        build_sharded_root_packages(const std::vector<std::string>& raw_specs)
-        {
-            std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
-            add_pip_if_python(root_packages);
-            return root_packages;
-        }
-
         void print_activation_message(const Context& ctx)
         {
             // Check that the target prefix is not active before printing the activation message

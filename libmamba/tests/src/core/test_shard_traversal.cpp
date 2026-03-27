@@ -257,7 +257,7 @@ TEST_CASE("RepodataSubset constructor and accessors", "[mamba::core][mamba::core
     SECTION("With single shard collection")
     {
         auto shards = create_shards_with_preloaded_deps(
-            "https://example.com/conda-forge",
+            "https://anaconda.org/conda-forge",
             { { "python", {} } }
         );
         RepodataSubset subset({ *shards });
@@ -271,7 +271,7 @@ TEST_CASE("RepodataSubset reachable empty", "[mamba::core][mamba::core::shard_tr
     SECTION("Empty root_packages returns early")
     {
         auto shards = create_shards_with_preloaded_deps(
-            "https://example.com/conda-forge",
+            "https://anaconda.org/conda-forge",
             { { "python", {} } }
         );
         RepodataSubset subset({ *shards });
@@ -282,7 +282,7 @@ TEST_CASE("RepodataSubset reachable empty", "[mamba::core][mamba::core::shard_tr
     SECTION("Empty root_packages with bfs")
     {
         auto shards = create_shards_with_preloaded_deps(
-            "https://example.com/conda-forge",
+            "https://anaconda.org/conda-forge",
             { { "python", {} } }
         );
         RepodataSubset subset({ *shards });
@@ -312,7 +312,7 @@ TEST_CASE("RepodataSubset reachable pipelined", "[mamba::core][mamba::core::shar
     libffi_shard.packages["libffi-1.0-0.conda"] = libffi_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         {
             { "python", python_shard },
             { "numpy", numpy_shard },
@@ -361,7 +361,7 @@ TEST_CASE("RepodataSubset reachable bfs", "[mamba::core][mamba::core::shard_trav
     libffi_shard.packages["libffi-1.0-0.conda"] = libffi_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         {
             { "python", python_shard },
             { "numpy", numpy_shard },
@@ -398,7 +398,7 @@ TEST_CASE("RepodataSubset reachable with root_shards filter", "[mamba::core][mam
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 
@@ -421,7 +421,7 @@ TEST_CASE(
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 
@@ -465,7 +465,7 @@ TEST_CASE("RepodataSubset package not in any shard", "[mamba::core][mamba::core:
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 
@@ -484,7 +484,7 @@ TEST_CASE("RepodataSubset default strategy is bfs", "[mamba::core][mamba::core::
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 

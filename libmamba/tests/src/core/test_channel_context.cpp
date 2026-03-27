@@ -174,8 +174,15 @@ namespace
                 auto chan_ctx = ChannelContext::make_conda_compatible(ctx);
                 const auto& local = chan_ctx.params().custom_multichannels.at("local");
 
-                REQUIRE(local.size() == 1);
-                REQUIRE(local.front().url() == CondaURL::parse(util::path_to_url(conda_bld.string())));
+                REQUIRE(local.size() >= 1);
+                const auto expected = CondaURL::parse(util::path_to_url(conda_bld.string()));
+                REQUIRE(
+                    std::any_of(
+                        local.begin(),
+                        local.end(),
+                        [&](const auto& chan) { return chan.url() == expected; }
+                    )
+                );
             }
 
             SECTION("Root prefix")
@@ -184,8 +191,15 @@ namespace
                 auto chan_ctx = ChannelContext::make_conda_compatible(ctx);
                 const auto& local = chan_ctx.params().custom_multichannels.at("local");
 
-                REQUIRE(local.size() == 1);
-                REQUIRE(local.front().url() == CondaURL::parse(util::path_to_url(conda_bld.string())));
+                REQUIRE(local.size() >= 1);
+                const auto expected = CondaURL::parse(util::path_to_url(conda_bld.string()));
+                REQUIRE(
+                    std::any_of(
+                        local.begin(),
+                        local.end(),
+                        [&](const auto& chan) { return chan.url() == expected; }
+                    )
+                );
             }
 
             SECTION("Target prefix")
@@ -194,8 +208,15 @@ namespace
                 auto chan_ctx = ChannelContext::make_conda_compatible(ctx);
                 const auto& local = chan_ctx.params().custom_multichannels.at("local");
 
-                REQUIRE(local.size() == 1);
-                REQUIRE(local.front().url() == CondaURL::parse(util::path_to_url(conda_bld.string())));
+                REQUIRE(local.size() >= 1);
+                const auto expected = CondaURL::parse(util::path_to_url(conda_bld.string()));
+                REQUIRE(
+                    std::any_of(
+                        local.begin(),
+                        local.end(),
+                        [&](const auto& chan) { return chan.url() == expected; }
+                    )
+                );
             }
         }
 

@@ -128,13 +128,13 @@ TEST_CASE("Shards URL construction")
         std::vector<std::uint8_t> hash_bytes(32, 0xAB);
         index.shards["test-pkg"] = hash_bytes;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -157,20 +157,20 @@ TEST_CASE("Shards URL construction")
         std::vector<std::uint8_t> hash_bytes(32, 0xCD);
         index.shards["test-pkg"] = hash_bytes;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::contains(url, "example.com"));
+        REQUIRE(util::contains(url, "anaconda.org"));
         REQUIRE(util::contains(url, "shards"));
         REQUIRE(util::ends_with(url, ".msgpack.zst"));
     }
@@ -186,13 +186,13 @@ TEST_CASE("Shards URL construction")
         std::vector<std::uint8_t> hash_bytes(32, 0xEF);
         index.shards["test-pkg"] = hash_bytes;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -743,13 +743,13 @@ TEST_CASE("Shards - Basic operations")
     index.shards["pkg1"] = hash1;
     index.shards["pkg2"] = hash2;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -799,7 +799,7 @@ TEST_CASE("Shards - Basic operations")
     {
         std::string url = shards.shard_url("pkg1");
         REQUIRE(util::ends_with(url, ".msgpack.zst"));
-        REQUIRE(util::contains(url, "example.com"));
+        REQUIRE(util::contains(url, "anaconda.org"));
 
         REQUIRE_THROWS_AS(shards.shard_url("nonexistent"), std::runtime_error);
     }
@@ -807,7 +807,7 @@ TEST_CASE("Shards - Basic operations")
     SECTION("base_url and url")
     {
         REQUIRE(shards.base_url() == "https://example.com/packages");
-        REQUIRE(shards.url() == "https://example.com/conda-forge/linux-64/repodata.json");
+        REQUIRE(shards.url() == "https://anaconda.org/conda-forge/linux-64/repodata.json");
     }
 }
 
@@ -819,13 +819,13 @@ TEST_CASE("Shards - build_repodata")
     index.info.subdir = "linux-64";
     index.version = 1;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -984,13 +984,13 @@ TEST_CASE("Shards - Error handling")
     index.info.subdir = "linux-64";
     index.version = 1;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -1021,13 +1021,13 @@ TEST_CASE("Shards - fetch_shards with visited cache")
     index.shards["pkg1"] = hash1;
     index.shards["pkg2"] = hash2;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -1126,13 +1126,13 @@ TEST_CASE("Shards - build_repodata sorting")
     index.info.subdir = "linux-64";
     index.version = 1;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -1227,7 +1227,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
     std::vector<std::uint8_t> hash_bytes(32, 0xAA);
     index.shards["test-pkg"] = hash_bytes;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
@@ -1236,7 +1236,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         index.info.shards_base_url = "";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1244,6 +1244,8 @@ TEST_CASE("Shards - shards_base_url edge cases")
 
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE_FALSE(util::contains(url, "repodata.json/"));
+        REQUIRE(util::starts_with(url, "https://anaconda.org/conda-forge/linux-64/"));
     }
 
     SECTION("shards_base_url with trailing slash")
@@ -1251,7 +1253,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         index.info.shards_base_url = "shards/";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1267,7 +1269,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         index.info.shards_base_url = "https://example.com/different/path/";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1275,6 +1277,23 @@ TEST_CASE("Shards - shards_base_url edge cases")
 
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::starts_with(url, "https://example.com/different/path/"));
+    }
+
+    SECTION("Relative shards_base_url does not inherit repodata filename")
+    {
+        index.info.shards_base_url = "./";
+        Shards shards(
+            index,
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+            make_simple_channel("conda-forge"),
+            auth_info,
+            remote_fetch_params
+        );
+
+        const std::string url = shards.shard_url("test-pkg");
+        REQUIRE_FALSE(util::contains(url, "repodata.json/"));
+        REQUIRE(util::starts_with(url, "https://conda.anaconda.org/conda-forge/linux-64/"));
+        REQUIRE(util::ends_with(url, ".msgpack.zst"));
     }
 }
 
@@ -1474,13 +1493,13 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1641,13 +1660,13 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1789,13 +1808,13 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1908,13 +1927,13 @@ TEST_CASE("Shard parsing - Package record error handling")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2081,13 +2100,13 @@ TEST_CASE("Shard parsing - Package record error handling")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2221,13 +2240,13 @@ TEST_CASE("Shard parsing - Package record error handling")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2265,7 +2284,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
     std::vector<std::uint8_t> hash_bytes(32, 0xAA);
     index.shards["test-pkg"] = hash_bytes;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
@@ -2274,7 +2293,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "https://example.com/shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2291,7 +2310,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "https://different-host.com/shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2308,7 +2327,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "./shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2325,7 +2344,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "/shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2366,7 +2385,7 @@ TEST_CASE("Shards - Disk caching")
     }
     index.shards["test-pkg"] = hash_bytes;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
@@ -2413,7 +2432,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2436,7 +2455,7 @@ TEST_CASE("Shards - Disk caching")
         // Don't create cache directory - cache miss expected
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2476,7 +2495,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2506,7 +2525,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2560,7 +2579,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2584,13 +2603,13 @@ TEST_CASE("Shards - process_downloaded_shard")
     index.version = 1;
     index.shards["test-pkg"] = std::vector<std::uint8_t>(32, 0xAB);
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params

@@ -172,5 +172,33 @@ namespace mamba::util
             return which_in(exe, search_paths.cbegin(), search_paths.cend());
         }
     }
+
+    // Temporarily unset FORCE_COLOR to avoid rich/ANSI output from tools like pip/uv.
+    // Restores the previous value on scope exit.
+    struct ForceColorScope
+    {
+        std::optional<std::string> previous;
+
+        ForceColorScope()
+            : previous(get_env("FORCE_COLOR"))
+        {
+            unset_env("FORCE_COLOR");
+        }
+
+        ~ForceColorScope() noexcept
+        {
+            if (previous)
+            {
+                try
+                {
+                    set_env("FORCE_COLOR", *previous);
+                }
+                catch (...)
+                {
+                    // Best effort: avoid throwing from destructor.
+                }
+            }
+        }
+    };
 }
 #endif

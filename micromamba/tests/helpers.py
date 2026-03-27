@@ -707,3 +707,10 @@ def assert_state_file(state_file_path: Path, expected_state: dict):
         assert state[field_name] == expected_value, (
             f"Expected {field_name} to be {expected_value}, but got {state[field_name]}"
         )
+
+def find_message_in_json_logs(json_result, message_to_find):
+    for log_record in json_result["log_history"]:
+        if message_to_find in log_record["message"]:
+            return log_record
+
+    return None

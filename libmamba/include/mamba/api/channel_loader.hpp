@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/specs/channel.hpp"
 
 namespace mamba
 {
@@ -95,7 +96,11 @@ namespace mamba
      * Creates and stores channels in the ChannelContext,
      * and mirrors objects in the Context object.
      */
-    void init_channels(Context& context, ChannelContext& channel_context);
+    void init_channels(
+        Context& context,
+        ChannelContext& channel_context,
+        specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
+    );
     void init_channels_from_package_urls(
         Context& context,
         ChannelContext& channel_context,

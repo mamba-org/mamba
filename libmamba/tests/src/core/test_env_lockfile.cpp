@@ -13,6 +13,7 @@
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/solver/libsolv/database.hpp"
+#include "mamba/util/algorithm.hpp"
 
 #include "mambatests.hpp"
 
@@ -244,10 +245,17 @@ namespace mamba
             EnvironmentLockFile::PackageFilter package_filter;
         };
 
+        struct ChannelInfo
+        {
+            std::string name = {};
+            std::vector<std::string> urls = {};
+        };
+
         auto test_get_specific_packages(
             const fs::u8path lockfile_path,
             size_t expected_total_package_count,
-            std::vector<SpecificPackagesRequest> requests
+            std::vector<SpecificPackagesRequest> requests,
+            std::vector<ChannelInfo> expected_channels = {}
         ) -> void
         {
             auto maybe_lockfile = read_environment_lockfile(lockfile_path);
@@ -265,6 +273,23 @@ namespace mamba
             {
                 const auto packages = lockfile.get_packages_for(request.package_filter);
                 REQUIRE(packages.size() == request.expected_package_count);
+            }
+
+            const auto& channels = lockfile.get_metadata().channels;
+            for (const auto& expected_channel : expected_channels)
+            {
+                auto it = std::ranges::find(
+                    channels,
+                    expected_channel.name,
+                    &mamba::EnvironmentLockFile::Channel::name
+                );
+                REQUIRE(it != channels.end());
+
+                const auto& channel_info = *it;
+                for (const auto& url_mirror : expected_channel.urls)
+                {
+                    REQUIRE(mamba::stdext::contains(channel_info.urls, url_mirror));
+                }
             }
         }
 
@@ -285,7 +310,13 @@ namespace mamba
                 51,
                 { { 41, { .category = "main", .platform = "emscripten-wasm32", .manager = "conda" } },
                   { 26, { .category = "main", .platform = "noarch", .manager = "conda" } },
-                  { 10, { .category = "main", .platform = std::nullopt, .manager = "pip" } } }
+                  { 10, { .category = "main", .platform = std::nullopt, .manager = "pip" } } },
+                { { .name = "emscripten-forge",
+                    .urls = { "https://prefix.dev/emscripten-forge-dev",
+                              "https://repo.prefix.dev/emscripten-forge-dev" } },
+                  { .name = "conda-forge",
+                    .urls = { "https://prefix.dev/conda-forge",
+                              "https://repo.prefix.dev/conda-forge" } } }
             );
         }
 
@@ -311,6 +342,7 @@ namespace mamba
                 std::vector<detail::other_pkg_mgr_spec> other_specs;
                 auto transaction = create_explicit_transaction_from_lockfile(
                     ctx,
+                    channel_context,
                     db,
                     lockfile_path,
                     categories,

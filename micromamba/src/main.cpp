@@ -129,9 +129,11 @@ main(int argc, char** argv)
     ctx.command_params.current_command = full_command.str();
 
     std::optional<std::string> error_to_report;
-    auto handle_exception = [&](auto& e)
+    auto handle_exception = [&](auto& e, const auto&... additional_messages)
     {
-        error_to_report = e.what();
+        using namespace std::literals;
+        error_to_report.emplace(e.what());
+        (error_to_report->append(additional_messages), ...);
         set_sig_interrupted();
     };
 
@@ -177,6 +179,10 @@ main(int argc, char** argv)
         {
             handle_exception(e);
         }
+    }
+    catch (const CLI::Error& e)
+    {
+        handle_exception(e, "\nRun with --help for more information.");
     }
     catch (const std::exception& e)
     {

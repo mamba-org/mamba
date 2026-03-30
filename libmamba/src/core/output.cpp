@@ -291,7 +291,7 @@ namespace mamba
 
         auto capture_log_history_as_json() -> nlohmann::json
         {
-            nlohmann::json json_history = nlohmann::json::array();
+            nlohmann::json json_history = nlohmann::json::array({});
 
             if (not log_history_handler)
             {
@@ -376,7 +376,9 @@ namespace mamba
 
     Console::~Console()
     {
-        if (!p_data->is_json_print_cancelled && !p_data->json_log.is_null())
+        // Note: even if the json is empty, we should still print 
+        // and empty json object as long as `--json` is used.
+        if (context().output_params.json and not p_data->is_json_print_cancelled)
         {
             this->json_print();
         }

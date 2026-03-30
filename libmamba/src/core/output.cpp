@@ -298,7 +298,10 @@ namespace mamba
                 return json_history;
             }
 
-            const auto history = log_history_handler->capture_history();
+            // We clear the history on the way in case this function is called
+            // more than once in the program's execution, in which case the
+            // history will be accumulated here.
+            const auto history = log_history_handler->capture_history(true);
             for (const auto& log_record : history)
             {
                 json_history.push_back(to_json(log_record));

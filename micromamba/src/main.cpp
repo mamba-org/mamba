@@ -31,15 +31,54 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+auto
+decide_preconfig_context_options(int argc, char** argv) -> mamba::ContextOptions
+{
+    using namespace std::literals;
+
+    mamba::ContextOptions options{
+        .enable_logging = true,
+        .enable_signal_handling = true,
+    };
+
+    mamba::OutputParams output_params;
+    for (const char* arg : std::ranges::subrange(argv, argv + argc))
+    {
+        if (arg == "--json"sv)
+        {
+            output_params.json = true;
+        }
+        else if (arg == "--quiet"sv)
+        {
+            output_params.quiet = true;
+        }
+    }
+
+    if (output_params.json or output_params.quiet)
+    {
+        options.output_params = output_params;
+    }
+    
+    return options;
+}
+
+auto
+decide_log_handler(const ContextOptions& options) -> mamba::logging::AnyLogHandler
+{
+    if (options.output_params and (options.output_params->json or options.output_params->quiet))
+    {
+        return {};
+    }
+
+    return mamba::logging::spdlogimpl::LogHandler_spdlog{};
+}
+
 int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
-    mamba::Context ctx{ {
-                            .enable_logging = true,
-                            .enable_signal_handling = true,
-                        },
-                        mamba::logging::spdlogimpl::LogHandler_spdlog{} };
+    const auto pre_config_options = decide_preconfig_context_options(argc, argv);
+    mamba::Context ctx{ pre_config_options, decide_log_handler(pre_config_options) };
     mamba::Console console{ ctx };
     mamba::Configuration config{ ctx };
 
@@ -98,7 +137,9 @@ main(int argc, char** argv)
 
     try
     {
-        CLI11_PARSE(app, argc, utf8argv);
+        // Note: do not use CLI11_PARSE macro as it's error handling
+        // would bypass ours.
+        app.parse(argc, utf8argv);
         if (app.get_subcommands().size() == 0)
         {
             config.load();

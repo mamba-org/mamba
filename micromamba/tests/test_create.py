@@ -365,17 +365,21 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "clone-conflict-specs"
     helpers.create("-n", "src-env-for-conflict", "xtensor", "--json", no_dry_run=True)
 
-    res = helpers.create(
-        "--clone",
-        "src-env-for-conflict",
-        "-n",
-        env_name,
-        "xsimd",
-        "--json",
-        no_dry_run=True,
-    )
+    # We expect this run to fail
+    with pytest.raises(subprocess.CalledProcessError) as info:
+        helpers.create(
+            "--clone",
+            "src-env-for-conflict",
+            "-n",
+            env_name,
+            "xsimd",
+            "--json",
+            no_dry_run=True,
+        )
 
-    assert helpers.find_message_in_json_logs(res, "Cannot use --clone together with package specs.") != None
+    json_output = json.loads(info.output.decode())
+
+    assert helpers.find_message_in_json_logs(json_output, "Cannot use --clone together with package specs.") != None
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

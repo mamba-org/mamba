@@ -394,10 +394,7 @@ namespace
     }
 }
 
-TEST_CASE(
-    "Sharded repodata - load_channels accepts root_packages",
-    "[mamba::core][sharded][.integration][!mayfail]"
-)
+TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };
@@ -418,10 +415,7 @@ TEST_CASE(
     REQUIRE(result.has_value());
 }
 
-TEST_CASE(
-    "Sharded repodata - noarch-only root package is installable",
-    "[mamba::core][sharded][.integration][!mayfail]"
-)
+TEST_CASE("Sharded repodata - noarch-only root package is installable", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };
@@ -1054,7 +1048,7 @@ TEST_CASE("Sharded repodata - libblas implementation preference", "[mamba::core]
 
 TEST_CASE(
     "Sharded repodata - offline recreate uses cache without network",
-    "[mamba::core][sharded][.integration][!mayfail]"
+    "[mamba::core][sharded][.integration]"
 )
 {
     Context ctx;

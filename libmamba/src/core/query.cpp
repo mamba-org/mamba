@@ -926,15 +926,7 @@ namespace mamba
                 }
             }
             // Sort by version (descending), then by build number (descending)
-            std::sort(
-                sorted_packages.begin(),
-                sorted_packages.end(),
-                [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                {
-                    // Compare in reverse order for descending sort
-                    return specs::compare_packages_by_version_and_build(rhs, lhs);
-                }
-            );
+            sort_packages_by_version_and_build_desc(sorted_packages);
 
             for (const auto& package : sorted_packages)
             {
@@ -1004,15 +996,7 @@ namespace mamba
             {
                 // Sort packages by version (descending) and build number (descending)
                 // so that the latest version is first
-                std::sort(
-                    entry.second.begin(),
-                    entry.second.end(),
-                    [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                    {
-                        // Compare in reverse order for descending sort (newest first)
-                        return specs::compare_packages_by_version_and_build(rhs, lhs);
-                    }
-                );
+                sort_packages_by_version_and_build_desc(entry.second);
 
                 print_solvable(
                     out,

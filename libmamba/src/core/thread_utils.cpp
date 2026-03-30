@@ -5,7 +5,17 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <atomic>
-#ifndef _WIN32
+#include <limits>
+#include <thread>
+
+#if defined(__linux__)
+#include <sched.h>
+#endif
+
+#if defined(_WIN32)
+#define NOMINMAX
+#include <windows.h>
+#else
 #include <signal.h>
 #endif
 
@@ -157,6 +167,84 @@ namespace mamba
         std::mutex main_mutex;
         std::condition_variable main_var;
     }  // namespace
+
+    namespace
+    {
+        std::size_t affinity_concurrency()
+        {
+#if defined(__linux__)
+            cpu_set_t set;
+            CPU_ZERO(&set);
+            if (sched_getaffinity(0, sizeof(set), &set) == 0)
+            {
+                const int count = CPU_COUNT(&set);
+                if (count > 0)
+                {
+                    return static_cast<std::size_t>(count);
+                }
+            }
+#elif defined(_WIN32)
+            DWORD_PTR process_mask = 0;
+            DWORD_PTR system_mask = 0;
+            if (GetProcessAffinityMask(GetCurrentProcess(), &process_mask, &system_mask) != 0)
+            {
+                unsigned int count = 0;
+                for (DWORD_PTR bits = process_mask; bits != 0; bits &= (bits - 1))
+                {
+                    ++count;
+                }
+                if (count > 0)
+                {
+                    return static_cast<std::size_t>(count);
+                }
+            }
+#endif
+
+            const unsigned int hc = std::thread::hardware_concurrency();
+            return static_cast<std::size_t>(hc);
+        }
+    }  // namespace
+
+    std::size_t normalize_to_affinity_concurrency(std::ptrdiff_t requested_n_threads)
+    {
+        if (requested_n_threads > 0)
+        {
+            // User explicitly requested a thread count; do not cap it to affinity.
+            return static_cast<std::size_t>(requested_n_threads);
+        }
+
+        const std::size_t available_u = affinity_concurrency();
+        const std::ptrdiff_t available = (available_u > static_cast<std::size_t>(
+                                              std::numeric_limits<std::ptrdiff_t>::max()
+                                          ))
+                                             ? std::numeric_limits<std::ptrdiff_t>::max()
+                                             : static_cast<std::ptrdiff_t>(available_u);
+
+        std::ptrdiff_t requested = 0;
+        if (requested_n_threads == 0)
+        {
+            // Default to at most 10 threads so that shard-based and other parallel
+            // operations don't oversubscribe very wide machines by default.
+            requested = std::min<std::ptrdiff_t>(available, 10);
+        }
+        else  // (requested_n_threads < 0)
+        {
+            requested = available + requested_n_threads;
+        }
+
+        // Clamp to [1, available]. In particular, if requested_n_threads is so negative
+        // that (available + requested_n_threads) is <= 0, we still return at least 1.
+        if (requested < 1)
+        {
+            requested = 1;
+        }
+        if (requested > available)
+        {
+            requested = available;
+        }
+
+        return static_cast<std::size_t>(requested);
+    }
 
     void increase_thread_count()
     {

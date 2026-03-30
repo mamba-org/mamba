@@ -418,6 +418,96 @@ TEST_CASE(
     REQUIRE(result.has_value());
 }
 
+TEST_CASE(
+    "Sharded repodata - noarch-only root package is installable",
+    "[mamba::core][sharded][.integration][!mayfail]"
+)
+{
+    auto& ctx = mambatests::context();
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    // `tzdata` is a noarch package with no dependencies; this exercises the edge case where
+    // the root package is resolved from a sibling subdir while iterating platform subdirs.
+    const std::vector<std::string> specs = { "tzdata" };
+
+    auto flat_solution = solve_environment(ctx, channel_context, specs, false, cache_dir);
+    REQUIRE(flat_solution.has_value());
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+    REQUIRE(flat_solution.value() == sharded_solution.value());
+
+    bool tzdata_found = false;
+    for (const auto& pkg : sharded_solution->packages_to_install())
+    {
+        if (pkg.name == "tzdata")
+        {
+            tzdata_found = true;
+            break;
+        }
+    }
+    REQUIRE(tzdata_found);
+}
+
+// Resolves `python` using the real `conda-forge` channel (repo.anaconda.org / conda.anaconda.org)
+// with `repodata_use_shards`: shard index fetch, per-package shard downloads, repodata build, and
+// solver. This is the same sharded path `micromamba create` uses before linking; linking is not
+// exercised here so the test stays stable in constrained CI environments.
+TEST_CASE(
+    "Sharded repodata - solve python with conda-forge (anaconda.org)",
+    "[mamba::core][sharded][.integration]"
+)
+{
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.repodata_use_shards;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.repodata_use_shards = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.repodata_use_shards = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    auto solved = solve_environment(
+        ctx,
+        channel_context,
+        std::vector<std::string>{ "python" },
+        true,
+        cache_dir
+    );
+    REQUIRE(solved.has_value());
+    bool found_python = false;
+    for (const auto& pkg : solved.value().packages())
+    {
+        if (pkg.name == "python")
+        {
+            found_python = true;
+            break;
+        }
+    }
+    REQUIRE(found_python);
+}
+
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration][!mayfail]")
 {
     auto& ctx = mambatests::context();
@@ -514,6 +604,12 @@ TEST_CASE("Sharded repodata - environment consistency", "[mamba::core][sharded][
     SECTION("Multiple packages installation")
     {
         std::vector<std::string> specs = { "python", "numpy", "pandas" };
+        run_environment_consistency_case(ctx, channel_context, tmp_dir, cache_dir, specs);
+    }
+
+    SECTION("scikit-learn installation")
+    {
+        std::vector<std::string> specs = { "scikit-learn" };
         run_environment_consistency_case(ctx, channel_context, tmp_dir, cache_dir, specs);
     }
 
@@ -954,4 +1050,52 @@ TEST_CASE("Sharded repodata - libblas implementation preference", "[mamba::core]
         }
     }
     REQUIRE(libblas_found);
+}
+
+TEST_CASE(
+    "Sharded repodata - offline recreate uses cache without network",
+    "[mamba::core][sharded][.integration][!mayfail]"
+)
+{
+    Context ctx;
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.repodata_use_shards = true;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    std::vector<std::string> specs = { "xtensor" };
+    const fs::u8path prefix_online = tmp_dir.path() / "env_online";
+    const fs::u8path prefix_offline = tmp_dir.path() / "env_offline";
+
+    // First create: online, populates shard index cache and package cache
+    ctx.offline = false;
+    expected_t<void> install_online = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_online,
+        cache_dir
+    );
+    REQUIRE(install_online.has_value());
+
+    // Second create: offline, must succeed using only cached data (no network requests)
+    ctx.offline = true;
+    expected_t<void> install_offline = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_offline,
+        cache_dir
+    );
+    REQUIRE(install_offline.has_value());
+
+    // Verify both environments are equivalent (confirms offline used only cached data)
+    REQUIRE(compare_environments(prefix_online, prefix_offline, channel_context));
 }

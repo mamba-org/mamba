@@ -16,6 +16,7 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/subdir_index.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -53,7 +54,8 @@ namespace mamba
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
-            std::size_t download_threads = 10,
+            // 0 means: auto; value is normalized with normalize_to_affinity_concurrency().
+            std::size_t download_threads = 0,
             std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
         );
 
@@ -206,10 +208,8 @@ namespace mamba
         /**
          * Parse msgpack data into ShardDict.
          */
-        auto parse_shard_msgpack(
-            const std::vector<std::uint8_t>& decompressed_data,
-            const std::string& package
-        ) const -> expected_t<ShardDict>;
+        auto parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data) const
+            -> expected_t<ShardDict>;
 
         /**
          * Get the cache path for a shard file.

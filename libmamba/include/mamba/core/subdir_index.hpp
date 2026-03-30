@@ -192,6 +192,13 @@ namespace mamba
         /** Update shards availability from a HEAD check (for TTL). */
         void set_shards_availability(bool value);
 
+        /**
+         * When shard index cache exists and is within TTL, set shards availability.
+         * Call for all subdirs before deciding which need full repodata download,
+         * so subdirs with valid shard index cache are excluded from that download.
+         */
+        void maybe_set_shards_from_cache(const SubdirDownloadParams& params);
+
         void clear_valid_cache_files();
 
         template <typename First, typename End>

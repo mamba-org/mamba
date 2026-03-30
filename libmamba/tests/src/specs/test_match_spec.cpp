@@ -758,6 +758,53 @@ namespace
         }
     }
 
+    TEST_CASE("MatchSpec::extract_name", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("extract plain name")
+        {
+            auto name = MatchSpec::extract_name("python");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+        }
+
+        SECTION("extract name before whitespace")
+        {
+            auto name = MatchSpec::extract_name("python >=3.11");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+        }
+
+        SECTION("extract name before binary operator")
+        {
+            auto name = MatchSpec::extract_name("numpy>=2");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "numpy");
+            name = MatchSpec::extract_name("python=3.12");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+            name = MatchSpec::extract_name("libzstd!=1.5");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "libzstd");
+            name = MatchSpec::extract_name("openssl~=3.0");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "openssl");
+        }
+
+        SECTION("skip leading whitespace")
+        {
+            auto name = MatchSpec::extract_name("   scipy >=1.11");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "scipy");
+        }
+
+        SECTION("empty and operator-only specs return empty")
+        {
+            REQUIRE_FALSE(MatchSpec::extract_name("").has_value());
+            REQUIRE_FALSE(MatchSpec::extract_name("   ").has_value());
+            REQUIRE_FALSE(MatchSpec::extract_name(">=1.0").has_value());
+        }
+    }
+
     TEST_CASE("Conda discrepancies", "[mamba::specs][mamba::specs::MatchSpec]")
     {
         SECTION("python=3.7=bld")

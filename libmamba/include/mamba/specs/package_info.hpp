@@ -95,10 +95,12 @@ namespace mamba::specs
     void from_json(const nlohmann::json& j, PackageInfo& pkg);
 
     /**
-     * Compare two packages by version first, then by build number.
-     * Returns true if lhs should come before rhs (lhs < rhs).
+     * Sort packages by version (descending), then by build number (descending).
+     *
+     * This function precomputes parsed versions once per package to avoid repeatedly
+     * calling `Version::parse` in sort comparator hot paths.
      */
-    bool compare_packages_by_version_and_build(const PackageInfo& lhs, const PackageInfo& rhs);
+    void sort_packages_by_version_and_build_desc(std::vector<PackageInfo>& packages);
 }
 
 template <>

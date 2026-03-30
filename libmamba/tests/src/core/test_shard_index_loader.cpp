@@ -326,8 +326,8 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard"
                     {
                         found_numpy = true;
                         // Verify the record has required fields
-                        REQUIRE(!record.version.empty());
-                        REQUIRE(!record.build.empty());
+                        REQUIRE(!record.version.to_string().empty());
+                        REQUIRE(!record.build_string.empty());
                         break;
                     }
                 }
@@ -336,8 +336,8 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard"
                     if (record.name == "numpy")
                     {
                         found_numpy = true;
-                        REQUIRE(!record.version.empty());
-                        REQUIRE(!record.build.empty());
+                        REQUIRE(!record.version.to_string().empty());
+                        REQUIRE(!record.build_string.empty());
                         break;
                     }
                 }
@@ -359,8 +359,7 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard"
     }
 }
 
-// Note: shard_index_cache_path is private, so we test it indirectly through
-// fetch_and_parse_shard_index
+// shard_index_cache_path is tested indirectly through fetch_and_parse_shard_index
 
 TEST_CASE("ShardIndexLoader::parse_shard_index - Edge cases")
 {
@@ -703,19 +702,7 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
         );
 
         auto compressed_data = compress_zstd(msgpack_data);
-        // Get cache path by constructing expected path manually
-        // (shard_index_cache_path is private, so we construct it the same way)
-        std::string subdir_name = subdir.value().name();
-        std::string cache_name = cache_filename_from_url(subdir_name);
-        if (util::ends_with(cache_name, ".json"))
-        {
-            cache_name = cache_name.substr(0, cache_name.size() - 5) + ".msgpack.zst";
-        }
-        else
-        {
-            cache_name += ".msgpack.zst";
-        }
-        auto cache_path = subdir.value().writable_cache_dir() / cache_name;
+        auto cache_path = ShardIndexLoader::shard_index_cache_path(subdir.value());
         fs::create_directories(cache_path.parent_path());
         std::ofstream cache_file(cache_path.string(), std::ios::binary);
         cache_file.write(
@@ -768,17 +755,7 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
         );
 
         auto compressed_data = compress_zstd(msgpack_data);
-        std::string subdir_name = subdir.value().name();
-        std::string cache_name = cache_filename_from_url(subdir_name);
-        if (util::ends_with(cache_name, ".json"))
-        {
-            cache_name = cache_name.substr(0, cache_name.size() - 5) + ".msgpack.zst";
-        }
-        else
-        {
-            cache_name += ".msgpack.zst";
-        }
-        auto cache_path = subdir.value().writable_cache_dir() / cache_name;
+        auto cache_path = ShardIndexLoader::shard_index_cache_path(subdir.value());
         fs::create_directories(cache_path.parent_path());
         std::ofstream cache_file(cache_path.string(), std::ios::binary);
         cache_file.write(

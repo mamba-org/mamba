@@ -327,6 +327,14 @@ namespace mamba
                 }
             }
 
+            // Ensure shards availability is set from cache for all subdirs (including those with
+            // valid repodata cache, which skip build_check_requests). This avoids fetching full
+            // repodata when shard index cache is within TTL.
+            for (auto& s : subdirs)
+            {
+                s.maybe_set_shards_from_cache(subdir_params);
+            }
+
             // Collect only subdirs that still need full repodata indexes.
             std::vector<SubdirIndexLoader*> subdirs_needing_index;
             for (auto& s : subdirs)
@@ -463,7 +471,12 @@ namespace mamba
 
                 if (result)
                 {
-                    database.set_repo_priority(std::move(result).value(), priorities[i]);
+                    // `load_subdir_with_shards` already sets priorities for all repos it adds.
+                    // Avoid overriding another repo when this subdir has no direct match.
+                    if (!use_shards)
+                    {
+                        database.set_repo_priority(std::move(result).value(), priorities[i]);
+                    }
                 }
                 else if (is_retry)
                 {
@@ -580,15 +593,7 @@ namespace mamba
                 loaded_subdirs_with_shards.insert(repo_name);
 
                 auto sorted_pkgs = pkgs;
-                std::sort(
-                    sorted_pkgs.begin(),
-                    sorted_pkgs.end(),
-                    [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                    {
-                        // Compare in reverse order for descending sort (newer versions first)
-                        return specs::compare_packages_by_version_and_build(rhs, lhs);
-                    }
-                );
+                specs::sort_packages_by_version_and_build_desc(sorted_pkgs);
                 auto repo = database.add_repo_from_packages(
                     sorted_pkgs,
                     repo_name,
@@ -596,7 +601,7 @@ namespace mamba
                 );
                 std::size_t idx = url_to_subdir_idx.at(channel_url);
                 database.set_repo_priority(repo, priorities[idx]);
-                if (channel_url == current_repodata_url)
+                if (!result_repo.has_value() || channel_url == current_repodata_url)
                 {
                     result_repo = std::move(repo);
                 }
@@ -687,7 +692,7 @@ namespace mamba
                     subdirs[j].channel(),
                     ctx.authentication_info(),
                     ctx.remote_fetch_params,
-                    ctx.repodata_shards_threads,
+                    normalize_to_affinity_concurrency(static_cast<int>(ctx.repodata_shards_threads)),
                     std::cref(ctx.mirrors)
                 );
                 url_to_subdir_idx[sdir_url] = j;

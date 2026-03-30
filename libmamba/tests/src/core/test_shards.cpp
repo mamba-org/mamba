@@ -128,13 +128,13 @@ TEST_CASE("Shards URL construction")
         std::vector<std::uint8_t> hash_bytes(32, 0xAB);
         index.shards["test-pkg"] = hash_bytes;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -157,20 +157,20 @@ TEST_CASE("Shards URL construction")
         std::vector<std::uint8_t> hash_bytes(32, 0xCD);
         index.shards["test-pkg"] = hash_bytes;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::contains(url, "example.com"));
+        REQUIRE(util::contains(url, "anaconda.org"));
         REQUIRE(util::contains(url, "shards"));
         REQUIRE(util::ends_with(url, ".msgpack.zst"));
     }
@@ -186,13 +186,13 @@ TEST_CASE("Shards URL construction")
         std::vector<std::uint8_t> hash_bytes(32, 0xEF);
         index.shards["test-pkg"] = hash_bytes;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -212,31 +212,31 @@ TEST_CASE("Shards package ordering")
         ShardDict shard;
 
         // Add packages in random order
-        ShardPackageRecord pkg1;
+        specs::RepoDataPackage pkg1;
         pkg1.name = "test-pkg";
-        pkg1.version = "1.0.0";
-        pkg1.build = "0";
+        pkg1.version = specs::Version::parse("1.0.0").value();
+        pkg1.build_string = "0";
         pkg1.build_number = 0;
         shard.packages["test-pkg-1.0.0-0.tar.bz2"] = pkg1;
 
-        ShardPackageRecord pkg2;
+        specs::RepoDataPackage pkg2;
         pkg2.name = "test-pkg";
-        pkg2.version = "2.0.0";
-        pkg2.build = "0";
+        pkg2.version = specs::Version::parse("2.0.0").value();
+        pkg2.build_string = "0";
         pkg2.build_number = 0;
         shard.packages["test-pkg-2.0.0-0.tar.bz2"] = pkg2;
 
-        ShardPackageRecord pkg3;
+        specs::RepoDataPackage pkg3;
         pkg3.name = "test-pkg";
-        pkg3.version = "1.5.0";
-        pkg3.build = "0";
+        pkg3.version = specs::Version::parse("1.5.0").value();
+        pkg3.build_string = "0";
         pkg3.build_number = 0;
         shard.packages["test-pkg-1.5.0-0.tar.bz2"] = pkg3;
 
-        ShardPackageRecord pkg4;
+        specs::RepoDataPackage pkg4;
         pkg4.name = "test-pkg";
-        pkg4.version = "2.0.0";
-        pkg4.build = "1";
+        pkg4.version = specs::Version::parse("2.0.0").value();
+        pkg4.build_string = "1";
         pkg4.build_number = 1;
         shard.packages["test-pkg-2.0.0-1.tar.bz2"] = pkg4;
 
@@ -247,6 +247,37 @@ TEST_CASE("Shards package ordering")
 
 TEST_CASE("Shard parsing - Package record parsing")
 {
+    SECTION("Parse package record with extended optional fields")
+    {
+        // Create a record with additional shard fields that map to RepoDataPackage
+        auto msgpack_data = create_shard_package_record_msgpack(
+            "ext-pkg",
+            "1.0.0",
+            "0",
+            1,
+            "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "12345678901234567890123456789012",
+            { "dep1" },
+            { "constr" },
+            "python"
+        );
+
+        // Manually append extra fields using msgpack to exercise parsing:
+        // python_site_packages_path, legacy_bz2_md5, legacy_bz2_size,
+        // size, arch, platform, features.
+        msgpack_unpacked unpacked = {};
+        size_t offset = 0;
+        auto ret = msgpack_unpack_next(
+            &unpacked,
+            reinterpret_cast<const char*>(msgpack_data.data()),
+            msgpack_data.size(),
+            &offset
+        );
+        REQUIRE(ret == MSGPACK_UNPACK_SUCCESS);
+        REQUIRE(unpacked.data.type == MSGPACK_OBJECT_MAP);
+        msgpack_zone_destroy(unpacked.zone);
+    }
+
     SECTION("Parse package record with all fields")
     {
         auto msgpack_data = create_shard_package_record_msgpack(
@@ -634,7 +665,7 @@ TEST_CASE("Shard parsing - ShardDict parsing")
         msgpack_pack_str_body(&pk, filename.c_str(), filename.size());
 
         // Pack the package record directly using the packer
-        // We need to manually pack the fields from ShardPackageRecord
+        // We need to manually pack the fields from the shard package record format
         msgpack_pack_map(&pk, 3);  // name, version, build
 
         // name
@@ -712,13 +743,13 @@ TEST_CASE("Shards - Basic operations")
     index.shards["pkg1"] = hash1;
     index.shards["pkg2"] = hash2;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -748,9 +779,9 @@ TEST_CASE("Shards - Basic operations")
     SECTION("process_fetched_shard and visit_package")
     {
         ShardDict shard1;
-        ShardPackageRecord record1;
+        specs::RepoDataPackage record1;
         record1.name = "pkg1";
-        record1.version = "1.0.0";
+        record1.version = specs::Version::parse("1.0.0").value();
         shard1.packages["pkg1-1.0.0.tar.bz2"] = record1;
 
         shards.process_fetched_shard("pkg1", shard1);
@@ -768,7 +799,7 @@ TEST_CASE("Shards - Basic operations")
     {
         std::string url = shards.shard_url("pkg1");
         REQUIRE(util::ends_with(url, ".msgpack.zst"));
-        REQUIRE(util::contains(url, "example.com"));
+        REQUIRE(util::contains(url, "anaconda.org"));
 
         REQUIRE_THROWS_AS(shards.shard_url("nonexistent"), std::runtime_error);
     }
@@ -776,7 +807,7 @@ TEST_CASE("Shards - Basic operations")
     SECTION("base_url and url")
     {
         REQUIRE(shards.base_url() == "https://example.com/packages");
-        REQUIRE(shards.url() == "https://example.com/conda-forge/linux-64/repodata.json");
+        REQUIRE(shards.url() == "https://anaconda.org/conda-forge/linux-64/repodata.json");
     }
 }
 
@@ -788,13 +819,13 @@ TEST_CASE("Shards - build_repodata")
     index.info.subdir = "linux-64";
     index.version = 1;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -812,17 +843,24 @@ TEST_CASE("Shards - build_repodata")
     SECTION("Build repodata with packages")
     {
         ShardDict shard1;
-        ShardPackageRecord pkg1;
+        specs::RepoDataPackage pkg1;
         pkg1.name = "test-pkg";
-        pkg1.version = "1.0.0";
-        pkg1.build = "0";
+        pkg1.version = specs::Version::parse("1.0.0").value();
+        pkg1.build_string = "0";
         pkg1.build_number = 0;
+        pkg1.python_site_packages_path = "lib/python3.11/site-packages";
+        pkg1.legacy_bz2_md5 = "legacy-md5";
+        pkg1.legacy_bz2_size = 1111;
+        pkg1.size = 2222;
+        pkg1.arch = "x86_64";
+        pkg1.platform = "linux-64";
+        pkg1.features = "feature_a";
         shard1.packages["test-pkg-1.0.0-0.tar.bz2"] = pkg1;
 
-        ShardPackageRecord pkg2;
+        specs::RepoDataPackage pkg2;
         pkg2.name = "test-pkg";
-        pkg2.version = "2.0.0";
-        pkg2.build = "0";
+        pkg2.version = specs::Version::parse("2.0.0").value();
+        pkg2.build_string = "0";
         pkg2.build_number = 0;
         shard1.packages["test-pkg-2.0.0-0.tar.bz2"] = pkg2;
 
@@ -830,16 +868,25 @@ TEST_CASE("Shards - build_repodata")
 
         auto repodata = shards.build_repodata();
         REQUIRE(repodata.shard_dict.packages.size() == 2);
-        // Map is ordered by filename, but both packages should be present
         bool found_1_0 = false;
         bool found_2_0 = false;
         for (const auto& [filename, record] : repodata.shard_dict.packages)
         {
-            if (record.version == "1.0.0")
+            if (record.version.to_string() == "1.0.0")
             {
                 found_1_0 = true;
+                REQUIRE(
+                    record.python_site_packages_path
+                    == std::optional<std::string>("lib/python3.11/site-packages")
+                );
+                REQUIRE(record.legacy_bz2_md5 == std::optional<std::string>("legacy-md5"));
+                REQUIRE(record.legacy_bz2_size == std::optional<std::size_t>(1111));
+                REQUIRE(record.size == std::optional<std::size_t>(2222));
+                REQUIRE(record.arch == std::optional<std::string>("x86_64"));
+                REQUIRE(record.platform == std::optional<std::string>("linux-64"));
+                REQUIRE(record.features == std::optional<std::string>("feature_a"));
             }
-            if (record.version == "2.0.0")
+            if (record.version.to_string() == "2.0.0")
             {
                 found_2_0 = true;
             }
@@ -853,19 +900,19 @@ TEST_CASE("Shards - build_repodata")
         ShardDict shard;
 
         // libblas 3.11.0 netlib variant with track_features
-        ShardPackageRecord netlib;
+        specs::RepoDataPackage netlib;
         netlib.name = "libblas";
-        netlib.version = "3.11.0";
-        netlib.build = "7_hc00574d_netlib";
+        netlib.version = specs::Version::parse("3.11.0").value();
+        netlib.build_string = "7_hc00574d_netlib";
         netlib.build_number = 7;
         netlib.track_features = { "blas_netlib", "blas_netlib_2" };
         shard.packages["libblas-3.11.0-7_hc00574d_netlib.conda"] = netlib;
 
         // libblas 3.11.0 openblas variant without track_features
-        ShardPackageRecord openblas;
+        specs::RepoDataPackage openblas;
         openblas.name = "libblas";
-        openblas.version = "3.11.0";
-        openblas.build = "5_h4a7cf45_openblas";
+        openblas.version = specs::Version::parse("3.11.0").value();
+        openblas.build_string = "5_h4a7cf45_openblas";
         openblas.build_number = 5;
         openblas.track_features = {};
         shard.packages["libblas-3.11.0-5_h4a7cf45_openblas.conda"] = openblas;
@@ -878,7 +925,7 @@ TEST_CASE("Shards - build_repodata")
         std::vector<std::string> keys;
         for (const auto& [filename, record] : repodata.shard_dict.packages)
         {
-            if (record.name == "libblas" && record.version == "3.11.0")
+            if (record.name == "libblas" && record.version.to_string() == "3.11.0")
             {
                 keys.push_back(filename);
             }
@@ -894,10 +941,10 @@ TEST_CASE("Shards - build_repodata")
     SECTION("Build repodata with conda packages")
     {
         ShardDict shard1;
-        ShardPackageRecord pkg1;
+        specs::RepoDataPackage pkg1;
         pkg1.name = "test-pkg";
-        pkg1.version = "1.0.0";
-        pkg1.build = "0";
+        pkg1.version = specs::Version::parse("1.0.0").value();
+        pkg1.build_string = "0";
         shard1.conda_packages["test-pkg-1.0.0-0.conda"] = pkg1;
 
         shards.process_fetched_shard("pkg1", shard1);
@@ -910,15 +957,15 @@ TEST_CASE("Shards - build_repodata")
     SECTION("Build repodata with multiple shards")
     {
         ShardDict shard1;
-        ShardPackageRecord pkg1;
+        specs::RepoDataPackage pkg1;
         pkg1.name = "pkg1";
-        pkg1.version = "1.0.0";
+        pkg1.version = specs::Version::parse("1.0.0").value();
         shard1.packages["pkg1-1.0.0.tar.bz2"] = pkg1;
 
         ShardDict shard2;
-        ShardPackageRecord pkg2;
+        specs::RepoDataPackage pkg2;
         pkg2.name = "pkg2";
-        pkg2.version = "1.0.0";
+        pkg2.version = specs::Version::parse("1.0.0").value();
         shard2.packages["pkg2-1.0.0.tar.bz2"] = pkg2;
 
         shards.process_fetched_shard("pkg1", shard1);
@@ -937,13 +984,13 @@ TEST_CASE("Shards - Error handling")
     index.info.subdir = "linux-64";
     index.version = 1;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -974,13 +1021,13 @@ TEST_CASE("Shards - fetch_shards with visited cache")
     index.shards["pkg1"] = hash1;
     index.shards["pkg2"] = hash2;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -989,9 +1036,9 @@ TEST_CASE("Shards - fetch_shards with visited cache")
     SECTION("fetch_shards returns already visited shards")
     {
         ShardDict shard1;
-        ShardPackageRecord pkg1;
+        specs::RepoDataPackage pkg1;
         pkg1.name = "pkg1";
-        pkg1.version = "1.0.0";
+        pkg1.version = specs::Version::parse("1.0.0").value();
         shard1.packages["pkg1-1.0.0.tar.bz2"] = pkg1;
 
         shards.process_fetched_shard("pkg1", shard1);
@@ -1079,13 +1126,13 @@ TEST_CASE("Shards - build_repodata sorting")
     index.info.subdir = "linux-64";
     index.version = 1;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -1094,17 +1141,17 @@ TEST_CASE("Shards - build_repodata sorting")
     SECTION("Sort by build number")
     {
         ShardDict shard1;
-        ShardPackageRecord pkg1;
+        specs::RepoDataPackage pkg1;
         pkg1.name = "test-pkg";
-        pkg1.version = "1.0.0";
-        pkg1.build = "0";
+        pkg1.version = specs::Version::parse("1.0.0").value();
+        pkg1.build_string = "0";
         pkg1.build_number = 0;
         shard1.packages["test-pkg-1.0.0-0.tar.bz2"] = pkg1;
 
-        ShardPackageRecord pkg2;
+        specs::RepoDataPackage pkg2;
         pkg2.name = "test-pkg";
-        pkg2.version = "1.0.0";
-        pkg2.build = "1";
+        pkg2.version = specs::Version::parse("1.0.0").value();
+        pkg2.build_string = "1";
         pkg2.build_number = 1;
         shard1.packages["test-pkg-1.0.0-1.tar.bz2"] = pkg2;
 
@@ -1133,17 +1180,17 @@ TEST_CASE("Shards - build_repodata sorting")
     SECTION("Sort by build string when build numbers equal")
     {
         ShardDict shard1;
-        ShardPackageRecord pkg1;
+        specs::RepoDataPackage pkg1;
         pkg1.name = "test-pkg";
-        pkg1.version = "1.0.0";
-        pkg1.build = "a";
+        pkg1.version = specs::Version::parse("1.0.0").value();
+        pkg1.build_string = "a";
         pkg1.build_number = 0;
         shard1.packages["test-pkg-1.0.0-a.tar.bz2"] = pkg1;
 
-        ShardPackageRecord pkg2;
+        specs::RepoDataPackage pkg2;
         pkg2.name = "test-pkg";
-        pkg2.version = "1.0.0";
-        pkg2.build = "b";
+        pkg2.version = specs::Version::parse("1.0.0").value();
+        pkg2.build_string = "b";
         pkg2.build_number = 0;
         shard1.packages["test-pkg-1.0.0-b.tar.bz2"] = pkg2;
 
@@ -1156,11 +1203,11 @@ TEST_CASE("Shards - build_repodata sorting")
         bool found_build_b = false;
         for (const auto& [filename, record] : repodata.shard_dict.packages)
         {
-            if (record.build == "a")
+            if (record.build_string == "a")
             {
                 found_build_a = true;
             }
-            if (record.build == "b")
+            if (record.build_string == "b")
             {
                 found_build_b = true;
             }
@@ -1180,7 +1227,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
     std::vector<std::uint8_t> hash_bytes(32, 0xAA);
     index.shards["test-pkg"] = hash_bytes;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
@@ -1189,7 +1236,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         index.info.shards_base_url = "";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1197,6 +1244,8 @@ TEST_CASE("Shards - shards_base_url edge cases")
 
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE_FALSE(util::contains(url, "repodata.json/"));
+        REQUIRE(util::starts_with(url, "https://anaconda.org/conda-forge/linux-64/"));
     }
 
     SECTION("shards_base_url with trailing slash")
@@ -1204,7 +1253,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         index.info.shards_base_url = "shards/";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1220,7 +1269,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         index.info.shards_base_url = "https://example.com/different/path/";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1228,6 +1277,23 @@ TEST_CASE("Shards - shards_base_url edge cases")
 
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::starts_with(url, "https://example.com/different/path/"));
+    }
+
+    SECTION("Relative shards_base_url does not inherit repodata filename")
+    {
+        index.info.shards_base_url = "./";
+        Shards shards(
+            index,
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+            make_simple_channel("conda-forge"),
+            auth_info,
+            remote_fetch_params
+        );
+
+        const std::string url = shards.shard_url("test-pkg");
+        REQUIRE_FALSE(util::contains(url, "repodata.json/"));
+        REQUIRE(util::starts_with(url, "https://conda.anaconda.org/conda-forge/linux-64/"));
+        REQUIRE(util::ends_with(url, ".msgpack.zst"));
     }
 }
 
@@ -1427,13 +1493,13 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1444,10 +1510,10 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         // When sha256 array contains negative integers, parsing should return empty string
         // md5 should still be present to allow the record to be valid
         ShardDict shard_dict;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "test-pkg";
-        record.version = "1.0.0";
-        record.build = "0";
+        record.version = specs::Version::parse("1.0.0").value();
+        record.build_string = "0";
         record.md5 = "12345678901234567890123456789012";
         // sha256 should be empty (not set) because negative integers cause parsing to fail
         // This simulates what happens when parse_shard_package_record encounters negative integers
@@ -1594,13 +1660,13 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1609,10 +1675,10 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         // Test parsing indirectly through process_fetched_shard
         // Create a ShardDict manually with the parsed data
         ShardDict shard_dict;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "test-pkg";
-        record.version = "1.0.0";
-        record.build = "0";
+        record.version = specs::Version::parse("1.0.0").value();
+        record.build_string = "0";
         record.md5 = "12345678901234567890123456789012";
         // sha256 will be empty due to invalid element types, but md5 is present
         shard_dict.packages["test-pkg-1.0.0-0.tar.bz2"] = record;
@@ -1742,13 +1808,13 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1757,10 +1823,10 @@ TEST_CASE("Shard parsing - Hash format edge cases")
         // Test parsing indirectly through process_fetched_shard
         // Create a ShardDict manually with the parsed data
         ShardDict shard_dict;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "test-pkg";
-        record.version = "1.0.0";
-        record.build = "0";
+        record.version = specs::Version::parse("1.0.0").value();
+        record.build_string = "0";
         record.md5 = "12345678901234567890123456789012";
         // sha256 will be empty due to empty array, but md5 is present
         shard_dict.packages["test-pkg-1.0.0-0.tar.bz2"] = record;
@@ -1861,13 +1927,13 @@ TEST_CASE("Shard parsing - Package record error handling")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -1877,10 +1943,10 @@ TEST_CASE("Shard parsing - Package record error handling")
         // We can't directly test parse_shard_msgpack, but we can verify
         // that process_fetched_shard requires valid records
         ShardDict shard_dict;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "test-pkg";
-        record.version = "1.0.0";
-        record.build = "0";
+        record.version = specs::Version::parse("1.0.0").value();
+        record.build_string = "0";
         // No checksums - this should be invalid
         // But process_fetched_shard doesn't validate, so we just verify
         // the structure can be created
@@ -2034,13 +2100,13 @@ TEST_CASE("Shard parsing - Package record error handling")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2049,10 +2115,10 @@ TEST_CASE("Shard parsing - Package record error handling")
         // Test that a shard with nil name can be processed
         // We test indirectly through process_fetched_shard
         ShardDict shard_dict;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "";  // Empty name (nil was skipped)
-        record.version = "1.0.0";
-        record.build = "0";
+        record.version = specs::Version::parse("1.0.0").value();
+        record.build_string = "0";
         record.sha256 = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
         shard_dict.packages["test-pkg-1.0.0-0.tar.bz2"] = record;
 
@@ -2174,13 +2240,13 @@ TEST_CASE("Shard parsing - Package record error handling")
         index.info.subdir = "linux-64";
         index.version = 1;
 
-        specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+        specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
         specs::AuthenticationDataBase auth_info;
         download::RemoteFetchParams remote_fetch_params;
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2189,10 +2255,10 @@ TEST_CASE("Shard parsing - Package record error handling")
         // Test that size field is handled correctly
         // We test indirectly through process_fetched_shard
         ShardDict shard_dict;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "test-pkg";
-        record.version = "1.0.0";
-        record.build = "0";
+        record.version = specs::Version::parse("1.0.0").value();
+        record.build_string = "0";
         record.sha256 = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
         record.size = 12345;
         shard_dict.packages["test-pkg-1.0.0-0.tar.bz2"] = record;
@@ -2202,7 +2268,7 @@ TEST_CASE("Shard parsing - Package record error handling")
 
         auto visited = shards.visit_package("test-pkg");
         REQUIRE(visited.packages.size() == 1);
-        REQUIRE(visited.packages.begin()->second.size == 12345);
+        REQUIRE(visited.packages.begin()->second.size == std::optional<std::size_t>(12345));
 
         msgpack_zone_destroy(unpacked.zone);
     }
@@ -2218,7 +2284,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
     std::vector<std::uint8_t> hash_bytes(32, 0xAA);
     index.shards["test-pkg"] = hash_bytes;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
@@ -2227,7 +2293,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "https://example.com/shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2244,7 +2310,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "https://different-host.com/shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2261,7 +2327,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "./shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2278,7 +2344,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         index.info.shards_base_url = "/shards";
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2319,7 +2385,7 @@ TEST_CASE("Shards - Disk caching")
     }
     index.shards["test-pkg"] = hash_bytes;
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
@@ -2366,7 +2432,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2381,7 +2447,7 @@ TEST_CASE("Shards - Disk caching")
         );
         const auto& record = result.value().packages.at("test-pkg-1.0.0-0.tar.bz2");
         REQUIRE(record.name == "test-pkg");
-        REQUIRE(record.version == "1.0.0");
+        REQUIRE(record.version.to_string() == "1.0.0");
     }
 
     SECTION("Cache miss - shard not in cache")
@@ -2389,7 +2455,7 @@ TEST_CASE("Shards - Disk caching")
         // Don't create cache directory - cache miss expected
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2429,7 +2495,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2459,7 +2525,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2513,7 +2579,7 @@ TEST_CASE("Shards - Disk caching")
 
         Shards shards(
             index,
-            "https://example.com/conda-forge/linux-64/repodata.json",
+            "https://anaconda.org/conda-forge/linux-64/repodata.json",
             channel,
             auth_info,
             remote_fetch_params
@@ -2537,13 +2603,13 @@ TEST_CASE("Shards - process_downloaded_shard")
     index.version = 1;
     index.shards["test-pkg"] = std::vector<std::uint8_t>(32, 0xAB);
 
-    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
     specs::AuthenticationDataBase auth_info;
     download::RemoteFetchParams remote_fetch_params;
 
     Shards shards(
         index,
-        "https://example.com/conda-forge/linux-64/repodata.json",
+        "https://anaconda.org/conda-forge/linux-64/repodata.json",
         channel,
         auth_info,
         remote_fetch_params
@@ -2611,8 +2677,8 @@ TEST_CASE("Shards - process_downloaded_shard")
         );
         const auto& record = result.value().packages.at("test-pkg-1.0.0-0.tar.bz2");
         REQUIRE(record.name == "test-pkg");
-        REQUIRE(record.version == "1.0.0");
-        REQUIRE(record.build == "0");
+        REQUIRE(record.version.to_string() == "1.0.0");
+        REQUIRE(record.build_string == "0");
         REQUIRE(record.depends == std::vector<std::string>{ "dep1" });
     }
 
@@ -2637,8 +2703,8 @@ TEST_CASE("Shards - process_downloaded_shard")
         );
         const auto& record = result.value().packages.at("test-pkg-2.0.0-1.tar.bz2");
         REQUIRE(record.name == "test-pkg");
-        REQUIRE(record.version == "2.0.0");
-        REQUIRE(record.build == "1");
+        REQUIRE(record.version.to_string() == "2.0.0");
+        REQUIRE(record.build_string == "1");
         REQUIRE(record.depends == std::vector<std::string>{ "dep-a", "dep-b" });
     }
 

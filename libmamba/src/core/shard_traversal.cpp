@@ -47,19 +47,17 @@ namespace mamba
         {
             for (const auto& spec : specs)
             {
-                auto parsed = specs::MatchSpec::parse(spec);
-                if (parsed)
+                if (auto name = specs::MatchSpec::extract_name(spec); name.has_value())
                 {
-                    auto name = parsed->name().to_string();
-                    if (!name.empty() && !parsed->name().is_free())
+                    if (name.value() != "*")
                     {
-                        names.insert(std::move(name));
+                        names.insert(std::move(name).value());
                     }
                 }
             }
         }
 
-        void add_names_from_record(const ShardPackageRecord& record, std::set<std::string>& names)
+        void add_names_from_record(const specs::RepoDataPackage& record, std::set<std::string>& names)
         {
             add_names_from_specs(record.depends, names);
             add_names_from_specs(record.constrains, names);

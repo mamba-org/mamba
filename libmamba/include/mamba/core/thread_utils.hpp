@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_THREAD_UTILS_HPP
 #define MAMBA_CORE_THREAD_UTILS_HPP
 
+#include <algorithm>
 #include <condition_variable>
 #include <csignal>
 #include <exception>
@@ -66,6 +67,23 @@ namespace mamba
     // it won't free resources that could be required
     // by threads still active.
     void wait_for_all_threads();
+
+    /**
+     * Normalize a requested thread count based on the process affinity.
+     *
+     * The `threads` parameter follows the same semantics as `extract_threads`:
+     * - `threads > 0`: user explicitly requested exactly this many threads (never capped);
+     * - `threads == 0`: use `min(10, available_concurrency)` as a conservative default;
+     * - `threads < 0`: use (available_concurrency + threads).
+     *
+     * Only the auto/relative forms (`threads <= 0`) are clamped to the range
+     * \[1, available_concurrency\], where `available_concurrency` is the number of hardware
+     * threads effectively available to this process. On platforms where we can query a process
+     * affinity mask (currently Linux and Windows), this takes the current affinity mask into
+     * account (e.g. `taskset -c 0 micromamba` or `SetProcessAffinityMask`). On other platforms
+     * (such as macOS), it falls back to `std::thread::hardware_concurrency()`.
+     */
+    std::size_t normalize_to_affinity_concurrency(std::ptrdiff_t requested_n_threads = 0);
 
     /**********
      * thread *
@@ -210,20 +228,9 @@ namespace mamba
 
     inline void counting_semaphore::set_max(std::ptrdiff_t value)
     {
-        std::ptrdiff_t new_max;
-        if (value == 0)
-        {
-            new_max = std::thread::hardware_concurrency();
-        }
-        else if (value < 0)
-        {
-            new_max = std::thread::hardware_concurrency() + value;
-        }
-        else
-        {
-            new_max = value;
-        }
-
+        const std::ptrdiff_t new_max = static_cast<std::ptrdiff_t>(
+            normalize_to_affinity_concurrency(value)
+        );
         m_value += new_max - m_max;
         m_max = new_max;
     }

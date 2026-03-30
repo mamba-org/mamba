@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cctype>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -19,6 +20,38 @@
 
 namespace mamba::specs
 {
+    auto MatchSpec::extract_name(std::string_view spec) -> expected_parse_t<std::string>
+    {
+        std::size_t i = 0;
+        while (i < spec.size() && std::isspace(static_cast<unsigned char>(spec[i])))
+        {
+            ++i;
+        }
+        if (i == spec.size())
+        {
+            return make_unexpected_parse("Empty package name.");
+        }
+
+        const std::size_t name_start = i;
+        constexpr std::string_view binary_ops = "<>=!~";
+        while (i < spec.size())
+        {
+            const char c = spec[i];
+            if (std::isspace(static_cast<unsigned char>(c))
+                || (binary_ops.find(c) != std::string_view::npos))
+            {
+                break;
+            }
+            ++i;
+        }
+
+        if (i == name_start)
+        {
+            return make_unexpected_parse("Empty package name.");
+        }
+        return { std::string(spec.substr(name_start, i - name_start)) };
+    }
+
     auto MatchSpec::parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>
     {
         auto out = MatchSpec();

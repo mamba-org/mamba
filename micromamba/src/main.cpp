@@ -44,6 +44,7 @@ main(int argc, char** argv)
     mamba::Configuration config{ ctx };
 
     init_console();
+    mamba::on_scope_exit _console_reset{ [] { reset_console(); } };
 
     ctx.command_params.is_mamba_exe = true;
 
@@ -74,7 +75,6 @@ main(int argc, char** argv)
     if (argc >= 2 && strcmp(argv[1], "completer") == 0)
     {
         get_completions(&app, config, argc, utf8argv);
-        reset_console();
         return 0;
     }
 
@@ -130,7 +130,6 @@ main(int argc, char** argv)
         if (is_interruption)
         {
             LOG_WARNING << e.what();
-            reset_console();
             return 0;
         }
         else
@@ -145,15 +144,7 @@ main(int argc, char** argv)
 
     if (error_to_report)
     {
-        // we need the report to be done before resetting the console
-        // otherwise we might not capture the errors in the json output
         LOG_CRITICAL << error_to_report.value();
-    }
-
-    reset_console();
-
-    if (error_to_report)
-    {
         return 1;  // TODO: consider returning EXIT_FAILURE
     }
 

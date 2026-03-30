@@ -76,7 +76,7 @@ namespace mamba
     {
         bool enable_logging = false;
         bool enable_signal_handling = false;
-        std::optional<OutputParams> output_params;
+        std::optional<OutputParams> output_params = {};
     };
 
     // Context singleton class

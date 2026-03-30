@@ -159,15 +159,7 @@ namespace mamba
 
         auto request = create_update_request(prefix_data, raw_update_specs, update_params);
 
-        add_pins_to_request(
-            request,
-            ctx.pinned_packages,
-            ctx.solver_flags,
-            prefix_data,
-            raw_update_specs,
-            no_pin,
-            no_py_pin
-        );
+        add_pins_to_request(request, ctx, prefix_data, raw_update_specs, no_pin, no_py_pin);
 
         {
             auto out = Console::stream();

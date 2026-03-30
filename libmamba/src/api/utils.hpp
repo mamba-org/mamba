@@ -120,19 +120,6 @@ namespace mamba
     void validate_target_prefix_and_channels(const Context& ctx, bool create_env);
 
     /**
-     * Append file/global/python pins to a solver request and apply solver flags.
-     */
-    void add_pins_to_request(
-        solver::Request& request,
-        const std::vector<std::string>& pinned_packages,
-        const solver::Request::Flags& solver_flags,
-        const PrefixData& prefix_data,
-        const std::vector<std::string>& specs,
-        bool no_pin,
-        bool no_py_pin
-    );
-
-    /**
      * Prepare solver state: channels, package cache, database, and root package loading.
      */
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(

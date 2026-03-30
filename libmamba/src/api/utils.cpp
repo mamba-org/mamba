@@ -21,7 +21,6 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
-#include "mamba/core/pinning.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
@@ -402,62 +401,6 @@ namespace mamba
         {
             LOG_WARNING << "No 'channels' specified";
         }
-    }
-
-    void add_pins_to_request(
-        solver::Request& request,
-        const std::vector<std::string>& pinned_packages,
-        const solver::Request::Flags& solver_flags,
-        const PrefixData& prefix_data,
-        const std::vector<std::string>& specs,
-        bool no_pin,
-        bool no_py_pin
-    )
-    {
-        using Request = solver::Request;
-
-        const auto estimated_jobs_count = request.jobs.size() + (!no_pin) * pinned_packages.size()
-                                          + !no_py_pin;
-        request.jobs.reserve(estimated_jobs_count);
-        if (!no_pin)
-        {
-            for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
-            {
-                request.jobs.emplace_back(
-                    Request::Pin{
-                        specs::MatchSpec::parse(pin)
-                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                            .value(),
-                    }
-                );
-            }
-            for (const auto& pin : pinned_packages)
-            {
-                request.jobs.emplace_back(
-                    Request::Pin{
-                        specs::MatchSpec::parse(pin)
-                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                            .value(),
-                    }
-                );
-            }
-        }
-
-        if (!no_py_pin)
-        {
-            auto py_pins = python_pin(prefix_data, specs);
-            for (const auto& py_pin : py_pins)
-            {
-                request.jobs.emplace_back(
-                    Request::Pin{
-                        specs::MatchSpec::parse(py_pin)
-                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                            .value(),
-                    }
-                );
-            }
-        }
-        request.flags = solver_flags;
     }
 
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(

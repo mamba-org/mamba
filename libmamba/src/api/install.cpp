@@ -20,6 +20,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
+#include "mamba/core/pinning.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -451,6 +452,64 @@ namespace mamba
         return request;
     }
 
+    void add_pins_to_request(
+        solver::Request& request,
+        const Context& ctx,
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool no_pin,
+        bool no_py_pin
+    )
+    {
+        using Request = solver::Request;
+
+        const auto& pinned_packages = ctx.pinned_packages;
+        const auto& solver_flags = ctx.solver_flags;
+
+        const auto estimated_jobs_count = request.jobs.size() + (!no_pin) * pinned_packages.size()
+                                          + !no_py_pin;
+        request.jobs.reserve(estimated_jobs_count);
+        if (!no_pin)
+        {
+            for (const auto& pin : file_pins(prefix_data.path() / "conda-meta" / "pinned"))
+            {
+                request.jobs.emplace_back(
+                    Request::Pin{
+                        specs::MatchSpec::parse(pin)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
+            }
+            for (const auto& pin : pinned_packages)
+            {
+                request.jobs.emplace_back(
+                    Request::Pin{
+                        specs::MatchSpec::parse(pin)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
+            }
+        }
+
+        if (!no_py_pin)
+        {
+            auto py_pins = python_pin(prefix_data, specs);
+            for (const auto& py_pin : py_pins)
+            {
+                request.jobs.emplace_back(
+                    Request::Pin{
+                        specs::MatchSpec::parse(py_pin)
+                            .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                            .value(),
+                    }
+                );
+            }
+        }
+        request.flags = solver_flags;
+    }
+
     void print_request_pins_to(const solver::Request& request, std::ostream& out)
     {
         for (const auto& req : request.jobs)
@@ -507,15 +566,7 @@ namespace mamba
                                        .prefix_data_interoperability = ctx.prefix_data_interoperability }
             );
 
-            add_pins_to_request(
-                request,
-                ctx.pinned_packages,
-                ctx.solver_flags,
-                prefix_data,
-                raw_specs,
-                no_pin,
-                no_py_pin
-            );
+            add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
 
             {
                 auto out = Console::stream();

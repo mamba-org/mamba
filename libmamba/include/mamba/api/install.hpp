@@ -52,6 +52,18 @@ namespace mamba
         bool freeze_installed
     ) -> solver::Request;
 
+    /**
+     * Append file/global/python pins to a solver request and apply solver flags.
+     */
+    void add_pins_to_request(
+        solver::Request& request,
+        const Context& ctx,
+        PrefixData& prefix_data,
+        std::vector<std::string> specs,
+        bool no_pin,
+        bool no_py_pin
+    );
+
     void print_request_pins_to(const solver::Request& request, std::ostream& out);
 
     void install_explicit_specs(

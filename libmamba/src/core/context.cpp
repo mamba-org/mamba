@@ -103,6 +103,11 @@ namespace mamba
             enable_signal_handling();
         }
 
+        if (options.output_params)
+        {
+            output_params = *options.output_params;
+        }
+
         // Do not start logging if `--json` or `--quiet` are used.
         if (options.enable_logging and not (output_params.json or output_params.quiet))
         {

@@ -65,10 +65,18 @@ namespace mamba
     class Logger;
     class Context;
 
+    struct OutputParams : LoggingParams
+    {
+        bool json{ false };
+        bool quiet{ false };
+        int verbosity{ 0 };
+    };
+
     struct ContextOptions
     {
         bool enable_logging = false;
         bool enable_signal_handling = false;
+        std::optional<OutputParams> output_params;
     };
 
     // Context singleton class
@@ -78,12 +86,7 @@ namespace mamba
 
         static void use_default_signal_handler(bool val);
 
-        struct OutputParams : LoggingParams
-        {
-            bool json{ false };
-            bool quiet{ false };
-            int verbosity{ 0 };
-        };
+        using OutputParams = mamba::OutputParams;
 
         struct GraphicsParams
         {

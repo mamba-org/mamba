@@ -109,6 +109,18 @@ namespace mamba
         if (!python_site_packages_path.empty())
         {
             res.site_packages_path = python_site_packages_path;
+#ifndef _WIN32
+            // Free-threaded CPython installs use bin/pythonX.Yt alongside
+            // lib/pythonX.Yt/site-packages.
+            if (util::contains(
+                    python_site_packages_path,
+                    util::concat("python", res.short_python_version, "t")
+                ))
+            {
+                res.python_path = fs::u8path("bin")
+                                  / util::concat("python", res.short_python_version, "t");
+            }
+#endif
         }
         else
         {

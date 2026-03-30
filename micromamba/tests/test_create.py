@@ -1904,6 +1904,7 @@ def test_set_platform(tmp_home, tmp_root_prefix):
     "version,build,cache_tag",
     [
         ["3.10", "*_cpython", "cpython-310"],
+        # Free-threaded layout is lib/python3.13t/...; bytecode still uses cpython-313 (cache_tag).
         ["3.13", "*_cp313t", "cpython-313"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],
@@ -1935,9 +1936,15 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     six_meta = next((env_prefix / "conda-meta").glob("six-*.json")).read_text()
     assert pyc_fn.name in six_meta
 
+    # A second `create` into an already-satisfied prefix is often a no-op, so linking (and
+    # pyc compilation) may not run again. Remove the env so the next create performs a full
+    # install with compile_pyc enabled.
+    helpers.run_env("remove", "-n", env_name, "-y")
+
     # Enable pyc compilation to ensure that the pyc files are created
     helpers.create(*cmd)
     assert (site_packages / pyc_fn).exists()
+    six_meta = next((env_prefix / "conda-meta").glob("six-*.json")).read_text()
     assert pyc_fn.name in six_meta
 
 

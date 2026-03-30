@@ -129,8 +129,8 @@ main(int argc, char** argv)
 
         if (is_interruption)
         {
-            reset_console();
             LOG_WARNING << e.what();
+            reset_console();
             return 0;
         }
         else
@@ -143,11 +143,17 @@ main(int argc, char** argv)
         handle_exception(e);
     }
 
+    if (error_to_report)
+    {
+        // we need the report to be done before resetting the console
+        // otherwise we might not capture the errors in the json output
+        LOG_CRITICAL << error_to_report.value();
+    }
+
     reset_console();
 
     if (error_to_report)
     {
-        LOG_CRITICAL << error_to_report.value();
         return 1;  // TODO: consider returning EXIT_FAILURE
     }
 

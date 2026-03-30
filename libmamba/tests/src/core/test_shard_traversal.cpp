@@ -134,10 +134,10 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Extract from depends")
     {
         ShardDict shard;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "python";
-        record.version = "3.11";
-        record.build = "0";
+        record.version = specs::Version::parse("3.11").value();
+        record.build_string = "0";
         record.depends = { "libffi", "libzstd>=1.4" };
         shard.packages["python-3.11-0.conda"] = record;
 
@@ -150,10 +150,10 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Extract from constrains")
     {
         ShardDict shard;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "numpy";
-        record.version = "1.24";
-        record.build = "0";
+        record.version = specs::Version::parse("1.24").value();
+        record.build_string = "0";
         record.constrains = { "python>=3.9" };
         shard.conda_packages["numpy-1.24-0.conda"] = record;
 
@@ -165,12 +165,12 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Extract from both packages and conda_packages")
     {
         ShardDict shard;
-        ShardPackageRecord rec1;
+        specs::RepoDataPackage rec1;
         rec1.name = "pkg1";
         rec1.depends = { "dep_a" };
         shard.packages["pkg1-1.0.tar.bz2"] = rec1;
 
-        ShardPackageRecord rec2;
+        specs::RepoDataPackage rec2;
         rec2.name = "pkg2";
         rec2.depends = { "dep_b" };
         shard.conda_packages["pkg2-1.0.conda"] = rec2;
@@ -184,12 +184,12 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Deduplicate across multiple records")
     {
         ShardDict shard;
-        ShardPackageRecord rec1;
+        specs::RepoDataPackage rec1;
         rec1.name = "pkg1";
         rec1.depends = { "common_dep" };
         shard.packages["pkg1-1.0.tar.bz2"] = rec1;
 
-        ShardPackageRecord rec2;
+        specs::RepoDataPackage rec2;
         rec2.name = "pkg2";
         rec2.depends = { "common_dep" };
         shard.packages["pkg2-1.0.tar.bz2"] = rec2;
@@ -201,7 +201,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Skip invalid specs")
     {
         ShardDict shard;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "pkg";
         record.depends = { "valid>=1.0", "!!!invalid!!!", "another_valid" };
         shard.packages["pkg-1.0.conda"] = record;
@@ -214,7 +214,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Skip free name specs")
     {
         ShardDict shard;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "pkg";
         record.depends = { "normal_pkg", "*" };
         shard.packages["pkg-1.0.conda"] = record;
@@ -234,7 +234,7 @@ TEST_CASE("shard_mentioned_packages", "[mamba::core][mamba::core::shard_traversa
     SECTION("Shard with empty depends and constrains")
     {
         ShardDict shard;
-        ShardPackageRecord record;
+        specs::RepoDataPackage record;
         record.name = "pkg";
         record.depends = {};
         record.constrains = {};
@@ -257,7 +257,7 @@ TEST_CASE("RepodataSubset constructor and accessors", "[mamba::core][mamba::core
     SECTION("With single shard collection")
     {
         auto shards = create_shards_with_preloaded_deps(
-            "https://example.com/conda-forge",
+            "https://anaconda.org/conda-forge",
             { { "python", {} } }
         );
         RepodataSubset subset({ *shards });
@@ -271,7 +271,7 @@ TEST_CASE("RepodataSubset reachable empty", "[mamba::core][mamba::core::shard_tr
     SECTION("Empty root_packages returns early")
     {
         auto shards = create_shards_with_preloaded_deps(
-            "https://example.com/conda-forge",
+            "https://anaconda.org/conda-forge",
             { { "python", {} } }
         );
         RepodataSubset subset({ *shards });
@@ -282,7 +282,7 @@ TEST_CASE("RepodataSubset reachable empty", "[mamba::core][mamba::core::shard_tr
     SECTION("Empty root_packages with bfs")
     {
         auto shards = create_shards_with_preloaded_deps(
-            "https://example.com/conda-forge",
+            "https://anaconda.org/conda-forge",
             { { "python", {} } }
         );
         RepodataSubset subset({ *shards });
@@ -294,25 +294,25 @@ TEST_CASE("RepodataSubset reachable empty", "[mamba::core][mamba::core::shard_tr
 TEST_CASE("RepodataSubset reachable pipelined", "[mamba::core][mamba::core::shard_traversal]")
 {
     ShardDict python_shard;
-    ShardPackageRecord python_rec;
+    specs::RepoDataPackage python_rec;
     python_rec.name = "python";
     python_rec.depends = { "numpy" };
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     ShardDict numpy_shard;
-    ShardPackageRecord numpy_rec;
+    specs::RepoDataPackage numpy_rec;
     numpy_rec.name = "numpy";
     numpy_rec.depends = { "libffi" };
     numpy_shard.packages["numpy-1.24-0.conda"] = numpy_rec;
 
     ShardDict libffi_shard;
-    ShardPackageRecord libffi_rec;
+    specs::RepoDataPackage libffi_rec;
     libffi_rec.name = "libffi";
     libffi_rec.depends = {};
     libffi_shard.packages["libffi-1.0-0.conda"] = libffi_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         {
             { "python", python_shard },
             { "numpy", numpy_shard },
@@ -343,25 +343,25 @@ TEST_CASE("RepodataSubset reachable pipelined", "[mamba::core][mamba::core::shar
 TEST_CASE("RepodataSubset reachable bfs", "[mamba::core][mamba::core::shard_traversal]")
 {
     ShardDict python_shard;
-    ShardPackageRecord python_rec;
+    specs::RepoDataPackage python_rec;
     python_rec.name = "python";
     python_rec.depends = { "numpy" };
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     ShardDict numpy_shard;
-    ShardPackageRecord numpy_rec;
+    specs::RepoDataPackage numpy_rec;
     numpy_rec.name = "numpy";
     numpy_rec.depends = { "libffi" };
     numpy_shard.packages["numpy-1.24-0.conda"] = numpy_rec;
 
     ShardDict libffi_shard;
-    ShardPackageRecord libffi_rec;
+    specs::RepoDataPackage libffi_rec;
     libffi_rec.name = "libffi";
     libffi_rec.depends = {};
     libffi_shard.packages["libffi-1.0-0.conda"] = libffi_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         {
             { "python", python_shard },
             { "numpy", numpy_shard },
@@ -392,13 +392,13 @@ TEST_CASE("RepodataSubset reachable bfs", "[mamba::core][mamba::core::shard_trav
 TEST_CASE("RepodataSubset reachable with root_shards filter", "[mamba::core][mamba::core::shard_traversal]")
 {
     ShardDict python_shard;
-    ShardPackageRecord python_rec;
+    specs::RepoDataPackage python_rec;
     python_rec.name = "python";
     python_rec.depends = {};
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 
@@ -415,13 +415,13 @@ TEST_CASE(
 )
 {
     ShardDict python_shard;
-    ShardPackageRecord python_rec;
+    specs::RepoDataPackage python_rec;
     python_rec.name = "python";
     python_rec.depends = {};
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 
@@ -435,7 +435,7 @@ TEST_CASE(
 TEST_CASE("RepodataSubset multiple channels", "[mamba::core][mamba::core::shard_traversal]")
 {
     ShardDict python_shard;
-    ShardPackageRecord python_rec;
+    specs::RepoDataPackage python_rec;
     python_rec.name = "python";
     python_rec.depends = {};
     python_shard.packages["python-3.11-0.conda"] = python_rec;
@@ -459,13 +459,13 @@ TEST_CASE("RepodataSubset multiple channels", "[mamba::core][mamba::core::shard_
 TEST_CASE("RepodataSubset package not in any shard", "[mamba::core][mamba::core::shard_traversal]")
 {
     ShardDict python_shard;
-    ShardPackageRecord python_rec;
+    specs::RepoDataPackage python_rec;
     python_rec.name = "python";
     python_rec.depends = {};
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 
@@ -478,13 +478,13 @@ TEST_CASE("RepodataSubset package not in any shard", "[mamba::core][mamba::core:
 TEST_CASE("RepodataSubset default strategy is bfs", "[mamba::core][mamba::core::shard_traversal]")
 {
     ShardDict python_shard;
-    ShardPackageRecord python_rec;
+    specs::RepoDataPackage python_rec;
     python_rec.name = "python";
     python_rec.depends = {};
     python_shard.packages["python-3.11-0.conda"] = python_rec;
 
     auto shards = create_shards_with_preloaded_deps(
-        "https://example.com/conda-forge",
+        "https://anaconda.org/conda-forge",
         { { "python", python_shard } }
     );
 

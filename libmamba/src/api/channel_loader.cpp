@@ -471,7 +471,12 @@ namespace mamba
 
                 if (result)
                 {
-                    database.set_repo_priority(std::move(result).value(), priorities[i]);
+                    // `load_subdir_with_shards` already sets priorities for all repos it adds.
+                    // Avoid overriding another repo when this subdir has no direct match.
+                    if (!use_shards)
+                    {
+                        database.set_repo_priority(std::move(result).value(), priorities[i]);
+                    }
                 }
                 else if (is_retry)
                 {
@@ -596,7 +601,7 @@ namespace mamba
                 );
                 std::size_t idx = url_to_subdir_idx.at(channel_url);
                 database.set_repo_priority(repo, priorities[idx]);
-                if (channel_url == current_repodata_url)
+                if (!result_repo.has_value() || channel_url == current_repodata_url)
                 {
                     result_repo = std::move(repo);
                 }

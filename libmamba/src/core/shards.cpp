@@ -178,18 +178,18 @@ namespace mamba
         }
 
         /**
-         * Manually parse a ShardPackageRecord from msgpack object.
+         * Manually parse a `specs::RepoDataPackage` from msgpack object.
          *
          * This handles the case where sha256 and md5 can be either strings or bytes
          * (as per Python TypedDict: NotRequired[str | bytes]).
          */
-        auto parse_shard_package_record(const msgpack_object& obj) -> ShardPackageRecord
+        auto parse_shard_package_record(const msgpack_object& obj) -> specs::RepoDataPackage
         {
-            ShardPackageRecord record;
+            specs::RepoDataPackage record;
 
             if (obj.type != MSGPACK_OBJECT_MAP)
             {
-                throw std::runtime_error("Expected MAP type for ShardPackageRecord");
+                throw std::runtime_error("Expected MAP type for shard package record");
             }
 
             for (std::uint32_t i = 0; i < obj.via.map.size; ++i)
@@ -221,11 +221,13 @@ namespace mamba
                     }
                     else if (key == "version")
                     {
-                        record.version = msgpack_object_to_string(val_obj);
+                        const auto version_str = msgpack_object_to_string(val_obj);
+                        auto parsed = specs::Version::parse(version_str);
+                        record.version = parsed ? parsed.value() : specs::Version(0, { { { 0 } } });
                     }
                     else if (key == "build")
                     {
-                        record.build = msgpack_object_to_string(val_obj);
+                        record.build_string = msgpack_object_to_string(val_obj);
                     }
                     else if (key == "build_number")
                     {
@@ -309,7 +311,19 @@ namespace mamba
                         }
                         else
                         {
-                            record.noarch = msgpack_object_to_string(val_obj);
+                            const auto noarch_str = msgpack_object_to_string(val_obj);
+                            if (noarch_str == "python")
+                            {
+                                record.noarch = specs::NoArchType::Python;
+                            }
+                            else if (noarch_str == "generic")
+                            {
+                                record.noarch = specs::NoArchType::Generic;
+                            }
+                            else
+                            {
+                                record.noarch = std::nullopt;
+                            }
                         }
                     }
                     else if (key == "size")
@@ -329,13 +343,29 @@ namespace mamba
                     {
                         record.features = msgpack_object_to_string(val_obj);
                     }
+                    else if (key == "license")
+                    {
+                        record.license = msgpack_object_to_string(val_obj);
+                    }
+                    else if (key == "license_family")
+                    {
+                        record.license_family = msgpack_object_to_string(val_obj);
+                    }
+                    else if (key == "subdir")
+                    {
+                        record.subdir = msgpack_object_to_string(val_obj);
+                    }
+                    else if (key == "timestamp")
+                    {
+                        record.timestamp = msgpack_object_to_uint64(val_obj);
+                    }
                     // Ignore unknown fields (they might be present in the data but not needed)
                 }
                 catch (const std::exception& e)
                 {
                     LOG_WARNING << "Failed to parse field '" << key
                                 << "' (type=" << static_cast<int>(val_obj.type)
-                                << ") in ShardPackageRecord: " << e.what();
+                                << ") in shard package record: " << e.what();
                     // Continue parsing other fields
                 }
             }
@@ -416,9 +446,31 @@ namespace mamba
         }
         else
         {
-            // For relative URLs, join with repodata URL
-            // url_concat handles slashes automatically, no need for "/" separator
-            result = util::url_concat(m_url, shards_base_url_str);
+            // For relative URLs, resolve against the parent directory of m_url
+            // (m_url may point to repodata.json / repodata_shards.msgpack.zst).
+            if (auto parsed_url = util::URL::parse(m_url); parsed_url.has_value())
+            {
+                const auto& url = parsed_url.value();
+                std::string parent_path = url.path();
+                const auto slash_pos = parent_path.rfind('/');
+                if (slash_pos != std::string::npos)
+                {
+                    parent_path = parent_path.substr(0, slash_pos + 1);
+                }
+                else
+                {
+                    parent_path = "/";
+                }
+                const std::string base_dir = std::string(url.scheme()) + "://"
+                                             + url.authority(util::URL::Credentials::Show)
+                                             + parent_path;
+                result = util::url_concat(base_dir, shards_base_url_str);
+            }
+            else
+            {
+                // Fallback: keep previous behavior if parsing fails.
+                result = util::url_concat(m_url, shards_base_url_str);
+            }
         }
 
         // Ensure trailing slash
@@ -757,6 +809,14 @@ namespace mamba
             {
                 mirror_name = m_channel.id();
                 url_path = shard_path_str;
+
+                // Fallback: if channel mirrors are not registered for this channel id,
+                // download directly from the fully resolved shard URL.
+                if (!extended_mirrors.has_mirrors(mirror_name))
+                {
+                    mirror_name = "";
+                    url_path = url;
+                }
             }
 
             download::Request request(
@@ -868,7 +928,7 @@ namespace mamba
             ShardDict shard;
 
             auto parse_package_records = [](const msgpack_object& map_obj,
-                                            std::map<std::string, ShardPackageRecord>& target_map,
+                                            std::map<std::string, specs::RepoDataPackage>& target_map,
                                             const std::string& map_name)
             {
                 for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
@@ -876,7 +936,7 @@ namespace mamba
                     try
                     {
                         std::string pkg_filename = msgpack_object_to_string(map_obj.via.map.ptr[k].key);
-                        ShardPackageRecord record = parse_shard_package_record(
+                        specs::RepoDataPackage record = parse_shard_package_record(
                             map_obj.via.map.ptr[k].val
                         );
                         target_map[pkg_filename] = record;
@@ -1080,14 +1140,25 @@ namespace mamba
         download::Options download_options;
         download_options.download_threads = m_download_threads;
 
-        auto download_results = download::download(
-            std::move(requests),
-            extended_mirrors,
-            m_remote_fetch_params,
-            m_auth_info,
-            download_options,
-            nullptr  // monitor
-        );
+        download::MultiResult download_results;
+        try
+        {
+            download_results = download::download(
+                std::move(requests),
+                extended_mirrors,
+                m_remote_fetch_params,
+                m_auth_info,
+                download_options,
+                nullptr  // monitor
+            );
+        }
+        catch (const std::exception& e)
+        {
+            return make_unexpected(
+                std::string("Failed to download shards: ") + e.what(),
+                mamba_error_code::unknown
+            );
+        }
 
         for (std::size_t i = 0; i < download_results.size() && i < cache_miss_urls.size(); ++i)
         {
@@ -1106,7 +1177,21 @@ namespace mamba
             LOG_DEBUG << "Successfully downloaded shard for package '" << package << "' from "
                       << url << " (" << success.transfer.downloaded_size << " bytes)";
 
-            auto shard_result = process_downloaded_shard(package, success, package_to_cache_path);
+            expected_t<ShardDict> shard_result = make_unexpected(
+                "Unknown error",
+                mamba_error_code::unknown
+            );
+            try
+            {
+                shard_result = process_downloaded_shard(package, success, package_to_cache_path);
+            }
+            catch (const std::exception& e)
+            {
+                shard_result = make_unexpected(
+                    std::string("Exception while processing shard: ") + e.what(),
+                    mamba_error_code::unknown
+                );
+            }
             if (!shard_result.has_value())
             {
                 LOG_WARNING << "Failed to process downloaded shard for package '" << package
@@ -1130,8 +1215,8 @@ namespace mamba
         // Collect all packages first, then sort by version and build number
         // This ensures that when libsolv processes packages, it sees them in
         // the correct order (highest version/build first)
-        std::vector<std::pair<std::string, ShardPackageRecord>> all_packages;
-        std::vector<std::pair<std::string, ShardPackageRecord>> all_conda_packages;
+        std::vector<std::pair<std::string, specs::RepoDataPackage>> all_packages;
+        std::vector<std::pair<std::string, specs::RepoDataPackage>> all_conda_packages;
 
         for (const auto& [package, shard] : m_visited)
         {
@@ -1162,25 +1247,6 @@ namespace mamba
             }
 
             // Then compare by version (descending - highest first)
-            // Parse versions for comparison
-            auto version_a = specs::Version::parse(record_a.version);
-            auto version_b = specs::Version::parse(record_b.version);
-
-            if (version_a.has_value() && version_b.has_value())
-            {
-                if (version_a.value() != version_b.value())
-                {
-                    return version_b.value() < version_a.value();  // Descending order
-                }
-            }
-
-            // If only one can be parsed, prefer the parsed one
-            if (version_a.has_value() || version_b.has_value())
-            {
-                return !version_a.has_value();
-            }
-
-            // Fallback to string comparison if parsing fails
             if (record_a.version != record_b.version)
             {
                 return record_b.version < record_a.version;  // Descending order
@@ -1202,7 +1268,7 @@ namespace mamba
             }
 
             // If everything else is equal, compare by build string
-            return record_b.build < record_a.build;  // Descending order
+            return record_b.build_string < record_a.build_string;  // Descending order
         };
 
         std::sort(all_packages.begin(), all_packages.end(), compare_packages);

@@ -326,8 +326,8 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard"
                     {
                         found_numpy = true;
                         // Verify the record has required fields
-                        REQUIRE(!record.version.empty());
-                        REQUIRE(!record.build.empty());
+                        REQUIRE(!record.version.to_string().empty());
+                        REQUIRE(!record.build_string.empty());
                         break;
                     }
                 }
@@ -336,8 +336,8 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard"
                     if (record.name == "numpy")
                     {
                         found_numpy = true;
-                        REQUIRE(!record.version.empty());
-                        REQUIRE(!record.build.empty());
+                        REQUIRE(!record.version.to_string().empty());
+                        REQUIRE(!record.build_string.empty());
                         break;
                     }
                 }

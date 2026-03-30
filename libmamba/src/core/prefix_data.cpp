@@ -216,9 +216,9 @@ namespace mamba
     {
         LOG_INFO << "Loading site packages";
 
-        auto pip_pkg_record = m_package_records.find("pip");
-        auto uv_pkg_record = m_package_records.find("uv");
-        if (pip_pkg_record == m_package_records.end() && uv_pkg_record == m_package_records.end())
+        bool pip_present = m_package_records.contains("pip");
+        bool uv_present = m_package_records.contains("uv");
+        if (!pip_present && !uv_present)
         {
             LOG_DEBUG << "`pip` and `uv` not found";
             return;
@@ -244,36 +244,26 @@ namespace mamba
             return s;
         };
 
-        struct ForceColorScope
+        struct SitePackageInspectionResult
         {
-            decltype(util::get_env("FORCE_COLOR")) previous;
-
-            ForceColorScope()
-                : previous(util::get_env("FORCE_COLOR"))
-            {
-                // Avoid rich output; rich output breaks machine-readable parsing.
-                util::unset_env("FORCE_COLOR");
-            }
-
-            ~ForceColorScope()
-            {
-                if (previous)
-                {
-                    util::set_env("FORCE_COLOR", previous.value());
-                }
-            }
+            nlohmann::json parsed_json;
+            nlohmann::json packages;
+            bool has_packages = false;
         };
 
         // Helper for invoking `python -m pip inspect` / `uv pip list` in a consistent,
-        // machine-readable way (avoid rich output by disabling FORCE_COLOR).
+        // machine-readable way (avoid rich output by disabling FORCE_COLOR) and parsing JSON.
         const auto run_site_package_inspection = [&](  //
-                                                     const std::string& error_message_prefix,
+                                                     const std::string& run_error_message_prefix,
+                                                     const std::string& parse_trace_prefix,
+                                                     const std::string& parse_error_message_prefix,
+                                                     const std::string& no_output_debug_message,
                                                      const auto& cmd_args,
                                                      const auto& env_vars,
                                                      reproc::options& opts
-                                                 )
+                                                 ) -> SitePackageInspectionResult
         {
-            ForceColorScope force_color_scope;
+            util::ForceColorScope force_color_scope;
 
             LOG_TRACE << "Running command: "
                       << fmt::format(
@@ -293,7 +283,7 @@ namespace mamba
             {
                 const auto message = fmt::format(
                     "{}\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                    error_message_prefix,
+                    run_error_message_prefix,
                     ec.message(),
                     fmt::join(cmd_args, " "),
                     fmt::join(env_vars, " "),
@@ -302,10 +292,47 @@ namespace mamba
                 );
                 throw mamba_error{ message, mamba_error_code::internal_failure };
             }
+
+            if (out.empty())
+            {
+                LOG_DEBUG << no_output_debug_message;
+                return {};
+            }
+
+            LOG_TRACE << parse_trace_prefix << out;
+
+            nlohmann::json j;
+            try
+            {
+                j = nlohmann::json::parse(out);
+            }
+            catch (const std::exception& parse_error)
+            {
+                const auto message = fmt::format(
+                    "{}\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
+                    parse_error_message_prefix,
+                    parse_error.what(),
+                    fmt::join(cmd_args, " "),
+                    fmt::join(env_vars, " "),
+                    out,
+                    err
+                );
+                throw mamba_error{ message, mamba_error_code::internal_failure };
+            }
+
+            // Expected schema: either a root array, or an object containing "installed".
+            const nlohmann::json packages = (j.contains("installed") && j["installed"].is_array())
+                                                ? j["installed"]
+                                                : j;
+            if (!packages.is_array())
+            {
+                return { std::move(j), nlohmann::json{}, false };
+            }
+            return { std::move(j), packages, true };
         };
 
         // Run an inspection command that returns installed distribution info.
-        if (pip_pkg_record != m_package_records.end())
+        if (pip_present)
         {
             const auto args = std::array<std::string, 6>{ python_path, "-q",      "-m",
                                                           "pip",       "inspect", "--local" };
@@ -314,78 +341,60 @@ namespace mamba
             reproc::options run_options;
             run_options.env.extra = reproc::env{ env };
 
-            run_site_package_inspection("failed to run python command :", args, env, run_options);
-
-            // Nothing installed with `pip`
-            if (out.empty())
+            auto inspection = run_site_package_inspection(
+                "failed to run python command :",
+                "Parsing `pip inspect` output:\n",
+                "failed to parse python command output:",
+                "Nothing installed with `pip`",
+                args,
+                env,
+                run_options
+            );
+            if (!inspection.has_packages)
             {
-                LOG_DEBUG << "Nothing installed with `pip`";
                 return;
             }
 
-            LOG_TRACE << "Parsing `pip inspect` output:\n" << out;
-            nlohmann::json j;
-            try
+            for (const auto& package : inspection.packages)
             {
-                j = nlohmann::json::parse(out);
-            }
-            catch (const std::exception& parse_error)
-            {
-                const auto message = fmt::format(
-                    "failed to parse python command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                    parse_error.what(),
-                    fmt::join(args, " "),
-                    fmt::join(env, " "),
-                    out,
-                    err
-                );
-                throw mamba_error{ message, mamba_error_code::internal_failure };
-            }
-
-            if (j.contains("installed") && j["installed"].is_array())
-            {
-                for (const auto& package : j["installed"])
+                // Get the package metadata, if installed with `pip`
+                if (package.contains("installer")
+                    && (package["installer"] == "pip" || package["installer"] == "uv"))
                 {
-                    // Get the package metadata, if installed with `pip`
-                    if (package.contains("installer")
-                        && (package["installer"] == "pip" || package["installer"] == "uv"))
+                    if (package.contains("metadata"))
                     {
-                        if (package.contains("metadata"))
+                        // NOTE As checking the presence of all used keys in the json object can
+                        // be cumbersome and might affect the code readability, the elements
+                        // where the check with `contains` is skipped are considered mandatory.
+                        // If a bug is ever to occur in the future, checking the relevant key
+                        // with `contains` should be introduced then.
+                        auto prec = specs::PackageInfo(
+                            package["metadata"]["name"],
+                            package["metadata"]["version"],
+                            "pypi_0",
+                            "pypi"
+                        );
+                        // Set platform by concatenating `sys_platform` and `platform_machine`
+                        // to have something equivalent to `conda-forge`
+                        if (inspection.parsed_json.contains("environment"))
                         {
-                            // NOTE As checking the presence of all used keys in the json object can
-                            // be cumbersome and might affect the code readability, the elements
-                            // where the check with `contains` is skipped are considered mandatory.
-                            // If a bug is ever to occur in the future, checking the relevant key
-                            // with `contains` should be introduced then.
-                            auto prec = specs::PackageInfo(
-                                package["metadata"]["name"],
-                                package["metadata"]["version"],
-                                "pypi_0",
-                                "pypi"
-                            );
-                            // Set platform by concatenating `sys_platform` and `platform_machine`
-                            // to have something equivalent to `conda-forge`
-                            if (j.contains("environment"))
-                            {
-                                prec.platform = j["environment"]["sys_platform"].get<std::string>()
-                                                + "-"
-                                                + j["environment"]["platform_machine"]
-                                                      .get<std::string>();
-                            }
-                            m_pip_package_records.insert({ prec.name, std::move(prec) });
+                            prec.platform = inspection.parsed_json["environment"]["sys_platform"]
+                                                .get<std::string>()
+                                            + "-"
+                                            + inspection
+                                                  .parsed_json["environment"]["platform_machine"]
+                                                  .get<std::string>();
                         }
+                        m_pip_package_records.insert({ prec.name, std::move(prec) });
                     }
                 }
             }
-            return;
         }
         else
         {
             // Run `uv pip list` when `pip` isn't available.
             // This is mainly used when YAML installs `pip:` dependencies via `uv`.
-            const auto get_uv_path = [&]
-            { return util::which_in("uv", util::get_path_dirs(m_prefix_path)).string(); };
-            const std::string uv_path = get_uv_path();
+            const std::string uv_path = util::which_in("uv", util::get_path_dirs(m_prefix_path)).string();
 
             const auto args = std::array<std::string, 5>{ uv_path, "pip", "list", "--format", "json" };
             auto env = pip_environment_variables;
@@ -394,45 +403,27 @@ namespace mamba
             reproc::options run_options;
             run_options.env.extra = reproc::env{ env };
 
-            run_site_package_inspection("failed to run uv command :", args, env, run_options);
-
-            if (out.empty())
-            {
-                LOG_DEBUG << "Nothing installed with `uv`";
-                return;
-            }
-
-            LOG_TRACE << "Parsing `uv pip list` output:\n" << out;
-            nlohmann::json j;
-            try
-            {
-                j = nlohmann::json::parse(out);
-            }
-            catch (const std::exception& parse_error)
-            {
-                const auto message = fmt::format(
-                    "failed to parse uv command output:\n  error: {}\n  command ran: {}\n  env options:{}\n-> output:\n{}\n\n-> error output:{}",
-                    parse_error.what(),
-                    fmt::join(args, " "),
-                    fmt::join(env, " "),
-                    out,
-                    err
-                );
-                throw mamba_error{ message, mamba_error_code::internal_failure };
-            }
-
-            // Expected schema: an array of objects, each with `name` and `version`.
-            // We also accept the alternate form { "installed": [...] } if it exists.
-            const nlohmann::json packages = (j.contains("installed") && j["installed"].is_array())
-                                                ? j["installed"]
-                                                : j;
-            if (!packages.is_array())
+            auto inspection = run_site_package_inspection(
+                "failed to run uv command :",
+                "Parsing `uv pip list` output:\n",
+                "failed to parse uv command output:",
+                "Nothing installed with `uv`",
+                args,
+                env,
+                run_options
+            );
+            if (!inspection.has_packages)
             {
                 return;
             }
 
-            // Compute platform in the prefix (matches test expectations).
-            std::string platform;
+            // For `uv pip list --format json`, platform information is not included in the output.
+            // We therefore compute it from the prefix Python so generated PackageInfo records keep
+            // conda-like `platform` values (e.g. "linux-x86_64"), matching list JSON expectations.
+            //
+            // This extra subprocess is not needed for the `pip` path above because `pip inspect`
+            // already provides `environment.sys_platform` and `environment.platform_machine`.
+            const std::string platform = [&]
             {
                 const auto platform_args = std::array<std::string, 4>{
                     python_path,
@@ -461,10 +452,10 @@ namespace mamba
                         mamba_error_code::internal_failure
                     };
                 }
-                platform = trim_right(platform_out);
-            }
+                return trim_right(platform_out);
+            }();
 
-            for (const auto& package : packages)
+            for (const auto& package : inspection.packages)
             {
                 if (!package.contains("name") || !package.contains("version"))
                 {

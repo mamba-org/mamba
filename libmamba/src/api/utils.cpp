@@ -278,4 +278,11 @@ namespace mamba
             root_packages.push_back("pip");
         }
     }
+
+    std::vector<std::string> build_sharded_root_packages(const std::vector<std::string>& raw_specs)
+    {
+        std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
+        add_pip_if_python(root_packages);
+        return root_packages;
+    }
 }

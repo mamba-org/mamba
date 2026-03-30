@@ -627,33 +627,9 @@ namespace mamba
             };
             add_logger_to_database(db);
 
-            // Extract package names from specs and add installed packages to root packages.
-            std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
-            if (fs::exists(ctx.prefix_params.target_prefix))
-            {
-                auto maybe_prefix_data = PrefixData::create(
-                    ctx.prefix_params.target_prefix,
-                    channel_context
-                );
-                if (maybe_prefix_data)
-                {
-                    root_packages.reserve(root_packages.size() + maybe_prefix_data->records().size());
-                    std::transform(
-                        maybe_prefix_data->records().begin(),
-                        maybe_prefix_data->records().end(),
-                        std::back_inserter(root_packages),
-                        [](const auto& name_and_info) { return name_and_info.first; }
-                    );
-                }
-            }
-
-            // When installing python with sharded repodata, also include pip in root packages.
-            // This also avoids pulling old versions of python (1.x) which do not depend on
-            // other packages, which is a choice the solver can make.
-            if (ctx.repodata_use_shards)
-            {
-                add_pip_if_python(root_packages);
-            }
+            std::vector<std::string> root_packages = ctx.repodata_use_shards
+                                                         ? build_sharded_root_packages(raw_specs)
+                                                         : std::vector<std::string>{};
 
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches, root_packages);
             if (!maybe_load)

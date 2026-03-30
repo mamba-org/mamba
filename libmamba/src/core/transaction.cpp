@@ -535,31 +535,25 @@ namespace mamba
             run_options.working_directory = working_dir.c_str();
 
             std::string out, err;
-            const auto maybe_previous_force_color = util::get_env("FORCE_COLOR");
-            util::unset_env("FORCE_COLOR");
-            on_scope_exit _{ [&]
-                             {
-                                 if (maybe_previous_force_color)
-                                 {
-                                     util::set_env("FORCE_COLOR", maybe_previous_force_color.value());
-                                 }
-                             } };
-
-            auto [status, ec] = reproc::run(
-                full_args,
-                run_options,
-                reproc::sink::string(out),
-                reproc::sink::string(err)
-            );
-
-            if (ec)
             {
-                LOG_WARNING << "Failed to uninstall pip package " << name << ": " << err;
-                // Continue anyway - the package might already be removed or not exist
-            }
-            else
-            {
-                LOG_DEBUG << "Successfully uninstalled pip package " << name;
+                util::ForceColorScope force_color_scope;
+
+                auto [status, ec] = reproc::run(
+                    full_args,
+                    run_options,
+                    reproc::sink::string(out),
+                    reproc::sink::string(err)
+                );
+
+                if (ec)
+                {
+                    LOG_WARNING << "Failed to uninstall pip package " << name << ": " << err;
+                    // Continue anyway - the package might already be removed or not exist
+                }
+                else
+                {
+                    LOG_DEBUG << "Successfully uninstalled pip package " << name;
+                }
             }
         };
 

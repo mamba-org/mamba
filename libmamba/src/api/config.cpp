@@ -31,6 +31,7 @@ namespace mamba
         auto specs = config.at("specs").value<std::vector<std::string>>();
         int dump_opts = MAMBA_SHOW_CONFIG_DESCS | show_long_desc | show_group;
 
+        Console::instance().cancel_json_print();  // we will output json or yaml already
         print_dump(config, dump_opts, specs);
 
         config.operation_teardown();
@@ -64,6 +65,7 @@ namespace mamba
         int dump_opts = MAMBA_SHOW_CONFIG_VALUES | show_sources | show_desc | show_long_desc
                         | show_group | show_all_rcs | show_all;
 
+        Console::instance().cancel_json_print(); // we will output json or yaml already
         print_dump(config, dump_opts, specs);
 
         config.operation_teardown();

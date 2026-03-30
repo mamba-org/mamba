@@ -252,7 +252,7 @@ namespace mamba::logging
                      as new log records could be pushed concurrently.
                      The returned history will be empty if `is_started()` == false.
         */
-        auto capture_history(bool and_clear=false) const -> std::vector<LogRecord>;
+        auto capture_history(bool and_clear = false) const -> std::vector<LogRecord>;
 
         /** Clears the internal history.
 
@@ -487,8 +487,7 @@ namespace mamba::logging
         // nothing to do, we keep history, there is no flush
     }
 
-    inline auto LogHandler_History::capture_history(bool and_clear) const
-        -> std::vector<LogRecord>
+    inline auto LogHandler_History::capture_history(bool and_clear) const -> std::vector<LogRecord>
     {
         if (pimpl)
         {

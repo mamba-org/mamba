@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <unordered_set>
+
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -290,10 +292,36 @@ namespace mamba
         }
     }
 
-    std::vector<std::string> build_sharded_root_packages(const std::vector<std::string>& raw_specs)
+    std::vector<std::string> build_sharded_root_packages(
+        const Context& ctx,
+        ChannelContext& channel_context,
+        const std::vector<std::string>& raw_specs
+    )
     {
         std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
         add_pip_if_python(root_packages);
+        if (!fs::exists(ctx.prefix_params.target_prefix))
+        {
+            return root_packages;
+        }
+
+        auto maybe_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
+        if (!maybe_prefix_data.has_value())
+        {
+            LOG_DEBUG << "Failed to load prefix data for sharded root expansion: "
+                      << maybe_prefix_data.error().what();
+            return root_packages;
+        }
+
+        auto prefix_data = std::move(maybe_prefix_data).value();
+        std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+        for (const auto& [name, /*record*/ _] : prefix_data.records())
+        {
+            if (seen.insert(name).second)
+            {
+                root_packages.push_back(name);
+            }
+        }
         return root_packages;
     }
 
@@ -413,8 +441,9 @@ namespace mamba
         auto db = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
-        auto root_packages = ctx.repodata_use_shards ? build_sharded_root_packages(raw_specs)
-                                                     : std::vector<std::string>{};
+        auto root_packages = ctx.repodata_use_shards
+                                 ? build_sharded_root_packages(ctx, channel_context, raw_specs)
+                                 : std::vector<std::string>{};
         auto maybe_load = load_channels(ctx, channel_context, db, package_caches, root_packages);
         if (!maybe_load)
         {

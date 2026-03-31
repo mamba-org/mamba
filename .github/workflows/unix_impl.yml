@@ -280,7 +280,7 @@ jobs:
           unset CONDARC  # Interferes with tests
           # Only rerun flaky tests on the `main` branch
           python -m pytest micromamba/tests/ \
-              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} \
+              ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   verify_pkg_and_auth_tests:

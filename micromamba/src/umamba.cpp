@@ -33,6 +33,7 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     auto print_version = [](int /*count*/)
     {
+        // TODO: if `--json` is used, output there instead
         std::cout << umamba::version() << std::endl;
         exit(0);
     };

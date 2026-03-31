@@ -15,6 +15,8 @@
 #include "mamba/util/os_win.hpp"
 #endif
 
+#include <algorithm>
+
 #include <CLI/CLI.hpp>
 
 #include "mamba/api/configuration.hpp"
@@ -58,7 +60,7 @@ decide_preconfig_context_options(int argc, char** argv) -> mamba::ContextOptions
     {
         options.output_params = output_params;
     }
-    
+
     return options;
 }
 
@@ -137,6 +139,8 @@ main(int argc, char** argv)
         set_sig_interrupted();
     };
 
+    int return_value = EXIT_SUCCESS;
+
     try
     {
         // Note: do not use CLI11_PARSE macro as it's error handling
@@ -182,7 +186,29 @@ main(int argc, char** argv)
     }
     catch (const CLI::Error& e)
     {
-        handle_exception(e, "\nRun with --help for more information.");
+        using namespace std::literals;
+        // We only preserve CLI11 output behavior when errors from CLI11
+        // occurs because of `--help` or `--version` is used. Otherwise we follow the
+        // logic that `--json` outpus everything as JSON.
+        static constexpr std::array non_error_request_names = { "CallForHelp"sv,
+                                                                "CallForAllHelp"sv,
+                                                                "CallForVersion"sv };
+        const bool is_non_error_request = std::ranges::find(non_error_request_names, e.get_name())
+                                          != non_error_request_names.end();
+
+        if (ctx.output_params.json and not is_non_error_request)
+        {
+            // we want the output to end up in the json log history
+            std::stringstream output;
+            return_value = app.exit(e, output, output);
+            LOG_WARNING << output.str();
+        }
+        else
+        {
+            // we don't want any json output even if requested, CLI11 will handle this
+            console.cancel_json_print();
+            return_value = app.exit(e);
+        }
     }
     catch (const std::exception& e)
     {
@@ -192,8 +218,8 @@ main(int argc, char** argv)
     if (error_to_report)
     {
         LOG_CRITICAL << error_to_report.value();
-        return 1;  // TODO: consider returning EXIT_FAILURE
+        return_value = EXIT_FAILURE;
     }
 
-    return 0;
+    return return_value;
 }

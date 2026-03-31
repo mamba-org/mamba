@@ -22,6 +22,7 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/specs/version.hpp"
 
 namespace mamba
 {
@@ -30,6 +31,12 @@ namespace mamba
      *
      * This class manages fetching and caching of individual shards from
      * a sharded repodata index.
+     *
+     * **Python minor prefilter:** When constructed with ``requested_python_minor`` (e.g. 3.12),
+     * parsing a shard msgpack drops package records whose ``depends`` list constrains
+     * ``python`` to a range that does not contain that minor, reducing work for the solver.
+     * When that optional is unset, no such filtering is applied and all records in the shard
+     * are parsed (python compatibility is left to the solver).
      */
     class Shards
     {
@@ -47,6 +54,9 @@ namespace mamba
          * @param mirrors Optional base mirrors for channel-based downloads. When provided,
          *        extend_mirrors in fetch_shards will be initialized from these before adding
          *        absolute-URL mirrors.
+         * @param requested_python_minor If set, shard parsing filters out records whose
+         *        ``depends`` python constraints are incompatible with this minor; if unset,
+         *        no python-minor-based record filtering is performed.
          */
         Shards(
             ShardsIndexDict shards_index,
@@ -56,7 +66,8 @@ namespace mamba
             download::RemoteFetchParams remote_fetch_params,
             // 0 means: auto; value is normalized with normalize_to_affinity_concurrency().
             std::size_t download_threads = 0,
-            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
+            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt,
+            std::optional<specs::Version> requested_python_minor = std::nullopt
         );
 
         /** Return the names of all packages available in this shard collection. */
@@ -118,6 +129,13 @@ namespace mamba
 
         /** Optional base mirrors for channel-based downloads. */
         std::optional<std::reference_wrapper<const download::mirror_map>> m_mirrors;
+
+        /**
+         * Environment python minor used when parsing shards to prefilter package records
+         * (see ``record_depends_on_requested_python_minor_version`` in shards.cpp).
+         * Empty means the prefilter is disabled.
+         */
+        std::optional<specs::Version> m_requested_python_minor;
 
         /** Visited shards, keyed by package name. */
         std::map<std::string, ShardDict> m_visited;

@@ -7,11 +7,13 @@
 #ifndef MAMBA_API_CHANNEL_LOADER_HPP
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/specs/version.hpp"
 
 namespace mamba
 {
@@ -50,7 +52,8 @@ namespace mamba
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities
+        const std::vector<solver::libsolv::Priorities>& priorities,
+        std::optional<specs::Version> requested_python_minor = std::nullopt
     ) -> expected_t<solver::libsolv::RepoInfo>;
 
     class ChannelContext;
@@ -86,7 +89,8 @@ namespace mamba
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         MultiPackageCache& package_caches,
-        const std::vector<std::string>& root_packages = {}
+        const std::vector<std::string>& root_packages = {},
+        std::optional<specs::Version> requested_python_minor = std::nullopt
     ) -> expected_t<void, mamba_aggregated_error>;
 
     /* Brief Creates channels and mirrors objects,

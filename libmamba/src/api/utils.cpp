@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <unordered_set>
+#include <cctype>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -434,7 +435,8 @@ namespace mamba
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
         ChannelContext& channel_context,
-        const std::vector<std::string>& raw_specs
+        const std::vector<std::string>& raw_specs,
+        bool is_retry
     )
     {
         populate_context_channels_from_specs(raw_specs, ctx);
@@ -444,7 +446,37 @@ namespace mamba
         auto root_packages = ctx.repodata_use_shards
                                  ? build_sharded_root_packages(ctx, channel_context, raw_specs)
                                  : std::vector<std::string>{};
-        auto maybe_load = load_channels(ctx, channel_context, db, package_caches, root_packages);
+
+        const auto maybe_explicit_python_minor = extract_requested_python_minor(raw_specs);
+        const bool has_explicit_python_minor = maybe_explicit_python_minor.has_value();
+        const bool use_fallback_python_minor = !has_explicit_python_minor && !is_retry;
+        const bool dont_prefilter_python_minor = is_retry && !has_explicit_python_minor;
+
+        const auto requested_python_minor = [&]() -> std::optional<specs::Version>
+        {
+            if (use_fallback_python_minor)
+            {
+                LOG_DEBUG << "Applying implicit python minor prefilter for first solve attempt: "
+                          << fallback_python_minor;
+                return specs::Version::parse(std::string(fallback_python_minor)).value();
+            }
+            if (dont_prefilter_python_minor)
+            {
+                LOG_DEBUG << "Explicitly disabling python minor prefilter on retry";
+                return std::nullopt;
+            }
+            return maybe_explicit_python_minor;
+        }();
+
+        auto maybe_load = load_channels(
+            ctx,
+            channel_context,
+            db,
+            package_caches,
+            root_packages,
+            requested_python_minor
+        );
+
         if (!maybe_load)
         {
             throw maybe_load.error();
@@ -484,6 +516,11 @@ namespace mamba
         if (unsolvable == nullptr)
         {
             return false;
+        }
+        if (!is_retry)
+        {
+            retry_fn();
+            return true;
         }
         unsolvable->explain_problems_to(
             db,
@@ -599,4 +636,52 @@ namespace mamba
             execute_other_pkg_managers(other_specs, ctx, update);
         }
     }
+
+    std::optional<specs::Version>
+    extract_requested_python_minor(const std::vector<std::string>& specs)
+    {
+        for (const auto& spec : specs)
+        {
+            auto maybe_name = specs::MatchSpec::extract_name(spec);
+            if (!maybe_name.has_value() || maybe_name.value() != "python")
+            {
+                continue;
+            }
+            for (std::size_t i = 0; (i + 2) < spec.size(); ++i)
+            {
+                const unsigned char c0 = static_cast<unsigned char>(spec[i]);
+                const unsigned char c1 = static_cast<unsigned char>(spec[i + 1]);
+                const unsigned char c2 = static_cast<unsigned char>(spec[i + 2]);
+                if (!std::isdigit(c0) || c1 != '.' || !std::isdigit(c2))
+                {
+                    continue;
+                }
+                std::size_t j = i;
+                while (j < spec.size() && std::isdigit(static_cast<unsigned char>(spec[j])))
+                {
+                    ++j;
+                }
+                if (j >= spec.size() || spec[j] != '.')
+                {
+                    continue;
+                }
+                std::size_t k = j + 1;
+                while (k < spec.size() && std::isdigit(static_cast<unsigned char>(spec[k])))
+                {
+                    ++k;
+                }
+                if (k == j + 1)
+                {
+                    continue;
+                }
+                const auto maybe_python_minor = specs::Version::parse(spec.substr(i, k - i));
+                if (maybe_python_minor.has_value())
+                {
+                    return maybe_python_minor.value();
+                }
+            }
+        }
+        return std::nullopt;
+    }
+
 }

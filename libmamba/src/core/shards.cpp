@@ -25,6 +25,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/util/cryptography.hpp"
 #include "mamba/util/encoding.hpp"
@@ -383,6 +384,78 @@ namespace mamba
 
             return record;
         }
+
+        auto dependency_matches_requested_python_minor(
+            const std::string& dependency_spec,
+            const specs::Version& requested_python_minor
+        ) -> bool
+        {
+            auto maybe_name = specs::MatchSpec::extract_name(dependency_spec);
+            if (!maybe_name.has_value() || maybe_name.value() != "python")
+            {
+                return true;
+            }
+            auto maybe_match_spec = specs::MatchSpec::parse(dependency_spec);
+            if (!maybe_match_spec.has_value())
+            {
+                return true;
+            }
+            return maybe_match_spec.value().version().contains(requested_python_minor);
+        }
+
+        /**
+         * Whether a raw shard package record's ``depends`` list is compatible with the
+         * requested environment python minor.
+         *
+         * When ``requested_python_minor`` is unset, returns true (no prefilter).
+         * When set, inspects ``depends`` entries for ``python`` and keeps the record only if
+         * each such constraint contains that minor (see
+         * ``dependency_matches_requested_python_minor``).
+         */
+        bool record_depends_on_requested_python_minor_version(
+            const msgpack_object& raw_record_obj,
+            const std::optional<specs::Version>& requested_python_minor
+        )
+        {
+            if (!requested_python_minor.has_value())
+            {
+                // No requested python minor version is provided
+                // so the build is installable in the environment.
+                return true;
+            }
+            if (raw_record_obj.type != MSGPACK_OBJECT_MAP)
+            {
+                return true;
+            }
+            for (std::uint32_t i = 0; i < raw_record_obj.via.map.size; ++i)
+            {
+                const msgpack_object& key_obj = raw_record_obj.via.map.ptr[i].key;
+                const msgpack_object& val_obj = raw_record_obj.via.map.ptr[i].val;
+                std::string key;
+                try
+                {
+                    key = msgpack_object_to_string(key_obj);
+                }
+                catch (const std::exception&)
+                {
+                    continue;
+                }
+                if (key != "depends")
+                {
+                    continue;
+                }
+                const auto depends = msgpack_object_to_string_array(val_obj);
+                for (const auto& dep : depends)
+                {
+                    if (!dependency_matches_requested_python_minor(dep, requested_python_minor.value()))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return true;
+        }
     }
 
     /******************
@@ -396,7 +469,8 @@ namespace mamba
         specs::AuthenticationDataBase auth_info,
         download::RemoteFetchParams remote_fetch_params,
         std::size_t download_threads,
-        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors
+        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors,
+        std::optional<specs::Version> requested_python_minor
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -405,6 +479,7 @@ namespace mamba
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(normalize_to_affinity_concurrency(static_cast<int>(download_threads)))
         , m_mirrors(std::move(mirrors))
+        , m_requested_python_minor(std::move(requested_python_minor))
         , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / "conda" / "pkgs")
         , m_shard_cache_dir(m_pkgs_cache_root / "cache" / "shards")
     {
@@ -927,19 +1002,32 @@ namespace mamba
             const msgpack_object& obj = unpacked.data;
             ShardDict shard;
 
-            auto parse_package_records = [](const msgpack_object& map_obj,
-                                            std::map<std::string, specs::RepoDataPackage>& target_map,
-                                            const std::string& map_name)
+            auto parse_package_records = [this](
+                                             const msgpack_object& map_obj,
+                                             std::map<std::string, specs::RepoDataPackage>& target_map,
+                                             const std::string& map_name
+                                         )
             {
                 for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
                 {
+                    const auto& msgpack_record = map_obj.via.map.ptr[k];
+                    const msgpack_object& val = msgpack_record.val;
+                    const msgpack_object& key = msgpack_record.key;
                     try
                     {
-                        std::string pkg_filename = msgpack_object_to_string(map_obj.via.map.ptr[k].key);
-                        specs::RepoDataPackage record = parse_shard_package_record(
-                            map_obj.via.map.ptr[k].val
-                        );
-                        target_map[pkg_filename] = record;
+                        // Filter out builds which depend on another python minor version
+                        // than the one in the environment, significantly reducing the number of
+                        // builds to parse and to provide to the solver for dependency resolution.
+                        if (!record_depends_on_requested_python_minor_version(
+                                val,
+                                m_requested_python_minor
+                            ))
+                        {
+                            continue;
+                        }
+                        std::string pkg_filename = msgpack_object_to_string(key);
+                        specs::RepoDataPackage parsed_record = parse_shard_package_record(val);
+                        target_map[pkg_filename] = std::move(parsed_record);
                     }
                     catch (const std::exception& e)
                     {

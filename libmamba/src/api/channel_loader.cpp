@@ -5,9 +5,12 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <fstream>
 #include <optional>
 #include <set>
 #include <sstream>
+
+#include <nlohmann/json.hpp>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
@@ -24,11 +27,72 @@
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/specs/version.hpp"
+
+#include "utils.hpp"
 
 namespace mamba
 {
     namespace
     {
+        std::optional<specs::Version>
+        installed_python_minor_for_prefix(const fs::u8path& target_prefix)
+        {
+            const auto parse_minor = [](std::string_view v) -> std::optional<specs::Version>
+            {
+                auto maybe_version = specs::Version::parse(std::string(v));
+                if (maybe_version.has_value())
+                {
+                    return maybe_version.value();
+                }
+                return std::nullopt;
+            };
+            const auto conda_meta = target_prefix / "conda-meta";
+            if (!fs::exists(conda_meta) || !fs::is_directory(conda_meta))
+            {
+                return std::nullopt;
+            }
+
+            for (const auto& entry : fs::directory_iterator(conda_meta))
+            {
+                if (!entry.is_regular_file() || entry.path().extension() != ".json")
+                {
+                    continue;
+                }
+                std::ifstream infile(entry.path().std_path());
+                if (!infile.is_open())
+                {
+                    continue;
+                }
+                nlohmann::json j;
+                try
+                {
+                    infile >> j;
+                }
+                catch (const std::exception&)
+                {
+                    continue;
+                }
+                if (!j.is_object() || j.value("name", "") != "python")
+                {
+                    continue;
+                }
+                const std::string version = j.value("version", "");
+                auto dot = version.find('.');
+                if (dot == std::string::npos)
+                {
+                    continue;
+                }
+                auto second_dot = version.find('.', dot + 1);
+                if (second_dot == std::string::npos)
+                {
+                    return parse_minor(version);
+                }
+                return parse_minor(version.substr(0, second_dot));
+            }
+            return std::nullopt;
+        }
+
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
@@ -235,7 +299,8 @@ namespace mamba
             std::size_t subdir_idx,
             std::set<std::string>& loaded_subdirs_with_shards,
             const SubdirDownloadParams& subdir_params,
-            const std::vector<solver::libsolv::Priorities>& priorities
+            const std::vector<solver::libsolv::Priorities>& priorities,
+            std::optional<specs::Version> requested_python_minor
         )
         {
             auto& subdir = subdirs[subdir_idx];
@@ -253,7 +318,8 @@ namespace mamba
                     subdirs,
                     subdir_idx,
                     loaded_subdirs_with_shards,
-                    priorities
+                    priorities,
+                    requested_python_minor
                 );
 
                 if (!res)
@@ -434,7 +500,8 @@ namespace mamba
             const std::vector<solver::libsolv::Priorities>& priorities,
             const SubdirDownloadParams& subdir_params,
             bool is_retry,
-            std::vector<mamba_error>& error_list
+            std::vector<mamba_error>& error_list,
+            std::optional<specs::Version> requested_python_minor
         )
         {
             std::set<std::string> loaded_subdirs_with_shards;
@@ -475,7 +542,8 @@ namespace mamba
                     i,
                     loaded_subdirs_with_shards,
                     subdir_params,
-                    priorities
+                    priorities,
+                    requested_python_minor
                 );
 
                 if (result)
@@ -641,7 +709,8 @@ namespace mamba
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities
+        const std::vector<solver::libsolv::Priorities>& priorities,
+        std::optional<specs::Version> python_minor_from_specs
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
         auto& subdir = subdirs[subdir_idx];
@@ -670,6 +739,19 @@ namespace mamba
         LOG_DEBUG << "Shard index fetched for " << subdir.name();
         const auto& channel = subdir.channel();
         std::string current_repodata_url = subdir.repodata_url().str();
+        const bool python_minor_from_user_spec = python_minor_from_specs.has_value();
+        const auto requested_python_minor = python_minor_from_user_spec
+                                                ? std::move(python_minor_from_specs)
+                                                : installed_python_minor_for_prefix(
+                                                      ctx.prefix_params.target_prefix
+                                                  );
+        if (requested_python_minor.has_value())
+        {
+            LOG_DEBUG << "Shard prefilter enabled with python minor "
+                      << requested_python_minor.value().to_string() << " (source="
+                      << (python_minor_from_user_spec ? "user_spec" : "installed_or_fallback")
+                      << ")";
+        }
 
         // For all subdirs sharing the same channel URL, fetch their shard indices and build
         //    a Shards instance per subdir; collect them into a RepodataSubset.
@@ -702,7 +784,8 @@ namespace mamba
                     ctx.authentication_info(),
                     ctx.remote_fetch_params,
                     normalize_to_affinity_concurrency(static_cast<int>(ctx.repodata_shards_threads)),
-                    std::cref(ctx.mirrors)
+                    std::cref(ctx.mirrors),
+                    requested_python_minor
                 );
                 url_to_subdir_idx[sdir_url] = j;
             }
@@ -761,7 +844,8 @@ namespace mamba
             solver::libsolv::Database& database,
             MultiPackageCache& package_caches,
             const std::vector<std::string>& root_packages,
-            bool is_retry
+            bool is_retry,
+            std::optional<specs::Version> requested_python_minor
         )
         {
             std::vector<SubdirIndexLoader> subdirs;
@@ -808,7 +892,8 @@ namespace mamba
                 priorities,
                 subdir_params,
                 is_retry,
-                error_list
+                error_list,
+                requested_python_minor
             );
 
             if (loading_failed)
@@ -824,7 +909,8 @@ namespace mamba
                         database,
                         package_caches,
                         root_packages,
-                        retry
+                        retry,
+                        requested_python_minor
                     );
                 }
                 error_list.emplace_back(
@@ -843,11 +929,20 @@ namespace mamba
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         MultiPackageCache& package_caches,
-        const std::vector<std::string>& root_packages
+        const std::vector<std::string>& root_packages,
+        std::optional<specs::Version> requested_python_minor
     ) -> expected_t<void, mamba_aggregated_error>
     {
         bool retry = false;
-        return load_channels_impl(ctx, channel_context, database, package_caches, root_packages, retry);
+        return load_channels_impl(
+            ctx,
+            channel_context,
+            database,
+            package_caches,
+            root_packages,
+            retry,
+            std::move(requested_python_minor)
+        );
     }
 
     void init_channels(Context& context, ChannelContext& channel_context)

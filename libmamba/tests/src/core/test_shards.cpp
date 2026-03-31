@@ -2770,3 +2770,82 @@ TEST_CASE("Shards - process_downloaded_shard")
         );
     }
 }
+
+TEST_CASE("Shards - python minor prefilter")
+{
+    ShardsIndexDict index;
+    index.info.base_url = "https://example.com/packages";
+    index.info.shards_base_url = "shards";
+    index.info.subdir = "linux-64";
+    index.version = 1;
+    index.shards["test-pkg"] = std::vector<std::uint8_t>(32, 0xAB);
+
+    specs::Channel channel = make_simple_channel("https://example.com/conda-forge");
+    specs::AuthenticationDataBase auth_info;
+    download::RemoteFetchParams remote_fetch_params;
+
+    const auto tmp_dir = TemporaryDirectory();
+    const auto shard_file = tmp_dir.path() / "test-pkg.msgpack.zst";
+
+    std::map<std::string, fs::u8path> package_to_cache_path;
+    package_to_cache_path["test-pkg"] = shard_file;
+
+    auto run_for_dep = [&](const std::string& dep,
+                           std::optional<specs::Version> python_minor) -> expected_t<ShardDict>
+    {
+        auto shard_data = create_shard_with_checksum("test-pkg", "1.0.0", "0", { dep });
+        {
+            std::ofstream file(shard_file.string(), std::ios::binary);
+            file.write(
+                reinterpret_cast<const char*>(shard_data.data()),
+                static_cast<std::streamsize>(shard_data.size())
+            );
+        }
+
+        download::Success success;
+        success.content = download::Filename{ shard_file.string() };
+        success.transfer.downloaded_size = shard_data.size();
+
+        Shards shards(
+            index,
+            "https://example.com/conda-forge/linux-64/repodata.json",
+            channel,
+            auth_info,
+            remote_fetch_params,
+            0,
+            std::nullopt,
+            std::move(python_minor)
+        );
+        return test_process_downloaded_shard(shards, "test-pkg", success, package_to_cache_path);
+    };
+
+    SECTION("mismatching python minor is discarded before record creation")
+    {
+        auto result = run_for_dep(
+            "python >=3.11,<3.12",
+            specs::Version::parse("3.12").value_or(specs::Version())
+        );
+        REQUIRE(result.has_value());
+        REQUIRE(result->packages.empty());
+        REQUIRE(result->conda_packages.empty());
+    }
+
+    SECTION("matching python minor is retained")
+    {
+        auto result = run_for_dep(
+            "python >=3.12,<3.13",
+            specs::Version::parse("3.12").value_or(specs::Version())
+        );
+        REQUIRE(result.has_value());
+        REQUIRE(result->packages.size() == 1);
+        REQUIRE(result->packages.begin()->second.name == "test-pkg");
+    }
+
+    SECTION("no python minor context does not apply prefilter")
+    {
+        auto result = run_for_dep("python >=3.11,<3.12", std::nullopt);
+        REQUIRE(result.has_value());
+        REQUIRE(result->packages.size() == 1);
+        REQUIRE(result->packages.begin()->second.name == "test-pkg");
+    }
+}

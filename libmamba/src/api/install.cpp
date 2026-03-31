@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <cctype>
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -555,7 +556,7 @@ namespace mamba
             auto& no_env = config.at("no_env").value<bool>();
 
             validate_target_prefix_and_channels(ctx, create_env);
-            auto [db, package_caches] = prepare_solver_context(ctx, channel_context, raw_specs);
+            auto [db, package_caches] = prepare_solver_context(ctx, channel_context, raw_specs, is_retry);
 
             auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
 

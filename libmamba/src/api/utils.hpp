@@ -8,12 +8,14 @@
 #define MAMBA_UTILS_HPP
 
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/specs/version.hpp"
 
 #include "tl/expected.hpp"
 
@@ -52,6 +54,7 @@ namespace mamba
     }
 
     using command_args = std::vector<std::string>;
+    inline constexpr std::string_view fallback_python_minor = "3.14";
 
     /**
      * Build the command-line invocation for a secondary package manager (e.g. pip/uv).
@@ -90,6 +93,7 @@ namespace mamba
     std::vector<std::string> build_sharded_root_packages(const std::vector<std::string>& raw_specs);
 
     /**
+
      * Print environment activation guidance for the current target prefix.
      */
     void print_activation_message(const Context& ctx);
@@ -125,7 +129,8 @@ namespace mamba
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
         ChannelContext& channel_context,
-        const std::vector<std::string>& raw_specs
+        const std::vector<std::string>& raw_specs,
+        bool is_retry
     );
 
     /**
@@ -210,6 +215,12 @@ namespace mamba
         const Context& ctx,
         pip::Update update
     );
+
+    /**
+     * Extract an explicit python minor requirement (e.g. "3.12") from specs.
+     */
+    std::optional<specs::Version>
+    extract_requested_python_minor(const std::vector<std::string>& specs);
 
 }
 

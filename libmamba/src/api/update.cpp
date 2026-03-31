@@ -4,20 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <fmt/format.h>
-
-#include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/api/install.hpp"
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/package_database_loader.hpp"
-#include "mamba/core/pinning.hpp"
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/transaction.hpp"
-#include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/libsolv/database.hpp"
-#include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/match_spec.hpp"
 
@@ -27,8 +23,6 @@ namespace mamba
 {
     namespace
     {
-        using command_args = std::vector<std::string>;
-
         auto create_update_request(
             PrefixData& prefix_data,
             std::vector<std::string> specs,
@@ -138,6 +132,7 @@ namespace mamba
 
             return request;
         }
+
     }
 
     void update(Configuration& config, const UpdateParams& update_params)
@@ -145,68 +140,26 @@ namespace mamba
         auto& ctx = config.context();
 
         // `env update` case
-        if (update_params.env_update == EnvUpdate::Yes)
-        {
-            config.at("create_base").set_value(true);
-        }
-        config.at("use_target_prefix_fallback").set_value(true);
-        config.at("use_default_prefix_fallback").set_value(true);
-        config.at("use_root_prefix_fallback").set_value(true);
-        config.at("target_prefix_checks")
-            .set_value(
-                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
-                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
-            );
+        configure_common_prefix_fallbacks(
+            config,
+            /* create_base= */ update_params.env_update == EnvUpdate::Yes
+        );
         config.load();
 
         const auto& raw_update_specs = config.at("specs").value<std::vector<std::string>>();
-
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
+        auto& no_pin = config.at("no_pin").value<bool>();
+        auto& no_py_pin = config.at("no_py_pin").value<bool>();
+        auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
-        populate_context_channels_from_specs(raw_update_specs, ctx);
+        validate_target_prefix_and_channels(ctx, /* create_env= */ false);
+        auto [db, package_caches] = prepare_solver_context(ctx, channel_context, raw_update_specs);
 
-        solver::libsolv::Database db{
-            channel_context.params(),
-            {
-                ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                   : solver::libsolv::MatchSpecParser::Libsolv,
-            },
-        };
-        add_logger_to_database(db);
-
-        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
-
-        std::vector<std::string> root_packages = ctx.repodata_use_shards
-                                                     ? build_sharded_root_packages(raw_update_specs)
-                                                     : std::vector<std::string>{};
-
-        auto exp_loaded = load_channels(ctx, channel_context, db, package_caches, root_packages);
-        if (!exp_loaded)
-        {
-            throw std::runtime_error(exp_loaded.error().what());
-        }
-
-        auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
-        if (!exp_prefix_data)
-        {
-            // TODO: propagate tl::expected mechanism
-            throw std::runtime_error(exp_prefix_data.error().what());
-        }
-        PrefixData& prefix_data = exp_prefix_data.value();
-
-        load_installed_packages_in_database(ctx, db, prefix_data);
+        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
 
         auto request = create_update_request(prefix_data, raw_update_specs, update_params);
-        add_pins_to_request(
-            request,
-            ctx,
-            prefix_data,
-            raw_update_specs,
-            /* no_pin= */ config.at("no_pin").value<bool>(),
-            /* no_py_pin = */ config.at("no_py_pin").value<bool>()
-        );
 
-        request.flags = ctx.solver_flags;
+        add_pins_to_request(request, ctx, prefix_data, raw_update_specs, no_pin, no_py_pin);
 
         {
             auto out = Console::stream();
@@ -214,81 +167,58 @@ namespace mamba
             // Console stream prints on destruction
         }
 
-        if (Console::can_report_status())
+        auto outcome = solve_request_with_status(ctx.experimental_matchspec_parsing, db, request);
+
+        // No retry at all: mark as already retried so handle_unsolvable_with_retry() never
+        // re-solves.
+        handle_unsolvable_with_retry(
+            outcome,
+            ctx.graphics_params.palette,
+            ctx.output_params.json,
+            retry_clean_cache,
+            /* is_retry= */ true,
+            ctx.local_repodata_ttl,
+            db,
+            /* retry_fn= */ []() {}
+        );
+
+        std::vector<LockFile> locks;
+        for (auto& c : ctx.pkgs_dirs)
         {
-            Console::instance().print(
-                fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
-            );
-        }
-        auto outcome = solver::libsolv::Solver()
-                           .solve(
-                               db,
-                               request,
-                               ctx.experimental_matchspec_parsing
-                                   ? solver::libsolv::MatchSpecParser::Mamba
-                                   : solver::libsolv::MatchSpecParser::Mixed
-                           )
-                           .value();
-        if (Console::can_report_status())
-        {
-            Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
-        }
-        if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
-        {
-            unsolvable->explain_problems_to(
-                db,
-                LOG_ERROR,
-                {
-                    /* .unavailable= */ ctx.graphics_params.palette.failure,
-                    /* .available= */ ctx.graphics_params.palette.success,
-                }
-            );
-            if (ctx.output_params.json)
-            {
-                Console::instance().json_write(
-                    { { "success", false }, { "solver_problems", unsolvable->problems(db) } }
-                );
-            }
-            throw mamba_error(
-                "Could not solve for environment specs",
-                mamba_error_code::satisfiablitity_error
-            );
+            locks.push_back(LockFile(c));
         }
 
         Console::instance().json_write({ { "success", true } });
-        auto transaction = MTransaction(
+
+        auto trans = make_transaction_from_solution(ctx, std::move(db), request, outcome, package_caches);
+
+        Console::stream();
+
+        auto transaction_accepted = execute_transaction(
+            trans,
             ctx,
-            db,
-            request,
-            std::get<solver::Solution>(outcome),
-            package_caches
+            channel_context,
+            prefix_data,
+            /* before_execute= */ {},
+            /* after_execute= */
+            [&]()
+            {
+                if (update_params.env_update == EnvUpdate::Yes && !ctx.dry_run)
+                {
+                    print_activation_message(ctx);
+                }
+            },
+            /* on_abort= */ {}
         );
 
-
-        auto execute_transaction = [&](MTransaction& trans)
-        {
-            if (ctx.output_params.json)
-            {
-                trans.log_json();
-            }
-
-            bool yes = trans.prompt(ctx, channel_context);
-            if (yes)
-            {
-                trans.execute(ctx, channel_context, prefix_data);
-            }
-        };
-
-        execute_transaction(transaction);
-        for (auto other_spec :
-             config.at("others_pkg_mgrs_specs").value<std::vector<detail::other_pkg_mgr_spec>>())
-        {
-            auto result = install_for_other_pkgmgr(ctx, other_spec, pip::Update::Yes);
-            if (!result.has_value())
-            {
-                static_assert(std::is_base_of_v<std::exception, decltype(result)::error_type>);
-                throw std::move(result).error();
-            }
-        }
+        const auto other_specs = config.at("others_pkg_mgrs_specs")
+                                     .value<std::vector<detail::other_pkg_mgr_spec>>();
+        execute_other_pkg_managers_if_needed(
+            transaction_accepted,
+            ctx.dry_run,
+            other_specs,
+            ctx,
+            pip::Update::Yes
+        );
     }
 }

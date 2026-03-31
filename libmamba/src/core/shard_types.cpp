@@ -8,6 +8,7 @@
 #include "mamba/specs/package_info.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/specs/version.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/url_manip.hpp"
 
@@ -48,7 +49,7 @@ namespace mamba
         pkg_info.build_string = record.build_string;
         pkg_info.build_number = record.build_number;
         pkg_info.channel = channel_id;
-        pkg_info.package_url = util::url_concat(base_url, "/", filename);
+        pkg_info.package_url = util::url_concat(base_url, "/", util::encode_percent(filename));
         pkg_info.platform = platform;
         pkg_info.filename = filename;
         pkg_info.license = record.license.value_or("");

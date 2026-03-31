@@ -2798,9 +2798,7 @@ namespace mamba
         }
         else
         {
-            // FIXME: Console's json should be output here too, mixed in some way
-            Console::instance().cancel_json_print();
-            std::cout << dump_text << std::endl;  // output YAML
+            std::cout << dump_text << std::endl;  // outputs YAML
         }
     }
 

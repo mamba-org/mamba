@@ -133,6 +133,94 @@ namespace mamba
             return request;
         }
 
+        void update_impl(
+            Context& ctx,
+            ChannelContext& channel_context,
+            Configuration& config,
+            const std::vector<std::string>& raw_update_specs,
+            const UpdateParams& update_params,
+            bool is_retry
+        )
+        {
+            auto& no_pin = config.at("no_pin").value<bool>();
+            auto& no_py_pin = config.at("no_py_pin").value<bool>();
+            auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
+
+            validate_target_prefix_and_channels(ctx, /* create_env= */ false);
+            auto [db, package_caches] = prepare_solver_context(ctx, channel_context, raw_update_specs);
+
+            auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
+
+            auto request = create_update_request(prefix_data, raw_update_specs, update_params);
+
+            add_pins_to_request(request, ctx, prefix_data, raw_update_specs, no_pin, no_py_pin);
+
+            {
+                auto out = Console::stream();
+                print_request_pins_to(request, out);
+                // Console stream prints on destruction
+            }
+
+            auto outcome = solve_request_with_status(ctx.experimental_matchspec_parsing, db, request);
+
+            if (handle_unsolvable_with_retry(
+                    outcome,
+                    ctx.graphics_params.palette,
+                    ctx.output_params.json,
+                    retry_clean_cache,
+                    is_retry,
+                    ctx.local_repodata_ttl,
+                    db,
+                    /* retry_fn= */
+                    [&]()
+                    {
+                        bool retry = true;
+                        update_impl(ctx, channel_context, config, raw_update_specs, update_params, retry);
+                    }
+                ))
+            {
+                return;
+            }
+
+            std::vector<LockFile> locks;
+            for (auto& c : ctx.pkgs_dirs)
+            {
+                locks.push_back(LockFile(c));
+            }
+
+            Console::instance().json_write({ { "success", true } });
+
+            auto trans = make_transaction_from_solution(ctx, std::move(db), request, outcome, package_caches);
+
+            Console::stream();
+
+            auto transaction_accepted = execute_transaction(
+                trans,
+                ctx,
+                channel_context,
+                prefix_data,
+                /* before_execute= */ {},
+                /* after_execute= */
+                [&]()
+                {
+                    if (update_params.env_update == EnvUpdate::Yes && !ctx.dry_run)
+                    {
+                        print_activation_message(ctx);
+                    }
+                },
+                /* on_abort= */ {}
+            );
+
+            const auto other_specs = config.at("others_pkg_mgrs_specs")
+                                         .value<std::vector<detail::other_pkg_mgr_spec>>();
+            execute_other_pkg_managers_if_needed(
+                transaction_accepted,
+                ctx.dry_run,
+                other_specs,
+                ctx,
+                pip::Update::Yes
+            );
+        }
     }
 
     void update(Configuration& config, const UpdateParams& update_params)
@@ -148,77 +236,8 @@ namespace mamba
 
         const auto& raw_update_specs = config.at("specs").value<std::vector<std::string>>();
         auto channel_context = ChannelContext::make_conda_compatible(ctx);
-        auto& no_pin = config.at("no_pin").value<bool>();
-        auto& no_py_pin = config.at("no_py_pin").value<bool>();
-        auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
-        validate_target_prefix_and_channels(ctx, /* create_env= */ false);
-        auto [db, package_caches] = prepare_solver_context(ctx, channel_context, raw_update_specs);
-
-        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-
-        auto request = create_update_request(prefix_data, raw_update_specs, update_params);
-
-        add_pins_to_request(request, ctx, prefix_data, raw_update_specs, no_pin, no_py_pin);
-
-        {
-            auto out = Console::stream();
-            print_request_pins_to(request, out);
-            // Console stream prints on destruction
-        }
-
-        auto outcome = solve_request_with_status(ctx.experimental_matchspec_parsing, db, request);
-
-        // No retry at all: mark as already retried so handle_unsolvable_with_retry() never
-        // re-solves.
-        handle_unsolvable_with_retry(
-            outcome,
-            ctx.graphics_params.palette,
-            ctx.output_params.json,
-            retry_clean_cache,
-            /* is_retry= */ true,
-            ctx.local_repodata_ttl,
-            db,
-            /* retry_fn= */ []() {}
-        );
-
-        std::vector<LockFile> locks;
-        for (auto& c : ctx.pkgs_dirs)
-        {
-            locks.push_back(LockFile(c));
-        }
-
-        Console::instance().json_write({ { "success", true } });
-
-        auto trans = make_transaction_from_solution(ctx, std::move(db), request, outcome, package_caches);
-
-        Console::stream();
-
-        auto transaction_accepted = execute_transaction(
-            trans,
-            ctx,
-            channel_context,
-            prefix_data,
-            /* before_execute= */ {},
-            /* after_execute= */
-            [&]()
-            {
-                if (update_params.env_update == EnvUpdate::Yes && !ctx.dry_run)
-                {
-                    print_activation_message(ctx);
-                }
-            },
-            /* on_abort= */ {}
-        );
-
-        const auto other_specs = config.at("others_pkg_mgrs_specs")
-                                     .value<std::vector<detail::other_pkg_mgr_spec>>();
-        execute_other_pkg_managers_if_needed(
-            transaction_accepted,
-            ctx.dry_run,
-            other_specs,
-            ctx,
-            pip::Update::Yes
-        );
+        auto is_retry = false;
+        update_impl(ctx, channel_context, config, raw_update_specs, update_params, is_retry);
     }
 }

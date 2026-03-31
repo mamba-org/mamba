@@ -161,6 +161,25 @@ namespace mamba
         Console(const Context& context);
         ~Console();
 
+        /** Utility to set `"success": false` on destruction of this object
+            when it's destructor is invoked while an exception is in flight.
+
+            This helps avoiding situations where an exception that should be
+            considered a failure of the overall operation is thrown but
+            the json is still set with `"success": true`, while it should be `false`,
+            misleading the testing outputs.
+        */
+        struct JSonFailureOnException
+        {
+            ~JSonFailureOnException()
+            {
+                if (std::uncaught_exceptions() > 0)
+                {
+                    Console::instance().json_write({ { "success", false } });
+                }
+            }
+        };
+
     private:
 
         void json_print();

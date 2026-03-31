@@ -367,6 +367,10 @@ namespace mamba
     bool
     MTransaction::execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix)
     {
+        // If an exception is thrown in this function, we must consider the whole operation as a
+        // failure.
+        Console::JSonFailureOnException fail_json_on_exception;
+
         // JSON output
         // back to the top level if any action was required
         if (!empty())

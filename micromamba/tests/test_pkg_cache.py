@@ -393,16 +393,15 @@ class TestMultiplePkgCaches:
                 f"**{file_to_find_in_package}", recursive=True, root_dir=old_cache_dir
             )
             for file in files:
-                (old_cache_dir / file).unlink()
+                file.unlink()
         helpers.recursive_chmod(tmp_cache, 0o500)
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache}"
 
-        # Mamba now handles corrupted extracted directories in read-only caches gracefully
-        # by extracting to a temporary location, so the operation should succeed
-        helpers.create(
-            "-n", "myenv", package_to_check_requirements(), "-vv", "--json", no_dry_run=True
-        )
+        with pytest.raises(subprocess.CalledProcessError):
+            helpers.create(
+                "-n", "myenv", package_to_check_requirements(), "-vv", "--json", no_dry_run=True
+            )
 
     def test_first_writable_extracted_dir_corrupted(
         self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt

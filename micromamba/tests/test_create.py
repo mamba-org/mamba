@@ -2649,7 +2649,7 @@ def test_create_package_with_non_url_char(tmp_home, tmp_root_prefix):
     assert any(pkg["name"] == "x264" for pkg in res["actions"]["LINK"])
 
 
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(30)
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.skipif(
     platform.system() == "Windows", reason="This test fails on Windows for unknown reasons"

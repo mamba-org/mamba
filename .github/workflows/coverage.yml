@@ -44,7 +44,7 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v6
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
@@ -113,7 +113,7 @@ jobs:
       #     python -m pytest micromamba/tests/ --cov=micromamba --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: |
             ./cpp_coverage.info

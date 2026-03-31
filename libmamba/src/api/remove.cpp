@@ -9,12 +9,13 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
-#include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
+
+#include "utils.hpp"
 
 namespace mamba
 {
@@ -124,47 +125,12 @@ namespace mamba
             bool force
         )
         {
-            if (ctx.prefix_params.target_prefix.empty())
-            {
-                LOG_ERROR << "No active target prefix.";
-                throw std::runtime_error("Aborted.");
-            }
-
-            auto exp_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
-            if (!exp_prefix_data)
-            {
-                // TODO: propagate tl::expected mechanism
-                throw std::runtime_error(exp_prefix_data.error().what());
-            }
-            PrefixData& prefix_data = exp_prefix_data.value();
-
-            solver::libsolv::Database database{
-                channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
-            add_logger_to_database(database);
-            load_installed_packages_in_database(ctx, database, prefix_data);
+            validate_target_prefix_and_channels(ctx, /* create_env= */ false);
+            auto database = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
+            auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, database);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");
             MultiPackageCache package_caches({ pkgs_dirs }, ctx.validation_params);
-
-            auto execute_transaction = [&](MTransaction& transaction)
-            {
-                if (ctx.output_params.json)
-                {
-                    transaction.log_json();
-                }
-
-                auto prompt_entry = transaction.prompt(ctx, channel_context);
-                if (prompt_entry)
-                {
-                    transaction.execute(ctx, channel_context, prefix_data);
-                }
-                return prompt_entry;
-            };
 
             if (force)
             {
@@ -184,7 +150,7 @@ namespace mamba
                     }
                 }
                 auto transaction = MTransaction(ctx, database, pkgs_to_remove, {}, package_caches);
-                return execute_transaction(transaction);
+                return mamba::execute_transaction(transaction, ctx, channel_context, prefix_data);
             }
             else
             {
@@ -209,13 +175,7 @@ namespace mamba
                                    .value();
                 if (auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome))
                 {
-                    if (ctx.output_params.json)
-                    {
-                        Console::instance().json_write(
-                            { { "success", false },
-                              { "solver_problems", unsolvable->problems(database) } }
-                        );
-                    }
+                    write_unsolvable_json_if_needed(ctx.output_params.json, database, *unsolvable);
                     throw mamba_error(
                         "Could not solve for environment specs",
                         mamba_error_code::satisfiablitity_error
@@ -223,15 +183,15 @@ namespace mamba
                 }
 
                 Console::instance().json_write({ { "success", true } });
-                auto transaction = MTransaction(
+                auto transaction = make_transaction_from_solution(
                     ctx,
-                    database,
+                    std::move(database),
                     request,
-                    std::get<solver::Solution>(outcome),
+                    outcome,
                     package_caches
                 );
 
-                return execute_transaction(transaction);
+                return mamba::execute_transaction(transaction, ctx, channel_context, prefix_data);
             }
         }
     }

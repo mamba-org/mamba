@@ -12,11 +12,22 @@
 #include <reproc/reproc.h>
 
 // TODO includes to be removed after moving some functions/structs around
+#include "mamba/api/channel_loader.hpp"
+#include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"  // other_pkg_mgr_spec
+#include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/environments_manager.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/package_cache.hpp"
+#include "mamba/core/package_database_loader.hpp"
+#include "mamba/core/prefix_data.hpp"
+#include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/solver/libsolv/database.hpp"
+#include "mamba/solver/request.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/environment.hpp"
 
@@ -284,5 +295,279 @@ namespace mamba
         std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
         add_pip_if_python(root_packages);
         return root_packages;
+    }
+
+    void print_activation_message(const Context& ctx)
+    {
+        // Check that the target prefix is not active before printing the activation message
+        if (util::get_env("CONDA_PREFIX") != ctx.prefix_params.target_prefix)
+        {
+            // Get the name of the executable used directly from the command.
+            const auto executable = get_self_exe_path().stem().string();
+
+            // Get the name of the environment
+            const auto environment = env_name(
+                ctx.envs_dirs,
+                ctx.prefix_params.root_prefix,
+                ctx.prefix_params.target_prefix
+            );
+
+            Console::stream() << "\nTo activate this environment, use:\n\n"
+                                 "    "
+                              << executable << " activate " << environment
+                              << "\n\n"
+                                 "Or to execute a single command in this environment, use:\n\n"
+                                 "    "
+                              << executable
+                              << " run "
+                              // Use -n or -p depending on if the env_name is a full prefix or
+                              // just a name.
+                              << (environment == ctx.prefix_params.target_prefix ? "-p " : "-n ")
+                              << environment << " mycommand\n";
+        }
+    }
+
+    solver::libsolv::Solver::Outcome solve_request_with_status(
+        bool experimental_matchspec_parsing,
+        solver::libsolv::Database& db,
+        const solver::Request& request
+    )
+    {
+        if (Console::can_report_status())
+        {
+            Console::instance().print(
+                fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
+            );
+        }
+        auto outcome = solver::libsolv::Solver()
+                           .solve(
+                               db,
+                               request,
+                               experimental_matchspec_parsing
+                                   ? solver::libsolv::MatchSpecParser::Mamba
+                                   : solver::libsolv::MatchSpecParser::Mixed
+                           )
+                           .value();
+        if (Console::can_report_status())
+        {
+            Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
+        }
+        return outcome;
+    }
+
+    solver::libsolv::Database
+    make_solver_database(bool experimental_matchspec_parsing, ChannelContext& channel_context)
+    {
+        solver::libsolv::Database db{
+            channel_context.params(),
+            {
+                experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                               : solver::libsolv::MatchSpecParser::Libsolv,
+            },
+        };
+        add_logger_to_database(db);
+        return db;
+    }
+
+    void configure_common_prefix_fallbacks(Configuration& config, bool create_base)
+    {
+        if (create_base)
+        {
+            config.at("create_base").set_value(true);
+        }
+        config.at("use_target_prefix_fallback").set_value(true);
+        config.at("use_default_prefix_fallback").set_value(true);
+        config.at("use_root_prefix_fallback").set_value(true);
+        config.at("target_prefix_checks")
+            .set_value(
+                MAMBA_ALLOW_EXISTING_PREFIX | MAMBA_NOT_ALLOW_MISSING_PREFIX
+                | MAMBA_NOT_ALLOW_NOT_ENV_PREFIX | MAMBA_EXPECT_EXISTING_PREFIX
+            );
+    }
+
+    void validate_target_prefix_and_channels(const Context& ctx, bool create_env)
+    {
+        if (ctx.prefix_params.target_prefix.empty())
+        {
+            throw std::runtime_error("No active target prefix");
+        }
+        if (!fs::exists(ctx.prefix_params.target_prefix) && !create_env)
+        {
+            throw std::runtime_error(
+                fmt::format("Prefix does not exist at: {}", ctx.prefix_params.target_prefix.string())
+            );
+        }
+        if (ctx.channels.empty() && !ctx.offline)
+        {
+            LOG_WARNING << "No 'channels' specified";
+        }
+    }
+
+    std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const std::vector<std::string>& raw_specs
+    )
+    {
+        populate_context_channels_from_specs(raw_specs, ctx);
+        auto db = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
+
+        MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
+        auto root_packages = ctx.repodata_use_shards ? build_sharded_root_packages(raw_specs)
+                                                     : std::vector<std::string>{};
+        auto maybe_load = load_channels(ctx, channel_context, db, package_caches, root_packages);
+        if (!maybe_load)
+        {
+            throw maybe_load.error();
+        }
+        return { std::move(db), std::move(package_caches) };
+    }
+
+    PrefixData load_prefix_data_and_installed(
+        Context& ctx,
+        ChannelContext& channel_context,
+        solver::libsolv::Database& db
+    )
+    {
+        auto maybe_prefix_data = PrefixData::create(ctx.prefix_params.target_prefix, channel_context);
+        if (!maybe_prefix_data)
+        {
+            throw std::runtime_error(maybe_prefix_data.error().what());
+        }
+        PrefixData prefix_data = std::move(maybe_prefix_data).value();
+        load_installed_packages_in_database(ctx, db, prefix_data);
+        return prefix_data;
+    }
+
+    bool handle_unsolvable_with_retry(
+        solver::libsolv::Solver::Outcome& outcome,
+        const Palette& palette,
+        bool json_output,
+        bool retry_clean_cache,
+        bool is_retry,
+        std::size_t& local_repodata_ttl,
+        solver::libsolv::Database& db,
+        const std::function<void()>& retry_fn,
+        const std::function<void()>& pre_throw_hint
+    )
+    {
+        auto* unsolvable = std::get_if<solver::libsolv::UnSolvable>(&outcome);
+        if (unsolvable == nullptr)
+        {
+            return false;
+        }
+        unsolvable->explain_problems_to(
+            db,
+            LOG_ERROR,
+            {
+                /* .unavailable= */ palette.failure,
+                /* .available= */ palette.success,
+            }
+        );
+        if (retry_clean_cache && !is_retry)
+        {
+            local_repodata_ttl = 2;
+            retry_fn();
+            return true;
+        }
+        if (pre_throw_hint)
+        {
+            pre_throw_hint();
+        }
+        write_unsolvable_json_if_needed(json_output, db, *unsolvable);
+        throw mamba_error(
+            "Could not solve for environment specs",
+            mamba_error_code::satisfiablitity_error
+        );
+    }
+
+    void write_unsolvable_json_if_needed(
+        bool json_output,
+        solver::libsolv::Database& db,
+        solver::libsolv::UnSolvable& unsolvable
+    )
+    {
+        if (json_output)
+        {
+            Console::instance().json_write(
+                { { "success", false }, { "solver_problems", unsolvable.problems(db) } }
+            );
+        }
+    }
+
+    bool execute_transaction(
+        MTransaction& transaction,
+        Context& ctx,
+        ChannelContext& channel_context,
+        PrefixData& prefix_data,
+        const std::function<void()>& before_execute,
+        const std::function<void()>& after_execute,
+        const std::function<void()>& on_abort
+    )
+    {
+        if (ctx.output_params.json)
+        {
+            transaction.log_json();
+        }
+        const auto should_execute = transaction.prompt(ctx, channel_context);
+        if (should_execute)
+        {
+            if (before_execute)
+            {
+                before_execute();
+            }
+            transaction.execute(ctx, channel_context, prefix_data);
+            if (after_execute)
+            {
+                after_execute();
+            }
+        }
+        else if (on_abort)
+        {
+            on_abort();
+        }
+        return should_execute;
+    }
+
+    MTransaction make_transaction_from_solution(
+        Context& ctx,
+        solver::libsolv::Database db,
+        const solver::Request& request,
+        const solver::libsolv::Solver::Outcome& outcome,
+        MultiPackageCache& package_caches
+    )
+    {
+        return MTransaction(ctx, db, request, std::get<solver::Solution>(outcome), package_caches);
+    }
+
+    void execute_other_pkg_managers(
+        const std::vector<detail::other_pkg_mgr_spec>& other_specs,
+        const Context& ctx,
+        pip::Update update
+    )
+    {
+        for (const auto& other_spec : other_specs)
+        {
+            auto result = install_for_other_pkgmgr(ctx, other_spec, update);
+            if (!result)
+            {
+                static_assert(std::is_base_of_v<std::exception, decltype(result)::error_type>);
+                throw std::move(result).error();
+            }
+        }
+    }
+
+    void execute_other_pkg_managers_if_needed(
+        bool transaction_accepted,
+        bool dry_run,
+        const std::vector<detail::other_pkg_mgr_spec>& other_specs,
+        const Context& ctx,
+        pip::Update update
+    )
+    {
+        if (transaction_accepted && !dry_run)
+        {
+            execute_other_pkg_managers(other_specs, ctx, update);
+        }
     }
 }

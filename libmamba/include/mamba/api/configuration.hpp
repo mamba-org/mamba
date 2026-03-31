@@ -8,6 +8,8 @@
 #define MAMBA_API_CONFIGURATION_HPP
 
 #include <functional>
+#include <vector>
+#include <string>
 
 #include <yaml-cpp/yaml.h>
 
@@ -961,6 +963,13 @@ namespace mamba
     }
 
     void use_conda_root_prefix(Configuration& config, bool force = false);
+
+    void print_dump(
+        Configuration& config,
+        int dump_opts = MAMBA_SHOW_CONFIG_VALUES,
+        std::vector<std::string> dump_names = {}
+    );
+
 }
 
 #endif  // MAMBA_CONFIG_HPP

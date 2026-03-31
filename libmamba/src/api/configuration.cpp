@@ -2303,8 +2303,7 @@ namespace mamba
             // TOOD: fix this for the case where `--json` is used
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
-            Console::instance().cancel_json_print();  // we will output json or yaml already
-            std::cout << this->dump(dump_opts) << std::endl;
+            print_dump(*this, dump_opts);
             exit(0);
         }
 
@@ -2785,6 +2784,23 @@ namespace mamba
         else
         {
             return dump_yaml(opts, names, get_grouped_config());
+        }
+    }
+
+    void print_dump(Configuration& config, int dump_opts, std::vector<std::string> dump_names)
+    {
+        const auto dump_text = config.dump(dump_opts, std::move(dump_names));
+        if (config.context().output_params.json)
+        {
+            // merge the output with existing json output
+            auto dump_json = nlohmann::json::parse(dump_text);
+            Console::instance().json_write(dump_json);
+        }
+        else
+        {
+            // FIXME: Console's json should be output here too, mixed in some way
+            Console::instance().cancel_json_print();
+            std::cout << dump_text << std::endl;  // output YAML
         }
     }
 }

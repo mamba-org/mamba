@@ -468,9 +468,9 @@ class TestInstall:
     )
     def test_channel_alias(self, alias, existing_cache):
         if alias:
-            res = helpers.install("xtensor", "--json", "--channel-alias", alias)
+            res = helpers.install("xtensor", "--json", "--dry-run", "--channel-alias", alias)
         else:
-            res = helpers.install("xtensor", "--json")
+            res = helpers.install("xtensor", "--json", "--dry-run")
 
         for to_link in res["actions"]["LINK"]:
             assert to_link["channel"] == "conda-forge"

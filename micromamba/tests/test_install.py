@@ -673,8 +673,9 @@ def test_install_python_site_packages_path(tmp_home, tmp_root_prefix):
     helpers.install("-n", env_name, "imagesize")
 
     if helpers.platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "lib" / "python3.13t")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "Lib" / "python3.13t" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "Lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory
         assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")

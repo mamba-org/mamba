@@ -120,15 +120,23 @@ namespace mamba
          * Prefer repodata's `python_site_packages_path`; if missing, infer free-threaded layout
          * (`lib/pythonX.Yt/site-packages`) from CPython's conda build string segment (`cpVVVt`).
          *
-         * Repodata may still advertise `lib/pythonX.Y/site-packages` for `cpVVVt` builds; in that
-         * case use the free-threaded layout so `noarch` paths match the interpreter
-         * (`lib/pythonX.Yt/...`).
+         * On Unix-like platforms, repodata may still advertise `lib/pythonX.Y/site-packages` for
+         * `cpVVVt` builds; in that case use the free-threaded layout so `noarch` paths match the
+         * interpreter (`lib/pythonX.Yt/...`).
          *
-         * Note that in the case of free-threaded builds, the `.pyc` names still use the same
-         * cache tag as the standard builds (e.g. `six.cpython-313.pyc`).
+         * On Windows, always use the canonical `Lib/site-packages` location.
          */
         auto effective_python_site_packages_path(const specs::PackageInfo& python_pkg) -> std::string
         {
+#ifdef _WIN32
+            // On Windows, `libmamba` should install all python packages into the
+            // canonical `Lib/site-packages` location (independently of the python version
+            // and of freethreading).
+            const std::string canonical_site_packages = (fs::u8path("Lib") / "site-packages")
+                                                            .generic_string();
+
+            return canonical_site_packages;
+#else
             const std::string short_ver = compute_short_python_version(python_pkg.version);
             std::string compact = short_ver;
             util::replace_all(compact, ".", "");
@@ -173,6 +181,7 @@ namespace mamba
                 return {};
             }
             return ft_site_packages;
+#endif
         }
 
         auto find_python_versions_and_site_packages(

@@ -1916,6 +1916,8 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     cmd = ["-n", env_name, f"python={version}.*={build}", "six"]
 
     if platform.system() == "Windows":
+        # For noarch-python packages on Windows, libmamba should install into the
+        # canonical `Lib/site-packages` location (independent of freethreading).
         site_packages = env_prefix / "Lib" / "site-packages"
         if version == "2.7":
             cmd += ["-c", "defaults"]  # for vc=9.*
@@ -1925,16 +1927,26 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
         else:
             site_packages = env_prefix / "lib" / f"python{version}" / "site-packages"
 
+    pyc_candidates: list[Path]
     if cache_tag:
-        pyc_fn = Path("__pycache__") / f"six.{cache_tag}.pyc"
+        # Python's .pyc file name includes the interpreter "magic tag".
+        # On Windows, free-threaded Python may emit a `...-t` variant even
+        # when the provided `cache_tag` is `cpython-<minor>`.
+        pyc_candidates = [Path("__pycache__") / f"six.{cache_tag}.pyc"]
+        if (
+            platform.system() == "Windows"
+            and build.endswith("t")
+            and cache_tag.startswith("cpython-")
+        ):
+            pyc_candidates.append(Path("__pycache__") / f"six.{cache_tag}t.pyc")
     else:
-        pyc_fn = Path("six.pyc")
+        pyc_candidates = [Path("six.pyc")]
 
     # Disable pyc compilation to ensure that files are still registered in conda-meta
     helpers.create(*cmd, "--no-pyc")
-    assert not (site_packages / pyc_fn).exists()
+    assert all(not (site_packages / pyc_fn).exists() for pyc_fn in pyc_candidates)
     six_meta = next((env_prefix / "conda-meta").glob("six-*.json")).read_text()
-    assert pyc_fn.name in six_meta
+    assert any(pyc_fn.name in six_meta for pyc_fn in pyc_candidates)
 
     # A second `create` into an already-satisfied prefix is often a no-op, so linking (and
     # pyc compilation) may not run again. Remove the env so the next create performs a full
@@ -1943,9 +1955,9 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
 
     # Enable pyc compilation to ensure that the pyc files are created
     helpers.create(*cmd)
-    assert (site_packages / pyc_fn).exists()
+    assert any((site_packages / pyc_fn).exists() for pyc_fn in pyc_candidates)
     six_meta = next((env_prefix / "conda-meta").glob("six-*.json")).read_text()
-    assert pyc_fn.name in six_meta
+    assert any(pyc_fn.name in six_meta for pyc_fn in pyc_candidates)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1974,8 +1986,9 @@ def test_create_python_site_packages_path(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
 
     if platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "lib" / "python3.13t")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "Lib" / "python3.13t" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "Lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory
         assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")

@@ -7,7 +7,6 @@
 #include <cctype>
 #include <fstream>
 #include <unordered_set>
-#include <cctype>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -28,6 +27,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/core/shard_python_minor_prefilter.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
@@ -35,7 +35,9 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/version_spec.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 
 #include "utils.hpp"
 
@@ -723,38 +725,15 @@ namespace mamba
             {
                 continue;
             }
-            for (std::size_t i = 0; (i + 2) < spec.size(); ++i)
+            auto maybe_ms = specs::MatchSpec::parse(spec);
+            if (!maybe_ms.has_value())
             {
-                const unsigned char c0 = static_cast<unsigned char>(spec[i]);
-                const unsigned char c1 = static_cast<unsigned char>(spec[i + 1]);
-                const unsigned char c2 = static_cast<unsigned char>(spec[i + 2]);
-                if (!std::isdigit(c0) || c1 != '.' || !std::isdigit(c2))
-                {
-                    continue;
-                }
-                std::size_t j = i;
-                while (j < spec.size() && std::isdigit(static_cast<unsigned char>(spec[j])))
-                {
-                    ++j;
-                }
-                if (j >= spec.size() || spec[j] != '.')
-                {
-                    continue;
-                }
-                std::size_t k = j + 1;
-                while (k < spec.size() && std::isdigit(static_cast<unsigned char>(spec[k])))
-                {
-                    ++k;
-                }
-                if (k == j + 1)
-                {
-                    continue;
-                }
-                const auto maybe_python_minor = specs::Version::parse(spec.substr(i, k - i));
-                if (maybe_python_minor.has_value())
-                {
-                    return maybe_python_minor.value();
-                }
+                continue;
+            }
+            const specs::VersionSpec relaxed = relax_version_spec_to_minor(maybe_ms.value().version());
+            if (auto maybe_v = version_from_single_equality_spec(relaxed))
+            {
+                return maybe_v;
             }
         }
         return std::nullopt;

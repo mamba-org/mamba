@@ -222,6 +222,11 @@ namespace mamba
 
     /**
      * Extract an explicit python minor requirement (e.g. "3.12") from specs.
+     *
+     * Parses each ``python`` ``MatchSpec``, applies ``relax_version_spec_to_minor`` to the
+     * version, and returns the version if it is a single ``==`` equality (e.g. full pins relax to
+     * ``major.minor``). Skips specs that do not parse or do not yield such an equality after
+     * relaxation.
      */
     std::optional<specs::Version>
     extract_requested_python_minor(const std::vector<std::string>& specs);

@@ -26,9 +26,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/fs/filesystem.hpp"
-#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/version.hpp"
-#include "mamba/specs/version_spec.hpp"
 #include "mamba/util/cryptography.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/environment.hpp"
@@ -39,60 +37,6 @@
 
 namespace mamba
 {
-    auto relax_version_spec_to_minor(const specs::VersionSpec& vs) -> specs::VersionSpec
-    {
-        // Only relax a single exact-equality leaf; other shapes keep normal ``contains``.
-        if (vs.expression_size() != 1)
-        {
-            return vs;
-        }
-        const std::string vs_str = vs.to_string();
-        if (!util::starts_with(vs_str, specs::VersionSpec::equal_str))
-        {
-            return vs;
-        }
-        const auto ver_tail = std::string_view(vs_str).substr(specs::VersionSpec::equal_str.size());
-        auto maybe_v = specs::Version::parse(util::lstrip(ver_tail));
-        if (!maybe_v.has_value())
-        {
-            return vs;
-        }
-        const std::string minor_str = maybe_v->to_string(2);
-        if (auto maybe_minor = specs::Version::parse(minor_str); maybe_minor.has_value())
-        {
-            return specs::VersionSpec::from_predicate(
-                specs::VersionPredicate::make_equal_to(std::move(maybe_minor).value())
-            );
-        }
-        return vs;
-    }
-
-    auto dependency_matches_python_minor_version_for_prefilter(
-        const std::string& dependency_spec,
-        const specs::Version& python_minor_version_for_prefilter
-    ) -> bool
-    {
-        auto maybe_name = specs::MatchSpec::extract_name(dependency_spec);
-        if (!maybe_name.has_value() || maybe_name.value() != "python")
-        {
-            return true;
-        }
-        auto maybe_match_spec = specs::MatchSpec::parse(dependency_spec);
-        if (!maybe_match_spec.has_value())
-        {
-            return true;
-        }
-        const auto& ms = maybe_match_spec.value();
-        const auto& vs = ms.version();
-        if (vs.contains(python_minor_version_for_prefilter))
-        {
-            return true;
-        }
-
-        // Relax the version spec on the minor version (ignoring the patch version and build string)
-        return relax_version_spec_to_minor(vs).contains(python_minor_version_for_prefilter);
-    }
-
     namespace
     {
         // Helper functions to extract values from msgpack_object (C API)

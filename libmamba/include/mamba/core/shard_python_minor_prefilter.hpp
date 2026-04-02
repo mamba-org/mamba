@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_SHARD_PYTHON_MINOR_PREFILTER_HPP
 #define MAMBA_CORE_SHARD_PYTHON_MINOR_PREFILTER_HPP
 
+#include <optional>
 #include <string>
 
 #include "mamba/specs/version.hpp"
@@ -14,6 +15,12 @@
 
 namespace mamba
 {
+    /**
+     * If ``vs`` is a single ``==…`` leaf, return the parsed ``Version``; otherwise ``nullopt``.
+     */
+    [[nodiscard]] auto version_from_single_equality_spec(const specs::VersionSpec& vs)
+        -> std::optional<specs::Version>;
+
     /**
      * For a single ``== <full version>`` leaf, replace with ``== <major.minor>`` so
      * ``VersionSpec::contains`` matches a user ``python=X.Y`` point. Other specs are returned

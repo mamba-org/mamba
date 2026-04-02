@@ -184,7 +184,8 @@ namespace mamba
          * This handles the case where sha256 and md5 can be either strings or bytes
          * (as per Python TypedDict: NotRequired[str | bytes]).
          */
-        auto parse_shard_package_record(const msgpack_object& obj) -> specs::RepoDataPackage
+        auto parse_shard_package_record(const msgpack_object& obj, std::string_view package_filename)
+            -> specs::RepoDataPackage
         {
             specs::RepoDataPackage record;
 
@@ -365,8 +366,12 @@ namespace mamba
                 catch (const std::exception& e)
                 {
                     LOG_WARNING << "Failed to parse field '" << key
-                                << "' (type=" << static_cast<int>(val_obj.type)
-                                << ") in shard package record: " << e.what();
+                                << "' (msgpack type=" << static_cast<int>(val_obj.type)
+                                << ") in shard package record"
+                                << (package_filename.empty()
+                                        ? ""
+                                        : (" for '" + std::string(package_filename) + "'"))
+                                << ": " << e.what() << ". This field will be ignored.";
                     // Continue parsing other fields
                 }
             }
@@ -1026,7 +1031,10 @@ namespace mamba
                             continue;
                         }
                         std::string pkg_filename = msgpack_object_to_string(key);
-                        specs::RepoDataPackage parsed_record = parse_shard_package_record(val);
+                        specs::RepoDataPackage parsed_record = parse_shard_package_record(
+                            val,
+                            pkg_filename
+                        );
                         target_map[pkg_filename] = std::move(parsed_record);
                     }
                     catch (const std::exception& e)

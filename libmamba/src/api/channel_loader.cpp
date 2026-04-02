@@ -563,7 +563,11 @@ namespace mamba
                     continue;
                 }
                 SubdirIndexLoader subdir_index_loader = std::move(subdir_index_loader_result).value();
-                if (subdir_index_loader.valid_cache_found() && Console::can_report_status())
+
+                // Only show flat repodata cache status if we're not using shards and we have a
+                // valid cache
+                if (!ctx.repodata_use_shards && subdir_index_loader.valid_cache_found()
+                    && Console::can_report_status())
                 {
                     Console::stream()
                         << fmt::format("{:<50} {:>20}", subdir_index_loader.name(), "Using cache");

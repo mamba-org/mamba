@@ -401,6 +401,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_python_minor_prefilter.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shards.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_index_loader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_types.hpp

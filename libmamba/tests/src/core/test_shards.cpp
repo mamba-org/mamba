@@ -12,6 +12,7 @@
 #include <msgpack/zone.h>
 
 #include "mamba/core/channel_context.hpp"
+#include "mamba/core/shard_python_minor_prefilter.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/shards.hpp"
 #include "mamba/core/util.hpp"
@@ -23,8 +24,10 @@
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version.hpp"
+#include "mamba/specs/version_spec.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 
 #include "mambatests.hpp"
@@ -2847,5 +2850,157 @@ TEST_CASE("Shards - python minor prefilter")
         REQUIRE(result.has_value());
         REQUIRE(result->packages.size() == 1);
         REQUIRE(result->packages.begin()->second.name == "test-pkg");
+    }
+
+    SECTION("exact python pin matches requested minor (conda three-token depends)")
+    {
+        auto result = run_for_dep(
+            "python 3.7.12 0_73_pypy",
+            specs::Version::parse("3.7").value_or(specs::Version())
+        );
+        REQUIRE(result.has_value());
+        REQUIRE(result->packages.size() == 1);
+        REQUIRE(result->packages.begin()->second.name == "test-pkg");
+    }
+}
+
+TEST_CASE("relax_version_spec_to_minor")
+{
+    using specs::Version;
+    using specs::VersionSpec;
+
+    const auto req = [](std::string_view s) -> Version { return Version::parse(s).value(); };
+
+    SECTION("bare equality pin relaxes so requested minor is contained")
+    {
+        const auto vs = VersionSpec::parse("3.7.12").value();
+        const auto relaxed = relax_version_spec_to_minor(vs);
+        REQUIRE(relaxed.contains(req("3.7")));
+        REQUIRE_FALSE(relaxed.contains(req("3.8")));
+    }
+
+    SECTION("explicit double-equals string form relaxes")
+    {
+        const auto vs = VersionSpec::parse("==3.7.12").value();
+        const auto relaxed = relax_version_spec_to_minor(vs);
+        REQUIRE(relaxed.contains(req("3.7")));
+        REQUIRE(util::starts_with(relaxed.to_string(), "=="));
+    }
+
+    SECTION("four-component pin relaxes to first two components")
+    {
+        const auto vs = VersionSpec::parse("1.2.3.4").value();
+        const auto relaxed = relax_version_spec_to_minor(vs);
+        REQUIRE(relaxed.contains(req("1.2")));
+        REQUIRE_FALSE(relaxed.contains(req("1.3")));
+    }
+
+    SECTION("greater-or-equal is unchanged")
+    {
+        const auto vs = VersionSpec::parse(">=3.7").value();
+        REQUIRE(relax_version_spec_to_minor(vs).to_string() == vs.to_string());
+    }
+
+    SECTION("less-than is unchanged")
+    {
+        const auto vs = VersionSpec::parse("<4").value();
+        REQUIRE(relax_version_spec_to_minor(vs).to_string() == vs.to_string());
+    }
+
+    SECTION("compatible-release operator is unchanged")
+    {
+        const auto vs = VersionSpec::parse("~=3.7").value();
+        REQUIRE(relax_version_spec_to_minor(vs).to_string() == vs.to_string());
+    }
+
+    SECTION("not-equal is unchanged")
+    {
+        const auto vs = VersionSpec::parse("!=3.7.12").value();
+        REQUIRE(relax_version_spec_to_minor(vs).to_string() == vs.to_string());
+    }
+
+    SECTION("disjunction is unchanged")
+    {
+        const auto vs = VersionSpec::parse("==3.7.12|==3.8.0").value();
+        REQUIRE(relax_version_spec_to_minor(vs).to_string() == vs.to_string());
+    }
+
+    SECTION("conjunction is unchanged")
+    {
+        const auto vs = VersionSpec::parse(">=3.7,<3.8").value();
+        REQUIRE(relax_version_spec_to_minor(vs).to_string() == vs.to_string());
+    }
+
+    SECTION("free spec is unchanged")
+    {
+        const VersionSpec vs{};
+        REQUIRE(relax_version_spec_to_minor(vs).is_explicitly_free());
+    }
+}
+
+TEST_CASE("dependency_matches_requested_python_minor")
+{
+    const auto req = [](std::string_view s) -> specs::Version
+    { return specs::Version::parse(s).value(); };
+
+    SECTION("non-python dependency is not filtered")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("numpy >=1.0", req("3.12")));
+        REQUIRE(dependency_matches_requested_python_minor("libstdcxx-ng >=12", req("3.12")));
+    }
+
+    SECTION("name starting with python but not the python package")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("python_abi 3.12 1_cp312", req("3.12")));
+    }
+
+    SECTION("python version range matches requested minor")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("python >=3.12,<3.13", req("3.12")));
+        REQUIRE(dependency_matches_requested_python_minor("python >=3.12", req("3.12")));
+    }
+
+    SECTION("python version range does not match requested minor")
+    {
+        REQUIRE_FALSE(dependency_matches_requested_python_minor("python >=3.12,<3.13", req("3.11")));
+        REQUIRE_FALSE(dependency_matches_requested_python_minor("python >=3.12,<3.13", req("3.13")));
+    }
+
+    SECTION("exact three-token conda pin matches requested minor")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("python 3.7.12 0_73_pypy", req("3.7")));
+    }
+
+    SECTION("two-token exact pin matches requested minor")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("python 3.7.12", req("3.7")));
+    }
+
+    SECTION("exact pin does not match different minor")
+    {
+        REQUIRE_FALSE(dependency_matches_requested_python_minor("python 3.8.0", req("3.7")));
+    }
+
+    SECTION("leading whitespace on dependency line")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("  python >=3.12,<3.13", req("3.12")));
+    }
+
+    SECTION("unparsable python dependency does not filter (passes)")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("python ,,not-a-valid-spec,,", req("3.12")));
+    }
+
+    SECTION("namespaced python pin")
+    {
+        REQUIRE(dependency_matches_requested_python_minor(
+            "conda-forge::python 3.7.12 0_73_pypy",
+            req("3.7")
+        ));
+    }
+
+    SECTION("only python in range with no upper bound")
+    {
+        REQUIRE(dependency_matches_requested_python_minor("python", req("3.12")));
     }
 }

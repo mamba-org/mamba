@@ -508,16 +508,18 @@ namespace mamba
                                  ? build_sharded_root_packages(ctx, channel_context, raw_specs)
                                  : std::vector<std::string>{};
 
-        const auto requested_python_minor = [&]() -> std::optional<specs::Version>
+        const std::optional<specs::Version> python_minor_version_for_prefilter =
+            [&]() -> std::optional<specs::Version>
         {
-            const auto maybe_explicit_python_minor = extract_requested_python_minor(raw_specs);
-            const bool has_explicit_python_minor = maybe_explicit_python_minor.has_value();
+            const auto maybe_explicit_requested_python_minor = extract_requested_python_minor(
+                raw_specs
+            );
 
-            if (has_explicit_python_minor)
+            if (maybe_explicit_requested_python_minor.has_value())
             {
-                LOG_DEBUG << "Pre-filtering shards using explicitly provided python minor version: "
-                          << maybe_explicit_python_minor.value().to_string();
-                return maybe_explicit_python_minor.value();
+                LOG_DEBUG << "Pre-filtering shards using explicitly requested python minor version: "
+                          << maybe_explicit_requested_python_minor.value().to_string();
+                return maybe_explicit_requested_python_minor.value();
             }
 
             if (is_retry)
@@ -548,7 +550,7 @@ namespace mamba
             db,
             package_caches,
             root_packages,
-            requested_python_minor
+            python_minor_version_for_prefilter
         );
 
         if (!maybe_load)

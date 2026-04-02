@@ -23,14 +23,15 @@ namespace mamba
         -> specs::VersionSpec;
 
     /**
-     * Whether a ``depends`` line for ``python`` is compatible with the requested minor.
-     * Uses ``VersionSpec::contains`` on the parsed version first; if that fails, relaxes exact
-     * on ``major.minor`` (see ``relax_version_spec_to_minor``) and tests again.
-     * Non-python dependencies always return true; parse failures return true (no prefilter).
+     * Whether a ``depends`` line for ``python`` is compatible with
+     * ``python_minor_version_for_prefilter``. Uses ``VersionSpec::contains`` on the parsed version
+     * first; if that fails, relaxes exact on ``major.minor`` (see ``relax_version_spec_to_minor``)
+     * and tests again. Non-python dependencies always return true; parse failures return true (no
+     * prefilter).
      */
-    [[nodiscard]] auto dependency_matches_requested_python_minor(
+    [[nodiscard]] auto dependency_matches_python_minor_version_for_prefilter(
         const std::string& dependency_spec,
-        const specs::Version& requested_python_minor
+        const specs::Version& python_minor_version_for_prefilter
     ) -> bool;
 }
 

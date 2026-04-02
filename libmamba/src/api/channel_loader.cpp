@@ -239,7 +239,7 @@ namespace mamba
             std::set<std::string>& loaded_subdirs_with_shards,
             const SubdirDownloadParams& subdir_params,
             const std::vector<solver::libsolv::Priorities>& priorities,
-            std::optional<specs::Version> requested_python_minor
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
             auto& subdir = subdirs[subdir_idx];
@@ -258,7 +258,7 @@ namespace mamba
                     subdir_idx,
                     loaded_subdirs_with_shards,
                     priorities,
-                    requested_python_minor
+                    python_minor_version_for_prefilter
                 );
 
                 if (!res)
@@ -440,7 +440,7 @@ namespace mamba
             const SubdirDownloadParams& subdir_params,
             bool is_retry,
             std::vector<mamba_error>& error_list,
-            std::optional<specs::Version> requested_python_minor
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
             std::set<std::string> loaded_subdirs_with_shards;
@@ -482,7 +482,7 @@ namespace mamba
                     loaded_subdirs_with_shards,
                     subdir_params,
                     priorities,
-                    requested_python_minor
+                    python_minor_version_for_prefilter
                 );
 
                 if (result)
@@ -649,7 +649,7 @@ namespace mamba
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
         const std::vector<solver::libsolv::Priorities>& priorities,
-        std::optional<specs::Version> requested_python_minor
+        std::optional<specs::Version> python_minor_version_for_prefilter
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
         auto& subdir = subdirs[subdir_idx];
@@ -678,10 +678,10 @@ namespace mamba
         LOG_DEBUG << "Shard index fetched for " << subdir.name();
         const auto& channel = subdir.channel();
         std::string current_repodata_url = subdir.repodata_url().str();
-        if (requested_python_minor.has_value())
+        if (python_minor_version_for_prefilter.has_value())
         {
             LOG_DEBUG << "Shard prefilter on python minor version enabled with "
-                      << requested_python_minor.value().to_string();
+                      << python_minor_version_for_prefilter.value().to_string();
         }
         else
         {
@@ -720,7 +720,7 @@ namespace mamba
                     ctx.remote_fetch_params,
                     normalize_to_affinity_concurrency(static_cast<int>(ctx.repodata_shards_threads)),
                     std::cref(ctx.mirrors),
-                    requested_python_minor
+                    python_minor_version_for_prefilter
                 );
                 url_to_subdir_idx[sdir_url] = j;
             }
@@ -780,7 +780,7 @@ namespace mamba
             MultiPackageCache& package_caches,
             const std::vector<std::string>& root_packages,
             bool is_retry,
-            std::optional<specs::Version> requested_python_minor
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
             std::vector<SubdirIndexLoader> subdirs;
@@ -828,7 +828,7 @@ namespace mamba
                 subdir_params,
                 is_retry,
                 error_list,
-                requested_python_minor
+                python_minor_version_for_prefilter
             );
 
             if (loading_failed)
@@ -845,7 +845,7 @@ namespace mamba
                         package_caches,
                         root_packages,
                         retry,
-                        requested_python_minor
+                        python_minor_version_for_prefilter
                     );
                 }
                 error_list.emplace_back(
@@ -865,7 +865,7 @@ namespace mamba
         solver::libsolv::Database& database,
         MultiPackageCache& package_caches,
         const std::vector<std::string>& root_packages,
-        std::optional<specs::Version> requested_python_minor
+        std::optional<specs::Version> python_minor_version_for_prefilter
     ) -> expected_t<void, mamba_aggregated_error>
     {
         bool retry = false;
@@ -876,7 +876,7 @@ namespace mamba
             package_caches,
             root_packages,
             retry,
-            std::move(requested_python_minor)
+            std::move(python_minor_version_for_prefilter)
         );
     }
 

@@ -67,9 +67,9 @@ namespace mamba
         return vs;
     }
 
-    auto dependency_matches_requested_python_minor(
+    auto dependency_matches_python_minor_version_for_prefilter(
         const std::string& dependency_spec,
-        const specs::Version& requested_python_minor
+        const specs::Version& python_minor_version_for_prefilter
     ) -> bool
     {
         auto maybe_name = specs::MatchSpec::extract_name(dependency_spec);
@@ -84,13 +84,13 @@ namespace mamba
         }
         const auto& ms = maybe_match_spec.value();
         const auto& vs = ms.version();
-        if (vs.contains(requested_python_minor))
+        if (vs.contains(python_minor_version_for_prefilter))
         {
             return true;
         }
 
         // Relax the version spec on the minor version (ignoring the patch version and build string)
-        return relax_version_spec_to_minor(vs).contains(requested_python_minor);
+        return relax_version_spec_to_minor(vs).contains(python_minor_version_for_prefilter);
     }
 
     namespace
@@ -450,17 +450,17 @@ namespace mamba
          * Whether a raw shard package record's ``depends`` list is compatible with the
          * requested environment python minor.
          *
-         * When ``requested_python_minor`` is unset, returns true (no prefilter).
+         * When ``python_minor_version_for_prefilter`` is unset, returns true (no prefilter).
          * When set, inspects ``depends`` entries for ``python`` and keeps the record only if
          * each such constraint contains that minor (see
-         * ``dependency_matches_requested_python_minor``).
+         * ``dependency_matches_python_minor_version_for_prefilter``).
          */
-        bool record_depends_on_requested_python_minor_version(
+        bool record_depends_on_python_minor_version_for_prefilter(
             const msgpack_object& raw_record_obj,
-            const std::optional<specs::Version>& requested_python_minor
+            const std::optional<specs::Version>& python_minor_version_for_prefilter
         )
         {
-            if (!requested_python_minor.has_value())
+            if (!python_minor_version_for_prefilter.has_value())
             {
                 // No requested python minor version is provided
                 // so the build is installable in the environment.
@@ -490,7 +490,10 @@ namespace mamba
                 const auto depends = msgpack_object_to_string_array(val_obj);
                 for (const auto& dep : depends)
                 {
-                    if (!dependency_matches_requested_python_minor(dep, requested_python_minor.value()))
+                    if (!dependency_matches_python_minor_version_for_prefilter(
+                            dep,
+                            python_minor_version_for_prefilter.value()
+                        ))
                     {
                         return false;
                     }
@@ -513,7 +516,7 @@ namespace mamba
         download::RemoteFetchParams remote_fetch_params,
         std::size_t download_threads,
         std::optional<std::reference_wrapper<const download::mirror_map>> mirrors,
-        std::optional<specs::Version> requested_python_minor
+        std::optional<specs::Version> python_minor_version_for_prefilter
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -522,7 +525,7 @@ namespace mamba
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(normalize_to_affinity_concurrency(static_cast<int>(download_threads)))
         , m_mirrors(std::move(mirrors))
-        , m_requested_python_minor(std::move(requested_python_minor))
+        , m_python_minor_version_for_prefilter(std::move(python_minor_version_for_prefilter))
         , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / "conda" / "pkgs")
         , m_shard_cache_dir(m_pkgs_cache_root / "cache" / "shards")
     {
@@ -1061,9 +1064,9 @@ namespace mamba
                         // Filter out builds which depend on another python minor version
                         // than the one in the environment, significantly reducing the number of
                         // builds to parse and to provide to the solver for dependency resolution.
-                        if (!record_depends_on_requested_python_minor_version(
+                        if (!record_depends_on_python_minor_version_for_prefilter(
                                 val,
-                                m_requested_python_minor
+                                m_python_minor_version_for_prefilter
                             ))
                         {
                             continue;

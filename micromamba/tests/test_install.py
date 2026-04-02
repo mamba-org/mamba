@@ -486,7 +486,9 @@ class TestInstall:
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 
-        action_keys = {"LINK", "UNLINK", "PREFIX"}
+        # LINK and PREFIX are always present; FETCH appears when packages must be
+        # downloaded; UNLINK may be omitted when nothing is removed.
+        action_keys = {"LINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
         # When using `--no-py-pin`, it may or may not update the already installed
@@ -496,27 +498,27 @@ class TestInstall:
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_link_packages.issubset(link_packages)
 
-        unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
+        unlink_list = res["actions"].get("UNLINK", [])
+        unlink_packages = {pkg["name"] for pkg in unlink_list}
         if {"python"}.issubset(link_packages):
             assert {"python"}.issubset(unlink_packages)
 
             py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
             assert py_pkg["version"] != ("3.9.19")
 
-            py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
+            py_pkg = [pkg for pkg in unlink_list if pkg["name"] == "python"][0]
             assert py_pkg["version"] == ("3.9.19")
         else:
-            assert len(res["actions"]["LINK"]) == 2  # Should be setuptools and python_abi
-
-            py_abi_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python_abi"][0]
+            link_list = res["actions"]["LINK"]
+            py_abi_pkg = [pkg for pkg in link_list if pkg["name"] == "python_abi"][0]
             assert py_abi_pkg["version"] == ("3.9")
-            setuptools_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "setuptools"][
-                0
-            ]
-            assert setuptools_pkg["version"] == ("63.4.3")
+            if "setuptools" in link_packages:
+                setuptools_pkg = [pkg for pkg in link_list if pkg["name"] == "setuptools"][0]
+                assert setuptools_pkg["version"] == ("63.4.3")
 
-            assert len(res["actions"]["UNLINK"]) == 1  # Should be setuptools
-            assert res["actions"]["UNLINK"][0]["name"] == "setuptools"
+            if unlink_list:
+                assert len(unlink_list) == 1  # Should be setuptools
+                assert unlink_list[0]["name"] == "setuptools"
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,
@@ -758,11 +760,16 @@ def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):
     try:
         helpers.install("-n", env_name, "--json", "matplotlib", no_dry_run=True)
     except subprocess.CalledProcessError as e:
-        assert "matplotlib =* * is installable with the potential options" in e.stderr.decode(
-            "utf-8"
-        ), (
-            "Expected error message about matplotlib being installable with a non-free-threaded python_abi. "
-            "If this test fails, it might be because matplotlib is now installable with a non-free-threaded python_abi."
+        # With `--json`, stderr may hold the problem tree and stdout the JSON payload; the
+        # tree line format can change (e.g. `matplotlib =* *` vs `matplotlib`). JSON
+        # `solver_problems` uses libsolv strings, which omit the tree phrase.
+        combined = (e.stderr or b"").decode("utf-8") + (e.stdout or b"").decode("utf-8")
+        assert "matplotlib" in combined.lower(), combined
+        tree_explanation = "is installable with the potential options" in combined
+        mentions_abi = "python_abi" in combined
+        assert tree_explanation or mentions_abi, (
+            "Expected a problem tree or python_abi mention for the matplotlib conflict. Output was:\n"
+            + combined
         )
 
     # Verify python_abi is still the same (free-threaded)

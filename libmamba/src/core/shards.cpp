@@ -1296,9 +1296,10 @@ namespace mamba
 
         std::string base_url_str = m_shards_index.info.base_url;
 
-        // When base_url is relative (no URL scheme), resolve it against the channel URL.
-        // Shard indices may store paths like "/conda-forge/linux-64" which would be
-        // interpreted as file:// paths when used directly.
+        // When base_url is relative (no URL scheme), resolve it against the parent directory
+        // of m_url (m_url may point to repodata.json / repodata_shards.msgpack.zst).
+        // Using only the URL origin here can drop channel/subdir segments and produce
+        // invalid package URLs.
         if (!util::url_has_scheme(base_url_str))
         {
             auto url_parsed = util::URL::parse(m_url);
@@ -1310,7 +1311,33 @@ namespace mamba
                 {
                     origin += ":" + port;
                 }
-                base_url_str = util::url_concat(origin, base_url_str);
+                std::string parent_path = parsed.path();
+                const auto slash_pos = parent_path.rfind('/');
+                if (slash_pos != std::string::npos)
+                {
+                    parent_path = parent_path.substr(0, slash_pos + 1);
+                }
+                else
+                {
+                    parent_path = "/";
+                }
+                const std::string base_dir = origin + parent_path;
+
+                // Some shard indices use "/" (or empty / ".") as a sentinel for
+                // "same directory as repodata". Keep channel/subdir in that case.
+                if (base_url_str.empty() || base_url_str == "/" || base_url_str == "."
+                    || base_url_str == "./")
+                {
+                    base_url_str = base_dir;
+                }
+                else if (util::starts_with(base_url_str, "/"))
+                {
+                    base_url_str = util::url_concat(origin, base_url_str);
+                }
+                else
+                {
+                    base_url_str = util::url_concat(base_dir, base_url_str);
+                }
             }
         }
 

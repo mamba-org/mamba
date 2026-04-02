@@ -35,6 +35,7 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
 #include "solver/helpers.hpp"
@@ -115,6 +116,74 @@ namespace mamba
             return out;
         }
 
+        /**
+         * Prefer repodata's `python_site_packages_path`; if missing, infer free-threaded layout
+         * (`lib/pythonX.Yt/site-packages`) from CPython's conda build string segment (`cpVVVt`).
+         *
+         * On Unix-like platforms, repodata may still advertise `lib/pythonX.Y/site-packages` for
+         * `cpVVVt` builds; in that case use the free-threaded layout so `noarch` paths match the
+         * interpreter (`lib/pythonX.Yt/...`).
+         *
+         * On Windows, always use the canonical `Lib/site-packages` location.
+         */
+        auto effective_python_site_packages_path(const specs::PackageInfo& python_pkg) -> std::string
+        {
+#ifdef _WIN32
+            // On Windows, `libmamba` should install all python packages into the
+            // canonical `Lib/site-packages` location (independently of the python version
+            // and of freethreading).
+            const std::string canonical_site_packages = (fs::u8path("Lib") / "site-packages")
+                                                            .generic_string();
+
+            return canonical_site_packages;
+#else
+            const std::string short_ver = compute_short_python_version(python_pkg.version);
+            std::string compact = short_ver;
+            util::replace_all(compact, ".", "");
+            const bool freethreaded_build = !python_pkg.build_string.empty() && !compact.empty()
+                                            && util::contains(
+                                                python_pkg.build_string,
+                                                util::concat("cp", compact, "t")
+                                            );
+
+            const std::string ft_site_packages = (short_ver.empty()
+                                                  || python_pkg.build_string.empty())
+                                                     ? std::string{}
+                                                     : (fs::u8path("lib")
+                                                        / util::concat("python", short_ver, "t")
+                                                        / "site-packages")
+                                                           .generic_string();
+
+            if (!python_pkg.python_site_packages_path.empty())
+            {
+                if (freethreaded_build && !ft_site_packages.empty())
+                {
+                    const std::string std_site_packages = short_ver.empty()
+                                                              ? std::string{}
+                                                              : (fs::u8path("lib")
+                                                                 / util::concat("python", short_ver)
+                                                                 / "site-packages")
+                                                                    .generic_string();
+                    if (python_pkg.python_site_packages_path == std_site_packages)
+                    {
+                        return ft_site_packages;
+                    }
+                }
+                return python_pkg.python_site_packages_path;
+            }
+
+            if (short_ver.empty() || python_pkg.build_string.empty())
+            {
+                return {};
+            }
+            if (!freethreaded_build)
+            {
+                return {};
+            }
+            return ft_site_packages;
+#endif
+        }
+
         auto find_python_versions_and_site_packages(
             const solver::Solution& solution,
             const solver::libsolv::Database& database
@@ -130,7 +199,7 @@ namespace mamba
             std::string installed_py_ver = {};
             if (auto pkg = installed_python(database))
             {
-                python_site_packages_path = pkg->python_site_packages_path;
+                python_site_packages_path = effective_python_site_packages_path(*pkg);
                 installed_py_ver = pkg->version;
                 LOG_INFO << "Found python in installed packages " << installed_py_ver;
             }
@@ -139,7 +208,7 @@ namespace mamba
             if (auto py = solver::find_new_python_in_solution(solution))
             {
                 new_py_ver = py->get().version;
-                python_site_packages_path = py->get().python_site_packages_path;
+                python_site_packages_path = effective_python_site_packages_path(py->get());
             }
 
             return {

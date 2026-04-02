@@ -82,6 +82,10 @@ namespace mamba
             auto py_file_stem = py_path.stem();
             std::string py_ver_nodot = py_ver;
             util::replace_all(py_ver_nodot, ".", "");
+            // Free-threaded installs use `lib/pythonX.Yt/site-packages`, but bytecode names still
+            // follow `sys.implementation.cache_tag` (e.g. `cpython-313` for `python 3.13t`
+            // (free-threaded)) i.e. the `t` suffix is not included in the cache tag.
+            util::replace_all(py_ver_nodot, "t", "");
             return directory / fs::u8path("__pycache__")
                    / util::concat(py_file_stem.string(), ".cpython-", py_ver_nodot, ".pyc");
         }

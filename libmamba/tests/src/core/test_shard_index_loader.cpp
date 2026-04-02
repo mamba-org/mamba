@@ -243,7 +243,7 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Large index")
     }
 }
 
-TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard", "[.integration][!mayfail]")
+TEST_CASE("ShardIndexLoader::parse_shard_index - Download and parse numpy shard", "[.integration]")
 {
     SECTION("Download shard index and fetch numpy shard")
     {

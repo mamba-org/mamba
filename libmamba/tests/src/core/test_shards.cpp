@@ -809,6 +809,20 @@ TEST_CASE("Shards - Basic operations")
         REQUIRE(shards.base_url() == "https://example.com/packages");
         REQUIRE(shards.url() == "https://anaconda.org/conda-forge/linux-64/repodata.json");
     }
+
+    SECTION("relative sentinel base_url resolves to channel subdir")
+    {
+        ShardsIndexDict rel_index = index;
+        rel_index.info.base_url = "/";
+        Shards rel_shards(
+            rel_index,
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+            channel,
+            auth_info,
+            remote_fetch_params
+        );
+        REQUIRE(rel_shards.base_url() == "https://conda.anaconda.org/conda-forge/linux-64/");
+    }
 }
 
 TEST_CASE("Shards - build_repodata")

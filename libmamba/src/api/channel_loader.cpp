@@ -60,13 +60,14 @@ namespace mamba
             return load_installed_packages_in_database(ctx, database, prefix_data);
         }
 
-        std::map<std::string, std::vector<specs::PackageInfo>> build_packages_by_url_from_subset(
+        auto build_packages_by_url_from_subset(
             const RepodataSubset& subset,
             const std::vector<SubdirIndexLoader>& subdirs,
             const std::map<std::string, std::size_t>& url_to_subdir_idx
-        )
+        ) -> expected_t<std::map<std::string, std::vector<specs::PackageInfo>>>
         {
             std::map<std::string, std::vector<specs::PackageInfo>> packages_by_url;
+            bool had_shard_error = false;
             for (const auto& [node_id, node] : subset.nodes())
             {
                 if (!node.visited)
@@ -105,11 +106,19 @@ namespace mamba
                 }
                 catch (const std::exception& e)
                 {
+                    had_shard_error = true;
                     LOG_WARNING << "Failed to load package " << node_id.package << " from "
                                 << node_id.channel << ": " << e.what();
                 }
             }
-            return packages_by_url;
+            if (had_shard_error)
+            {
+                return make_unexpected(
+                    "At least one shard failed to load from the reachable subset",
+                    mamba_error_code::subdirdata_not_loaded
+                );
+            }
+            return { std::move(packages_by_url) };
         }
 
         // Forward declarations for helpers defined later in this namespace.
@@ -710,6 +719,13 @@ namespace mamba
         //    convert records to PackageInfo; collect packages by channel URL. Exceptions
         //    from individual packages are logged and skipped.
         auto packages_by_url = build_packages_by_url_from_subset(subset, subdirs, url_to_subdir_idx);
+        if (!packages_by_url)
+        {
+            return tl::unexpected(mamba_error(
+                "Failed to build package list from shards for " + subdir.name(),
+                mamba_error_code::subdirdata_not_loaded
+            ));
+        }
 
         // For each channel URL with packages, add a repo to database (unless already in
         //    loaded_subdirs_with_shards), sort packages by version/build, and set repo
@@ -717,7 +733,7 @@ namespace mamba
         std::optional<solver::libsolv::RepoInfo> result_repo = add_repos_from_packages_by_url(
             ctx,
             database,
-            packages_by_url,
+            packages_by_url.value(),
             subdirs,
             url_to_subdir_idx,
             priorities,

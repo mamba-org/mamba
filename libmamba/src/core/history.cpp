@@ -376,6 +376,16 @@ namespace mamba
         std::string version = name_version.substr(pos_2 + 1, name_version.size());
 
         specs::PackageInfo pkg_info{ name, version, build_string, channel };
+
+        // Mark fields that have stub/default values for history-derived packages.
+        // History only provides name, version, build, channel.
+        // Other fields (subdir, license, etc) should be backfilled from index.json (from tarball)
+        // if possible. See issue #4095.
+        pkg_info.defaulted_keys = { "_initialized", "build_number",   "license",
+                                    "timestamp",    "track_features", "depends",
+                                    "constrains",   "subdir",         "md5",
+                                    "sha256",       "size",           "fn" };
+
         return pkg_info;
     }
 

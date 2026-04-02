@@ -359,7 +359,13 @@ namespace mamba
                 update_urls_txt();
                 update_monitor(cb, PackageExtractEvent::extract_success);
             }
-            catch (std::exception& e)
+            catch (const std::logic_error&)
+            {
+                // std::logic_error indicates a programming bug (e.g., missing _initialized
+                // sentinel). Re-throw to fail hard - these should never be silently ignored.
+                throw;
+            }
+            catch (const std::exception& e)
             {
                 Console::instance().print(filename() + " extraction failed");
                 LOG_ERROR << "Error when extracting package: " << e.what();
@@ -452,27 +458,108 @@ namespace mamba
 
         nlohmann::json repodata_record = m_package_info;
 
-        // For explicit spec files (URLs), m_package_info has empty depends/constrains arrays
-        // that would overwrite the correct values from index.json. Remove these empty fields.
-        if (auto depends_it = repodata_record.find("depends");
-            depends_it != repodata_record.end() && depends_it->empty())
+        // Write repodata_record.json with correct metadata from index.json.
+        //
+        // The _initialized sentinel in defaulted_keys proves this PackageInfo was
+        // properly constructed. All creation paths MUST set it:
+        // - from_url(): sets {"_initialized", stub_field_names...}
+        // - make_package_info(): sets {"_initialized"} only (trust all fields)
+        //
+        // Note: from_json() does NOT set _initialized because it deserializes
+        // already-written cache files for display/query purposes. Those PackageInfo
+        // objects are never passed to this function - they're used for mamba list,
+        // dependency computation, etc.
+        //
+        // If _initialized is missing, it indicates a bug in a code path that creates
+        // PackageInfo objects destined for extraction. We fail hard to catch this.
+        //
+        // See GitHub issue #4095.
+        auto contains_initialized = [&]()
         {
-            repodata_record.erase("depends");
-        }
-        if (auto constrains_it = repodata_record.find("constrains");
-            constrains_it != repodata_record.end() && constrains_it->empty())
+            return std::find(
+                       m_package_info.defaulted_keys.begin(),
+                       m_package_info.defaulted_keys.end(),
+                       "_initialized"
+                   )
+                   != m_package_info.defaulted_keys.end();
+        };
+        if (!contains_initialized())
         {
-            repodata_record.erase("constrains");
+            throw std::logic_error(
+                "PackageInfo missing _initialized sentinel in defaulted_keys. "
+                "This indicates a bug in the code path that created this PackageInfo. "
+                "See GitHub issue #4095."
+            );
         }
 
-        // To take correction of packages metadata (e.g. made using repodata patches) into account,
-        // we insert the index into the repodata record to only add new fields from the index
-        // while keeping the existing fields from the repodata record.
+        // Erase fields listed in defaulted_keys (except "_initialized") before merging.
+        // - URL-derived packages: listed fields have stub values (0, "", [])
+        //   → erase them so index.json provides correct values
+        // - Solver-derived packages: only "_initialized" in list
+        //   → nothing erased, all fields preserved (including channel patches)
+        for (const auto& key : m_package_info.defaulted_keys)
+        {
+            if (key != "_initialized")
+            {
+                repodata_record.erase(key);
+            }
+        }
+
+        // Merge with index.json: insert() only adds MISSING keys.
+        // - URL-derived: erased stub fields are filled from index.json
+        // - Solver-derived: all fields already present, nothing added from index.json
+        //   (preserves channel patches with intentionally empty arrays)
         repodata_record.insert(index.cbegin(), index.cend());
 
         if (repodata_record.find("size") == repodata_record.end() || repodata_record["size"] == 0)
         {
             repodata_record["size"] = fs::file_size(m_tarball_path);
+        }
+
+        // Ensure depends and constrains are always present as arrays.
+        // Matches conda behavior where these fields are always present.
+        // Some packages (like nlohmann_json-abi) don't have depends in index.json.
+        // See GitHub issue #4095.
+        if (!repodata_record.contains("depends"))
+        {
+            repodata_record["depends"] = nlohmann::json::array();
+        }
+        if (!repodata_record.contains("constrains"))
+        {
+            repodata_record["constrains"] = nlohmann::json::array();
+        }
+
+        // Conditionally include track_features only when non-empty.
+        // Matches conda behavior to reduce JSON noise.
+        // See GitHub issue #4095.
+        if (repodata_record.contains("track_features"))
+        {
+            const auto& tf = repodata_record["track_features"];
+            bool is_empty = tf.is_null() || (tf.is_string() && tf.get<std::string>().empty())
+                            || (tf.is_array() && tf.empty());
+            if (is_empty)
+            {
+                repodata_record.erase("track_features");
+            }
+        }
+
+        // Ensure both md5 and sha256 checksums are always present.
+        // Compute from tarball if not available from PackageInfo or index.json.
+        // Use is_string() check to handle null or non-string values safely.
+        // See GitHub issue #4095.
+        auto needs_md5 = !repodata_record.contains("md5") || !repodata_record["md5"].is_string()
+                         || repodata_record["md5"].get<std::string>().empty();
+        if (needs_md5)
+        {
+            repodata_record["md5"] = validation::md5sum(m_tarball_path);
+        }
+
+        auto needs_sha256 = !repodata_record.contains("sha256")
+                            || !repodata_record["sha256"].is_string()
+                            || repodata_record["sha256"].get<std::string>().empty();
+        if (needs_sha256)
+        {
+            repodata_record["sha256"] = validation::sha256sum(m_tarball_path);
         }
 
         std::ofstream repodata_record_file(repodata_record_path.std_path());

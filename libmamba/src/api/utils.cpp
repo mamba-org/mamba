@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cctype>
+#include <fstream>
 #include <unordered_set>
 #include <cctype>
 
@@ -11,6 +13,7 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <fmt/ranges.h>
+#include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
 #include <reproc/reproc.h>
 
@@ -114,6 +117,64 @@ namespace mamba
                     )
                 );
             }
+        }
+
+        std::optional<specs::Version>
+        installed_python_minor_for_prefix(const fs::u8path& target_prefix)
+        {
+            const auto parse_minor = [](std::string_view v) -> std::optional<specs::Version>
+            {
+                auto maybe_version = specs::Version::parse(std::string(v));
+                if (maybe_version.has_value())
+                {
+                    return maybe_version.value();
+                }
+                return std::nullopt;
+            };
+            const auto conda_meta = target_prefix / "conda-meta";
+            if (!fs::exists(conda_meta) || !fs::is_directory(conda_meta))
+            {
+                return std::nullopt;
+            }
+
+            for (const auto& entry : fs::directory_iterator(conda_meta))
+            {
+                if (!entry.is_regular_file() || entry.path().extension() != ".json")
+                {
+                    continue;
+                }
+                std::ifstream infile(entry.path().std_path());
+                if (!infile.is_open())
+                {
+                    continue;
+                }
+                nlohmann::json j;
+                try
+                {
+                    infile >> j;
+                }
+                catch (const std::exception&)
+                {
+                    continue;
+                }
+                if (!j.is_object() || j.value("name", "") != "python")
+                {
+                    continue;
+                }
+                const std::string version = j.value("version", "");
+                auto dot = version.find('.');
+                if (dot == std::string::npos)
+                {
+                    continue;
+                }
+                auto second_dot = version.find('.', dot + 1);
+                if (second_dot == std::string::npos)
+                {
+                    return parse_minor(version);
+                }
+                return parse_minor(version.substr(0, second_dot));
+            }
+            return std::nullopt;
         }
     }
 
@@ -447,25 +508,38 @@ namespace mamba
                                  ? build_sharded_root_packages(ctx, channel_context, raw_specs)
                                  : std::vector<std::string>{};
 
-        const auto maybe_explicit_python_minor = extract_requested_python_minor(raw_specs);
-        const bool has_explicit_python_minor = maybe_explicit_python_minor.has_value();
-        const bool use_fallback_python_minor = !has_explicit_python_minor && !is_retry;
-        const bool dont_prefilter_python_minor = is_retry && !has_explicit_python_minor;
-
         const auto requested_python_minor = [&]() -> std::optional<specs::Version>
         {
-            if (use_fallback_python_minor)
+            const auto maybe_explicit_python_minor = extract_requested_python_minor(raw_specs);
+            const bool has_explicit_python_minor = maybe_explicit_python_minor.has_value();
+
+            if (has_explicit_python_minor)
             {
-                LOG_DEBUG << "Applying implicit python minor prefilter for first solve attempt: "
-                          << fallback_python_minor;
-                return specs::Version::parse(std::string(fallback_python_minor)).value();
+                LOG_DEBUG << "Pre-filtering shards using explicitly provided python minor version: "
+                          << maybe_explicit_python_minor.value().to_string();
+                return maybe_explicit_python_minor.value();
             }
-            if (dont_prefilter_python_minor)
+
+            if (is_retry)
             {
-                LOG_DEBUG << "Explicitly disabling python minor prefilter on retry";
+                LOG_DEBUG << "Retry without prefiltering on any python minor version.";
                 return std::nullopt;
             }
-            return maybe_explicit_python_minor;
+
+            const auto maybe_installed_python_minor = installed_python_minor_for_prefix(
+                ctx.prefix_params.target_prefix
+            );
+
+            if (maybe_installed_python_minor.has_value())
+            {
+                LOG_DEBUG << "Pre-filtering shards using installed python minor version: "
+                          << maybe_installed_python_minor.value().to_string();
+                return maybe_installed_python_minor.value();
+            }
+
+            LOG_DEBUG << "Pre-filtering shards using fallback python minor version: "
+                      << fallback_python_minor;
+            return specs::Version::parse(std::string(fallback_python_minor)).value();
         }();
 
         auto maybe_load = load_channels(

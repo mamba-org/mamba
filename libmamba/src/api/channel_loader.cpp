@@ -5,12 +5,9 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
-#include <fstream>
 #include <optional>
 #include <set>
 #include <sstream>
-
-#include <nlohmann/json.hpp>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
@@ -35,64 +32,6 @@ namespace mamba
 {
     namespace
     {
-        std::optional<specs::Version>
-        installed_python_minor_for_prefix(const fs::u8path& target_prefix)
-        {
-            const auto parse_minor = [](std::string_view v) -> std::optional<specs::Version>
-            {
-                auto maybe_version = specs::Version::parse(std::string(v));
-                if (maybe_version.has_value())
-                {
-                    return maybe_version.value();
-                }
-                return std::nullopt;
-            };
-            const auto conda_meta = target_prefix / "conda-meta";
-            if (!fs::exists(conda_meta) || !fs::is_directory(conda_meta))
-            {
-                return std::nullopt;
-            }
-
-            for (const auto& entry : fs::directory_iterator(conda_meta))
-            {
-                if (!entry.is_regular_file() || entry.path().extension() != ".json")
-                {
-                    continue;
-                }
-                std::ifstream infile(entry.path().std_path());
-                if (!infile.is_open())
-                {
-                    continue;
-                }
-                nlohmann::json j;
-                try
-                {
-                    infile >> j;
-                }
-                catch (const std::exception&)
-                {
-                    continue;
-                }
-                if (!j.is_object() || j.value("name", "") != "python")
-                {
-                    continue;
-                }
-                const std::string version = j.value("version", "");
-                auto dot = version.find('.');
-                if (dot == std::string::npos)
-                {
-                    continue;
-                }
-                auto second_dot = version.find('.', dot + 1);
-                if (second_dot == std::string::npos)
-                {
-                    return parse_minor(version);
-                }
-                return parse_minor(version.substr(0, second_dot));
-            }
-            return std::nullopt;
-        }
-
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
@@ -710,7 +649,7 @@ namespace mamba
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
         const std::vector<solver::libsolv::Priorities>& priorities,
-        std::optional<specs::Version> python_minor_from_specs
+        std::optional<specs::Version> requested_python_minor
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
         auto& subdir = subdirs[subdir_idx];
@@ -739,18 +678,14 @@ namespace mamba
         LOG_DEBUG << "Shard index fetched for " << subdir.name();
         const auto& channel = subdir.channel();
         std::string current_repodata_url = subdir.repodata_url().str();
-        const bool python_minor_from_user_spec = python_minor_from_specs.has_value();
-        const auto requested_python_minor = python_minor_from_user_spec
-                                                ? std::move(python_minor_from_specs)
-                                                : installed_python_minor_for_prefix(
-                                                      ctx.prefix_params.target_prefix
-                                                  );
         if (requested_python_minor.has_value())
         {
-            LOG_DEBUG << "Shard prefilter enabled with python minor "
-                      << requested_python_minor.value().to_string() << " (source="
-                      << (python_minor_from_user_spec ? "user_spec" : "installed_or_fallback")
-                      << ")";
+            LOG_DEBUG << "Shard prefilter on python minor version enabled with "
+                      << requested_python_minor.value().to_string();
+        }
+        else
+        {
+            LOG_DEBUG << "Shard prefilter on python minor version disabled.";
         }
 
         // For all subdirs sharing the same channel URL, fetch their shard indices and build

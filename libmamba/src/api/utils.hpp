@@ -125,6 +125,10 @@ namespace mamba
 
     /**
      * Prepare solver state: channels, package cache, database, and root package loading.
+     *
+     * Computes ``requested_python_minor`` for sharded repodata: explicit python from specs,
+     * implicit fallback on the first solve attempt, or the installed prefix minor on retry when
+     * no explicit python is given.
      */
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,

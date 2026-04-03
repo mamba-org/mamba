@@ -156,7 +156,8 @@ namespace mamba
                 ctx,
                 channel_context,
                 raw_update_specs,
-                is_retry
+                is_retry,
+                no_py_pin
             );
 
             auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);

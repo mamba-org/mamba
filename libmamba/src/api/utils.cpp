@@ -499,7 +499,8 @@ namespace mamba
         Context& ctx,
         ChannelContext& channel_context,
         const std::vector<std::string>& raw_specs,
-        bool is_retry
+        bool is_retry,
+        bool no_py_pin
     )
     {
         populate_context_channels_from_specs(raw_specs, ctx);
@@ -513,6 +514,12 @@ namespace mamba
         const std::optional<specs::Version> python_minor_version_for_prefilter =
             [&]() -> std::optional<specs::Version>
         {
+            if (no_py_pin)
+            {
+                LOG_DEBUG << "Shard python minor prefilter disabled (--no-py-pin).";
+                return std::nullopt;
+            }
+
             const auto maybe_explicit_requested_python_minor = extract_requested_python_minor(
                 raw_specs
             );

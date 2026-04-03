@@ -125,16 +125,17 @@ namespace mamba
 
     /**
      * Prepare solver state: channels, package cache, database, and root package loading.
-     *
      * Computes ``python_minor_version_for_prefilter`` for sharded repodata: explicit python from
      * specs, implicit fallback on the first solve attempt, or the installed prefix minor on retry
-     * when no explicit python is given.
+     * when no explicit python is given. When ``no_py_pin`` is true (``--no-py-pin``), no python
+     * minor is used for shard prefiltering.
      */
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
         ChannelContext& channel_context,
         const std::vector<std::string>& raw_specs,
-        bool is_retry
+        bool is_retry,
+        bool no_py_pin
     );
 
     /**

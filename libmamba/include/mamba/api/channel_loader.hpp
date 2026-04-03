@@ -44,8 +44,7 @@ namespace mamba
      * @param loaded_subdirs_with_shards Set of subdir names already loaded via shards (updated).
      * @param priorities Repo priorities aligned with \p subdirs.
      * @param python_minor_version_for_prefilter Optional python minor for shard record prefiltering
-     * (from
-     *        \c prepare_solver_context).
+     * (from \c prepare_solver_context).
      * @return The repo for the requested subdir, or unexpected mamba_error on failure.
      */
     auto load_subdir_with_shards(

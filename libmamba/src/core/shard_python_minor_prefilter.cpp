@@ -1,4 +1,4 @@
-// Copyright (c) 2024, QuantStack and Mamba Contributors
+// Copyright (c) 2026, QuantStack and Mamba Contributors
 //
 // Distributed under the terms of the BSD 3-Clause License.
 //

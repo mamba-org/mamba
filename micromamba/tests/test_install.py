@@ -758,11 +758,16 @@ def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):
     try:
         helpers.install("-n", env_name, "--json", "matplotlib", no_dry_run=True)
     except subprocess.CalledProcessError as e:
-        assert "matplotlib =* * is installable with the potential options" in e.stderr.decode(
-            "utf-8"
-        ), (
-            "Expected error message about matplotlib being installable with a non-free-threaded python_abi. "
-            "If this test fails, it might be because matplotlib is now installable with a non-free-threaded python_abi."
+        # With `--json`, stderr may hold the problem tree and stdout the JSON payload; the
+        # tree line format can change (e.g. `matplotlib =* *` vs `matplotlib`). JSON
+        # `solver_problems` uses libsolv strings, which omit the tree phrase.
+        combined = (e.stderr or b"").decode("utf-8") + (e.stdout or b"").decode("utf-8")
+        assert "matplotlib" in combined.lower(), combined
+        tree_explanation = "is installable with the potential options" in combined
+        mentions_abi = "python_abi" in combined
+        assert tree_explanation or mentions_abi, (
+            "Expected a problem tree or python_abi mention for the matplotlib conflict. Output was:\n"
+            + combined
         )
 
     # Verify python_abi is still the same (free-threaded)

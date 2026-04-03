@@ -4,6 +4,11 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cctype>
+
+#include <fmt/format.h>
+
+#include "mamba/api/channel_loader.hpp"
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/install.hpp"
 #include "mamba/api/update.hpp"
@@ -147,7 +152,13 @@ namespace mamba
             auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
 
             validate_target_prefix_and_channels(ctx, /* create_env= */ false);
-            auto [db, package_caches] = prepare_solver_context(ctx, channel_context, raw_update_specs);
+            auto [db, package_caches] = prepare_solver_context(
+                ctx,
+                channel_context,
+                raw_update_specs,
+                is_retry,
+                no_py_pin
+            );
 
             auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
 

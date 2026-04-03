@@ -105,6 +105,7 @@ set(
     src/core/test_progress_bar.cpp
     src/core/test_query.cpp
     src/core/test_shell_init.cpp
+    src/core/test_shard_python_minor_prefilter.cpp
     src/core/test_shards.cpp
     src/core/test_shard_index_loader.cpp
     src/core/test_shard_traversal.cpp

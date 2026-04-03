@@ -376,6 +376,33 @@ namespace mamba
     {
         using Request = solver::Request;
 
+        // When the user explicitly asks for ``python`` in the requested specs, also inject a
+        // plain ``pip`` request unless it is already present. This complements
+        // ``add_pip_as_python_dependency`` at the repo level and makes sure that the Request
+        // is in phase with the root packages including both ``python`` and ``pip`` when requested.
+        bool wants_python = false;
+        bool wants_pip = false;
+        for (const auto& s : specs)
+        {
+            const auto maybe_name = specs::MatchSpec::extract_name(s);
+            if (!maybe_name.has_value())
+            {
+                continue;
+            }
+            if (maybe_name.value() == "python")
+            {
+                wants_python = true;
+            }
+            else if (maybe_name.value() == "pip")
+            {
+                wants_pip = true;
+            }
+        }
+        if (wants_python && !wants_pip)
+        {
+            specs.emplace_back("pip");
+        }
+
         const auto& prefix_pkgs = prefix_data.records();
 
         auto request = Request();
@@ -555,7 +582,13 @@ namespace mamba
             auto& no_env = config.at("no_env").value<bool>();
 
             validate_target_prefix_and_channels(ctx, create_env);
-            auto [db, package_caches] = prepare_solver_context(ctx, channel_context, raw_specs);
+            auto [db, package_caches] = prepare_solver_context(
+                ctx,
+                channel_context,
+                raw_specs,
+                is_retry,
+                no_py_pin
+            );
 
             auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
 

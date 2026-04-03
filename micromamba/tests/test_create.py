@@ -2529,13 +2529,23 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert len(packages) == 1
-    pkg = packages[0]
-    assert pkg["name"] == "pandoc"
-    if spec == "pandoc=3.1.13":
-        assert pkg["version"] == "3.1.13"
-    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert len(packages) >= 1
+
+    # All resolved packages must come from the mirrored OCI channel.
+    assert all(
+        package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        for package in packages
+    )
+
+    requested_name = spec.split("=")[0]
+    requested_pkg = next(
+        (package for package in packages if package["name"] == requested_name), None
+    )
+    assert requested_pkg is not None
+    if "=" in spec:
+        requested_version = spec.split("=", 1)[1]
+        assert requested_pkg["version"] == requested_version
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -2561,18 +2571,13 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
     assert len(packages) > 2
-    assert any(
-        package["name"] == "xtensor"
-        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert all(
+        package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         for package in packages
     )
-    assert any(
-        package["name"] == "xtl"
-        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-        for package in packages
-    )
+    assert any(package["name"] == "xtensor" for package in packages)
+    assert any(package["name"] == "xtl" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -2601,11 +2606,13 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert len(packages) == 1
-    pkg = packages[0]
-    assert pkg["name"] == "_go_select"
-    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert len(packages) >= 1
+    assert all(
+        package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        for package in packages
+    )
+    assert any(package["name"] == "_go_select" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

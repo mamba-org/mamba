@@ -2288,7 +2288,7 @@ namespace mamba
         {
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
-            std::cout << this->dump(dump_opts) << std::endl;
+            print_dump(*this, dump_opts);
             exit(0);
         }
 
@@ -2770,5 +2770,13 @@ namespace mamba
         {
             return dump_yaml(opts, names, get_grouped_config());
         }
+    }
+
+    void print_dump(const Configuration& config, int dump_opts, std::vector<std::string> dump_names)
+    {
+        // Note: this function is intended to get more complex with incoming changes and need to be
+        // isolated in preparation for these changes.
+        const std::string dump_text = hide_secrets(config.dump(dump_opts, std::move(dump_names)));
+        std::cout << dump_text << std::endl;
     }
 }

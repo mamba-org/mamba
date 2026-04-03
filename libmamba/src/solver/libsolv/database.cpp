@@ -4,7 +4,6 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <string_view>

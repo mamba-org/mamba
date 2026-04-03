@@ -817,11 +817,7 @@ class TestConfigExpandVars:
         monkeypatch.setenv("CONDA_CHANNEL_UPLOAD_PASSWORD", "pppppppppppppppppppp", True)
         out = self._roundtrip(rc_file, condarc)
         # Note that the password is a secret and will be hidden in the output
+        assert out["channel_alias"] == "https://xxxxxxxxxxxxxxxxxxxx.com/t/*****/get"
         assert (
-            out["channel_alias"]
-            == "https://xxxxxxxxxxxxxxxxxxxx.com/t/*****/get"
-        )
-        assert (
-            out["custom_channels"]["yyyyyyyyyyyy"]
-            == "https://uuuuuuuuu:*****@xxxxxxxxxxxxxxx.com"
+            out["custom_channels"]["yyyyyyyyyyyy"] == "https://uuuuuuuuu:*****@xxxxxxxxxxxxxxx.com"
         )

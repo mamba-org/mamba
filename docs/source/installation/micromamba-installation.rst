@@ -44,7 +44,7 @@ For Linux, macOS, or Git Bash on Windows install with:
 
 .. code:: bash
 
-   "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+   wget micro.mamba.pm/install.sh && bash install.sh
 
 For NuShell users, run ``sh -c (curl -L micro.mamba.pm/install.sh)``.
 

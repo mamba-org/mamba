@@ -15,6 +15,8 @@
 #include "mamba/util/os_win.hpp"
 #endif
 
+#include <algorithm>
+
 #include <CLI/CLI.hpp>
 
 #include "mamba/api/configuration.hpp"
@@ -31,19 +33,59 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
+auto
+decide_preconfig_context_options(int argc, char** argv) -> mamba::ContextOptions
+{
+    using namespace std::literals;
+
+    mamba::ContextOptions options{
+        .enable_logging = true,
+        .enable_signal_handling = true,
+    };
+
+    mamba::OutputParams output_params;
+    for (const char* arg : std::ranges::subrange(argv, argv + argc))
+    {
+        if (arg == "--json"sv)
+        {
+            output_params.json = true;
+        }
+        else if (arg == "--quiet"sv)
+        {
+            output_params.quiet = true;
+        }
+    }
+
+    if (output_params.json or output_params.quiet)
+    {
+        options.output_params = output_params;
+    }
+
+    return options;
+}
+
+auto
+decide_log_handler(const ContextOptions& options) -> mamba::logging::AnyLogHandler
+{
+    if (options.output_params and (options.output_params->json or options.output_params->quiet))
+    {
+        return {};
+    }
+
+    return mamba::logging::spdlogimpl::LogHandler_spdlog{};
+}
+
 int
 main(int argc, char** argv)
 {
     mamba::MainExecutor scoped_threads;
-    mamba::Context ctx{ {
-                            .enable_logging = true,
-                            .enable_signal_handling = true,
-                        },
-                        mamba::logging::spdlogimpl::LogHandler_spdlog{} };
+    const auto pre_config_options = decide_preconfig_context_options(argc, argv);
+    mamba::Context ctx{ pre_config_options, decide_log_handler(pre_config_options) };
     mamba::Console console{ ctx };
     mamba::Configuration config{ ctx };
 
     init_console();
+    mamba::on_scope_exit _console_reset{ [] { reset_console(); } };
 
     ctx.command_params.is_mamba_exe = true;
 
@@ -74,7 +116,6 @@ main(int argc, char** argv)
     if (argc >= 2 && strcmp(argv[1], "completer") == 0)
     {
         get_completions(&app, config, argc, utf8argv);
-        reset_console();
         return 0;
     }
 
@@ -90,15 +131,21 @@ main(int argc, char** argv)
     ctx.command_params.current_command = full_command.str();
 
     std::optional<std::string> error_to_report;
-    auto handle_exception = [&](auto& e)
+    auto handle_exception = [&](auto& e, const auto&... additional_messages)
     {
-        error_to_report = e.what();
+        using namespace std::literals;
+        error_to_report.emplace(e.what());
+        (error_to_report->append(additional_messages), ...);
         set_sig_interrupted();
     };
 
+    int return_value = EXIT_SUCCESS;
+
     try
     {
-        CLI11_PARSE(app, argc, utf8argv);
+        // Note: do not use CLI11_PARSE macro as it's error handling
+        // would bypass ours.
+        app.parse(argc, utf8argv);
         if (app.get_subcommands().size() == 0)
         {
             config.load();
@@ -129,7 +176,6 @@ main(int argc, char** argv)
 
         if (is_interruption)
         {
-            reset_console();
             LOG_WARNING << e.what();
             return 0;
         }
@@ -138,18 +184,42 @@ main(int argc, char** argv)
             handle_exception(e);
         }
     }
+    catch (const CLI::Error& e)
+    {
+        using namespace std::literals;
+        // We only preserve CLI11 output behavior when errors from CLI11
+        // occurs because of `--help` or `--version` is used. Otherwise we follow the
+        // logic that `--json` outpus everything as JSON.
+        static constexpr std::array non_error_request_names = { "CallForHelp"sv,
+                                                                "CallForAllHelp"sv,
+                                                                "CallForVersion"sv };
+        const bool is_non_error_request = std::ranges::find(non_error_request_names, e.get_name())
+                                          != non_error_request_names.end();
+
+        if (ctx.output_params.json and not is_non_error_request)
+        {
+            // we want the output to end up in the json log history
+            std::stringstream output;
+            return_value = app.exit(e, output, output);
+            LOG_WARNING << output.str();
+        }
+        else
+        {
+            // we don't want any json output even if requested, CLI11 will handle this
+            console.cancel_json_print();
+            return_value = app.exit(e);
+        }
+    }
     catch (const std::exception& e)
     {
         handle_exception(e);
     }
 
-    reset_console();
-
     if (error_to_report)
     {
         LOG_CRITICAL << error_to_report.value();
-        return 1;  // TODO: consider returning EXIT_FAILURE
+        return_value = EXIT_FAILURE;
     }
 
-    return 0;
+    return return_value;
 }

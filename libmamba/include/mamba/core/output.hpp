@@ -151,6 +151,7 @@ namespace mamba
         void json_append(const nlohmann::json& j);
         void json_down(const std::string& key);
         void json_up();
+        static void setup_log_handling_for_json();
 
         static void print_buffer(std::ostream& ostream);
 

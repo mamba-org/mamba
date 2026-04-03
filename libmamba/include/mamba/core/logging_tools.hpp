@@ -25,6 +25,18 @@ namespace mamba::logging
         { out.flush() };
     };
 
+    /** Transforms a source location into a human-readable string ready for logging purpose. */
+    inline auto as_log(const std::source_location& location) -> std::string
+    {
+        return fmt::format(
+            "{}:{}:{} {}",
+            location.file_name(),
+            location.line(),
+            location.column(),
+            location.function_name()
+        );
+    }
+
     namespace details
     {
         inline auto queue_push(std::deque<LogRecord>& queue, size_t max_elements, LogRecord record)
@@ -138,17 +150,6 @@ namespace mamba::logging
             }
         };
 
-        inline auto as_log(const std::source_location& location) -> std::string
-        {
-            return fmt::format(
-                "{}:{}:{} {}",
-                location.file_name(),
-                location.line(),
-                location.column(),
-                location.function_name()
-            );
-        }
-
         struct log_to_stream_options
         {
             bool with_location = false;
@@ -158,9 +159,8 @@ namespace mamba::logging
         log_to_stream(OutputStream auto& out, const LogRecord& record, log_to_stream_options options = {})
             -> OutputStream auto&
         {
-            auto location_str = options.with_location
-                                    ? fmt::format(" ({})", details::as_log(record.location))
-                                    : std::string{};
+            auto location_str = options.with_location ? fmt::format(" ({})", as_log(record.location))
+                                                      : std::string{};
 
             out << fmt::format(
                 "\n{} {}{} : {}",
@@ -245,12 +245,14 @@ namespace mamba::logging
         ////////////////////////////////////////////
         // History api - thread-safe
 
-        /** @returns A copy of the current log record history.
+        /** Captures the currently stored sequence of `LogRecord`.
+            @param   `and_clear` Will also clear the existing history if `true`.
+            @returns A copy of the current log record history.
                      The value should be considered immediately obsolete
                      as new log records could be pushed concurrently.
                      The returned history will be empty if `is_started()` == false.
         */
-        auto capture_history() const -> std::vector<LogRecord>;
+        auto capture_history(bool and_clear = false) const -> std::vector<LogRecord>;
 
         /** Clears the internal history.
 
@@ -431,7 +433,7 @@ namespace mamba::logging
     inline auto LogHandler_History::log(LogRecord record) -> void
     {
         assert(pimpl);
-        if (pimpl->current_log_level < record.level)
+        if (pimpl->current_log_level > record.level)
         {
             return;
         }
@@ -485,12 +487,25 @@ namespace mamba::logging
         // nothing to do, we keep history, there is no flush
     }
 
-    inline auto LogHandler_History::capture_history() const -> std::vector<LogRecord>
+    inline auto LogHandler_History::capture_history(bool and_clear) const -> std::vector<LogRecord>
     {
         if (pimpl)
         {
             auto synched_data = pimpl->data.synchronize();
-            return std::vector<LogRecord>(synched_data->history.begin(), synched_data->history.end());
+            if (and_clear)
+            {
+                std::vector<LogRecord> result(synched_data->history.size());
+                std::ranges::move(synched_data->history, result.begin());
+                synched_data->history.clear();
+                return result;
+            }
+            else
+            {
+                return std::vector<LogRecord>(
+                    synched_data->history.begin(),
+                    synched_data->history.end()
+                );
+            }
         }
 
         return {};

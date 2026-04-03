@@ -23,10 +23,8 @@
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
 #include "mamba/specs/version.hpp"
-#include "mamba/specs/version_spec.hpp"
 #include "mamba/util/encoding.hpp"
 #include "mamba/util/environment.hpp"
-#include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 
 #include "mambatests.hpp"

@@ -486,9 +486,7 @@ class TestInstall:
         keys = {"success", "prefix", "actions", "dry_run"}
         assert keys.issubset(set(res.keys()))
 
-        # LINK and PREFIX are always present; FETCH appears when packages must be
-        # downloaded; UNLINK may be omitted when nothing is removed.
-        action_keys = {"LINK", "PREFIX"}
+        action_keys = {"LINK", "UNLINK", "PREFIX"}
         assert action_keys.issubset(set(res["actions"].keys()))
 
         # When using `--no-py-pin`, it may or may not update the already installed
@@ -498,27 +496,27 @@ class TestInstall:
         link_packages = {pkg["name"] for pkg in res["actions"]["LINK"]}
         assert expected_link_packages.issubset(link_packages)
 
-        unlink_list = res["actions"].get("UNLINK", [])
-        unlink_packages = {pkg["name"] for pkg in unlink_list}
+        unlink_packages = {pkg["name"] for pkg in res["actions"]["UNLINK"]}
         if {"python"}.issubset(link_packages):
             assert {"python"}.issubset(unlink_packages)
 
             py_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python"][0]
             assert py_pkg["version"] != ("3.9.19")
 
-            py_pkg = [pkg for pkg in unlink_list if pkg["name"] == "python"][0]
+            py_pkg = [pkg for pkg in res["actions"]["UNLINK"] if pkg["name"] == "python"][0]
             assert py_pkg["version"] == ("3.9.19")
         else:
-            link_list = res["actions"]["LINK"]
-            py_abi_pkg = [pkg for pkg in link_list if pkg["name"] == "python_abi"][0]
-            assert py_abi_pkg["version"] == ("3.9")
-            if "setuptools" in link_packages:
-                setuptools_pkg = [pkg for pkg in link_list if pkg["name"] == "setuptools"][0]
-                assert setuptools_pkg["version"] == ("63.4.3")
+            assert len(res["actions"]["LINK"]) == 2  # Should be setuptools and python_abi
 
-            if unlink_list:
-                assert len(unlink_list) == 1  # Should be setuptools
-                assert unlink_list[0]["name"] == "setuptools"
+            py_abi_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "python_abi"][0]
+            assert py_abi_pkg["version"] == ("3.9")
+            setuptools_pkg = [pkg for pkg in res["actions"]["LINK"] if pkg["name"] == "setuptools"][
+                0
+            ]
+            assert setuptools_pkg["version"] == ("63.4.3")
+
+            assert len(res["actions"]["UNLINK"]) == 1  # Should be setuptools
+            assert res["actions"]["UNLINK"][0]["name"] == "setuptools"
 
     @pytest.mark.skipif(
         helpers.dry_run_tests is helpers.DryRun.ULTRA_DRY,

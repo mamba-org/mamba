@@ -247,6 +247,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.hpp
+    ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shards.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_index_loader.cpp

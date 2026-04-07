@@ -502,7 +502,57 @@ TEST_CASE(
     REQUIRE(found_python);
 }
 
-TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration][!mayfail]")
+// Exercises the same sharded path with a large dependency tree: shard index, per-package shards,
+// repodata build, and solver. Ensures packages like tensorflow (many python-version-specific
+// builds in shards) remain resolvable when `repodata_use_shards` is enabled.
+TEST_CASE(
+    "Sharded repodata - solve tensorflow with conda-forge (anaconda.org)",
+    "[mamba::core][sharded][.integration]"
+)
+{
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.repodata_use_shards;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.repodata_use_shards = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.repodata_use_shards = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    auto solved = solve_environment(
+        ctx,
+        channel_context,
+        std::vector<std::string>{ "tensorflow" },
+        true,
+        cache_dir
+    );
+    REQUIRE(solved.has_value());
+    bool found_tensorflow = false;
+    for (const auto& pkg : solved.value().packages())
+    {
+        if (pkg.name == "tensorflow")
+        {
+            found_tensorflow = true;
+            break;
+        }
+    }
+    REQUIRE(found_tensorflow);
+}
+
+TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };

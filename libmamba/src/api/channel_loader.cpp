@@ -24,6 +24,9 @@
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/specs/version.hpp"
+
+#include "utils.hpp"
 
 namespace mamba
 {
@@ -235,7 +238,8 @@ namespace mamba
             std::size_t subdir_idx,
             std::set<std::string>& loaded_subdirs_with_shards,
             const SubdirDownloadParams& subdir_params,
-            const std::vector<solver::libsolv::Priorities>& priorities
+            const std::vector<solver::libsolv::Priorities>& priorities,
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
             auto& subdir = subdirs[subdir_idx];
@@ -253,7 +257,8 @@ namespace mamba
                     subdirs,
                     subdir_idx,
                     loaded_subdirs_with_shards,
-                    priorities
+                    priorities,
+                    python_minor_version_for_prefilter
                 );
 
                 if (!res)
@@ -434,7 +439,8 @@ namespace mamba
             const std::vector<solver::libsolv::Priorities>& priorities,
             const SubdirDownloadParams& subdir_params,
             bool is_retry,
-            std::vector<mamba_error>& error_list
+            std::vector<mamba_error>& error_list,
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
             std::set<std::string> loaded_subdirs_with_shards;
@@ -475,7 +481,8 @@ namespace mamba
                     i,
                     loaded_subdirs_with_shards,
                     subdir_params,
-                    priorities
+                    priorities,
+                    python_minor_version_for_prefilter
                 );
 
                 if (result)
@@ -556,7 +563,11 @@ namespace mamba
                     continue;
                 }
                 SubdirIndexLoader subdir_index_loader = std::move(subdir_index_loader_result).value();
-                if (subdir_index_loader.valid_cache_found() && Console::can_report_status())
+
+                // Only show flat repodata cache status if we're not using shards and we have a
+                // valid cache
+                if (!ctx.repodata_use_shards && subdir_index_loader.valid_cache_found()
+                    && Console::can_report_status())
                 {
                     Console::stream()
                         << fmt::format("{:<50} {:>20}", subdir_index_loader.name(), "Using cache");
@@ -641,7 +652,8 @@ namespace mamba
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities
+        const std::vector<solver::libsolv::Priorities>& priorities,
+        std::optional<specs::Version> python_minor_version_for_prefilter
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
         auto& subdir = subdirs[subdir_idx];
@@ -670,6 +682,15 @@ namespace mamba
         LOG_DEBUG << "Shard index fetched for " << subdir.name();
         const auto& channel = subdir.channel();
         std::string current_repodata_url = subdir.repodata_url().str();
+        if (python_minor_version_for_prefilter.has_value())
+        {
+            LOG_DEBUG << "Shard prefilter on python minor version enabled with "
+                      << python_minor_version_for_prefilter.value().to_string();
+        }
+        else
+        {
+            LOG_DEBUG << "Shard prefilter on python minor version disabled.";
+        }
 
         // For all subdirs sharing the same channel URL, fetch their shard indices and build
         //    a Shards instance per subdir; collect them into a RepodataSubset.
@@ -702,7 +723,8 @@ namespace mamba
                     ctx.authentication_info(),
                     ctx.remote_fetch_params,
                     normalize_to_affinity_concurrency(static_cast<int>(ctx.repodata_shards_threads)),
-                    std::cref(ctx.mirrors)
+                    std::cref(ctx.mirrors),
+                    python_minor_version_for_prefilter
                 );
                 url_to_subdir_idx[sdir_url] = j;
             }
@@ -761,7 +783,8 @@ namespace mamba
             solver::libsolv::Database& database,
             MultiPackageCache& package_caches,
             const std::vector<std::string>& root_packages,
-            bool is_retry
+            bool is_retry,
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
             std::vector<SubdirIndexLoader> subdirs;
@@ -808,7 +831,8 @@ namespace mamba
                 priorities,
                 subdir_params,
                 is_retry,
-                error_list
+                error_list,
+                python_minor_version_for_prefilter
             );
 
             if (loading_failed)
@@ -824,7 +848,8 @@ namespace mamba
                         database,
                         package_caches,
                         root_packages,
-                        retry
+                        retry,
+                        python_minor_version_for_prefilter
                     );
                 }
                 error_list.emplace_back(
@@ -843,11 +868,20 @@ namespace mamba
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         MultiPackageCache& package_caches,
-        const std::vector<std::string>& root_packages
+        const std::vector<std::string>& root_packages,
+        std::optional<specs::Version> python_minor_version_for_prefilter
     ) -> expected_t<void, mamba_aggregated_error>
     {
         bool retry = false;
-        return load_channels_impl(ctx, channel_context, database, package_caches, root_packages, retry);
+        return load_channels_impl(
+            ctx,
+            channel_context,
+            database,
+            package_caches,
+            root_packages,
+            retry,
+            std::move(python_minor_version_for_prefilter)
+        );
     }
 
     void init_channels(Context& context, ChannelContext& channel_context)

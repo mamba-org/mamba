@@ -184,6 +184,12 @@ TEST_CASE("extract_requested_python_minor")
         REQUIRE(got.value() == v("3.13"));
     }
 
+    SECTION("major-only pin yields no minor (avoids bogus 2.0/3.0 shard prefilter)")
+    {
+        REQUIRE_FALSE(extract_requested_python_minor({ "python=2" }).has_value());
+        REQUIRE_FALSE(extract_requested_python_minor({ "python=3" }).has_value());
+    }
+
     SECTION("range spec yields no minor (not single equality after relax)")
     {
         REQUIRE_FALSE(extract_requested_python_minor({ "python >=3.12,<3.13" }).has_value());

@@ -738,7 +738,18 @@ namespace mamba
             {
                 continue;
             }
-            const specs::VersionSpec relaxed = relax_version_spec_to_minor(maybe_ms.value().version());
+            const auto& raw_version_spec = maybe_ms.value().version();
+            // Pins like ``python=2`` or ``python=3`` specify only the major version. Relaxing those
+            // to ``2.0`` / ``3.0`` for shard prefiltering would drop packages whose ``depends``
+            // require a real minor (e.g. ``python >=2.7``). Skip the prefilter for such specs.
+            if (auto maybe_single_v = version_from_single_equality_spec(raw_version_spec))
+            {
+                if (maybe_single_v->version().size() <= std::size_t{ 1 })
+                {
+                    return std::nullopt;
+                }
+            }
+            const specs::VersionSpec relaxed = relax_version_spec_to_minor(raw_version_spec);
             if (auto maybe_v = version_from_single_equality_spec(relaxed))
             {
                 return maybe_v;

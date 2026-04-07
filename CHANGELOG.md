@@ -1,3 +1,76 @@
+## 2026.04.07
+
+Release: 2.6.0.rc0 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [micromamba, libmamba] feat: Prefilter Shard Records on Python Minor Version by @jjerphan in <https://github.com/mamba-org/mamba/pull/4214>
+- [libmamba] feat: Introduce `MatchSpec::extract_name` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4206>
+- [libmamba] feat: Optimize `PackageInfo` descending sorts by @jjerphan in <https://github.com/mamba-org/mamba/pull/4208>
+- [libmamba] feat: Shard Index Handling Adaptation by @jjerphan in <https://github.com/mamba-org/mamba/pull/4190>
+- [libmamba] feat: Parse optional fields for `ShardPackageRecord` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4195>
+- [libmamba] feat: Support `track_features` for `ShardRecord` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4192>
+- [libmamba] feat: Shard Caching by @jjerphan in <https://github.com/mamba-org/mamba/pull/4174>
+- [micromamba, libmamba] feat: Do not warn for missing channels index by @jjerphan in <https://github.com/mamba-org/mamba/pull/4189>
+- [all] build: Export `libmamba-spdlog` target for building dependencies in tree by @opoplawski in <https://github.com/mamba-org/mamba/pull/4172>
+- [libmamba] feat: Sharded Repodata by @jjerphan in <https://github.com/mamba-org/mamba/pull/4162>
+- [libmamba] feat: Support `MSGPACK_OBJECT_ARRAY` for hashes by @jjerphan in <https://github.com/mamba-org/mamba/pull/4167>
+- [micromamba, libmamba] feat: Redesign packages caches hierarchically on channels and platforms by @jjerphan in <https://github.com/mamba-org/mamba/pull/4163>
+- [libmamba] feat: Consider `emscripten` a UNIX platform by @jjerphan in <https://github.com/mamba-org/mamba/pull/4168>
+- [libmamba] feat: Shard Traversal by @jjerphan in <https://github.com/mamba-org/mamba/pull/4161>
+- [libmamba] feat: ShardIndexLoader by @jjerphan in <https://github.com/mamba-org/mamba/pull/4149>
+- [libmamba] feat: Shards by @jjerphan in <https://github.com/mamba-org/mamba/pull/4148>
+- [libmamba, libmambapy] feat: Shard types and utils by @jjerphan in <https://github.com/mamba-org/mamba/pull/4145>
+- [micromamba, libmamba] feat: Support Prefix Data Interoperability by @jjerphan in <https://github.com/mamba-org/mamba/pull/4123>
+
+Bug fixes:
+
+- [micromamba, libmamba] config sub-command output hides secrets by @Klaim in <https://github.com/mamba-org/mamba/pull/4223>
+- [micromamba, libmamba] fix: Minor adaptations for sharded repodata support by @jjerphan in <https://github.com/mamba-org/mamba/pull/4187>
+- [micromamba, libmamba] fix: JSON should be set to `"success": false` when any transactions failed by @Klaim in <https://github.com/mamba-org/mamba/pull/4201>
+- [libmamba] fix: Skip non-executable matches in `which_in_one_impl` by @xsjk in <https://github.com/mamba-org/mamba/pull/4197>
+- [libmamba] fix: Adapt Shards base URL to handle channel identifiers by @jjerphan in <https://github.com/mamba-org/mamba/pull/4210>
+- [libmamba] fix: Treat sibling-subdir shard loads as successful by @jjerphan in <https://github.com/mamba-org/mamba/pull/4209>
+- [libmamba] fix: Exclude Installed Packages from Root Packages by @jjerphan in <https://github.com/mamba-org/mamba/pull/4205>
+- [libmamba] fix: Fallback on `uv` for listing installed packages if `pip` is not available by @jjerphan in <https://github.com/mamba-org/mamba/pull/4203>
+- [libmamba] fix: Respect thread affinity concurrency by @jjerphan in <https://github.com/mamba-org/mamba/pull/4193>
+- [libmamba] fix: Pass priorities in `load_single_subdir` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4188>
+- [micromamba] fix: Omit `--detach` option for run subcommand on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4185>
+- [micromamba, libmamba] fix: Sort `mamba search` results on version numerically by @jjerphan in <https://github.com/mamba-org/mamba/pull/4160>
+- [micromamba] fix: Pretty print short result for `mamba search` by default by @kuepe-sl in <https://github.com/mamba-org/mamba/pull/4066>
+- [micromamba, libmamba] fix: Show `pip` and `uv` output by default by @jjerphan in <https://github.com/mamba-org/mamba/pull/4155>
+- [micromamba, libmamba] Graceful handling of download cancel/interruption by @Klaim in <https://github.com/mamba-org/mamba/pull/4146>
+- [micromamba, libmamba] fix: Do not show activation message for dry runs by @jjerphan in <https://github.com/mamba-org/mamba/pull/4140>
+- [libmamba] fix: Only call `get_all_running_processes_info` when needed by @mihaitodor in <https://github.com/mamba-org/mamba/pull/4135>
+- [libmamba] Add #include <functional> for std::ref by @opoplawski in <https://github.com/mamba-org/mamba/pull/4132>
+
+CI fixes and doc:
+
+- [all] Fixed path in micromamba-installation.rst by @clausmichele in <https://github.com/mamba-org/mamba/pull/4194>
+- [all] ci: Disable `mamba-content-trust and auth tests` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4186>
+- [all] docs: Click to Copy code-blocks by @jjerphan in <https://github.com/mamba-org/mamba/pull/4175>
+- [all] ci: Exclude C++ tests in code coverage by @jjerphan in <https://github.com/mamba-org/mamba/pull/4147>
+- [all] ci: Use the `dev` branch from `micromamba-feedstock` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4144>
+- [all] ci: Free disk space for all linux workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4138>
+- [all] ci: Free disk space for linux workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4137>
+
+Maintenance:
+
+- [libmamba] maint: Retry for `update` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4220>
+- [libmamba] maint: Factorize common parts of the `install`, `update` and `remove` paths by @jjerphan in <https://github.com/mamba-org/mamba/pull/4215>
+- [all] build(deps): bump mamba-org/setup-micromamba from 2 to 3 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4219>
+- [all] build(deps): bump codecov/codecov-action from 5 to 6 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4218>
+- [micromamba] maint: Increase timeout of `test_env_logging_overhead_regression` to 1 minute by @jjerphan in <https://github.com/mamba-org/mamba/pull/4217>
+- [libmamba] maint: Replace `ShardPackageRecord` with `RepoDataPackage` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4212>
+- [libmamba] maint: Reduce logging in `Shards::parse_shard_msgpack` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4207>
+- [libmamba] maint: Split `load_channels_impl` into several functions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4178>
+- [libmamba] maint: Adapt `Shards` ownership model by @jjerphan in <https://github.com/mamba-org/mamba/pull/4177>
+- [all] build(deps): bump actions/upload-artifact from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4180>
+- [micromamba] maint: Increase timeout of `test_env_logging_overhead_regression` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4173>
+- [libmamba] maint: Refactor Channel Loader by @jjerphan in <https://github.com/mamba-org/mamba/pull/4169>
+- [libmamba] maint: Introduce `DownloadRequestComponents` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4164>
+- [libmamba] test: Changes for catch2 >3.8 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4134>
+
 ## 2026.01.08
 
 Release: 2.5.0 (libmamba, mamba, micromamba, libmambapy)

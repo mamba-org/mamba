@@ -1,3 +1,26 @@
+## libmambapy 2.6.0.rc0 (April 07, 2026)
+
+Enhancements:
+
+- build: Export `libmamba-spdlog` target for building dependencies in tree by @opoplawski in <https://github.com/mamba-org/mamba/pull/4172>
+- feat: Shard types and utils by @jjerphan in <https://github.com/mamba-org/mamba/pull/4145>
+
+CI fixes and doc:
+
+- Fixed path in micromamba-installation.rst by @clausmichele in <https://github.com/mamba-org/mamba/pull/4194>
+- ci: Disable `mamba-content-trust and auth tests` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4186>
+- docs: Click to Copy code-blocks by @jjerphan in <https://github.com/mamba-org/mamba/pull/4175>
+- ci: Exclude C++ tests in code coverage by @jjerphan in <https://github.com/mamba-org/mamba/pull/4147>
+- ci: Use the `dev` branch from `micromamba-feedstock` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4144>
+- ci: Free disk space for all linux workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4138>
+- ci: Free disk space for linux workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4137>
+
+Maintenance:
+
+- build(deps): bump mamba-org/setup-micromamba from 2 to 3 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4219>
+- build(deps): bump codecov/codecov-action from 5 to 6 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4218>
+- build(deps): bump actions/upload-artifact from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4180>
+
 ## libmambapy 2.5.0 (January 08, 2026)
 
 Enhancements:

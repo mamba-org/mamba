@@ -177,6 +177,13 @@ TEST_CASE("extract_requested_python_minor")
         REQUIRE(got.value() == v("3.11"));
     }
 
+    SECTION("single equals conda pin form")
+    {
+        const auto got = extract_requested_python_minor({ "python=3.13" });
+        REQUIRE(got.has_value());
+        REQUIRE(got.value() == v("3.13"));
+    }
+
     SECTION("range spec yields no minor (not single equality after relax)")
     {
         REQUIRE_FALSE(extract_requested_python_minor({ "python >=3.12,<3.13" }).has_value());

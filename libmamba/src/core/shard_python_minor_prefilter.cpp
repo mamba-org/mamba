@@ -16,6 +16,23 @@
 
 namespace mamba
 {
+    namespace
+    {
+        // Allows supporting both form of pin, e.g. ``python=3.13`` and ``python ==3.13``.
+        auto equality_tail(std::string_view spec_str) -> std::optional<std::string_view>
+        {
+            if (util::starts_with(spec_str, specs::VersionSpec::equal_str))
+            {
+                return spec_str.substr(specs::VersionSpec::equal_str.size());
+            }
+            if (util::starts_with(spec_str, "="))
+            {
+                return spec_str.substr(1);
+            }
+            return std::nullopt;
+        }
+    }
+
     auto version_from_single_equality_spec(const specs::VersionSpec& vs)
         -> std::optional<specs::Version>
     {
@@ -24,12 +41,12 @@ namespace mamba
             return std::nullopt;
         }
         const std::string s = vs.to_string();
-        if (!util::starts_with(s, specs::VersionSpec::equal_str))
+        const auto maybe_tail = equality_tail(s);
+        if (!maybe_tail.has_value())
         {
             return std::nullopt;
         }
-        const auto tail = std::string_view(s).substr(specs::VersionSpec::equal_str.size());
-        auto maybe_v = specs::Version::parse(std::string(util::lstrip(tail)));
+        auto maybe_v = specs::Version::parse(std::string(util::lstrip(maybe_tail.value())));
         if (maybe_v.has_value())
         {
             return maybe_v.value();
@@ -45,12 +62,12 @@ namespace mamba
             return vs;
         }
         const std::string vs_str = vs.to_string();
-        if (!util::starts_with(vs_str, specs::VersionSpec::equal_str))
+        const auto maybe_tail = equality_tail(vs_str);
+        if (!maybe_tail.has_value())
         {
             return vs;
         }
-        const auto ver_tail = std::string_view(vs_str).substr(specs::VersionSpec::equal_str.size());
-        auto maybe_v = specs::Version::parse(util::lstrip(ver_tail));
+        auto maybe_v = specs::Version::parse(util::lstrip(maybe_tail.value()));
         if (!maybe_v.has_value())
         {
             return vs;

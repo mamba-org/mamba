@@ -333,20 +333,20 @@ namespace
             auto pkg = PackageInfo::from_url(url).value();
 
             // Must have _initialized sentinel
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
 
             // Must have standard stub fields for conda packages
-            CHECK(contains(pkg.defaulted_keys, "build_number"));
-            CHECK(contains(pkg.defaulted_keys, "license"));
-            CHECK(contains(pkg.defaulted_keys, "timestamp"));
-            CHECK(contains(pkg.defaulted_keys, "track_features"));
-            CHECK(contains(pkg.defaulted_keys, "depends"));
-            CHECK(contains(pkg.defaulted_keys, "constrains"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
 
             // Should NOT contain fields that are populated from URL
-            CHECK_FALSE(contains(pkg.defaulted_keys, "name"));
-            CHECK_FALSE(contains(pkg.defaulted_keys, "version"));
-            CHECK_FALSE(contains(pkg.defaulted_keys, "build_string"));
+            CHECK_FALSE(contains(pkg.defaulted_keys, defaulted_key::name));
+            CHECK_FALSE(contains(pkg.defaulted_keys, defaulted_key::version));
+            CHECK_FALSE(contains(pkg.defaulted_keys, defaulted_key::build_string));
         }
 
         SECTION("Conda package (.tar.bz2) has correct defaulted_keys")
@@ -356,15 +356,15 @@ namespace
             auto pkg = PackageInfo::from_url(url).value();
 
             // Must have _initialized sentinel
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
 
             // Must have standard stub fields for conda packages
-            CHECK(contains(pkg.defaulted_keys, "build_number"));
-            CHECK(contains(pkg.defaulted_keys, "license"));
-            CHECK(contains(pkg.defaulted_keys, "timestamp"));
-            CHECK(contains(pkg.defaulted_keys, "track_features"));
-            CHECK(contains(pkg.defaulted_keys, "depends"));
-            CHECK(contains(pkg.defaulted_keys, "constrains"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
         }
 
         SECTION("Wheel package (.whl) has correct defaulted_keys")
@@ -375,19 +375,19 @@ namespace
             auto pkg = PackageInfo::from_url(url).value();
 
             // Must have _initialized sentinel
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
 
             // Must have standard stub fields
-            CHECK(contains(pkg.defaulted_keys, "build_number"));
-            CHECK(contains(pkg.defaulted_keys, "license"));
-            CHECK(contains(pkg.defaulted_keys, "timestamp"));
-            CHECK(contains(pkg.defaulted_keys, "track_features"));
-            CHECK(contains(pkg.defaulted_keys, "depends"));
-            CHECK(contains(pkg.defaulted_keys, "constrains"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
 
             // Wheel-specific: build info is NOT in the filename
-            CHECK(contains(pkg.defaulted_keys, "build"));
-            CHECK(contains(pkg.defaulted_keys, "build_string"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_string));
         }
 
         SECTION("Wheel package with build tag (.whl) has correct defaulted_keys")
@@ -398,16 +398,16 @@ namespace
             static constexpr std::string_view url = "https://example.com/numpy-1.24.0-1-cp311-cp311-linux_x86_64.whl";
             auto pkg = PackageInfo::from_url(url).value();
 
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
 
-            CHECK(contains(pkg.defaulted_keys, "build_number"));
-            CHECK(contains(pkg.defaulted_keys, "license"));
-            CHECK(contains(pkg.defaulted_keys, "timestamp"));
-            CHECK(contains(pkg.defaulted_keys, "track_features"));
-            CHECK(contains(pkg.defaulted_keys, "depends"));
-            CHECK(contains(pkg.defaulted_keys, "constrains"));
-            CHECK(contains(pkg.defaulted_keys, "build"));
-            CHECK(contains(pkg.defaulted_keys, "build_string"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_string));
 
             CHECK(pkg.name == "numpy");
             CHECK(pkg.version == "1.24.0");
@@ -420,19 +420,19 @@ namespace
             auto pkg = PackageInfo::from_url(url).value();
 
             // Must have _initialized sentinel
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
 
             // Must have standard stub fields
-            CHECK(contains(pkg.defaulted_keys, "build_number"));
-            CHECK(contains(pkg.defaulted_keys, "license"));
-            CHECK(contains(pkg.defaulted_keys, "timestamp"));
-            CHECK(contains(pkg.defaulted_keys, "track_features"));
-            CHECK(contains(pkg.defaulted_keys, "depends"));
-            CHECK(contains(pkg.defaulted_keys, "constrains"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
 
             // TarGz-specific: build info is NOT in the filename
-            CHECK(contains(pkg.defaulted_keys, "build"));
-            CHECK(contains(pkg.defaulted_keys, "build_string"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_string));
         }
 
         SECTION("Git URL has correct defaulted_keys")
@@ -443,28 +443,28 @@ namespace
             auto pkg = PackageInfo::from_url(url).value();
 
             // Must have _initialized sentinel
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
 
             // Git URLs have more stub fields since they provide minimal info
-            CHECK(contains(pkg.defaulted_keys, "build"));
-            CHECK(contains(pkg.defaulted_keys, "build_string"));
-            CHECK(contains(pkg.defaulted_keys, "build_number"));
-            CHECK(contains(pkg.defaulted_keys, "license"));
-            CHECK(contains(pkg.defaulted_keys, "timestamp"));
-            CHECK(contains(pkg.defaulted_keys, "track_features"));
-            CHECK(contains(pkg.defaulted_keys, "depends"));
-            CHECK(contains(pkg.defaulted_keys, "constrains"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_string));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
 
             // Git URLs should also have these fields defaulted (not just the common ones)
             // Git URLs only provide package_url and optionally name from #egg=
-            CHECK(contains(pkg.defaulted_keys, "version"));
-            CHECK(contains(pkg.defaulted_keys, "channel"));
-            CHECK(contains(pkg.defaulted_keys, "subdir"));
-            CHECK(contains(pkg.defaulted_keys, "fn"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::version));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::channel));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::subdir));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::fn));
 
             // Should NOT contain name (set from #egg=) or url (always set)
-            CHECK_FALSE(contains(pkg.defaulted_keys, "name"));
-            CHECK_FALSE(contains(pkg.defaulted_keys, "url"));
+            CHECK_FALSE(contains(pkg.defaulted_keys, defaulted_key::name));
+            CHECK_FALSE(contains(pkg.defaulted_keys, defaulted_key::url));
         }
 
         SECTION("Git URL without #egg= has name in defaulted_keys")
@@ -475,27 +475,27 @@ namespace
             auto pkg = PackageInfo::from_url(url).value();
 
             // Must have _initialized sentinel
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
 
             // All the same fields as with #egg=
-            CHECK(contains(pkg.defaulted_keys, "build"));
-            CHECK(contains(pkg.defaulted_keys, "build_string"));
-            CHECK(contains(pkg.defaulted_keys, "build_number"));
-            CHECK(contains(pkg.defaulted_keys, "license"));
-            CHECK(contains(pkg.defaulted_keys, "timestamp"));
-            CHECK(contains(pkg.defaulted_keys, "track_features"));
-            CHECK(contains(pkg.defaulted_keys, "depends"));
-            CHECK(contains(pkg.defaulted_keys, "constrains"));
-            CHECK(contains(pkg.defaulted_keys, "version"));
-            CHECK(contains(pkg.defaulted_keys, "channel"));
-            CHECK(contains(pkg.defaulted_keys, "subdir"));
-            CHECK(contains(pkg.defaulted_keys, "fn"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_string));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::version));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::channel));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::subdir));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::fn));
 
             // WITHOUT #egg=, name should ALSO be defaulted (cannot be derived)
-            CHECK(contains(pkg.defaulted_keys, "name"));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::name));
 
             // url is always set
-            CHECK_FALSE(contains(pkg.defaulted_keys, "url"));
+            CHECK_FALSE(contains(pkg.defaulted_keys, defaulted_key::url));
         }
     }
 }

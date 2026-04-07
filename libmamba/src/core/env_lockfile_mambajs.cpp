@@ -100,9 +100,12 @@ namespace mamba
             // The mambajs lockfile only contains: name, version, build, subdir, channel, hash.
             // All other fields have stub values and should be replaced from index.json.
             // See issue #4095.
-            package.info.defaulted_keys = { "_initialized", "build_number",   "license",
-                                            "timestamp",    "track_features", "depends",
-                                            "constrains" };
+            package.info.defaulted_keys = {
+                specs::defaulted_key::initialized,    specs::defaulted_key::build_number,
+                specs::defaulted_key::license,        specs::defaulted_key::timestamp,
+                specs::defaulted_key::track_features, specs::defaulted_key::depends,
+                specs::defaulted_key::constrains,
+            };
 
             return package;
         }

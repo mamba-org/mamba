@@ -605,9 +605,11 @@ namespace
         pkg_info.version = "1.0";
         pkg_info.build_string = "h123456_0";
         pkg_info.filename = "patched-pkg-1.0-h123456_0.tar.bz2";
-        pkg_info.dependencies = {};                    // Intentionally empty from channel patch
-        pkg_info.defaulted_keys = { "_initialized" };  // Only sentinel = solver-derived, trust all
-        pkg_info.timestamp = 1234567890;               // Non-zero = proves not URL-derived stub
+        pkg_info.dependencies = {};  // Intentionally empty from channel patch
+        pkg_info.defaulted_keys = { specs::defaulted_key::initialized };  // Only sentinel =
+                                                                          // solver-derived, trust
+                                                                          // all
+        pkg_info.timestamp = 1234567890;  // Non-zero = proves not URL-derived stub
 
         const std::string pkg_basename = "patched-pkg-1.0-h123456_0";
 
@@ -687,9 +689,11 @@ namespace
         pkg_info.version = "1.0";
         pkg_info.build_string = "h123456_0";
         pkg_info.filename = "patched-constrains-pkg-1.0-h123456_0.tar.bz2";
-        pkg_info.constrains = {};                      // Intentionally empty from channel patch
-        pkg_info.defaulted_keys = { "_initialized" };  // Only sentinel = solver-derived, trust all
-        pkg_info.timestamp = 1234567890;               // Non-zero = proves not URL-derived stub
+        pkg_info.constrains = {};  // Intentionally empty from channel patch
+        pkg_info.defaulted_keys = { specs::defaulted_key::initialized };  // Only sentinel =
+                                                                          // solver-derived, trust
+                                                                          // all
+        pkg_info.timestamp = 1234567890;  // Non-zero = proves not URL-derived stub
 
         const std::string pkg_basename = "patched-constrains-pkg-1.0-h123456_0";
 
@@ -774,7 +778,8 @@ namespace
         pkg_info.build_string = "h0_0";
         pkg_info.filename = "missing-init-pkg-1.0-h0_0.tar.bz2";
         // Deliberately NOT setting _initialized in defaulted_keys
-        pkg_info.defaulted_keys = { "license", "timestamp" };  // Missing "_initialized"!
+        pkg_info.defaulted_keys = { specs::defaulted_key::license,
+                                    specs::defaulted_key::timestamp };  // Missing initialized!
 
         const std::string pkg_basename = "missing-init-pkg-1.0-h0_0";
 

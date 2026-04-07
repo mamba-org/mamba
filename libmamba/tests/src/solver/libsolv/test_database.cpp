@@ -563,8 +563,17 @@ namespace
             pkg.build_string = "h123_0";
             pkg.channel = "conda-forge";
             // URL-derived packages have a full list of stub fields
-            pkg.defaulted_keys = { "_initialized", "build_number",   "license", "timestamp", "md5",
-                                   "sha256",       "track_features", "depends", "constrains" };
+            pkg.defaulted_keys = {
+                specs::defaulted_key::initialized,
+                specs::defaulted_key::build_number,
+                specs::defaulted_key::license,
+                specs::defaulted_key::timestamp,
+                specs::defaulted_key::md5,
+                specs::defaulted_key::sha256,
+                specs::defaulted_key::track_features,
+                specs::defaulted_key::depends,
+                specs::defaulted_key::constrains,
+            };
 
             auto repo = db.add_repo_from_packages(std::array{ pkg }, "test-repo");
 
@@ -602,7 +611,7 @@ namespace
                     REQUIRE(p.name == "legacy-pkg");
                     // Fallback converts empty to ["_initialized"]
                     REQUIRE(p.defaulted_keys.size() == 1);
-                    REQUIRE(p.defaulted_keys[0] == "_initialized");
+                    REQUIRE(p.defaulted_keys[0] == specs::defaulted_key::initialized);
                 }
             );
         }
@@ -617,7 +626,7 @@ namespace
             pkg.build_string = "0";
             pkg.channel = "conda-forge";
             // Channel-derived packages have only _initialized (trust all fields)
-            pkg.defaulted_keys = { "_initialized" };
+            pkg.defaulted_keys = { specs::defaulted_key::initialized };
 
             auto repo = db.add_repo_from_packages(std::array{ pkg }, "test-repo");
 
@@ -627,7 +636,7 @@ namespace
                 {
                     REQUIRE(p.name == "channel-pkg");
                     REQUIRE(p.defaulted_keys.size() == 1);
-                    REQUIRE(p.defaulted_keys[0] == "_initialized");
+                    REQUIRE(p.defaulted_keys[0] == specs::defaulted_key::initialized);
                 }
             );
         }
@@ -669,7 +678,7 @@ namespace
             {
                 count++;
                 REQUIRE(pkg.defaulted_keys.size() == 1);
-                REQUIRE(pkg.defaulted_keys[0] == "_initialized");
+                REQUIRE(pkg.defaulted_keys[0] == specs::defaulted_key::initialized);
             }
         );
         REQUIRE(count == repo->package_count());

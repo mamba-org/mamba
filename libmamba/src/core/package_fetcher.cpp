@@ -479,7 +479,7 @@ namespace mamba
             return std::find(
                        m_package_info.defaulted_keys.begin(),
                        m_package_info.defaulted_keys.end(),
-                       "_initialized"
+                       specs::defaulted_key::initialized
                    )
                    != m_package_info.defaulted_keys.end();
         };
@@ -499,7 +499,7 @@ namespace mamba
         //   → nothing erased, all fields preserved (including channel patches)
         for (const auto& key : m_package_info.defaulted_keys)
         {
-            if (key != "_initialized")
+            if (key != specs::defaulted_key::initialized)
             {
                 repodata_record.erase(key);
             }

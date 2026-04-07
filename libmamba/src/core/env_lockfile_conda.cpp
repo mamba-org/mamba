@@ -115,11 +115,14 @@ namespace mamba
                 auto& dk = package.info.defaulted_keys;
                 if (!package.info.dependencies.empty())
                 {
-                    dk.erase(std::remove(dk.begin(), dk.end(), "depends"), dk.end());
+                    dk.erase(std::remove(dk.begin(), dk.end(), specs::defaulted_key::depends), dk.end());
                 }
                 if (!package.info.constrains.empty())
                 {
-                    dk.erase(std::remove(dk.begin(), dk.end(), "constrains"), dk.end());
+                    dk.erase(
+                        std::remove(dk.begin(), dk.end(), specs::defaulted_key::constrains),
+                        dk.end()
+                    );
                 }
             }
 

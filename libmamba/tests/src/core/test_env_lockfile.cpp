@@ -321,7 +321,7 @@ namespace mamba
             for (const auto& pkg : packages)
             {
                 INFO("Package: " << pkg.info.name);
-                REQUIRE(contains(pkg.info.defaulted_keys, "_initialized"));
+                REQUIRE(contains(pkg.info.defaulted_keys, specs::defaulted_key::initialized));
             }
         }
 
@@ -378,13 +378,20 @@ namespace mamba
                 REQUIRE_FALSE(pkg.info.sha256.empty());
 
                 // Precondition: _initialized sentinel is present
-                REQUIRE(contains(pkg.info.defaulted_keys, "_initialized"));
+                REQUIRE(contains(pkg.info.defaulted_keys, specs::defaulted_key::initialized));
 
                 // When the lockfile provides dependencies AND sha256 is present,
                 // "depends" should NOT be in defaulted_keys.
                 if (!pkg.info.dependencies.empty())
                 {
-                    CHECK_FALSE(contains(pkg.info.defaulted_keys, "depends"));
+                    CHECK_FALSE(contains(pkg.info.defaulted_keys, specs::defaulted_key::depends));
+                }
+
+                // When the lockfile provides constrains AND sha256 is present,
+                // "constrains" should NOT be in defaulted_keys.
+                if (!pkg.info.constrains.empty())
+                {
+                    CHECK_FALSE(contains(pkg.info.defaulted_keys, specs::defaulted_key::constrains));
                 }
 
                 // When the lockfile provides constrains AND sha256 is present,

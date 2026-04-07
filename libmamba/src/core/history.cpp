@@ -381,10 +381,20 @@ namespace mamba
         // History only provides name, version, build, channel.
         // Other fields (subdir, license, etc) should be backfilled from index.json (from tarball)
         // if possible. See issue #4095.
-        pkg_info.defaulted_keys = { "_initialized", "build_number",   "license",
-                                    "timestamp",    "track_features", "depends",
-                                    "constrains",   "subdir",         "md5",
-                                    "sha256",       "size",           "fn" };
+        pkg_info.defaulted_keys = {
+            specs::defaulted_key::initialized,
+            specs::defaulted_key::build_number,
+            specs::defaulted_key::license,
+            specs::defaulted_key::timestamp,
+            specs::defaulted_key::track_features,
+            specs::defaulted_key::depends,
+            specs::defaulted_key::constrains,
+            specs::defaulted_key::subdir,
+            specs::defaulted_key::md5,
+            specs::defaulted_key::sha256,
+            specs::defaulted_key::size,
+            specs::defaulted_key::fn,
+        };
 
         return pkg_info;
     }

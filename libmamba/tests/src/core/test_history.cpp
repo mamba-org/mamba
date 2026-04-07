@@ -137,16 +137,16 @@ namespace mamba
             { return std::find(v.begin(), v.end(), val) != v.end(); };
 
             REQUIRE_FALSE(pkg.defaulted_keys.empty());
-            REQUIRE(contains(pkg.defaulted_keys, "_initialized"));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::initialized));
 
-            REQUIRE(contains(pkg.defaulted_keys, "depends"));
-            REQUIRE(contains(pkg.defaulted_keys, "license"));
-            REQUIRE(contains(pkg.defaulted_keys, "timestamp"));
-            REQUIRE(contains(pkg.defaulted_keys, "subdir"));
-            REQUIRE(contains(pkg.defaulted_keys, "md5"));
-            REQUIRE(contains(pkg.defaulted_keys, "sha256"));
-            REQUIRE(contains(pkg.defaulted_keys, "size"));
-            REQUIRE(contains(pkg.defaulted_keys, "fn"));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::depends));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::license));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::timestamp));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::subdir));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::md5));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::sha256));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::size));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::fn));
         }
 
         TEST_CASE("revision_diff")

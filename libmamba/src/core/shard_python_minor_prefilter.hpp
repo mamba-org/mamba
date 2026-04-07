@@ -36,7 +36,7 @@ namespace mamba
      * and tests again. Non-python dependencies always return true; parse failures return true (no
      * prefilter).
      */
-    [[nodiscard]] auto dependency_matches_python_minor_version_for_prefilter(
+    [[nodiscard]] auto matches_python_minor(
         const std::string& dependency_spec,
         const specs::Version& python_minor_version_for_prefilter
     ) -> bool;

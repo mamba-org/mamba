@@ -65,7 +65,7 @@ namespace mamba
         return vs;
     }
 
-    auto dependency_matches_python_minor_version_for_prefilter(
+    auto matches_python_minor(
         const std::string& dependency_spec,
         const specs::Version& python_minor_version_for_prefilter
     ) -> bool

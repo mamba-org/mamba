@@ -398,7 +398,7 @@ namespace mamba
          * When ``python_minor_version_for_prefilter`` is unset, returns true (no prefilter).
          * When set, inspects ``depends`` entries for ``python`` and keeps the record only if
          * each such constraint contains that minor (see
-         * ``dependency_matches_python_minor_version_for_prefilter``).
+         * ``matches_python_minor``).
          */
         bool record_depends_on_python_minor_version_for_prefilter(
             const msgpack_object& raw_record_obj,
@@ -435,10 +435,7 @@ namespace mamba
                 const auto depends = msgpack_object_to_string_array(val_obj);
                 for (const auto& dep : depends)
                 {
-                    if (!dependency_matches_python_minor_version_for_prefilter(
-                            dep,
-                            python_minor_version_for_prefilter.value()
-                        ))
+                    if (!matches_python_minor(dep, python_minor_version_for_prefilter.value()))
                     {
                         return false;
                     }

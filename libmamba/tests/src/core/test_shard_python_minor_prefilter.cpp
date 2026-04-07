@@ -361,89 +361,66 @@ TEST_CASE("relax_version_spec_to_minor")
     }
 }
 
-TEST_CASE("dependency_matches_python_minor_version_for_prefilter")
+TEST_CASE("matches_python_minor")
 {
     const auto req = [](std::string_view s) -> specs::Version
     { return specs::Version::parse(s).value(); };
 
     SECTION("non-python dependency is not filtered")
     {
-        REQUIRE(dependency_matches_python_minor_version_for_prefilter("numpy >=1.0", req("3.12")));
-        REQUIRE(
-            dependency_matches_python_minor_version_for_prefilter("libstdcxx-ng >=12", req("3.12"))
-        );
+        REQUIRE(matches_python_minor("numpy >=1.0", req("3.12")));
+        REQUIRE(matches_python_minor("libstdcxx-ng >=12", req("3.12")));
     }
 
     SECTION("name starting with python but not the python package")
     {
-        REQUIRE(dependency_matches_python_minor_version_for_prefilter(
-            "python_abi 3.12 1_cp312",
-            req("3.12")
-        ));
+        REQUIRE(matches_python_minor("python_abi 3.12 1_cp312", req("3.12")));
     }
 
     SECTION("python version range matches requested minor")
     {
-        REQUIRE(
-            dependency_matches_python_minor_version_for_prefilter("python >=3.12,<3.13", req("3.12"))
-        );
-        REQUIRE(dependency_matches_python_minor_version_for_prefilter("python >=3.12", req("3.12")));
+        REQUIRE(matches_python_minor("python >=3.12,<3.13", req("3.12")));
+        REQUIRE(matches_python_minor("python >=3.12", req("3.12")));
     }
 
     SECTION("python version range does not match requested minor")
     {
-        REQUIRE_FALSE(
-            dependency_matches_python_minor_version_for_prefilter("python >=3.12,<3.13", req("3.11"))
-        );
-        REQUIRE_FALSE(
-            dependency_matches_python_minor_version_for_prefilter("python >=3.12,<3.13", req("3.13"))
-        );
+        REQUIRE_FALSE(matches_python_minor("python >=3.12,<3.13", req("3.11")));
+        REQUIRE_FALSE(matches_python_minor("python >=3.12,<3.13", req("3.13")));
     }
 
     SECTION("exact three-token conda pin matches requested minor")
     {
-        REQUIRE(
-            dependency_matches_python_minor_version_for_prefilter("python 3.7.12 0_73_pypy", req("3.7"))
-        );
+        REQUIRE(matches_python_minor("python 3.7.12 0_73_pypy", req("3.7")));
     }
 
     SECTION("two-token exact pin matches requested minor")
     {
-        REQUIRE(dependency_matches_python_minor_version_for_prefilter("python 3.7.12", req("3.7")));
+        REQUIRE(matches_python_minor("python 3.7.12", req("3.7")));
     }
 
     SECTION("exact pin does not match different minor")
     {
-        REQUIRE_FALSE(
-            dependency_matches_python_minor_version_for_prefilter("python 3.8.0", req("3.7"))
-        );
+        REQUIRE_FALSE(matches_python_minor("python 3.8.0", req("3.7")));
     }
 
     SECTION("leading whitespace on dependency line")
     {
-        REQUIRE(
-            dependency_matches_python_minor_version_for_prefilter("  python >=3.12,<3.13", req("3.12"))
-        );
+        REQUIRE(matches_python_minor("  python >=3.12,<3.13", req("3.12")));
     }
 
     SECTION("unparsable python dependency does not filter (passes)")
     {
-        REQUIRE(dependency_matches_python_minor_version_for_prefilter(
-            "python ,,not-a-valid-spec,,",
-            req("3.12")
-        ));
+        REQUIRE(matches_python_minor("python ,,not-a-valid-spec,,", req("3.12")));
     }
 
     SECTION("namespaced python pin")
     {
-        REQUIRE(dependency_matches_python_minor_version_for_prefilter(
-            "conda-forge::python 3.7.12 0_73_pypy",
-            req("3.7")
-        ));
+        REQUIRE(matches_python_minor("conda-forge::python 3.7.12 0_73_pypy", req("3.7")));
     }
 
     SECTION("only python in range with no upper bound")
     {
-        REQUIRE(dependency_matches_python_minor_version_for_prefilter("python", req("3.12")));
+        REQUIRE(matches_python_minor("python", req("3.12")));
     }
 }

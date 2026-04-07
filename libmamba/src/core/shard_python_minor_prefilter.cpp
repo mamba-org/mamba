@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-#include "mamba/core/shard_python_minor_prefilter.hpp"
+#include "core/shard_python_minor_prefilter.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/version.hpp"
 #include "mamba/specs/version_spec.hpp"

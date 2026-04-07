@@ -9,7 +9,6 @@
 #include <msgpack/zone.h>
 
 #include "mamba/core/channel_context.hpp"
-#include "mamba/core/shard_python_minor_prefilter.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/shards.hpp"
 #include "mamba/core/util.hpp"
@@ -25,6 +24,7 @@
 #include "mamba/util/string.hpp"
 
 #include "api/utils.hpp"
+#include "core/shard_python_minor_prefilter.hpp"
 
 #include "mambatests.hpp"
 #include "test_shard_utils.hpp"

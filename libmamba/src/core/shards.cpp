@@ -19,7 +19,6 @@
 
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
-#include "mamba/core/shard_python_minor_prefilter.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/shards.hpp"
 #include "mamba/core/subdir_index.hpp"
@@ -34,6 +33,8 @@
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 #include "mamba/validation/tools.hpp"
+
+#include "core/shard_python_minor_prefilter.hpp"
 
 namespace mamba
 {

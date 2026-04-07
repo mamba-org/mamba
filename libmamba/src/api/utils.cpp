@@ -27,7 +27,6 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/prefix_data.hpp"
-#include "mamba/core/shard_python_minor_prefilter.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
@@ -38,6 +37,8 @@
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
+
+#include "core/shard_python_minor_prefilter.hpp"
 
 #include "utils.hpp"
 

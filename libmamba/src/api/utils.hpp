@@ -93,7 +93,6 @@ namespace mamba
     std::vector<std::string> build_sharded_root_packages(const std::vector<std::string>& raw_specs);
 
     /**
-
      * Print environment activation guidance for the current target prefix.
      */
     void print_activation_message(const Context& ctx);

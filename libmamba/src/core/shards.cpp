@@ -1006,7 +1006,7 @@ namespace mamba
                     try
                     {
                         // Filter out builds which depend on another python minor version
-                        // than the one in the environment, significantly reducing the number of
+                        // than the one requested. This significantly reduces the number of
                         // builds to parse and to provide to the solver for dependency resolution.
                         if (!record_depends_on_python_minor_version_for_prefilter(
                                 val,

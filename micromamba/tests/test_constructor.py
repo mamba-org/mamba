@@ -8,12 +8,14 @@ Includes tests for:
 """
 
 import glob
+import hashlib
 import json
 import os
 import shutil
 import subprocess
 import tarfile
-import tempfile
+
+import pytest
 
 from . import helpers
 
@@ -109,54 +111,53 @@ class TestURLDerivedMetadata:
     - track_features should be omitted when empty
     """
 
+    pkg_name = "testmeta-1.0-h0_42"
+    pkg_filename = pkg_name + ".tar.bz2"
+    index_json = {
+        "name": "testmeta",
+        "version": "1.0",
+        "build": "h0_42",
+        "build_number": 42,
+        "license": "MIT",
+        "timestamp": 1234567890,
+        "depends": ["python >=3.8"],
+        "constrains": ["otherpkg >=2.0"],
+        # No track_features - should be omitted in output
+    }
+
+    @pytest.fixture(autouse=True, scope="class")
+    def _setup(self, tmp_path_factory):
+        """Set up temp dirs and env vars via fixtures."""
+        base = tmp_path_factory.mktemp("mamba_test_url")
+        root_prefix = base / "root"
+        pkgs_dir = root_prefix / "pkgs"
+        pkgs_dir.mkdir(parents=True)
+
+        type(self).root_prefix = str(root_prefix)
+        type(self).pkgs_dir = str(pkgs_dir)
+        type(self).pkg_path = str(pkgs_dir / self.pkg_filename)
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("MAMBA_ROOT_PREFIX", self.root_prefix)
+            mp.setenv("CONDA_PREFIX", self.root_prefix)
+
+            self._create_test_package(base)
+
+            # Create urls file
+            urls_path = os.path.join(self.pkgs_dir, "urls")
+            with open(urls_path, "w") as f:
+                # URL with md5 hash fragment (as constructor expects)
+                f.write(
+                    f"http://test.example.com/channel/linux-64/{self.pkg_filename}#abc123def456\n"
+                )
+
+            yield
+
     @classmethod
-    def setup_class(cls):
-        """Create a test package with known metadata."""
-        cls.temp_dir = tempfile.mkdtemp(prefix="mamba_test_")
-        cls.root_prefix = os.path.join(cls.temp_dir, "root")
-        cls.pkgs_dir = os.path.join(cls.root_prefix, "pkgs")
-        os.makedirs(cls.pkgs_dir, exist_ok=True)
-
-        # Save original env vars
-        cls.orig_root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
-        cls.orig_prefix = os.environ.get("CONDA_PREFIX")
-
-        # Set test env vars
-        os.environ["MAMBA_ROOT_PREFIX"] = cls.root_prefix
-        os.environ["CONDA_PREFIX"] = cls.root_prefix
-
-        # Create a test package with specific metadata in index.json
-        cls.pkg_name = "testmeta-1.0-h0_42"
-        cls.pkg_filename = cls.pkg_name + ".tar.bz2"
-        cls.pkg_path = os.path.join(cls.pkgs_dir, cls.pkg_filename)
-
-        # Create the index.json with specific values that differ from URL-derived stubs
-        cls.index_json = {
-            "name": "testmeta",
-            "version": "1.0",
-            "build": "h0_42",
-            "build_number": 42,
-            "license": "MIT",
-            "timestamp": 1234567890,
-            "depends": ["python >=3.8"],
-            "constrains": ["otherpkg >=2.0"],
-            # No track_features - should be omitted in output
-        }
-
-        # Create the package tarball
-        cls._create_test_package()
-
-        # Create urls file
-        urls_path = os.path.join(cls.pkgs_dir, "urls")
-        with open(urls_path, "w") as f:
-            # URL with md5 hash fragment (as constructor expects)
-            f.write(f"http://test.example.com/channel/linux-64/{cls.pkg_filename}#abc123def456\n")
-
-    @classmethod
-    def _create_test_package(cls):
+    def _create_test_package(cls, base):
         """Create a minimal conda package tarball."""
         # Create package structure in memory
-        pkg_dir = os.path.join(cls.temp_dir, "pkg_build", cls.pkg_name)
+        pkg_dir = str(base / "pkg_build" / cls.pkg_name)
         info_dir = os.path.join(pkg_dir, "info")
         os.makedirs(info_dir, exist_ok=True)
 
@@ -171,22 +172,6 @@ class TestURLDerivedMetadata:
         # Create tarball
         with tarfile.open(cls.pkg_path, "w:bz2") as tar:
             tar.add(info_dir, arcname="info")
-
-    @classmethod
-    def teardown_class(cls):
-        """Clean up test directory and restore env vars."""
-        try:
-            shutil.rmtree(cls.temp_dir)
-        finally:
-            # Always restore env vars, even if rmtree fails
-            if cls.orig_root_prefix is not None:
-                os.environ["MAMBA_ROOT_PREFIX"] = cls.orig_root_prefix
-            else:
-                os.environ.pop("MAMBA_ROOT_PREFIX", None)
-            if cls.orig_prefix is not None:
-                os.environ["CONDA_PREFIX"] = cls.orig_prefix
-            else:
-                os.environ.pop("CONDA_PREFIX", None)
 
     def test_url_derived_metadata_from_index_json(self):
         """
@@ -301,73 +286,69 @@ class TestChannelPatchPreservation:
     See GitHub issue #4095.
     """
 
-    @classmethod
-    def setup_class(cls):
-        """Create test package with cached repodata that differs from index.json."""
-        cls.temp_dir = tempfile.mkdtemp(prefix="mamba_test_channel_patch_")
-        cls.root_prefix = os.path.join(cls.temp_dir, "root")
-        cls.pkgs_dir = os.path.join(cls.root_prefix, "pkgs")
-        cls.cache_dir = os.path.join(cls.pkgs_dir, "cache")
-        os.makedirs(cls.cache_dir, exist_ok=True)
+    pkg_name = "patchtest-1.0-h0_1"
+    pkg_filename = pkg_name + ".tar.bz2"
+    channel_url = "http://patched.example.com/channel/linux-64/"
 
-        # Save original env vars
-        cls.orig_root_prefix = os.environ.get("MAMBA_ROOT_PREFIX")
-        cls.orig_prefix = os.environ.get("CONDA_PREFIX")
+    index_json = {
+        "name": "patchtest",
+        "version": "1.0",
+        "build": "h0_1",
+        "build_number": 1,
+        "license": "BSD-3-Clause",
+        "timestamp": 1000000000,
+        "depends": ["libfoo >=1.0"],
+        "constrains": [],
+    }
 
-        # Set test env vars
-        os.environ["MAMBA_ROOT_PREFIX"] = cls.root_prefix
-        os.environ["CONDA_PREFIX"] = cls.root_prefix
+    # Values in cached channel repodata (simulating channel patches)
+    # These DIFFER from index.json - the channel maintainer patched them
+    patched_repodata = {
+        "name": "patchtest",
+        "version": "1.0",
+        "build": "h0_1",
+        "build_number": 1,
+        # Channel patch: changed license
+        "license": "MIT",
+        # Channel patch: different timestamp
+        "timestamp": 2000000000,
+        # Channel patch: added dependency constraint
+        "depends": ["libfoo >=1.0", "libbar <2.0"],
+        # Channel patch: added constrains
+        "constrains": ["conflicting-pkg"],
+    }
 
-        # Package details
-        cls.pkg_name = "patchtest-1.0-h0_1"
-        cls.pkg_filename = cls.pkg_name + ".tar.bz2"
-        cls.pkg_path = os.path.join(cls.pkgs_dir, cls.pkg_filename)
-        cls.channel_url = "http://patched.example.com/channel/linux-64/"
+    @pytest.fixture(autouse=True, scope="class")
+    def _setup(self, tmp_path_factory):
+        """Set up temp dirs and env vars via fixtures."""
+        base = tmp_path_factory.mktemp("mamba_test_channel_patch")
+        root_prefix = base / "root"
+        pkgs_dir = root_prefix / "pkgs"
+        cache_dir = pkgs_dir / "cache"
+        cache_dir.mkdir(parents=True)
 
-        # Values in index.json (inside the package tarball)
-        cls.index_json = {
-            "name": "patchtest",
-            "version": "1.0",
-            "build": "h0_1",
-            "build_number": 1,
-            "license": "BSD-3-Clause",
-            "timestamp": 1000000000,
-            "depends": ["libfoo >=1.0"],
-            "constrains": [],
-        }
+        type(self).root_prefix = str(root_prefix)
+        type(self).pkgs_dir = str(pkgs_dir)
+        type(self).pkg_path = str(pkgs_dir / self.pkg_filename)
 
-        # Values in cached channel repodata (simulating channel patches)
-        # These DIFFER from index.json - the channel maintainer patched them
-        cls.patched_repodata = {
-            "name": "patchtest",
-            "version": "1.0",
-            "build": "h0_1",
-            "build_number": 1,
-            # Channel patch: changed license
-            "license": "MIT",
-            # Channel patch: different timestamp
-            "timestamp": 2000000000,
-            # Channel patch: added dependency constraint
-            "depends": ["libfoo >=1.0", "libbar <2.0"],
-            # Channel patch: added constrains
-            "constrains": ["conflicting-pkg"],
-        }
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("MAMBA_ROOT_PREFIX", self.root_prefix)
+            mp.setenv("CONDA_PREFIX", self.root_prefix)
 
-        # Create the package tarball
-        cls._create_test_package()
+            self._create_test_package(base)
+            self._create_cached_repodata(str(cache_dir))
 
-        # Create cached repodata file
-        cls._create_cached_repodata()
+            # Create urls file
+            urls_path = os.path.join(self.pkgs_dir, "urls")
+            with open(urls_path, "w") as f:
+                f.write(f"{self.channel_url}{self.pkg_filename}#deadbeef12345678\n")
 
-        # Create urls file
-        urls_path = os.path.join(cls.pkgs_dir, "urls")
-        with open(urls_path, "w") as f:
-            f.write(f"{cls.channel_url}{cls.pkg_filename}#deadbeef12345678\n")
+            yield
 
     @classmethod
-    def _create_test_package(cls):
+    def _create_test_package(cls, base):
         """Create a minimal conda package tarball with index.json."""
-        pkg_dir = os.path.join(cls.temp_dir, "pkg_build", cls.pkg_name)
+        pkg_dir = str(base / "pkg_build" / cls.pkg_name)
         info_dir = os.path.join(pkg_dir, "info")
         os.makedirs(info_dir, exist_ok=True)
 
@@ -384,7 +365,7 @@ class TestChannelPatchPreservation:
             tar.add(info_dir, arcname="info")
 
     @classmethod
-    def _create_cached_repodata(cls):
+    def _create_cached_repodata(cls, cache_dir):
         """Create cached channel repodata with patched values."""
         repodata = {
             "packages": {
@@ -394,29 +375,12 @@ class TestChannelPatchPreservation:
         }
 
         # Compute MD5 of channel URL to match C++ cache_name_from_url()
-        import hashlib
-
         url_hash = hashlib.md5(cls.channel_url.encode()).hexdigest()[:8]
         cache_filename = f"{url_hash}.json"
 
-        cache_path = os.path.join(cls.cache_dir, cache_filename)
+        cache_path = os.path.join(cache_dir, cache_filename)
         with open(cache_path, "w") as f:
             json.dump(repodata, f)
-
-    @classmethod
-    def teardown_class(cls):
-        """Clean up test directory and restore env vars."""
-        try:
-            shutil.rmtree(cls.temp_dir)
-        finally:
-            if cls.orig_root_prefix is not None:
-                os.environ["MAMBA_ROOT_PREFIX"] = cls.orig_root_prefix
-            else:
-                os.environ.pop("MAMBA_ROOT_PREFIX", None)
-            if cls.orig_prefix is not None:
-                os.environ["CONDA_PREFIX"] = cls.orig_prefix
-            else:
-                os.environ.pop("CONDA_PREFIX", None)
 
     def test_channel_patches_preserved(self):
         """

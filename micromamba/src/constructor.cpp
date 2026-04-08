@@ -150,8 +150,8 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
 
             if (!repodata_record.is_null())
             {
-                // Merge cached channel repodata (may include channel patches) with index.json.
-                // Prefer repodata values and only add missing keys from index.json.
+                // Merge cached channel repodata (may include channel patches) with `index.json`.
+                // `insert()` only adds missing keys.
                 repodata_record.insert(index.cbegin(), index.cend());
             }
             else
@@ -179,10 +179,8 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
                 repodata_record["size"] = fs::file_size(entry);
             }
 
-            // Ensure depends and constrains are always present as arrays.
-            // Matches conda behavior where these fields are always present.
-            // Some packages (like nlohmann_json-abi) don't have depends in index.json.
-            // See GitHub issue #4095.
+            // Matches conda behavior where `depends` and `constrains` are always present.
+            // Some packages (like `nlohmann_json-abi`) don't have `depends` in `index.json`.
             if (!repodata_record.contains("depends"))
             {
                 repodata_record["depends"] = nlohmann::json::array();
@@ -192,9 +190,7 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
                 repodata_record["constrains"] = nlohmann::json::array();
             }
 
-            // Conditionally include track_features only when non-empty.
-            // Matches conda behavior to reduce JSON noise.
-            // See GitHub issue #4095.
+            // Matches conda behavior: omit `track_features` when empty to reduce JSON noise.
             if (repodata_record.contains("track_features"))
             {
                 const auto& tf = repodata_record["track_features"];

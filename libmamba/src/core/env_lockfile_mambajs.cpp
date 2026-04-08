@@ -96,9 +96,8 @@ namespace mamba
                 // chosen channel mirror url
             }
 
-            // Set _initialized sentinel and mark fields not in lockfile as defaulted.
             // The mambajs lockfile only contains: name, version, build, subdir, channel, hash.
-            // All other fields have stub values and should be replaced from index.json.
+            // All other fields have stub values and should be replaced from `index.json`.
             // See issue #4095.
             package.info.defaulted_keys = {
                 std::string(specs::defaulted_key::initialized),

@@ -521,15 +521,13 @@ namespace solv
 
     auto ObjSolvableViewConst::defaulted_keys() const -> std::vector<std::string>
     {
-        // Retrieve the comma-separated string from SOLVABLE_KEYWORDS
-        // (repurposed for conda-specific metadata since it's not used in the conda ecosystem)
+        // `SOLVABLE_KEYWORDS` repurposed for conda-specific `defaulted_keys` storage.
         const char* str = ::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_KEYWORDS);
         if (str == nullptr || str[0] == '\0')
         {
             return {};
         }
 
-        // Parse comma-separated values into vector
         std::vector<std::string> result;
         std::string current;
         for (const char* p = str; *p != '\0'; ++p)

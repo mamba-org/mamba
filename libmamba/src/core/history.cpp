@@ -377,10 +377,9 @@ namespace mamba
 
         specs::PackageInfo pkg_info{ name, version, build_string, channel };
 
-        // Mark fields that have stub/default values for history-derived packages.
         // History only provides name, version, build, channel.
-        // Other fields (subdir, license, etc) should be backfilled from index.json (from tarball)
-        // if possible. See issue #4095.
+        // Other fields should be backfilled from `index.json` if possible.
+        // See issue #4095.
         pkg_info.defaulted_keys = {
             std::string(specs::defaulted_key::initialized),
             std::string(specs::defaulted_key::build_number),

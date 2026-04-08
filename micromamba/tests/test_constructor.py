@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import tarfile
+from pathlib import Path
 
 import pytest
 
@@ -134,8 +135,8 @@ class TestURLDerivedMetadata:
         pkgs_dir.mkdir(parents=True)
 
         type(self).root_prefix = str(root_prefix)
-        type(self).pkgs_dir = str(pkgs_dir)
-        type(self).pkg_path = str(pkgs_dir / self.pkg_filename)
+        type(self).pkgs_dir = pkgs_dir
+        type(self).pkg_path = pkgs_dir / self.pkg_filename
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("MAMBA_ROOT_PREFIX", self.root_prefix)
@@ -143,33 +144,22 @@ class TestURLDerivedMetadata:
 
             self._create_test_package(base)
 
-            # Create urls file
-            urls_path = os.path.join(self.pkgs_dir, "urls")
-            with open(urls_path, "w") as f:
-                # URL with md5 hash fragment (as constructor expects)
-                f.write(
-                    f"http://test.example.com/channel/linux-64/{self.pkg_filename}#abc123def456\n"
-                )
+            # URL with md5 hash fragment (as constructor expects)
+            (pkgs_dir / "urls").write_text(
+                f"http://test.example.com/channel/linux-64/{self.pkg_filename}#abc123def456\n"
+            )
 
             yield
 
     @classmethod
     def _create_test_package(cls, base):
         """Create a minimal conda package tarball."""
-        # Create package structure in memory
-        pkg_dir = str(base / "pkg_build" / cls.pkg_name)
-        info_dir = os.path.join(pkg_dir, "info")
-        os.makedirs(info_dir, exist_ok=True)
+        info_dir = base / "pkg_build" / cls.pkg_name / "info"
+        info_dir.mkdir(parents=True)
 
-        # Write index.json
-        with open(os.path.join(info_dir, "index.json"), "w") as f:
-            json.dump(cls.index_json, f)
+        (info_dir / "index.json").write_text(json.dumps(cls.index_json))
+        (info_dir / "paths.json").write_text(json.dumps({"paths": [], "paths_version": 1}))
 
-        # Write minimal paths.json
-        with open(os.path.join(info_dir, "paths.json"), "w") as f:
-            json.dump({"paths": [], "paths_version": 1}, f)
-
-        # Create tarball
         with tarfile.open(cls.pkg_path, "w:bz2") as tar:
             tar.add(info_dir, arcname="info")
 
@@ -192,13 +182,11 @@ class TestURLDerivedMetadata:
         constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
 
         # Read the generated repodata_record.json
-        extracted_dir = os.path.join(self.pkgs_dir, self.pkg_name)
-        repodata_path = os.path.join(extracted_dir, "info", "repodata_record.json")
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
 
-        assert os.path.exists(repodata_path), f"repodata_record.json not found at {repodata_path}"
+        assert repodata_path.exists(), f"repodata_record.json not found at {repodata_path}"
 
-        with open(repodata_path) as f:
-            repodata_record = json.load(f)
+        repodata_record = json.loads(repodata_path.read_text())
 
         # Core issue #4095 checks: these values should come from index.json,
         # not from URL-derived stubs (which would be 0, "", [])
@@ -228,15 +216,13 @@ class TestURLDerivedMetadata:
         as empty arrays in repodata_record.json (matching conda behavior).
         """
         # This test reuses the extraction from the previous test
-        extracted_dir = os.path.join(self.pkgs_dir, self.pkg_name)
-        repodata_path = os.path.join(extracted_dir, "info", "repodata_record.json")
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
 
-        if not os.path.exists(repodata_path):
+        if not repodata_path.exists():
             # Run constructor if not already done
             constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
 
-        with open(repodata_path) as f:
-            repodata_record = json.load(f)
+        repodata_record = json.loads(repodata_path.read_text())
 
         # depends and constrains should be present as arrays
         assert "depends" in repodata_record, "depends should be present"
@@ -251,14 +237,12 @@ class TestURLDerivedMetadata:
 
         Matches conda behavior to reduce JSON noise.
         """
-        extracted_dir = os.path.join(self.pkgs_dir, self.pkg_name)
-        repodata_path = os.path.join(extracted_dir, "info", "repodata_record.json")
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
 
-        if not os.path.exists(repodata_path):
+        if not repodata_path.exists():
             constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
 
-        with open(repodata_path) as f:
-            repodata_record = json.load(f)
+        repodata_record = json.loads(repodata_path.read_text())
 
         # track_features was not in index.json, so it should not be in output
         # (or if present, should not be an empty string/array)
@@ -328,44 +312,36 @@ class TestChannelPatchPreservation:
         cache_dir.mkdir(parents=True)
 
         type(self).root_prefix = str(root_prefix)
-        type(self).pkgs_dir = str(pkgs_dir)
-        type(self).pkg_path = str(pkgs_dir / self.pkg_filename)
+        type(self).pkgs_dir = pkgs_dir
+        type(self).pkg_path = pkgs_dir / self.pkg_filename
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("MAMBA_ROOT_PREFIX", self.root_prefix)
             mp.setenv("CONDA_PREFIX", self.root_prefix)
 
             self._create_test_package(base)
-            self._create_cached_repodata(str(cache_dir))
+            self._create_cached_repodata(cache_dir)
 
-            # Create urls file
-            urls_path = os.path.join(self.pkgs_dir, "urls")
-            with open(urls_path, "w") as f:
-                f.write(f"{self.channel_url}{self.pkg_filename}#deadbeef12345678\n")
+            (pkgs_dir / "urls").write_text(
+                f"{self.channel_url}{self.pkg_filename}#deadbeef12345678\n"
+            )
 
             yield
 
     @classmethod
     def _create_test_package(cls, base):
         """Create a minimal conda package tarball with index.json."""
-        pkg_dir = str(base / "pkg_build" / cls.pkg_name)
-        info_dir = os.path.join(pkg_dir, "info")
-        os.makedirs(info_dir, exist_ok=True)
+        info_dir = base / "pkg_build" / cls.pkg_name / "info"
+        info_dir.mkdir(parents=True)
 
-        # Write index.json with ORIGINAL (non-patched) values
-        with open(os.path.join(info_dir, "index.json"), "w") as f:
-            json.dump(cls.index_json, f)
+        (info_dir / "index.json").write_text(json.dumps(cls.index_json))
+        (info_dir / "paths.json").write_text(json.dumps({"paths": [], "paths_version": 1}))
 
-        # Write minimal paths.json
-        with open(os.path.join(info_dir, "paths.json"), "w") as f:
-            json.dump({"paths": [], "paths_version": 1}, f)
-
-        # Create tarball
         with tarfile.open(cls.pkg_path, "w:bz2") as tar:
             tar.add(info_dir, arcname="info")
 
     @classmethod
-    def _create_cached_repodata(cls, cache_dir):
+    def _create_cached_repodata(cls, cache_dir: Path):
         """Create cached channel repodata with patched values."""
         repodata = {
             "packages": {
@@ -376,11 +352,7 @@ class TestChannelPatchPreservation:
 
         # Compute MD5 of channel URL to match C++ cache_name_from_url()
         url_hash = hashlib.md5(cls.channel_url.encode()).hexdigest()[:8]
-        cache_filename = f"{url_hash}.json"
-
-        cache_path = os.path.join(cache_dir, cache_filename)
-        with open(cache_path, "w") as f:
-            json.dump(repodata, f)
+        (cache_dir / f"{url_hash}.json").write_text(json.dumps(repodata))
 
     def test_channel_patches_preserved(self):
         """
@@ -400,13 +372,11 @@ class TestChannelPatchPreservation:
         constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
 
         # Read the generated repodata_record.json
-        extracted_dir = os.path.join(self.pkgs_dir, self.pkg_name)
-        repodata_path = os.path.join(extracted_dir, "info", "repodata_record.json")
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
 
-        assert os.path.exists(repodata_path), f"repodata_record.json not found at {repodata_path}"
+        assert repodata_path.exists(), f"repodata_record.json not found at {repodata_path}"
 
-        with open(repodata_path) as f:
-            repodata_record = json.load(f)
+        repodata_record = json.loads(repodata_path.read_text())
 
         # These assertions would FAIL with the old code (which overwrote with index.json)
         # and PASS with the new code (which preserves cached repodata)

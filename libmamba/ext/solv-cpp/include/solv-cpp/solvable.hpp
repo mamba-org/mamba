@@ -109,21 +109,16 @@ namespace solv
         auto type() const -> SolvableType;
 
         /**
-         * Get the defaulted_keys stored in this solvable.
+         * Get the ``defaulted_keys`` stored in this solvable.
          *
-         * Defaulted_keys tracks which fields have stub/default values that should be
-         * replaced by values from index.json during package installation.
-         *
-         * The keys are stored as a comma-separated string in SOLVABLE_KEYWORDS and
-         * deserialized when retrieved.
+         * Stored as a comma-separated string in ``SOLVABLE_KEYWORDS`` (repurposed
+         * for conda-specific metadata) and deserialized when retrieved.
          *
          * @note A call to @ref ObjRepoView::internalize is required after
          *       @ref ObjSolvableView::set_defaulted_keys for this attribute to be available.
          *
-         * @return Vector of field names that have stub values, or empty if not set.
-         *
          * @see ObjSolvableView::set_defaulted_keys
-         * @see https://github.com/mamba-org/mamba/issues/4095
+         * @see PackageInfo::defaulted_keys
          */
         auto defaulted_keys() const -> std::vector<std::string>;
 
@@ -453,23 +448,16 @@ namespace solv
         void set_type(SolvableType val) const;
 
         /**
-         * Set the defaulted_keys for this solvable.
+         * Set the ``defaulted_keys`` for this solvable.
          *
-         * Defaulted_keys tracks which fields have stub/default values that should be
-         * replaced by values from index.json during package installation.
-         *
-         * The keys are serialized as a comma-separated string and stored in
-         * SOLVABLE_KEYWORDS. This field is repurposed for conda-specific metadata
-         * since it's not used in the conda ecosystem.
+         * Serialized as a comma-separated string in ``SOLVABLE_KEYWORDS``
+         * (repurposed for conda-specific metadata).
          *
          * @note A call to @ref ObjRepoView::internalize is required for this attribute
          *       to be available for lookup via @ref ObjSolvableViewConst::defaulted_keys.
          *
-         * @param keys Vector of field names that have stub values. The "_initialized"
-         *             sentinel should be first if present.
-         *
          * @see ObjSolvableViewConst::defaulted_keys
-         * @see https://github.com/mamba-org/mamba/issues/4095
+         * @see PackageInfo::defaulted_keys
          */
         void set_defaulted_keys(const std::vector<std::string>& keys) const;
     };

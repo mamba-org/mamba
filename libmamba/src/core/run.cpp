@@ -388,8 +388,21 @@ namespace mamba
             opt.env.extra = env_map;
         }
 
-        opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
-        opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
+        const bool stdout_is_tty = is_atty(std::cout);
+        const bool stderr_is_tty = is_atty(std::cerr);
+        const bool use_pipe_output = !(stdout_is_tty && stderr_is_tty);
+
+        if (use_pipe_output)
+        {
+            opt.redirect.out.type = reproc::redirect::pipe;
+            opt.redirect.err.type = reproc::redirect::pipe;
+        }
+        else
+        {
+            opt.redirect.out.type = sinkout ? reproc::redirect::discard : reproc::redirect::parent;
+            opt.redirect.err.type = sinkerr ? reproc::redirect::discard : reproc::redirect::parent;
+        }
+
         opt.redirect.in.type = sinkin ? reproc::redirect::discard : reproc::redirect::parent;
 
 #ifndef _WIN32
@@ -453,16 +466,21 @@ namespace mamba
             }
 #endif
             PID pid;
-            std::error_code lec;
+            std::error_code start_ec;
+            std::error_code pid_ec;
             static reproc::process proc;
 
-            lec = proc.start(wrapped_command, opt);
-
-            std::tie(pid, lec) = proc.pid();
-
-            if (lec)
+            start_ec = proc.start(wrapped_command, opt);
+            if (start_ec)
             {
-                std::cerr << ec.message() << '\n';
+                std::cerr << start_ec.message() << " ; error code " << start_ec.value() << '\n';
+                return 1;
+            }
+
+            std::tie(pid, pid_ec) = proc.pid();
+            if (pid_ec)
+            {
+                std::cerr << pid_ec.message() << " ; error code " << pid_ec.value() << '\n';
                 return 1;
             }
 
@@ -487,13 +505,36 @@ namespace mamba
             );
 #endif
 
-            // check if we need this
-            if (!opt.redirect.discard && opt.redirect.file == nullptr && opt.redirect.path == nullptr)
+            if (use_pipe_output)
             {
-                opt.redirect.parent = true;
-            }
+                auto out_sink = [&](reproc::stream /*stream*/, const uint8_t* buffer, size_t size)
+                    -> std::error_code
+                {
+                    if (!sinkout)
+                    {
+                        std::cout.write(
+                            reinterpret_cast<const char*>(buffer),
+                            static_cast<std::streamsize>(size)
+                        );
+                    }
+                    return {};
+                };
 
-            ec = reproc::drain(proc, reproc::sink::null, reproc::sink::null);
+                auto err_sink = [&](reproc::stream /*stream*/, const uint8_t* buffer, size_t size)
+                    -> std::error_code
+                {
+                    if (!sinkerr)
+                    {
+                        std::cerr.write(
+                            reinterpret_cast<const char*>(buffer),
+                            static_cast<std::streamsize>(size)
+                        );
+                    }
+                    return {};
+                };
+
+                ec = reproc::drain(proc, out_sink, err_sink);
+            }
 
             std::tie(status, ec) = proc.stop(opt.stop);
 

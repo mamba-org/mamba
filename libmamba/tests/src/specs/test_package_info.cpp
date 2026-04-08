@@ -322,7 +322,7 @@ namespace
     TEST_CASE("PackageInfo::from_url populates defaulted_keys")
     {
         // Helper to check if a value is in a vector
-        auto contains = [](const std::vector<std::string>& v, const std::string& val) -> bool
+        auto contains = [](const std::vector<std::string>& v, std::string_view val) -> bool
         { return std::find(v.begin(), v.end(), val) != v.end(); };
 
         SECTION("Conda package (.conda) has correct defaulted_keys")

@@ -170,7 +170,7 @@ namespace mamba::solver::libsolv
         out.defaulted_keys = s.defaulted_keys();
         if (out.defaulted_keys.empty())
         {
-            out.defaulted_keys = { specs::defaulted_key::initialized };
+            out.defaulted_keys = { std::string(specs::defaulted_key::initialized) };
         }
 
         return out;
@@ -436,7 +436,7 @@ namespace mamba::solver::libsolv
             // "_initialized" sentinel is needed (no stub fields to replace).
             // This is required for write_repodata_record() to work correctly.
             // See GitHub issue #4095.
-            solv.set_defaulted_keys({ specs::defaulted_key::initialized });
+            solv.set_defaulted_keys({ std::string(specs::defaulted_key::initialized) });
 
             solv.add_self_provide();
             return true;

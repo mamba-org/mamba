@@ -21,24 +21,24 @@ namespace mamba::specs
 {
     namespace defaulted_key
     {
-        inline constexpr const char* initialized = "_initialized";
-        inline constexpr const char* name = "name";
-        inline constexpr const char* version = "version";
-        inline constexpr const char* build = "build";
-        inline constexpr const char* build_string = "build_string";
-        inline constexpr const char* build_number = "build_number";
-        inline constexpr const char* channel = "channel";
-        inline constexpr const char* subdir = "subdir";
-        inline constexpr const char* fn = "fn";
-        inline constexpr const char* license = "license";
-        inline constexpr const char* timestamp = "timestamp";
-        inline constexpr const char* track_features = "track_features";
-        inline constexpr const char* depends = "depends";
-        inline constexpr const char* constrains = "constrains";
-        inline constexpr const char* md5 = "md5";
-        inline constexpr const char* sha256 = "sha256";
-        inline constexpr const char* size = "size";
-        inline constexpr const char* url = "url";
+        inline constexpr std::string_view initialized = "_initialized";
+        inline constexpr std::string_view name = "name";
+        inline constexpr std::string_view version = "version";
+        inline constexpr std::string_view build = "build";
+        inline constexpr std::string_view build_string = "build_string";
+        inline constexpr std::string_view build_number = "build_number";
+        inline constexpr std::string_view channel = "channel";
+        inline constexpr std::string_view subdir = "subdir";
+        inline constexpr std::string_view fn = "fn";
+        inline constexpr std::string_view license = "license";
+        inline constexpr std::string_view timestamp = "timestamp";
+        inline constexpr std::string_view track_features = "track_features";
+        inline constexpr std::string_view depends = "depends";
+        inline constexpr std::string_view constrains = "constrains";
+        inline constexpr std::string_view md5 = "md5";
+        inline constexpr std::string_view sha256 = "sha256";
+        inline constexpr std::string_view size = "size";
+        inline constexpr std::string_view url = "url";
     }
 
     enum class PackageType

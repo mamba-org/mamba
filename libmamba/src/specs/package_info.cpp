@@ -103,10 +103,13 @@ namespace mamba::specs
                 // The "_initialized" sentinel enables fail-hard verification in
                 // write_repodata_record(). See issue #4095.
                 out.defaulted_keys = {
-                    defaulted_key::initialized,    defaulted_key::build_number,
-                    defaulted_key::license,        defaulted_key::timestamp,
-                    defaulted_key::track_features, defaulted_key::depends,
-                    defaulted_key::constrains,
+                    std::string(defaulted_key::initialized),
+                    std::string(defaulted_key::build_number),
+                    std::string(defaulted_key::license),
+                    std::string(defaulted_key::timestamp),
+                    std::string(defaulted_key::track_features),
+                    std::string(defaulted_key::depends),
+                    std::string(defaulted_key::constrains),
                 };
             }
             // PackageType::Wheel (.whl):
@@ -158,11 +161,15 @@ namespace mamba::specs
                     // Wheels don't have build info in the filename, so add build/build_string.
                     // The "_initialized" sentinel enables fail-hard verification. See issue #4095.
                     out.defaulted_keys = {
-                        defaulted_key::initialized,    defaulted_key::build,
-                        defaulted_key::build_string,   defaulted_key::build_number,
-                        defaulted_key::license,        defaulted_key::timestamp,
-                        defaulted_key::track_features, defaulted_key::depends,
-                        defaulted_key::constrains,
+                        std::string(defaulted_key::initialized),
+                        std::string(defaulted_key::build),
+                        std::string(defaulted_key::build_string),
+                        std::string(defaulted_key::build_number),
+                        std::string(defaulted_key::license),
+                        std::string(defaulted_key::timestamp),
+                        std::string(defaulted_key::track_features),
+                        std::string(defaulted_key::depends),
+                        std::string(defaulted_key::constrains),
                     };
                 }
                 else
@@ -185,11 +192,15 @@ namespace mamba::specs
                     // Wheels don't have build info in the filename, so add build/build_string.
                     // The "_initialized" sentinel enables fail-hard verification. See issue #4095.
                     out.defaulted_keys = {
-                        defaulted_key::initialized,    defaulted_key::build,
-                        defaulted_key::build_string,   defaulted_key::build_number,
-                        defaulted_key::license,        defaulted_key::timestamp,
-                        defaulted_key::track_features, defaulted_key::depends,
-                        defaulted_key::constrains,
+                        std::string(defaulted_key::initialized),
+                        std::string(defaulted_key::build),
+                        std::string(defaulted_key::build_string),
+                        std::string(defaulted_key::build_number),
+                        std::string(defaulted_key::license),
+                        std::string(defaulted_key::timestamp),
+                        std::string(defaulted_key::track_features),
+                        std::string(defaulted_key::depends),
+                        std::string(defaulted_key::constrains),
                     };
                 }
             }
@@ -212,11 +223,15 @@ namespace mamba::specs
                 // Mark fields that have stub/default values for URL-derived tar.gz packages.
                 // Similar to wheels: no build info in filename. See issue #4095.
                 out.defaulted_keys = {
-                    defaulted_key::initialized,    defaulted_key::build,
-                    defaulted_key::build_string,   defaulted_key::build_number,
-                    defaulted_key::license,        defaulted_key::timestamp,
-                    defaulted_key::track_features, defaulted_key::depends,
-                    defaulted_key::constrains,
+                    std::string(defaulted_key::initialized),
+                    std::string(defaulted_key::build),
+                    std::string(defaulted_key::build_string),
+                    std::string(defaulted_key::build_number),
+                    std::string(defaulted_key::license),
+                    std::string(defaulted_key::timestamp),
+                    std::string(defaulted_key::track_features),
+                    std::string(defaulted_key::depends),
+                    std::string(defaulted_key::constrains),
                 };
             }
 
@@ -303,24 +318,24 @@ namespace mamba::specs
             // Git URLs only provide package_url and optionally name (from #egg=).
             // All other fields use struct defaults. See issue #4095.
             pkg.defaulted_keys = {
-                defaulted_key::initialized,
-                defaulted_key::version,
-                defaulted_key::channel,
-                defaulted_key::subdir,
-                defaulted_key::fn,
-                defaulted_key::build,
-                defaulted_key::build_string,
-                defaulted_key::build_number,
-                defaulted_key::license,
-                defaulted_key::timestamp,
-                defaulted_key::track_features,
-                defaulted_key::depends,
-                defaulted_key::constrains,
+                std::string(defaulted_key::initialized),
+                std::string(defaulted_key::version),
+                std::string(defaulted_key::channel),
+                std::string(defaulted_key::subdir),
+                std::string(defaulted_key::fn),
+                std::string(defaulted_key::build),
+                std::string(defaulted_key::build_string),
+                std::string(defaulted_key::build_number),
+                std::string(defaulted_key::license),
+                std::string(defaulted_key::timestamp),
+                std::string(defaulted_key::track_features),
+                std::string(defaulted_key::depends),
+                std::string(defaulted_key::constrains),
             };
             // If #egg= is absent, name is also defaulted (empty string)
             if (!has_egg_name)
             {
-                pkg.defaulted_keys.push_back(defaulted_key::name);
+                pkg.defaulted_keys.emplace_back(defaulted_key::name);
             }
             return pkg;
         }

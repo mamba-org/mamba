@@ -306,7 +306,7 @@ namespace mamba
             -> void
         {
             // Helper to check if a value is in a vector
-            auto contains = [](const std::vector<std::string>& v, const std::string& val) -> bool
+            auto contains = [](const std::vector<std::string>& v, std::string_view val) -> bool
             { return std::find(v.begin(), v.end(), val) != v.end(); };
 
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
@@ -357,7 +357,7 @@ namespace mamba
             //
             // See: https://github.com/mamba-org/mamba/issues/4095
 
-            auto contains = [](const std::vector<std::string>& v, const std::string& val) -> bool
+            auto contains = [](const std::vector<std::string>& v, std::string_view val) -> bool
             { return std::find(v.begin(), v.end(), val) != v.end(); };
 
             const fs::u8path lockfile_path = mambatests::test_data_dir

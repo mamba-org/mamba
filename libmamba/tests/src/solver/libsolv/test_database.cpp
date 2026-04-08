@@ -564,15 +564,15 @@ namespace
             pkg.channel = "conda-forge";
             // URL-derived packages have a full list of stub fields
             pkg.defaulted_keys = {
-                specs::defaulted_key::initialized,
-                specs::defaulted_key::build_number,
-                specs::defaulted_key::license,
-                specs::defaulted_key::timestamp,
-                specs::defaulted_key::md5,
-                specs::defaulted_key::sha256,
-                specs::defaulted_key::track_features,
-                specs::defaulted_key::depends,
-                specs::defaulted_key::constrains,
+                std::string(specs::defaulted_key::initialized),
+                std::string(specs::defaulted_key::build_number),
+                std::string(specs::defaulted_key::license),
+                std::string(specs::defaulted_key::timestamp),
+                std::string(specs::defaulted_key::md5),
+                std::string(specs::defaulted_key::sha256),
+                std::string(specs::defaulted_key::track_features),
+                std::string(specs::defaulted_key::depends),
+                std::string(specs::defaulted_key::constrains),
             };
 
             auto repo = db.add_repo_from_packages(std::array{ pkg }, "test-repo");
@@ -626,7 +626,7 @@ namespace
             pkg.build_string = "0";
             pkg.channel = "conda-forge";
             // Channel-derived packages have only _initialized (trust all fields)
-            pkg.defaulted_keys = { specs::defaulted_key::initialized };
+            pkg.defaulted_keys = { std::string(specs::defaulted_key::initialized) };
 
             auto repo = db.add_repo_from_packages(std::array{ pkg }, "test-repo");
 

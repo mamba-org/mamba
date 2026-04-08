@@ -123,7 +123,6 @@ class TestURLDerivedMetadata:
         "timestamp": 1234567890,
         "depends": ["python >=3.8"],
         "constrains": ["otherpkg >=2.0"],
-        # No track_features - should be omitted in output
     }
 
     @pytest.fixture(autouse=True, scope="class")
@@ -144,7 +143,6 @@ class TestURLDerivedMetadata:
 
             self._create_test_package(base)
 
-            # URL with md5 hash fragment (as constructor expects)
             (pkgs_dir / "urls").write_text(
                 f"http://test.example.com/channel/linux-64/{self.pkg_filename}#abc123def456\n"
             )
@@ -178,18 +176,12 @@ class TestURLDerivedMetadata:
         - depends comes from index.json
         - constrains comes from index.json
         """
-        # Run constructor to extract packages
         constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
 
-        # Read the generated repodata_record.json
         repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
-
         assert repodata_path.exists(), f"repodata_record.json not found at {repodata_path}"
-
         repodata_record = json.loads(repodata_path.read_text())
 
-        # Core issue #4095 checks: these values should come from index.json,
-        # not from URL-derived stubs (which would be 0, "", [])
         assert repodata_record.get("license") == "MIT", (
             f"license should be 'MIT' from index.json, got '{repodata_record.get('license')}'"
         )
@@ -199,8 +191,6 @@ class TestURLDerivedMetadata:
         assert repodata_record.get("build_number") == 42, (
             f"build_number should be 42 from index.json, got {repodata_record.get('build_number')}"
         )
-
-        # Check depends and constrains match index.json
         assert repodata_record.get("depends") == ["python >=3.8"], (
             f"depends should match index.json, got {repodata_record.get('depends')}"
         )
@@ -215,16 +205,12 @@ class TestURLDerivedMetadata:
         Even if they're missing from index.json, they should be present
         as empty arrays in repodata_record.json (matching conda behavior).
         """
-        # This test reuses the extraction from the previous test
         repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
-
         if not repodata_path.exists():
-            # Run constructor if not already done
             constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
 
         repodata_record = json.loads(repodata_path.read_text())
 
-        # depends and constrains should be present as arrays
         assert "depends" in repodata_record, "depends should be present"
         assert isinstance(repodata_record["depends"], list), "depends should be a list"
 
@@ -244,8 +230,6 @@ class TestURLDerivedMetadata:
 
         repodata_record = json.loads(repodata_path.read_text())
 
-        # track_features was not in index.json, so it should not be in output
-        # (or if present, should not be an empty string/array)
         if "track_features" in repodata_record:
             tf = repodata_record["track_features"]
             assert tf, f"track_features should be omitted when empty, got '{tf}'"
@@ -285,20 +269,14 @@ class TestChannelPatchPreservation:
         "constrains": [],
     }
 
-    # Values in cached channel repodata (simulating channel patches)
-    # These DIFFER from index.json - the channel maintainer patched them
     patched_repodata = {
         "name": "patchtest",
         "version": "1.0",
         "build": "h0_1",
         "build_number": 1,
-        # Channel patch: changed license
         "license": "MIT",
-        # Channel patch: different timestamp
         "timestamp": 2000000000,
-        # Channel patch: added dependency constraint
         "depends": ["libfoo >=1.0", "libbar <2.0"],
-        # Channel patch: added constrains
         "constrains": ["conflicting-pkg"],
     }
 
@@ -350,7 +328,6 @@ class TestChannelPatchPreservation:
             "packages.conda": {},
         }
 
-        # Compute MD5 of channel URL to match C++ cache_name_from_url()
         url_hash = hashlib.md5(cls.channel_url.encode()).hexdigest()[:8]
         (cache_dir / f"{url_hash}.json").write_text(json.dumps(repodata))
 
@@ -368,39 +345,28 @@ class TestChannelPatchPreservation:
         The test verifies that the patched values (which differ from index.json)
         are preserved in the final repodata_record.json.
         """
-        # Run constructor to extract packages
         constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
 
-        # Read the generated repodata_record.json
         repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
-
         assert repodata_path.exists(), f"repodata_record.json not found at {repodata_path}"
-
         repodata_record = json.loads(repodata_path.read_text())
 
-        # These assertions would FAIL with the old code (which overwrote with index.json)
-        # and PASS with the new code (which preserves cached repodata)
-
-        # Channel-patched license should be preserved
         assert repodata_record.get("license") == "MIT", (
             f"Channel-patched license 'MIT' should be preserved, "
             f"got '{repodata_record.get('license')}' (index.json has 'BSD-3-Clause')"
         )
 
-        # Channel-patched timestamp should be preserved
         assert repodata_record.get("timestamp") == 2000000000, (
             f"Channel-patched timestamp 2000000000 should be preserved, "
             f"got {repodata_record.get('timestamp')} (index.json has 1000000000)"
         )
 
-        # Channel-patched depends should be preserved (has extra dependency)
         expected_depends = ["libfoo >=1.0", "libbar <2.0"]
         assert repodata_record.get("depends") == expected_depends, (
             f"Channel-patched depends {expected_depends} should be preserved, "
             f"got {repodata_record.get('depends')} (index.json has ['libfoo >=1.0'])"
         )
 
-        # Channel-patched constrains should be preserved
         expected_constrains = ["conflicting-pkg"]
         assert repodata_record.get("constrains") == expected_constrains, (
             f"Channel-patched constrains {expected_constrains} should be preserved, "

@@ -554,6 +554,11 @@ namespace solv
 
     void ObjSolvableView::set_defaulted_keys(const std::vector<std::string>& keys) const
     {
+        // Exclusive-ownership assumption: `SOLVABLE_KEYWORDS` is entirely owned by
+        // `defaulted_keys`. The plain comma-separated encoding has no namespace prefix,
+        // so other data cannot coexist in this field without a format change.
+        // `SOLVABLE_KEYWORDS` is unused in the conda ecosystem (libsolv maps it from
+        // RPM's Keywords tag, which has no conda equivalent), so collision risk is nil.
         if (keys.empty())
         {
             // Store empty string for empty list (libsolv's unset behavior is unreliable)
@@ -561,7 +566,6 @@ namespace solv
             return;
         }
 
-        // Serialize as comma-separated string
         std::string serialized;
         for (std::size_t i = 0; i < keys.size(); ++i)
         {

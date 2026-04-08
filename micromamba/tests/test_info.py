@@ -40,7 +40,7 @@ def test_env(tmp_home, tmp_root_prefix, tmp_env_name, tmp_prefix, prefix_selecti
 
 @pytest.mark.parametrize("existing_prefix", [False, True])
 @pytest.mark.parametrize("prefix_selection", [None, "env_var", "prefix", "name"])
-def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
+def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix, monkeypatch):
     name = "not_an_env"
     prefix = tmp_root_prefix / "envs" / name
 
@@ -52,10 +52,9 @@ def test_not_env(tmp_home, tmp_root_prefix, prefix_selection, existing_prefix):
     elif prefix_selection == "name":
         infos = helpers.info("-n", name)
     elif prefix_selection == "env_var":
-        os.environ["CONDA_PREFIX"] = str(prefix)
+        monkeypatch.setenv("CONDA_PREFIX", str(prefix))
         infos = helpers.info()
     else:
-        os.environ.pop("CONDA_PREFIX", "")
         infos = helpers.info()
 
     if prefix_selection is None:
@@ -131,11 +130,7 @@ def flags_test(tmp_root_prefix, infos, base_flag, envs_flag, json_flag):
 @pytest.mark.parametrize("envs_flag", ["", "-e", "--envs"])
 @pytest.mark.parametrize("json_flag", ["", "--json"])
 @pytest.mark.parametrize("prefix_selection", [None, "prefix", "name"])
-def test_base_flags(
-    tmp_home, tmp_root_prefix, prefix_selection, base_flag, envs_flag, json_flag, monkeypatch
-):
-    monkeypatch.setenv("CONDA_PREFIX", str(tmp_root_prefix))
-
+def test_base_flags(tmp_home, tmp_root_prefix, prefix_selection, base_flag, envs_flag, json_flag):
     if prefix_selection == "prefix":
         infos = helpers.info("-p", tmp_root_prefix, base_flag, envs_flag, json_flag)
     elif prefix_selection == "name":

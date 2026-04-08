@@ -147,6 +147,7 @@ namespace mamba
             REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::sha256));
             REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::size));
             REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::fn));
+            REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::url));
         }
 
         TEST_CASE("revision_diff")

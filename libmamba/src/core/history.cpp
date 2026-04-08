@@ -393,6 +393,7 @@ namespace mamba
             std::string(specs::defaulted_key::sha256),
             std::string(specs::defaulted_key::size),
             std::string(specs::defaulted_key::fn),
+            std::string(specs::defaulted_key::url),
         };
 
         return pkg_info;

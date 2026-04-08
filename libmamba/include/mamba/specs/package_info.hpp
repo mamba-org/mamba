@@ -74,10 +74,43 @@ namespace mamba::specs
         std::vector<std::string> track_features = {};
         std::vector<std::string> dependencies = {};
         std::vector<std::string> constrains = {};
-        // Tracks which fields have stub/default values that should be replaced by index.json.
-        // Set by from_url() with field names, and by make_package_info() with {"_initialized"}.
-        // The "_initialized" sentinel indicates the PackageInfo was properly constructed.
-        // See GitHub issue #4095.
+        /**
+         * Tracks which fields carry stub/default values that should be replaced
+         * by the tarball's `index.json` during extraction.
+         *
+         * A `PackageInfo` can be populated from several sources, each providing
+         * a different subset of fields:
+         *
+         * - **URL-derived** (`from_url()`): only filename-parseable fields
+         *   (name, version, build_string, channel, …) are real; the rest are
+         *   stubs listed here.
+         * - **Repodata-derived** (channel `repodata.json`, via the solver /
+         *   `make_package_info()`): all fields are authoritative — including
+         *   intentional channel patches that may differ from `index.json`.
+         *   Only `"_initialized"` is listed (no stubs).
+         * - **Lockfile-derived** (conda v1 / mambajs lockfile readers):
+         *   hybrid — URL-parsed fields plus lockfile-provided metadata.
+         *   Trust depends on the lockfile format; see the readers for details.
+         * - **History-derived** (`read_history_url_entry()`): only name,
+         *   version, build_string, and channel are available; everything else
+         *   is a stub.
+         *
+         * At extraction time, `write_repodata_record()` erases the stub fields
+         * listed here, then merges with the tarball's `index.json` (which fills
+         * only missing keys).  This means repodata-derived values — including
+         * intentional channel patches — are preserved, while URL-derived stubs
+         * are replaced by the package's own metadata.
+         *
+         * **State semantics:**
+         * - Empty (`{}`)  — invalid / not yet initialized.
+         * - `{"_initialized"}` — fully trustworthy (repodata-derived).
+         * - `{"_initialized", field1, …}` — listed fields are stubs to back-fill.
+         *
+         * The `"_initialized"` sentinel is mandatory; `write_repodata_record()`
+         * throws `std::logic_error` when it is missing.
+         *
+         * @see https://github.com/mamba-org/mamba/issues/4095
+         */
         std::vector<std::string> defaulted_keys = {};
         NoArchType noarch = NoArchType::No;
         std::size_t size = 0;

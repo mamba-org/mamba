@@ -28,15 +28,16 @@ namespace mamba::specs
     namespace
     {
         constexpr auto conda_url_defaulted_keys = std::array{
-            defaulted_key::initialized, defaulted_key::build_number,   defaulted_key::license,
-            defaulted_key::timestamp,   defaulted_key::track_features, defaulted_key::depends,
-            defaulted_key::constrains,
+            defaulted_key::initialized, defaulted_key::build_number, defaulted_key::license,
+            defaulted_key::size,        defaulted_key::timestamp,    defaulted_key::track_features,
+            defaulted_key::depends,     defaulted_key::constrains,
         };
 
         constexpr auto wheel_targz_defaulted_keys = std::array{
-            defaulted_key::initialized,    defaulted_key::build,   defaulted_key::build_string,
-            defaulted_key::build_number,   defaulted_key::license, defaulted_key::timestamp,
-            defaulted_key::track_features, defaulted_key::depends, defaulted_key::constrains,
+            defaulted_key::initialized,  defaulted_key::build,          defaulted_key::build_string,
+            defaulted_key::build_number, defaulted_key::license,        defaulted_key::size,
+            defaulted_key::timestamp,    defaulted_key::track_features, defaulted_key::depends,
+            defaulted_key::constrains,
         };
 
         auto parse_extension(std::string_view spec) -> PackageType
@@ -305,6 +306,7 @@ namespace mamba::specs
                 std::string(defaulted_key::build_string),
                 std::string(defaulted_key::build_number),
                 std::string(defaulted_key::license),
+                std::string(defaulted_key::size),
                 std::string(defaulted_key::timestamp),
                 std::string(defaulted_key::track_features),
                 std::string(defaulted_key::depends),

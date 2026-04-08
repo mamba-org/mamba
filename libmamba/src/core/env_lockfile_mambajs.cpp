@@ -103,6 +103,7 @@ namespace mamba
                 std::string(specs::defaulted_key::initialized),
                 std::string(specs::defaulted_key::build_number),
                 std::string(specs::defaulted_key::license),
+                std::string(specs::defaulted_key::size),
                 std::string(specs::defaulted_key::timestamp),
                 std::string(specs::defaulted_key::track_features),
                 std::string(specs::defaulted_key::depends),

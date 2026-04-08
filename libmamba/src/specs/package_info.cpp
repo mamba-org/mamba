@@ -34,10 +34,10 @@ namespace mamba::specs
         };
 
         constexpr auto wheel_targz_defaulted_keys = std::array{
-            defaulted_key::initialized,  defaulted_key::build,          defaulted_key::build_string,
-            defaulted_key::build_number, defaulted_key::license,        defaulted_key::size,
-            defaulted_key::timestamp,    defaulted_key::track_features, defaulted_key::depends,
-            defaulted_key::constrains,
+            defaulted_key::initialized,  defaulted_key::build,      defaulted_key::build_string,
+            defaulted_key::build_number, defaulted_key::license,    defaulted_key::size,
+            defaulted_key::subdir,       defaulted_key::timestamp,  defaulted_key::track_features,
+            defaulted_key::depends,      defaulted_key::constrains,
         };
 
         auto parse_extension(std::string_view spec) -> PackageType
@@ -117,6 +117,10 @@ namespace mamba::specs
                     conda_url_defaulted_keys.begin(),
                     conda_url_defaulted_keys.end()
                 );
+                if (out.platform.empty())
+                {
+                    out.defaulted_keys.emplace_back(defaulted_key::subdir);
+                }
             }
             // PackageType::Wheel (.whl):
             // {pkg name}-{version}-{build tag (optional)}-{python tag}-{abi tag}-{platform tag}.whl

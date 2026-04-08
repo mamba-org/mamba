@@ -345,7 +345,6 @@ namespace
 
             SECTION("Single element defaulted_keys")
             {
-                // PURPOSE: Verify that a single-element list works correctly
                 // This is the common case for channel-derived packages
                 solv.set_defaulted_keys({ "_initialized" });
                 repo.internalize();
@@ -354,6 +353,44 @@ namespace
                 REQUIRE(retrieved.size() == 1);
                 REQUIRE(retrieved[0] == "_initialized");
             }
+
+            SECTION("Values without _initialized")
+            {
+                // The solvable layer is a dumb storage layer; it faithfully
+                // round-trips whatever strings it receives. Validation of
+                // `_initialized` presence happens at a higher layer
+                // (write_repodata_record).
+                solv.set_defaulted_keys({ "license", "timestamp" });
+                repo.internalize();
+
+                auto retrieved = solv.defaulted_keys();
+                REQUIRE(retrieved.size() == 2);
+                REQUIRE(retrieved[0] == "license");
+                REQUIRE(retrieved[1] == "timestamp");
+            }
+
+            SECTION("Multi-value list with _initialized (from_url pattern)")
+            {
+                solv.set_defaulted_keys(
+                    { "_initialized",
+                      "build_number",
+                      "license",
+                      "timestamp",
+                      "track_features",
+                      "depends",
+                      "constrains" }
+                );
+                repo.internalize();
+
+                auto retrieved = solv.defaulted_keys();
+                REQUIRE(retrieved.size() == 7);
+                REQUIRE(retrieved[0] == "_initialized");
+                REQUIRE(retrieved[6] == "constrains");
+            }
+
+            // NOTE: Values containing commas would be misinterpreted by the
+            // comma-separated encoding. This is a known limitation; all
+            // current defaulted_key constants are comma-free identifiers.
         }
     }
 }

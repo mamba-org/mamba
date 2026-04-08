@@ -56,7 +56,7 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
         assert res.count(mamba_exe_posix) == 0
 
     res = helpers.shell("hook", "-s", shell_type, "--json")
-    expected_keys = {"success", "operation", "context", "actions"}
+    expected_keys = {"success", "operation", "context", "actions", "log_history"}
     assert set(res.keys()) == expected_keys
 
     assert res["success"]
@@ -118,7 +118,7 @@ def test_auto_detection(tmp_home, tmp_root_prefix):
 
     res = custom_shell(shell_type)
 
-    expected_keys = {"success", "operation", "context", "actions"}
+    expected_keys = {"success", "operation", "context", "actions", "log_history"}
     assert set(res.keys()) == expected_keys
 
     assert res["success"]

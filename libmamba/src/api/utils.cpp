@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <cctype>
+#include <chrono>
 #include <fstream>
 #include <unordered_set>
 
@@ -46,6 +47,12 @@ namespace mamba
 {
     namespace
     {
+        auto done_with_duration(std::chrono::steady_clock::duration elapsed) -> std::string
+        {
+            const double seconds = std::chrono::duration<double>(elapsed).count();
+            return fmt::format("✔ Done ({:.1f} sec)", seconds);
+        }
+
         tl::expected<command_args, std::runtime_error> get_pkg_mgr_install_command(
             const std::string& name,
             const std::string& target_prefix,
@@ -428,10 +435,11 @@ namespace mamba
     {
         if (Console::can_report_status())
         {
-            Console::instance().print(
+            Console::instance().print_in_place(
                 fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
             );
         }
+        const auto started_at = std::chrono::steady_clock::now();
         auto outcome = solver::libsolv::Solver()
                            .solve(
                                db,
@@ -443,7 +451,14 @@ namespace mamba
                            .value();
         if (Console::can_report_status())
         {
-            Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
+            Console::instance().print_in_place(
+                fmt::format(
+                    "{:<85} {:>20}",
+                    "Resolving Environment",
+                    done_with_duration(std::chrono::steady_clock::now() - started_at)
+                ),
+                true
+            );
         }
         return outcome;
     }

@@ -72,9 +72,12 @@ namespace mamba
      *      for subdirs that will not use shards.
      *   4. Optionally, when offline, add repos from local `pkgs_dir`.
      *   5. For each subdir, load it into the database:
-     *        - when sharded repodata is enabled and up to date (and `root_packages` non-empty),
-     *          prefer `load_subdir_with_shards` and fall back to full repodata on failure;
-     *        - otherwise, load from full repodata (cached or freshly downloaded).
+     *        - when sharded repodata is enabled with non-empty `root_packages`, full-repodata
+     *          subdirs (no shard index) load first; dependency names from those repos extend
+     *          `root_packages` so shard-based loads stay complete across channels; then shard
+     *          subdirs load, with fallback to full `repodata.json` if shard loading fails.
+     *        - otherwise, prefer shards when applicable with the same fallback, or load full
+     *          repodata when shards are disabled or `root_packages` is empty.
      *      Recoverable errors are aggregated and, when cache corruption is detected, a single
      *      retry with cache invalidation is performed before reporting failure.
      *

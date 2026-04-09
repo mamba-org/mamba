@@ -8,6 +8,7 @@
 #include <optional>
 #include <set>
 #include <sstream>
+#include <unordered_set>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
@@ -23,6 +24,7 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/error.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/specs/version.hpp"
 
@@ -225,10 +227,13 @@ namespace mamba
          * Load a single subdir into the database, using shards when available.
          *
          * When shards are enabled and up to date, this:
-         *   - attempts `load_subdir_with_shards`,
+         *   - attempts ``load_subdir_with_shards``,
          *   - falls back to cached full repodata when shard loading fails,
-         *   - optionally fetches fresh full repodata and loads it if there is no cache.
-         * Otherwise, it calls `load_subdir_in_database` directly.
+         *   - optionally fetches fresh full ``repodata.json`` and loads it if there is no cache.
+         * Subdirs without a shard index load full ``repodata.json`` directly.
+         *
+         * When ``repodata_use_shards`` is false, or ``root_packages`` is empty, loads full
+         * repodata (or native solv cache) as usual.
          */
         expected_t<solver::libsolv::RepoInfo> load_single_subdir(
             Context& ctx,
@@ -419,7 +424,72 @@ namespace mamba
         }
 
         /**
+         * Extend ``root_packages`` with dependency (and constrain) names reachable from current
+         * roots via repos loaded from full repodata (e.g. labels without shards), using a name BFS
+         * so the whole subdir is not scanned. Feeds shard BFS on sharded channels (e.g.
+         * conda-forge). For example, ``conda-forge/label/mamba_prerelease`` has no
+         * ``repodata_shards`` on anaconda.org while main ``conda-forge`` is sharded; prerelease
+         * ``mamba`` / ``libmamba`` there may depend on e.g. ``libmsgpack-c`` resolved from shards,
+         * which roots like ``mamba`` alone would not reach without this pass.
+         */
+        void expand_shard_root_packages_from_full_repodata_repos(
+            const solver::libsolv::Database& database,
+            const std::vector<solver::libsolv::RepoInfo>& full_repos,
+            std::vector<std::string>& root_packages
+        )
+        {
+            std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+            std::vector<std::string> frontier(root_packages.begin(), root_packages.end());
+            auto add_from_spec = [&](const std::string& dep_str)
+            {
+                if (auto name = specs::MatchSpec::extract_name(dep_str))
+                {
+                    if (!name->empty() && *name != "*")
+                    {
+                        if (seen.insert(*name).second)
+                        {
+                            frontier.push_back(*name);
+                            root_packages.push_back(*name);
+                        }
+                    }
+                }
+            };
+
+            while (!frontier.empty())
+            {
+                const std::string pkg_name = std::move(frontier.back());
+                frontier.pop_back();
+
+                for (const auto& repo : full_repos)
+                {
+                    database.for_each_package_in_repo(
+                        repo,
+                        [&](const specs::PackageInfo& pkg)
+                        {
+                            if (pkg.name != pkg_name)
+                            {
+                                return;
+                            }
+                            for (const auto& dep : pkg.dependencies)
+                            {
+                                add_from_spec(dep);
+                            }
+                            for (const auto& c : pkg.constrains)
+                            {
+                                add_from_spec(c);
+                            }
+                        }
+                    );
+                }
+            }
+        }
+
+        /**
          * Load all subdirs into the database, with a single retry on cache corruption.
+         *
+         * When sharded repodata is enabled with non-empty ``root_packages``, subdirs that load from
+         * full repodata (no shard index) run first; roots are expanded from those repos so shard
+         * loads on other channels stay complete. Otherwise a single pass is used.
          *
          * For each `SubdirIndexLoader`, this:
          *   - skips subdirs already loaded via shards,
@@ -434,7 +504,7 @@ namespace mamba
         bool load_all_subdirs(
             Context& ctx,
             solver::libsolv::Database& database,
-            const std::vector<std::string>& root_packages,
+            std::vector<std::string>& root_packages,
             std::vector<SubdirIndexLoader>& subdirs,
             const std::vector<solver::libsolv::Priorities>& priorities,
             const SubdirDownloadParams& subdir_params,
@@ -445,18 +515,29 @@ namespace mamba
         {
             std::set<std::string> loaded_subdirs_with_shards;
             bool loading_failed = false;
+            const bool shard_then_expand = ctx.repodata_use_shards && !root_packages.empty();
+            std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
 
-            for (std::size_t i = 0; i < subdirs.size(); ++i)
+            auto try_load = [&](std::size_t i, bool full_repodata_only_pass) -> void
             {
                 auto& subdir = subdirs[i];
                 bool use_shards = ctx.repodata_use_shards
                                   && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                                   && !root_packages.empty();
 
+                if (full_repodata_only_pass && use_shards)
+                {
+                    return;
+                }
+                if (!full_repodata_only_pass && shard_then_expand && !use_shards)
+                {
+                    return;
+                }
+
                 // Skip if this subdir was already loaded as part of a sharded same-channel load.
                 if (loaded_subdirs_with_shards.contains(subdir.name()))
                 {
-                    continue;
+                    return;
                 }
 
                 // When using shards we don't require valid cache here; the shard path may load
@@ -470,7 +551,7 @@ namespace mamba
                             mamba_error_code::subdirdata_not_loaded
                         ));
                     }
-                    continue;
+                    return;
                 }
 
                 auto result = load_single_subdir(
@@ -487,11 +568,16 @@ namespace mamba
 
                 if (result)
                 {
+                    auto repo = std::move(result).value();
                     // `load_subdir_with_shards` already sets priorities for all repos it adds.
                     // Avoid overriding another repo when this subdir has no direct match.
                     if (!use_shards)
                     {
-                        database.set_repo_priority(std::move(result).value(), priorities[i]);
+                        database.set_repo_priority(repo, priorities[i]);
+                    }
+                    if (shard_then_expand && full_repodata_only_pass && !use_shards)
+                    {
+                        full_repos_for_shard_roots.push_back(repo);
                     }
                 }
                 else if (is_retry)
@@ -513,6 +599,31 @@ namespace mamba
                     subdir.clear_valid_cache_files();
                     loading_failed = true;
                 }
+            };
+
+            if (shard_then_expand)
+            {
+                const std::size_t roots_before = root_packages.size();
+                for (std::size_t i = 0; i < subdirs.size(); ++i)
+                {
+                    try_load(i, /*full_repodata_only_pass=*/true);
+                }
+                expand_shard_root_packages_from_full_repodata_repos(
+                    database,
+                    full_repos_for_shard_roots,
+                    root_packages
+                );
+                if (root_packages.size() > roots_before)
+                {
+                    LOG_DEBUG << "Shard root packages expanded by "
+                              << (root_packages.size() - roots_before)
+                              << " name(s) from full-repodata subdirs (cross-channel closure seeds).";
+                }
+            }
+
+            for (std::size_t i = 0; i < subdirs.size(); ++i)
+            {
+                try_load(i, /*full_repodata_only_pass=*/false);
             }
 
             return loading_failed;
@@ -823,10 +934,11 @@ namespace mamba
 
             add_repos_from_pks_dir(ctx, channel_context, database);
 
+            std::vector<std::string> effective_shard_root_packages(root_packages);
             bool loading_failed = load_all_subdirs(
                 ctx,
                 database,
-                root_packages,
+                effective_shard_root_packages,
                 subdirs,
                 priorities,
                 subdir_params,

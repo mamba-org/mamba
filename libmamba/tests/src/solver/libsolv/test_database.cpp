@@ -220,7 +220,7 @@ namespace
 
         SECTION("exclude_newer_timestamp normalizes millisecond timestamps")
         {
-            const std::uint64_t cutoff = 2000;
+            const std::uint64_t cutoff = 2000000000;
             auto db_filtered = libsolv::Database(
                 {},
                 { matchspec_parser, /* exclude_newer_timestamp= */ cutoff }
@@ -229,7 +229,7 @@ namespace
             auto ms_pkg = specs::PackageInfo();
             ms_pkg.name = "ms-pkg";
             ms_pkg.version = "1.0";
-            ms_pkg.timestamp = 1500000;  // 1500 seconds in ms
+            ms_pkg.timestamp = 1500000000000;  // 1.5e12 ms → 1.5e9 seconds, below cutoff
 
             auto repo1 = db_filtered.add_repo_from_packages(std::array{ ms_pkg }, "repo1");
             REQUIRE(repo1.package_count() == 1);

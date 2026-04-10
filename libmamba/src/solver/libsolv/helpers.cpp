@@ -195,16 +195,15 @@ namespace mamba::solver::libsolv
         template <class JSONObject>
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
-            // const std::string& repo_url_str,
             const specs::CondaURL& repo_url,
             const std::string& channel_id,
             solv::ObjSolvableView solv,
-
             const std::string& filename,
             JSONObject&& pkg,
             const std::optional<nlohmann::json>& signatures,
             const std::string& default_subdir,
-            MatchSpecParser parser
+            MatchSpecParser parser,
+            std::uint64_t* out_timestamp = nullptr
         ) -> bool
         {
             // Not available from RepoDataPackage
@@ -319,7 +318,12 @@ namespace mamba::solver::libsolv
             if (auto timestamp = pkg["timestamp"]; !timestamp.error())
             {
                 const auto time = timestamp.get_uint64().value_unsafe();
-                solv.set_timestamp((time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time);
+                const auto normalized = (time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time;
+                solv.set_timestamp(normalized);
+                if (out_timestamp)
+                {
+                    *out_timestamp = normalized;
+                }
             }
 
             if (auto depends = pkg["depends"].get_array(); !depends.error())
@@ -426,6 +430,7 @@ namespace mamba::solver::libsolv
                 if (filter(filename))
                 {
                     auto [id, solv] = repo.add_solvable();
+                    std::uint64_t pkg_timestamp = 0;
                     const bool parsed = set_solvable(
                         pool,
                         repo_url,
@@ -435,12 +440,12 @@ namespace mamba::solver::libsolv
                         pkg_field.value(),
                         signatures,
                         default_subdir,
-                        parser
+                        parser,
+                        &pkg_timestamp
                     );
                     if (parsed)
                     {
-                        if (exclude_newer_timestamp
-                            && solv.timestamp() > static_cast<std::int64_t>(*exclude_newer_timestamp))
+                        if (exclude_newer_timestamp && pkg_timestamp > *exclude_newer_timestamp)
                         {
                             repo.remove_solvable(id, /* reuse_id= */ true);
                         }

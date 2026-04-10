@@ -227,6 +227,8 @@ def test_Database_exclude_newer_timestamp_repodata(tmp_path):
                         "version": "1.0",
                         "build": "bld",
                         "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
                         "timestamp": 1000,
                     },
                     "new-pkg-1.0-bld.tar.bz2": {
@@ -234,6 +236,8 @@ def test_Database_exclude_newer_timestamp_repodata(tmp_path):
                         "version": "1.0",
                         "build": "bld",
                         "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
                         "timestamp": 3000,
                     },
                 },

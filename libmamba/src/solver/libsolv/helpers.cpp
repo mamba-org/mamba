@@ -1500,8 +1500,7 @@ namespace mamba::solver::libsolv
                             return true;
                         }
                     }
-                    if constexpr (std::is_same_v<Action, Solution::Reinstall>
-                                  || std::is_same_v<Action, Solution::Omit>)
+                    if constexpr (std::is_same_v<Action, Solution::Reinstall> || std::is_same_v<Action, Solution::Omit>)
                     {
                         if (action.what.name == pkg_name)
                         {

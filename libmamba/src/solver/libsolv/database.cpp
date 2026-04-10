@@ -262,9 +262,8 @@ namespace mamba::solver::libsolv
     {
         if (const auto cutoff = settings().exclude_newer_timestamp)
         {
-            const auto ts = (pkg.timestamp > MAX_CONDA_TIMESTAMP)
-                                ? (pkg.timestamp / 1000)
-                                : pkg.timestamp;
+            const auto ts = (pkg.timestamp > MAX_CONDA_TIMESTAMP) ? (pkg.timestamp / 1000)
+                                                                  : pkg.timestamp;
             if (ts > *cutoff)
             {
                 return;

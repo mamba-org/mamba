@@ -40,10 +40,6 @@
 
 namespace mamba::solver::libsolv
 {
-    // Beyond this value, the timestamp would be in milliseconds and therefore should be converted
-    // to seconds.
-    inline constexpr auto MAX_CONDA_TIMESTAMP = 253402300799ULL;
-
     void set_solvable(
         solv::ObjPool& pool,
         solv::ObjSolvableView solv,
@@ -443,7 +439,8 @@ namespace mamba::solver::libsolv
             const std::optional<nlohmann::json>& signatures,
             Filter&& filter,
             OnParsed&& on_parsed,
-            MatchSpecParser parser
+            MatchSpecParser parser,
+            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
         )
         {
             auto packages_as_object = packages.get_object();
@@ -466,7 +463,15 @@ namespace mamba::solver::libsolv
                     );
                     if (parsed)
                     {
-                        on_parsed(filename);
+                        if (exclude_newer_timestamp
+                            && solv.timestamp() > static_cast<std::int64_t>(*exclude_newer_timestamp))
+                        {
+                            repo.remove_solvable(id, /* reuse_id= */ true);
+                        }
+                        else
+                        {
+                            on_parsed(filename);
+                        }
                     }
                     else
                     {
@@ -486,7 +491,8 @@ namespace mamba::solver::libsolv
             const std::string& default_subdir,
             JSONObject& packages,
             const std::optional<nlohmann::json>& signatures,
-            MatchSpecParser parser
+            MatchSpecParser parser,
+            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
         )
         {
             return set_repo_solvables_impl(
@@ -499,7 +505,8 @@ namespace mamba::solver::libsolv
                 signatures,
                 /* filter= */ [](const auto&) { return true; },
                 /* on_parsed= */ [](const auto&) {},
-                parser
+                parser,
+                exclude_newer_timestamp
             );
         }
 
@@ -512,7 +519,8 @@ namespace mamba::solver::libsolv
             const std::string& default_subdir,
             JSONObject& packages,
             const std::optional<nlohmann::json>& signatures,
-            MatchSpecParser parser
+            MatchSpecParser parser,
+            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
         ) -> util::flat_set<std::string>
         {
             auto filenames = util::flat_set<std::string>();
@@ -528,7 +536,8 @@ namespace mamba::solver::libsolv
                 /* on_parsed= */
                 [&](const auto& fn)
                 { filenames.insert(std::string(specs::strip_archive_extension(fn))); },
-                parser
+                parser,
+                exclude_newer_timestamp
             );
             // Sort only once
             return filenames;
@@ -544,7 +553,8 @@ namespace mamba::solver::libsolv
             JSONObject& packages,
             const std::optional<nlohmann::json>& signatures,
             const SortedStringRange& added,
-            MatchSpecParser parser
+            MatchSpecParser parser,
+            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
         )
         {
             return set_repo_solvables_impl(
@@ -558,7 +568,8 @@ namespace mamba::solver::libsolv
                 /* filter= */
                 [&](const auto& fn) { return !added.contains(specs::strip_archive_extension(fn)); },
                 /* on_parsed= */ [&](const auto&) {},
-                parser
+                parser,
+                exclude_newer_timestamp
             );
         }
     }
@@ -623,7 +634,8 @@ namespace mamba::solver::libsolv
         const std::string& channel_id,
         PackageTypes package_types,
         MatchSpecParser ms_parser,
-        bool verify_artifacts
+        bool verify_artifacts,
+        std::optional<std::uint64_t> exclude_newer_timestamp
     ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
@@ -739,7 +751,8 @@ namespace mamba::solver::libsolv
                     default_subdir,
                     pkgs,
                     json_signatures,
-                    ms_parser
+                    ms_parser,
+                    exclude_newer_timestamp
                 );
             }
             if (auto pkgs = repodata_doc["packages"]; !pkgs.error())
@@ -753,7 +766,8 @@ namespace mamba::solver::libsolv
                     pkgs,
                     json_signatures,
                     added,
-                    ms_parser
+                    ms_parser,
+                    exclude_newer_timestamp
                 );
             }
         }
@@ -770,7 +784,8 @@ namespace mamba::solver::libsolv
                     default_subdir,
                     pkgs,
                     json_signatures,
-                    ms_parser
+                    ms_parser,
+                    exclude_newer_timestamp
                 );
             }
 
@@ -785,7 +800,8 @@ namespace mamba::solver::libsolv
                     default_subdir,
                     pkgs,
                     json_signatures,
-                    ms_parser
+                    ms_parser,
+                    exclude_newer_timestamp
                 );
             }
         }

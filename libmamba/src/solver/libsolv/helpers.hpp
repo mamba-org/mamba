@@ -7,6 +7,7 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_HELPERS
 #define MAMBA_SOLVER_LIBSOLV_HELPERS
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -36,6 +37,10 @@ namespace mamba::fs
 
 namespace mamba::solver::libsolv
 {
+    // Beyond this value, the timestamp would be in milliseconds and therefore should be
+    // converted to seconds.
+    inline constexpr std::uint64_t MAX_CONDA_TIMESTAMP = 253402300799ULL;
+
     void set_solvable(
         solv::ObjPool& pool,
         solv::ObjSolvableView solv,
@@ -61,7 +66,8 @@ namespace mamba::solver::libsolv
         const std::string& channel_id,
         PackageTypes types,
         MatchSpecParser parser,
-        bool verify_artifacts
+        bool verify_artifacts,
+        std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
     ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto read_solv(

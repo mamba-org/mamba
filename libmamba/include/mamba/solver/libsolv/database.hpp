@@ -7,6 +7,7 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_DATABASE_HPP
 #define MAMBA_SOLVER_LIBSOLV_DATABASE_HPP
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -59,6 +60,7 @@ namespace mamba::solver::libsolv
         struct Settings
         {
             MatchSpecParser matchspec_parser = MatchSpecParser::Libsolv;
+            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt;
         };
 
         using logger_type = std::function<void(LogLevel, std::string_view)>;

@@ -205,7 +205,7 @@ namespace mamba
                         }
                     }
                 }
-                std::cout << jout.dump(4) << std::endl;
+                Console::instance().json_write({ { "packages", jout } });
             }
             else
             {

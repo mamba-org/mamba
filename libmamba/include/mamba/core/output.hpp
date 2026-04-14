@@ -128,9 +128,10 @@ namespace mamba
         /**
          * Check if status messages can be reported to stdout.
          *
-         * Returns true if Console is available and JSON output is not enabled.
-         * Use this before printing status messages to ensure they don't
-         * interfere with JSON output.
+         * Returns true when Console is available, `libmamba` is running from an
+         * end-user executable (`mamba`/`micromamba`), and JSON output is disabled.
+         * Use this before printing status messages to avoid leaking CLI-only
+         * status lines to third-party `libmamba` integrations.
          */
         [[nodiscard]] static bool can_report_status();
         static ConsoleStream stream();
@@ -146,6 +147,7 @@ namespace mamba
         static std::string hide_secrets(std::string_view str);
 
         void print(std::string_view str, bool force_print = false);
+        void print_in_place(std::string_view str, bool finalize = false, bool force_print = false);
         void json_write(const nlohmann::json& j);
         void json_append(const std::string& value);
         void json_append(const nlohmann::json& j);

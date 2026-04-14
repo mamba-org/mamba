@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <string>
 
 #include <fmt/color.h>
@@ -23,6 +24,7 @@
 #include "mamba/core/tasksync.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/util/synchronized_value.hpp"
@@ -301,6 +303,7 @@ namespace mamba
         {
             std::unique_ptr<ProgressBarManager> progress_bar_manager;
             ConsoleBuffer buffer;
+            std::optional<std::size_t> active_in_place_width;
         };
 
         util::synchronized_value<Data> m_synched_data;
@@ -346,7 +349,8 @@ namespace mamba
 
     bool Console::can_report_status()
     {
-        return is_available() && !instance().context().output_params.json;
+        const auto& ctx = instance().context();
+        return is_available() && ctx.command_params.is_mamba_exe && !ctx.output_params.json;
     }
 
     void Console::cancel_json_print()
@@ -371,7 +375,50 @@ namespace mamba
             }
             else
             {
+                if (synched_data->active_in_place_width.has_value())
+                {
+                    std::cout << '\n';
+                    synched_data->active_in_place_width.reset();
+                }
                 std::cout << hide_secrets(str) << std::endl;
+            }
+        }
+    }
+
+    void Console::print_in_place(std::string_view str, bool finalize, bool force_print)
+    {
+        if (force_print || !(context().output_params.quiet || context().output_params.json))
+        {
+            auto synched_data = p_data->m_synched_data.synchronize();
+
+            if (synched_data->progress_bar_manager && synched_data->progress_bar_manager->started())
+            {
+                synched_data->buffer.push_back(hide_secrets(str));
+                return;
+            }
+
+            const std::string sanitized = hide_secrets(str);
+            const bool can_update_in_place = is_atty(std::cout);
+            if (!can_update_in_place)
+            {
+                std::cout << sanitized << std::endl;
+                return;
+            }
+
+            const std::size_t previous_width = synched_data->active_in_place_width.value_or(0);
+            const std::size_t next_width = sanitized.size();
+            const std::size_t pad = previous_width > next_width ? previous_width - next_width : 0;
+            std::cout << '\r' << sanitized << std::string(pad, ' ');
+
+            if (finalize)
+            {
+                std::cout << '\n';
+                synched_data->active_in_place_width.reset();
+            }
+            else
+            {
+                std::cout << std::flush;
+                synched_data->active_in_place_width = next_width;
             }
         }
     }

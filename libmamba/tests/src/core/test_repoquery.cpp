@@ -87,4 +87,16 @@ TEST_CASE("repoquery search exact roots extraction", "[mamba::api][repoquery]")
         const auto names = extract_exact_package_names_from_specs(specs);
         REQUIRE(names.empty());
     }
+
+    SECTION("skip invalid MatchSpec and keep exact names")
+    {
+        const std::vector<std::string> specs = {
+            "xtensor",
+            "python[version='>=3.11'",
+            "xsimd=13",
+        };
+
+        const auto names = extract_exact_package_names_from_specs(specs);
+        REQUIRE(names == std::vector<std::string>{ "xtensor", "xsimd" });
+    }
 }

@@ -344,14 +344,22 @@ namespace mamba
         for (const auto& s : specs)
         {
             auto parsed = specs::MatchSpec::parse(s);
-            if (!parsed || parsed->name().is_free() || !parsed->name().is_exact())
+            if (!parsed)
+            {
+                LOG_WARNING << "Skipping invalid MatchSpec '" << s
+                            << "' while extracting exact package names: " << parsed.error().what();
+                continue;
+            }
+            if (parsed->name().is_free() || !parsed->name().is_exact())
             {
                 return {};
             }
             auto name = parsed->name().to_string();
             if (name.empty())
             {
-                return {};
+                LOG_WARNING << "Skipping MatchSpec with empty package name while extracting exact package names: '"
+                            << s << "'";
+                continue;
             }
             names.push_back(std::move(name));
         }

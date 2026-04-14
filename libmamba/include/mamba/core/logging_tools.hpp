@@ -49,6 +49,21 @@ namespace mamba::logging
             }
         }
 
+        inline auto should_be_ignored(const LogRecord& record, log_level current_level) -> bool
+        {
+            switch (current_level)
+            {
+                case log_level::off:
+                    return true;
+
+                case log_level::all:
+                    return false;
+
+                default:
+                    return current_level > record.level;
+            }
+        }
+
         /** Backtrace feature implementation in it's most basic form.
 
             This is the simplest implementation for a backtrace feature
@@ -433,7 +448,7 @@ namespace mamba::logging
     inline auto LogHandler_History::log(LogRecord record) -> void
     {
         assert(pimpl);
-        if (pimpl->current_log_level > record.level)
+        if (details::should_be_ignored(record, pimpl->current_log_level))
         {
             return;
         }
@@ -603,7 +618,7 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        if (pimpl->current_log_level > record.level)
+        if (details::should_be_ignored(record, pimpl->current_log_level))
         {
             return;
         }

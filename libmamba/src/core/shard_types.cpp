@@ -45,7 +45,7 @@ namespace mamba
 
         specs::PackageInfo pkg_info;
         pkg_info.name = record.name;
-        pkg_info.version = record.version.to_string();
+        pkg_info.version = record.raw_version.value_or(record.version.to_string());
         pkg_info.build_string = record.build_string;
         pkg_info.build_number = record.build_number;
         pkg_info.channel = channel_id;

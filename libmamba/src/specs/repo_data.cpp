@@ -16,7 +16,7 @@ namespace mamba::specs
     void to_json(nlohmann::json& j, const RepoDataPackage& p)
     {
         j["name"] = p.name;
-        j["version"] = p.version.to_string();
+        j["version"] = p.raw_version.value_or(p.version.to_string());
         j["build"] = p.build_string;
         j["build_number"] = p.build_number;
         j["subdir"] = p.subdir;
@@ -43,7 +43,9 @@ namespace mamba::specs
         using mamba::util::deserialize_maybe_missing;
 
         p.name = j.at("name");
-        p.version = Version::parse(j.at("version").template get<std::string_view>())
+        const auto raw_version = j.at("version").template get<std::string>();
+        p.raw_version = raw_version;
+        p.version = Version::parse(raw_version)
                         .or_else([](ParseError&& error) { throw std::move(error); })
                         .value();
         p.build_string = j.at("build");

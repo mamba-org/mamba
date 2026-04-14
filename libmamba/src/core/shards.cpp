@@ -226,6 +226,7 @@ namespace mamba
                     else if (key == "version")
                     {
                         const auto version_str = msgpack_object_to_string(val_obj);
+                        record.raw_version = version_str;
                         auto parsed = specs::Version::parse(version_str);
                         record.version = parsed ? parsed.value() : specs::Version(0, { { { 0 } } });
                     }

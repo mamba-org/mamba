@@ -78,6 +78,13 @@ namespace mamba
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
 
     /**
+     * Extract exact package names from matchspec strings.
+     * Returns an empty vector if any query is not an exact package name.
+     */
+    std::vector<std::string>
+    extract_exact_package_names_from_specs(const std::vector<std::string>& specs);
+
+    /**
      * Ensure that ``"pip"`` is present in ``root_packages`` when ``"python"`` is requested.
      *
      * This is used by both install and update flows to automatically add ``pip`` when

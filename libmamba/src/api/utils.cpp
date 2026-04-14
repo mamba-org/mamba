@@ -336,6 +336,36 @@ namespace mamba
         return names;
     }
 
+    std::vector<std::string>
+    extract_exact_package_names_from_specs(const std::vector<std::string>& specs)
+    {
+        std::vector<std::string> names;
+        names.reserve(specs.size());
+        for (const auto& s : specs)
+        {
+            auto parsed = specs::MatchSpec::parse(s);
+            if (!parsed)
+            {
+                LOG_WARNING << "Skipping invalid MatchSpec '" << s
+                            << "' while extracting exact package names: " << parsed.error().what();
+                continue;
+            }
+            if (parsed->name().is_free() || !parsed->name().is_exact())
+            {
+                return {};
+            }
+            auto name = parsed->name().to_string();
+            if (name.empty())
+            {
+                LOG_WARNING << "Skipping MatchSpec with empty package name while extracting exact package names: '"
+                            << s << "'";
+                continue;
+            }
+            names.push_back(std::move(name));
+        }
+        return names;
+    }
+
     void add_pip_if_python(std::vector<std::string>& root_packages)
     {
         bool has_python = false;

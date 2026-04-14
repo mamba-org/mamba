@@ -25,6 +25,8 @@
 #include "mamba/specs/version.hpp"
 #include "mamba/util/string.hpp"
 
+#include "transaction_context.hpp"
+
 namespace mamba
 {
     /******************************
@@ -230,7 +232,18 @@ namespace mamba
                                 .value();
             database.for_each_package_matching(
                 ms,
-                [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
+                [&](specs::PackageInfo&& pkg)
+                {
+                    if (pkg.name == "python")
+                    {
+                        if (auto effective = effective_python_site_packages_path(pkg);
+                            !effective.empty())
+                        {
+                            pkg.python_site_packages_path = std::move(effective);
+                        }
+                    }
+                    g.add_node(std::move(pkg));
+                }
             );
         }
 

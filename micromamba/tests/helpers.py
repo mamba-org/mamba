@@ -315,7 +315,15 @@ def run_env(*args, f=None, **kwargs):
     return res.decode()
 
 
-def umamba_list(*args, **kwargs):
+def pkgs_list_from_json_result(json_result):
+    assert json_result
+    packages = json_result["packages"]
+    # TODO: consider if we check here if there was warnings or errors,
+    # maybe driven by a parameter
+    return packages
+
+
+def umamba_list(*args, json_as_pkgs_list=True, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "list"] + [str(arg) for arg in args if arg]
@@ -323,7 +331,12 @@ def umamba_list(*args, **kwargs):
 
     if "--json" in args:
         j = json.loads(res)
-        return j
+        if json_as_pkgs_list:
+            # TODO: consider checking here that there is no errors
+            # otherwise any log is lost beyond this point
+            return pkgs_list_from_json_result(j)
+        else:
+            return j
 
     return res.decode()
 
@@ -714,3 +727,4 @@ def find_message_in_json_logs(json_result, message_to_find):
             return log_record
 
     return None
+

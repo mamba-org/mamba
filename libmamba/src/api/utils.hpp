@@ -85,17 +85,18 @@ namespace mamba
     extract_exact_package_names_from_specs(const std::vector<std::string>& specs);
 
     /**
-     * Ensure that ``"pip"`` is present in ``root_packages`` when ``"python"`` is requested.
+     * Ensure python-related roots are present when ``"python"`` is requested.
      *
-     * This is used by both install and update flows to automatically add ``pip`` when
-     * ``python`` is part of the requested specs, unless ``pip`` is already present.
+     * This adds ``pip`` and ``python_abi`` to ``root_packages`` when ``python`` is part of
+     * the requested specs, unless they are already present.
      */
-    void add_pip_if_python(std::vector<std::string>& root_packages);
+    void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
 
     /**
      * Build root packages for sharded repodata loading.
      *
-     * Starts from requested specs and adds ``pip`` when ``python`` is present.
+     * Starts from requested specs and adds python-related roots (``pip``, ``python_abi``)
+     * when ``python`` is present.
      */
     std::vector<std::string> build_sharded_root_packages(const std::vector<std::string>& raw_specs);
 

@@ -1916,9 +1916,10 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     cmd = ["-n", env_name, f"python={version}.*={build}", "six"]
 
     if platform.system() == "Windows":
-        # For noarch-python packages on Windows, libmamba should install into the
-        # canonical `Lib/site-packages` location (independent of freethreading).
-        site_packages = env_prefix / "Lib" / "site-packages"
+        if build.endswith("t"):
+            site_packages = env_prefix / "lib" / f"python{version}t" / "site-packages"
+        else:
+            site_packages = env_prefix / "Lib" / "site-packages"
         if version == "2.7":
             cmd += ["-c", "defaults"]  # for vc=9.*
     else:
@@ -1970,7 +1971,7 @@ def test_create_check_dirs(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
 
     if platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "traitlets")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "traitlets")
     else:
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages" / "traitlets")
 
@@ -1986,9 +1987,9 @@ def test_create_python_site_packages_path(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
 
     if platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "python3.13t" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "python3.13" / "site-packages" / "imagesize")
+        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory
         assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")

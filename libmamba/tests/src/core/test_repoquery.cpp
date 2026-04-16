@@ -13,6 +13,7 @@ namespace mamba
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
     std::vector<std::string>
     extract_exact_package_names_from_specs(const std::vector<std::string>& specs);
+    void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
 }
 
 using namespace mamba;
@@ -51,6 +52,20 @@ TEST_CASE("repoquery sharded roots extraction", "[mamba::api][repoquery]")
 
         const auto names = extract_package_names_from_specs(specs);
         REQUIRE(names.empty());
+    }
+
+    SECTION("python roots include pip and python_abi")
+    {
+        std::vector<std::string> root_packages = { "python", "numpy" };
+        add_python_related_roots_if_python_requested(root_packages);
+        REQUIRE(root_packages == std::vector<std::string>{ "python", "numpy", "pip", "python_abi" });
+    }
+
+    SECTION("python roots do not duplicate existing pip and python_abi")
+    {
+        std::vector<std::string> root_packages = { "python", "pip", "python_abi" };
+        add_python_related_roots_if_python_requested(root_packages);
+        REQUIRE(root_packages == std::vector<std::string>{ "python", "pip", "python_abi" });
     }
 }
 

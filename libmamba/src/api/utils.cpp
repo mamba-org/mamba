@@ -373,10 +373,11 @@ namespace mamba
         return names;
     }
 
-    void add_pip_if_python(std::vector<std::string>& root_packages)
+    void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages)
     {
         bool has_python = false;
         bool has_pip = false;
+        bool has_python_abi = false;
         for (const auto& pkg : root_packages)
         {
             if (pkg == "python")
@@ -387,10 +388,22 @@ namespace mamba
             {
                 has_pip = true;
             }
+            if (pkg == "python_abi")
+            {
+                has_python_abi = true;
+            }
         }
-        if (has_python && !has_pip)
+        if (!has_python)
+        {
+            return;
+        }
+        if (!has_pip)
         {
             root_packages.push_back("pip");
+        }
+        if (!has_python_abi)
+        {
+            root_packages.push_back("python_abi");
         }
     }
 
@@ -401,7 +414,7 @@ namespace mamba
     )
     {
         std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
-        add_pip_if_python(root_packages);
+        add_python_related_roots_if_python_requested(root_packages);
         if (!fs::exists(ctx.prefix_params.target_prefix))
         {
             return root_packages;

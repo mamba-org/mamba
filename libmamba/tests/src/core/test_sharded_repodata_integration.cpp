@@ -37,6 +37,7 @@
 namespace mamba
 {
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
+    void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
 }
 
 using namespace mamba;
@@ -47,28 +48,12 @@ namespace
 {
     /**
      * Extract root package names from specs for sharded repodata.
-     * Uses the shared utility `extract_package_names_from_specs` and
-     * then ensures that when python is present, pip is also added.
+     * Uses shared utilities and ensures python-related roots are added.
      */
     std::vector<std::string> extract_root_packages(const std::vector<std::string>& specs)
     {
-        // Reuse the production utility to parse package names from specs
         std::vector<std::string> root_packages = extract_package_names_from_specs(specs);
-
-        const bool has_python = std::find(root_packages.begin(), root_packages.end(), "python")
-                                != root_packages.end();
-
-        // When installing python, also include pip in root packages for sharded repodata
-        if (has_python)
-        {
-            const bool has_pip = std::find(root_packages.begin(), root_packages.end(), "pip")
-                                 != root_packages.end();
-            if (!has_pip)
-            {
-                root_packages.emplace_back("pip");
-            }
-        }
-
+        add_python_related_roots_if_python_requested(root_packages);
         return root_packages;
     }
 
@@ -415,6 +400,21 @@ TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::cor
     REQUIRE(result.has_value());
 }
 
+TEST_CASE("Sharded repodata - python root extraction adds python_abi", "[mamba::core][sharded]")
+{
+    SECTION("python spec adds pip and python_abi roots")
+    {
+        const auto roots = extract_root_packages({ "python>=3.11", "numpy" });
+        REQUIRE(roots == std::vector<std::string>{ "python", "numpy", "pip", "python_abi" });
+    }
+
+    SECTION("existing pip/python_abi are not duplicated")
+    {
+        const auto roots = extract_root_packages({ "python", "pip", "python_abi" });
+        REQUIRE(roots == std::vector<std::string>{ "python", "pip", "python_abi" });
+    }
+}
+
 TEST_CASE("Sharded repodata - noarch-only root package is installable", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
@@ -550,6 +550,62 @@ TEST_CASE(
         }
     }
     REQUIRE(found_tensorflow);
+}
+
+TEST_CASE("Sharded repodata - solve xeus-python-dev specs on emscripten", "[mamba::core][sharded][.integration]")
+{
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const std::string saved_platform = ctx.platform;
+    const bool saved_use_shards = ctx.repodata_use_shards;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.platform = saved_platform;
+                                   ctx.repodata_use_shards = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = {
+        "https://prefix.dev/emscripten-forge-4x",
+        "https://prefix.dev/conda-forge",
+    };
+    ctx.platform = "emscripten-wasm32";
+    ctx.repodata_use_shards = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const std::vector<std::string> specs = {
+        "python>=3.11", "pybind11", "nlohmann_json", "pybind11_json", "numpy",
+        "pytest",       "bzip2",    "sqlite",        "zlib",          "libffi",
+        "xtl",          "pyjs",     "xeus",          "xeus-lite",
+    };
+
+    auto solved = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(solved.has_value());
+
+    std::unordered_set<std::string> solved_names;
+    for (const auto& pkg : solved->packages())
+    {
+        solved_names.insert(pkg.name);
+    }
+
+    const std::vector<std::string> expected = {
+        "python", "python_abi", "pybind11", "nlohmann_json", "pybind11_json",
+        "numpy",  "pytest",     "bzip2",    "sqlite",        "zlib",
+        "libffi", "xtl",        "pyjs",     "xeus",          "xeus-lite",
+    };
+    for (const auto& name : expected)
+    {
+        REQUIRE(solved_names.count(name) == 1);
+    }
 }
 
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration]")

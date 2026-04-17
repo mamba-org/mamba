@@ -182,7 +182,7 @@ namespace mamba
         {
             nlohmann::ordered_json j;
             j["env_vars"] = env_vars;
-            std::cout << j.dump(4) << std::endl;
+            Console::instance().json_write(j);
             return;
         }
 

@@ -37,15 +37,6 @@ namespace mamba
 
     auto effective_python_site_packages_path(const specs::PackageInfo& python_pkg) -> std::string
     {
-#ifdef _WIN32
-        // On Windows, `libmamba` should install all python packages into the
-        // canonical `Lib/site-packages` location (independently of the python version
-        // and of freethreading).
-        const std::string canonical_site_packages = (fs::u8path("Lib") / "site-packages")
-                                                        .generic_string();
-
-        return canonical_site_packages;
-#else
         const std::string short_ver = compute_short_python_version(python_pkg.version);
         std::string compact = short_ver;
         util::replace_all(compact, ".", "");
@@ -89,7 +80,6 @@ namespace mamba
             return {};
         }
         return ft_site_packages;
-#endif
     }
 
     // supply short python version, e.g. 2.7, 3.5...

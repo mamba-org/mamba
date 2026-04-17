@@ -13,6 +13,7 @@
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
@@ -78,6 +79,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
             // Raise a warning if `--json` and `--explicit` are used together.
             if (json_format && explicit_format)
             {
+                // FIXME?
                 std::cerr << "Warning: `--json` and `--explicit` are used together but are incompatible. The `--json` flag will be ignored."
                           << std::endl;
             }
@@ -192,26 +194,28 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
 
                 dependencies << (first_dependency_printed ? "\n" : "");
 
-                std::cout << "{\n";
+                std::stringstream out;
+                out << "{\n";
 
-                std::cout << "  \"channels\": [\n";
+                out << "  \"channels\": [\n";
                 for (auto channel_it = channels.begin(); channel_it != channels.end(); ++channel_it)
                 {
                     auto last_channel = std::next(channel_it) == channels.end();
-                    std::cout << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",") << "\n";
+                    out << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",") << "\n";
                 }
-                std::cout << "  ],\n";
+                out << "  ],\n";
 
-                std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
+                out << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
 
-                std::cout << "  \"name\": \""
+                out << "  \"name\": \""
                           << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
                           << "\",\n";
-                std::cout << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
+                out << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
 
-                std::cout << "}\n";
+                out << "}\n";
 
-                std::cout.flush();
+                const auto out_json = nlohmann::json::parse(out);
+                mamba::Console::instance().json_write(out_json);
             }
             else
             {

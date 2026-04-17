@@ -60,7 +60,7 @@ namespace mamba
                     [](const mamba::fs::u8path& path) { return path.string(); }
                 );
                 res["envs"] = envs;
-                std::cout << res.dump(4) << std::endl;
+                Console::instance().json_write(res);
                 return;
             }
 

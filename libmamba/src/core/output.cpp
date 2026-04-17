@@ -609,7 +609,7 @@ namespace mamba
     {
         if (context().output_params.json)
         {
-            nlohmann::json tmp = j.flatten();
+            nlohmann::json tmp = j.flatten(); // FIXME: flattening makes empty arrays 'null'
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
             {
                 p_data->json_log[p_data->json_hier + it.key()] = it.value();
@@ -632,7 +632,7 @@ namespace mamba
     {
         if (context().output_params.json)
         {
-            nlohmann::json tmp = j.flatten();
+            nlohmann::json tmp = j.flatten(); // FIXME: flattening makes empty arrays 'null'
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
             {
                 p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index) + it.key()] = it.value();

@@ -181,7 +181,8 @@ namespace mamba::solver::libsolv
                     channel_id,
                     package_types,
                     settings().matchspec_parser,
-                    verify_artifacts
+                    verify_artifacts,
+                    settings().exclude_newer_timestamp
                 );
             }
 
@@ -259,6 +260,15 @@ namespace mamba::solver::libsolv
     void
     Database::add_repo_from_packages_impl_loop(const RepoInfo& repo, const specs::PackageInfo& pkg)
     {
+        if (const auto cutoff = settings().exclude_newer_timestamp)
+        {
+            const auto ts = (pkg.timestamp > MAX_CONDA_TIMESTAMP) ? (pkg.timestamp / 1000)
+                                                                  : pkg.timestamp;
+            if (ts > *cutoff)
+            {
+                return;
+            }
+        }
         auto s_repo = solv::ObjRepoView(*repo.m_ptr);
         auto [id, solv] = s_repo.add_solvable();
         set_solvable(pool(), solv, pkg, settings().matchspec_parser);

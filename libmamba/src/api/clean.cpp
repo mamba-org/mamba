@@ -8,6 +8,7 @@
 
 #include "mamba/api/clean.hpp"
 #include "mamba/api/configuration.hpp"
+#include "mamba/core/cache_paths.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/util.hpp"
@@ -51,20 +52,34 @@ namespace mamba
         {
             Console::stream() << "Cleaning index cache..";
 
+            auto remove_cache_dir = [](const fs::u8path& cache_dir)
+            {
+                if (!fs::exists(cache_dir))
+                {
+                    return;
+                }
+
+                try
+                {
+                    fs::remove_all(cache_dir);
+                }
+                catch (...)
+                {
+                    LOG_WARNING << "Could not clean " << cache_dir;
+                }
+            };
+
             for (auto* pkg_cache : caches.writable_caches())
             {
-                if (fs::exists(pkg_cache->path() / "cache"))
-                {
-                    try
-                    {
-                        fs::remove_all(pkg_cache->path() / "cache");
-                    }
-                    catch (...)
-                    {
-                        LOG_WARNING << "Could not clean " << pkg_cache->path() / "cache";
-                    }
-                }
+                remove_cache_dir(pkg_cache->path() / cache_paths::cache_relative);
             }
+
+            // Shard files are cached under the user cache root and may not be in configured
+            // package caches (for example when only MAMBA_ROOT_PREFIX/pkgs is configured).
+            remove_cache_dir(
+                fs::u8path(util::user_cache_dir()) / cache_paths::conda_pkgs_relative
+                / cache_paths::cache_shards_relative
+            );
         }
 
         if (!ctx.dry_run && (clean_locks || clean_all))

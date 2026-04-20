@@ -166,6 +166,29 @@ namespace
         }
     }
 
+    TEST_CASE("zsh_home_dir", "[mamba::util]")
+    {
+        if (on_win)
+        {
+            return;
+        }
+
+        const auto restore = mambatests::EnvironmentCleaner();
+
+        SECTION("ZDOTDIR set")
+        {
+            set_env("ZDOTDIR", "/user/mamba/.zsh");
+            REQUIRE(zsh_home_dir() == "/user/mamba/.zsh");
+        }
+
+        SECTION("ZDOTDIR not set")
+        {
+            unset_env("ZDOTDIR");
+            set_env("HOME", "/user/mamba");
+            REQUIRE(zsh_home_dir() == user_home_dir());
+        }
+    }
+
     TEST_CASE("user_xdg", "[mamba::util]")
     {
         const auto restore = mambatests::EnvironmentCleaner();

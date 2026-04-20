@@ -54,18 +54,17 @@ namespace mamba
 
             auto remove_cache_dir = [](const fs::u8path& cache_dir)
             {
-                if (!fs::exists(cache_dir))
-                {
-                    return;
-                }
-
                 try
                 {
                     fs::remove_all(cache_dir);
                 }
+                catch (const std::exception& e)
+                {
+                    LOG_WARNING << "Could not clean " << cache_dir << ": " << e.what();
+                }
                 catch (...)
                 {
-                    LOG_WARNING << "Could not clean " << cache_dir;
+                    LOG_WARNING << "Could not clean " << cache_dir << ": unknown error";
                 }
             };
 

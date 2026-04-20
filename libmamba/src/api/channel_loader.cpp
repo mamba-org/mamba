@@ -306,8 +306,16 @@ namespace mamba
         )
         {
             auto& subdir = subdirs[subdir_idx];
+            const bool shards_requested = ctx.repodata_use_shards && !root_packages.empty();
             const auto load_flat_repodata_with_status = [&]() -> expected_t<solver::libsolv::RepoInfo>
             {
+                if (shards_requested && !subdir.metadata().has_shards())
+                {
+                    Console::instance().print(
+                        "⚠ Shard Index for " + subdir.name()
+                        + " not available, falling back to flat repodata"
+                    );
+                }
                 const auto started_at = std::chrono::steady_clock::now();
                 if (flat_repodata_started_at != nullptr && !flat_repodata_started_at->has_value())
                 {

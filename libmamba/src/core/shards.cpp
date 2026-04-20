@@ -17,6 +17,7 @@
 #include <msgpack/zone.h>
 #include <zstd.h>
 
+#include "mamba/core/cache_paths.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shard_types.hpp"
@@ -468,8 +469,10 @@ namespace mamba
         , m_download_threads(normalize_to_affinity_concurrency(static_cast<int>(download_threads)))
         , m_mirrors(std::move(mirrors))
         , m_python_minor_version_for_prefilter(std::move(python_minor_version_for_prefilter))
-        , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / "conda" / "pkgs")
-        , m_shard_cache_dir(m_pkgs_cache_root / "cache" / "shards")
+        , m_pkgs_cache_root(
+              fs::u8path(util::user_cache_dir()) / std::string(cache_paths::conda_pkgs_relative)
+          )
+        , m_shard_cache_dir(m_pkgs_cache_root / std::string(cache_paths::cache_shards_relative))
     {
     }
 

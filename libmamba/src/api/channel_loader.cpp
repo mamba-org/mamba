@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <chrono>
 #include <optional>
 #include <set>
 #include <sstream>
@@ -34,6 +35,61 @@ namespace mamba
 {
     namespace
     {
+        auto shorten_status_label(std::string label) -> std::string
+        {
+            if (label.length() > 85)
+            {
+                label = label.substr(0, 82) + "...";
+            }
+            return label;
+        }
+
+        auto done_with_duration(std::chrono::steady_clock::duration elapsed) -> std::string
+        {
+            const double seconds = std::chrono::duration<double>(elapsed).count();
+            return fmt::format("✔ Done ({:.1f} sec)", seconds);
+        }
+
+        void print_status_line(std::string label, const std::string& status, bool finalize = false)
+        {
+            if (!Console::can_report_status())
+            {
+                return;
+            }
+            Console::instance().print_in_place(
+                fmt::format("{:<85} {:>20}", shorten_status_label(std::move(label)), status),
+                finalize
+            );
+        }
+
+        void print_done_status_line(
+            std::string label,
+            std::optional<std::chrono::steady_clock::duration> elapsed = std::nullopt
+        )
+        {
+            print_status_line(
+                std::move(label),
+                elapsed.has_value() ? done_with_duration(*elapsed) : std::string("✔ Done"),
+                true
+            );
+        }
+
+        void
+        print_flat_repodata_done(const SubdirIndexLoader& subdir, std::chrono::steady_clock::duration elapsed)
+        {
+            print_done_status_line("Using Flat Repodata for " + subdir.name(), elapsed);
+        }
+
+        void print_flat_repodata_start(const SubdirIndexLoader& subdir)
+        {
+            print_status_line("Using Flat Repodata for " + subdir.name(), "✔ Starting");
+        }
+
+        void print_parsing_records_done(std::chrono::steady_clock::duration elapsed)
+        {
+            print_done_status_line("Parsing Packages' Records", elapsed);
+        }
+
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
@@ -244,10 +300,39 @@ namespace mamba
             std::set<std::string>& loaded_subdirs_with_shards,
             const SubdirDownloadParams& subdir_params,
             const std::vector<solver::libsolv::Priorities>& priorities,
-            std::optional<specs::Version> python_minor_version_for_prefilter
+            std::optional<specs::Version> python_minor_version_for_prefilter,
+            bool* used_flat_repodata,
+            std::optional<std::chrono::steady_clock::time_point>* flat_repodata_started_at
         )
         {
             auto& subdir = subdirs[subdir_idx];
+            const bool shards_requested = ctx.repodata_use_shards && !root_packages.empty();
+            const auto load_flat_repodata_with_status = [&]() -> expected_t<solver::libsolv::RepoInfo>
+            {
+                if (shards_requested && !subdir.metadata().has_shards())
+                {
+                    Console::instance().print(
+                        "⚠ Shard Index for " + subdir.name()
+                        + " not available, falling back to flat repodata"
+                    );
+                }
+                const auto started_at = std::chrono::steady_clock::now();
+                if (flat_repodata_started_at != nullptr && !flat_repodata_started_at->has_value())
+                {
+                    *flat_repodata_started_at = started_at;
+                }
+                print_flat_repodata_start(subdir);
+                auto flat_res = load_subdir_in_database(ctx, database, subdir);
+                if (flat_res)
+                {
+                    if (used_flat_repodata != nullptr)
+                    {
+                        *used_flat_repodata = true;
+                    }
+                    print_flat_repodata_done(subdir, std::chrono::steady_clock::now() - started_at);
+                }
+                return flat_res;
+            };
 
             bool use_shards = ctx.repodata_use_shards
                               && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
@@ -270,7 +355,7 @@ namespace mamba
                 {
                     if (subdir.valid_cache_found())
                     {
-                        return load_subdir_in_database(ctx, database, subdir);
+                        return load_flat_repodata_with_status();
                     }
                     // Shards failed and no cache - try to fetch and load flat repodata.
                     if (!ctx.offline)
@@ -292,14 +377,14 @@ namespace mamba
                         );
                         if (fetch_res)
                         {
-                            return load_subdir_in_database(ctx, database, subdir);
+                            return load_flat_repodata_with_status();
                         }
                     }
                 }
                 return res;
             }
 
-            return load_subdir_in_database(ctx, database, subdir);
+            return load_flat_repodata_with_status();
         }
 
         /**
@@ -370,7 +455,6 @@ namespace mamba
             expected_t<void> download_res = expected_t<void>();
             if (!subdirs_needing_index.empty())
             {
-                SubdirIndexMonitor index_monitor;
                 download_res = SubdirIndexLoader::download_requests(
                     SubdirIndexLoader::build_all_index_requests(
                         subdirs_needing_index.begin(),
@@ -381,7 +465,7 @@ namespace mamba
                     ctx.mirrors,
                     ctx.download_options(),
                     ctx.remote_fetch_params,
-                    SubdirIndexMonitor::can_monitor(ctx) ? &index_monitor : nullptr
+                    nullptr
                 );
             }
 
@@ -517,6 +601,8 @@ namespace mamba
             bool loading_failed = false;
             const bool shard_then_expand = ctx.repodata_use_shards && !root_packages.empty();
             std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
+            bool used_flat_repodata = false;
+            std::optional<std::chrono::steady_clock::time_point> flat_repodata_started_at;
 
             auto try_load = [&](std::size_t i, bool full_repodata_only_pass) -> void
             {
@@ -563,7 +649,9 @@ namespace mamba
                     loaded_subdirs_with_shards,
                     subdir_params,
                     priorities,
-                    python_minor_version_for_prefilter
+                    python_minor_version_for_prefilter,
+                    &used_flat_repodata,
+                    &flat_repodata_started_at
                 );
 
                 if (result)
@@ -626,6 +714,14 @@ namespace mamba
                 try_load(i, /*full_repodata_only_pass=*/false);
             }
 
+            if (used_flat_repodata)
+            {
+                const auto started_at = flat_repodata_started_at.value_or(
+                    std::chrono::steady_clock::now()
+                );
+                print_parsing_records_done(std::chrono::steady_clock::now() - started_at);
+            }
+
             return loading_failed;
         }
 
@@ -674,15 +770,6 @@ namespace mamba
                     continue;
                 }
                 SubdirIndexLoader subdir_index_loader = std::move(subdir_index_loader_result).value();
-
-                // Only show flat repodata cache status if we're not using shards and we have a
-                // valid cache
-                if (!ctx.repodata_use_shards && subdir_index_loader.valid_cache_found()
-                    && Console::can_report_status())
-                {
-                    Console::stream()
-                        << fmt::format("{:<50} {:>20}", subdir_index_loader.name(), "Using cache");
-                }
 
                 subdir_index_loaders.push_back(std::move(subdir_index_loader));
                 if (ctx.channel_priority == ChannelPriority::Disabled)

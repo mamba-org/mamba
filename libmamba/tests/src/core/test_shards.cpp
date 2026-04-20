@@ -2376,8 +2376,8 @@ TEST_CASE("Shards - Disk caching")
 {
     const auto tmp_dir = TemporaryDirectory();
     // Cache path should match shard_cache_path: {XDG_CACHE_HOME}/conda/pkgs/cache/shards/
-    const auto cache_dir = tmp_dir.path() / cache_paths::conda_pkgs_relative
-                           / cache_paths::cache_shards_relative;
+    const auto cache_dir = tmp_dir.path() / std::string(cache_paths::conda_pkgs_relative)
+                           / std::string(cache_paths::cache_shards_relative);
 
     // Set up environment to use our test cache directory
     mambatests::EnvironmentCleaner env_cleaner;

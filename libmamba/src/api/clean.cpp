@@ -71,14 +71,14 @@ namespace mamba
 
             for (auto* pkg_cache : caches.writable_caches())
             {
-                remove_cache_dir(pkg_cache->path() / cache_paths::cache_relative);
+                remove_cache_dir(pkg_cache->path() / std::string(cache_paths::cache_relative));
             }
 
             // Shard files are cached under the user cache root and may not be in configured
             // package caches (for example when only MAMBA_ROOT_PREFIX/pkgs is configured).
             remove_cache_dir(
-                fs::u8path(util::user_cache_dir()) / cache_paths::conda_pkgs_relative
-                / cache_paths::cache_shards_relative
+                fs::u8path(util::user_cache_dir()) / std::string(cache_paths::conda_pkgs_relative)
+                / std::string(cache_paths::cache_shards_relative)
             );
         }
 

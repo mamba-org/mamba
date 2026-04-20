@@ -469,8 +469,10 @@ namespace mamba
         , m_download_threads(normalize_to_affinity_concurrency(static_cast<int>(download_threads)))
         , m_mirrors(std::move(mirrors))
         , m_python_minor_version_for_prefilter(std::move(python_minor_version_for_prefilter))
-        , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / cache_paths::conda_pkgs_relative)
-        , m_shard_cache_dir(m_pkgs_cache_root / cache_paths::cache_shards_relative)
+        , m_pkgs_cache_root(
+              fs::u8path(util::user_cache_dir()) / std::string(cache_paths::conda_pkgs_relative)
+          )
+        , m_shard_cache_dir(m_pkgs_cache_root / std::string(cache_paths::cache_shards_relative))
     {
     }
 

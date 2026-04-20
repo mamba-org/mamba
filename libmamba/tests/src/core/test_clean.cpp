@@ -32,8 +32,9 @@ namespace mamba
         util::set_env("CONDA_PKGS_DIRS", tmp_pkgs_dir.path().string());
         util::set_env("XDG_CACHE_HOME", tmp_cache_home.path().string());
 
-        const auto shard_cache_dir = tmp_cache_home.path() / cache_paths::conda_pkgs_relative
-                                     / cache_paths::cache_shards_relative;
+        const auto shard_cache_dir = tmp_cache_home.path()
+                                     / std::string(cache_paths::conda_pkgs_relative)
+                                     / std::string(cache_paths::cache_shards_relative);
         fs::create_directories(shard_cache_dir);
         const auto shard_file = shard_cache_dir / "dummy.msgpack.zst";
         {

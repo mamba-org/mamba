@@ -66,7 +66,12 @@ namespace mamba
 
             SECTION("rewrites standard path for freethreaded builds")
             {
-                python_pkg.python_site_packages_path = "lib/python3.13/site-packages";
+                python_pkg.python_site_packages_path =
+#ifdef _WIN32
+                    "Lib/site-packages";
+#else
+                    "lib/python3.13/site-packages";
+#endif
 
                 REQUIRE(
                     effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"

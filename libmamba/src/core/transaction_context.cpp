@@ -59,10 +59,15 @@ namespace mamba
             {
                 const std::string std_site_packages = short_ver.empty()
                                                           ? std::string{}
+#ifdef _WIN32
+                                                          : (fs::u8path("Lib") / "site-packages")
+                                                                .generic_string();
+#else
                                                           : (fs::u8path("lib")
                                                              / util::concat("python", short_ver)
                                                              / "site-packages")
                                                                 .generic_string();
+#endif
                 if (python_pkg.python_site_packages_path == std_site_packages)
                 {
                     return ft_site_packages;

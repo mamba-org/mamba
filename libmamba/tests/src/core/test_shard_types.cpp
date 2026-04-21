@@ -222,4 +222,23 @@ TEST_CASE("to_package_info conversion", "[mamba::core][mamba::core::shard_types]
         REQUIRE(pkg_info.dependencies.empty());
         REQUIRE(pkg_info.constrains.empty());
     }
+
+    SECTION("Preserve raw version formatting when available")
+    {
+        specs::RepoDataPackage record;
+        record.name = "conda-forge-pinning";
+        record.version = specs::Version::parse("2026.04.07.10.45.57").value();
+        record.raw_version = "2026.04.07.10.45.57";
+        record.build_string = "hd8ed1ab_0";
+
+        specs::PackageInfo pkg_info = to_package_info(
+            record,
+            "conda-forge-pinning-2026.04.07.10.45.57-hd8ed1ab_0.conda",
+            "conda-forge",
+            "noarch",
+            "https://conda.anaconda.org/conda-forge/noarch"
+        );
+
+        REQUIRE(pkg_info.version == "2026.04.07.10.45.57");
+    }
 }

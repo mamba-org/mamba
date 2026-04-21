@@ -4,9 +4,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 
-cmake_minimum_required(VERSION 3.16)
-cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
-cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
+cmake_minimum_required(VERSION 3.16...4.1)
 project(micromamba)
 
 include(GNUInstallDirs)
@@ -133,7 +131,7 @@ if(BUILD_SHARED AND UNIX)
 
     install(
         FILES ${CMAKE_CURRENT_BINARY_DIR}/etc/profile.d/mamba.sh
-        DESTINATION ${CMAKE_INSTALL_PREFIX}/etc/profile.d/
+        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/profile.d/
     )
 endif()
 

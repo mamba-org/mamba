@@ -660,7 +660,7 @@ def test_install_check_dirs(tmp_home, tmp_root_prefix):
     assert "nodejs" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
     if helpers.platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "site-packages")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages")
     else:
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages")
 
@@ -673,9 +673,9 @@ def test_install_python_site_packages_path(tmp_home, tmp_root_prefix):
     helpers.install("-n", env_name, "imagesize")
 
     if helpers.platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "python3.13t" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "python3.13" / "site-packages" / "imagesize")
+        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory
         assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
@@ -697,18 +697,15 @@ def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix
 
     assert res_install["success"]
     if is_windows:
-        # On Windows, the `python_site_packages_path`` is the same regardless of the python_version
-        # and of the freethreading builds.
-        python_site_packages_path_313 = env_prefix / "lib" / "site-packages"
-        python_site_packages_path_313t = python_site_packages_path_313
+        python_site_packages_path_313 = env_prefix / "Lib" / "site-packages"
+        python_site_packages_path_313t = env_prefix / "lib" / "python3.13t" / "site-packages"
     else:
         python_site_packages_path_313 = env_prefix / "lib" / "python3.13" / "site-packages"
         python_site_packages_path_313t = env_prefix / "lib" / "python3.13t" / "site-packages"
     assert os.path.isdir(python_site_packages_path_313)
     assert os.path.isdir(python_site_packages_path_313 / "numpy")
     assert os.path.isdir(python_site_packages_path_313 / "boltons")
-    if not is_windows:
-        assert not os.path.isdir(python_site_packages_path_313t)
+    assert not os.path.isdir(python_site_packages_path_313t)
 
     res_update = helpers.install("-n", env_name, "--json", "python=3.13", "python-freethreading")
 

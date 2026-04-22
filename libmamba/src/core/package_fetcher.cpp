@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
@@ -463,16 +465,12 @@ namespace mamba
         // objects are never passed to this function — they're used for `mamba list`,
         // dependency computation, etc.
         // See `PackageInfo::defaulted_keys`. Issue #4095.
-        auto contains_initialized = [&]()
-        {
-            return std::find(
-                       m_package_info.defaulted_keys.begin(),
-                       m_package_info.defaulted_keys.end(),
-                       specs::defaulted_key::initialized
-                   )
-                   != m_package_info.defaulted_keys.end();
-        };
-        if (!contains_initialized())
+        const bool contains_initialized = std::ranges::find(
+                                              m_package_info.defaulted_keys,
+                                              specs::defaulted_key::initialized
+                                          )
+                                          != m_package_info.defaulted_keys.end();
+        if (!contains_initialized)
         {
             throw std::logic_error(
                 "`PackageInfo` missing `_initialized` sentinel in `defaulted_keys`. "

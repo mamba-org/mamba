@@ -9,6 +9,8 @@
 #include <charconv>
 #include <cstdint>
 #include <limits>
+#include <ranges>
+#include <string_view>
 
 #include <solv/knownid.h>
 #include <solv/pool.h>
@@ -519,6 +521,23 @@ namespace solv
         ::solvable_set_num(raw(), SOLVABLE_INSTALLSTATUS, static_cast<Num>(val));
     }
 
+    namespace
+    {
+        auto join_csv(const std::vector<std::string>& keys) -> std::string
+        {
+            std::string out;
+            for (const auto& k : keys)
+            {
+                if (!out.empty())
+                {
+                    out += ',';
+                }
+                out += k;
+            }
+            return out;
+        }
+    }
+
     auto ObjSolvableViewConst::defaulted_keys() const -> std::vector<std::string>
     {
         // `SOLVABLE_KEYWORDS` repurposed for conda-specific `defaulted_keys` storage.
@@ -529,25 +548,9 @@ namespace solv
         }
 
         std::vector<std::string> result;
-        std::string current;
-        for (const char* p = str; *p != '\0'; ++p)
+        for (const auto token : std::views::split(std::string_view{ str }, ','))
         {
-            if (*p == ',')
-            {
-                if (!current.empty())
-                {
-                    result.push_back(std::move(current));
-                    current.clear();
-                }
-            }
-            else
-            {
-                current += *p;
-            }
-        }
-        if (!current.empty())
-        {
-            result.push_back(std::move(current));
+            result.emplace_back(token.begin(), token.end());
         }
         return result;
     }
@@ -566,15 +569,7 @@ namespace solv
             return;
         }
 
-        std::string serialized;
-        for (std::size_t i = 0; i < keys.size(); ++i)
-        {
-            if (i > 0)
-            {
-                serialized += ',';
-            }
-            serialized += keys[i];
-        }
+        const auto serialized = join_csv(keys);
         ::solvable_set_str(raw(), SOLVABLE_KEYWORDS, serialized.c_str());
     }
 }

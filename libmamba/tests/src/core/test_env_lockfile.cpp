@@ -4,6 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+
 #include <catch2/catch_all.hpp>
 #include <yaml-cpp/exceptions.h>
 
@@ -307,7 +309,7 @@ namespace mamba
         {
             // Helper to check if a value is in a vector
             auto contains = [](const std::vector<std::string>& v, std::string_view val) -> bool
-            { return std::find(v.begin(), v.end(), val) != v.end(); };
+            { return std::ranges::find(v, val) != v.end(); };
 
             const auto maybe_lockfile = read_environment_lockfile(lockfile_path);
             REQUIRE(maybe_lockfile);
@@ -358,7 +360,7 @@ namespace mamba
             // See: https://github.com/mamba-org/mamba/issues/4095
 
             auto contains = [](const std::vector<std::string>& v, std::string_view val) -> bool
-            { return std::find(v.begin(), v.end(), val) != v.end(); };
+            { return std::ranges::find(v, val) != v.end(); };
 
             const fs::u8path lockfile_path = mambatests::test_data_dir
                                              / "env_lockfile/good_one_package-lock.yaml";

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -134,7 +135,7 @@ namespace mamba
             specs::PackageInfo pkg = mamba::read_history_url_entry(s);
 
             auto contains = [](const std::vector<std::string>& v, std::string_view val)
-            { return std::find(v.begin(), v.end(), val) != v.end(); };
+            { return std::ranges::find(v, val) != v.end(); };
 
             REQUIRE_FALSE(pkg.defaulted_keys.empty());
             REQUIRE(contains(pkg.defaulted_keys, specs::defaulted_key::initialized));

@@ -9,7 +9,6 @@
 #include <charconv>
 #include <cstdint>
 #include <limits>
-#include <ranges>
 #include <string_view>
 
 #include <solv/knownid.h>
@@ -523,6 +522,22 @@ namespace solv
 
     namespace
     {
+        auto split_csv(std::string_view str) -> std::vector<std::string>
+        {
+            // `std::ranges::split_view` would be the natural choice, but its pre-P2210R2
+            // inner iterator is not usable with `std::string`'s iterator-pair constructor
+            // on GCC 11 (linuxbrew CI). See the same workaround in
+            // `libmamba/src/util/path_manip.cpp::path_is_prefix`.
+            std::vector<std::string> result;
+            for (auto pos = str.find(','); pos != std::string_view::npos; pos = str.find(','))
+            {
+                result.emplace_back(str.substr(0, pos));
+                str.remove_prefix(pos + 1);
+            }
+            result.emplace_back(str);
+            return result;
+        }
+
         auto join_csv(const std::vector<std::string>& keys) -> std::string
         {
             std::string out;
@@ -547,12 +562,7 @@ namespace solv
             return {};
         }
 
-        std::vector<std::string> result;
-        for (const auto token : std::views::split(std::string_view{ str }, ','))
-        {
-            result.emplace_back(token.begin(), token.end());
-        }
-        return result;
+        return split_csv(str);
     }
 
     void ObjSolvableView::set_defaulted_keys(const std::vector<std::string>& keys) const

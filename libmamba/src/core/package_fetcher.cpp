@@ -524,17 +524,18 @@ namespace mamba
         }
 
         // Compute missing checksums from tarball. Issue #4095.
-        auto needs_md5 = !repodata_record.contains("md5") || !repodata_record["md5"].is_string()
-                         || repodata_record["md5"].get<std::string>().empty();
-        if (needs_md5)
+        auto needs_checksum = [&repodata_record](std::string_view key)
+        {
+            return !repodata_record.contains(key) || !repodata_record[key].is_string()
+                   || repodata_record[key].get<std::string>().empty();
+        };
+
+        if (needs_checksum("md5"))
         {
             repodata_record["md5"] = validation::md5sum(m_tarball_path);
         }
 
-        auto needs_sha256 = !repodata_record.contains("sha256")
-                            || !repodata_record["sha256"].is_string()
-                            || repodata_record["sha256"].get<std::string>().empty();
-        if (needs_sha256)
+        if (needs_checksum("sha256"))
         {
             repodata_record["sha256"] = validation::sha256sum(m_tarball_path);
         }

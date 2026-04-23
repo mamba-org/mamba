@@ -68,6 +68,7 @@ def rc_file(
     tmp_prefix,
     tmp_path,
     user_config_dir,
+    monkeypatch,
 ):
     """Parametrizable fixture to create an rc file at the desired location.
 
@@ -85,7 +86,7 @@ def rc_file(
         elif where == "user_config_dir":
             rc_file = user_config_dir / rc_filename
         elif where == "env_set_xdg":
-            os.environ["XDG_CONFIG_HOME"] = str(tmp_home / "custom_xdg_config_dir")
+            monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_home / "custom_xdg_config_dir"))
             rc_file = tmp_home / "custom_xdg_config_dir" / "mamba" / rc_filename
         elif where == "absolute":
             rc_file = Path(rc_filename)
@@ -255,31 +256,27 @@ class TestConfigList:
             "  - channel1\n  - channel2\n".splitlines()
         )
 
-    def test_env_vars(self):
-        os.environ["MAMBA_OFFLINE"] = "true"
+    def test_env_vars(self, monkeypatch):
+        monkeypatch.setenv("MAMBA_OFFLINE", "true")
         assert (
             config("list", "offline", "--no-rc", "-s").splitlines()
             == "offline: true  # 'MAMBA_OFFLINE'".splitlines()
         )
 
-        os.environ["MAMBA_OFFLINE"] = "false"
+        monkeypatch.setenv("MAMBA_OFFLINE", "false")
         assert (
             config("list", "offline", "--no-rc", "-s").splitlines()
             == "offline: false  # 'MAMBA_OFFLINE'".splitlines()
         )
-        os.environ.pop("MAMBA_OFFLINE")
 
-    def test_no_env(self):
-        os.environ["MAMBA_OFFLINE"] = "false"
-
+    def test_no_env(self, monkeypatch):
+        monkeypatch.setenv("MAMBA_OFFLINE", "false")
         assert (
             config("list", "offline", "--no-rc", "--no-env", "-s", "--offline").splitlines()
             == "offline: true  # 'CLI'".splitlines()
         )
 
-        os.environ.pop("MAMBA_OFFLINE")
-
-    def test_precedence(self):
+    def test_precedence(self, monkeypatch):
         rc_dir = os.path.expanduser(os.path.join("~", "test_mamba", helpers.random_string()))
         os.makedirs(rc_dir, exist_ok=True)
         rc_file = os.path.join(rc_dir, ".mambarc")
@@ -289,15 +286,12 @@ class TestConfigList:
             f.write("offline: true")
 
         try:
-            if "MAMBA_OFFLINE" in os.environ:
-                os.environ.pop("MAMBA_OFFLINE")
-
             assert (
                 config("list", "offline", f"--rc-file={rc_file}", "-s").splitlines()
                 == f"offline: true  # '{short_rc_file}'".splitlines()
             )
 
-            os.environ["MAMBA_OFFLINE"] = "false"
+            monkeypatch.setenv("MAMBA_OFFLINE", "false")
             assert (
                 config("list", "offline", "--no-rc", "-s").splitlines()
                 == "offline: false  # 'MAMBA_OFFLINE'".splitlines()
@@ -334,8 +328,6 @@ class TestConfigList:
                 == "offline: true  # 'CLI'".splitlines()
             )
         finally:
-            if "MAMBA_OFFLINE" in os.environ:
-                os.environ.pop("MAMBA_OFFLINE")
             shutil.rmtree(os.path.expanduser(os.path.join("~", "test_mamba")))
 
 

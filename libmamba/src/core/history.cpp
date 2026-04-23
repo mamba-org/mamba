@@ -376,6 +376,26 @@ namespace mamba
         std::string version = name_version.substr(pos_2 + 1, name_version.size());
 
         specs::PackageInfo pkg_info{ name, version, build_string, channel };
+
+        // History only provides name, version, build, channel.
+        // Other fields should be backfilled from `index.json` if possible.
+        // See issue #4095.
+        pkg_info.defaulted_keys = {
+            std::string(specs::defaulted_key::initialized),
+            std::string(specs::defaulted_key::build_number),
+            std::string(specs::defaulted_key::license),
+            std::string(specs::defaulted_key::timestamp),
+            std::string(specs::defaulted_key::track_features),
+            std::string(specs::defaulted_key::depends),
+            std::string(specs::defaulted_key::constrains),
+            std::string(specs::defaulted_key::subdir),
+            std::string(specs::defaulted_key::md5),
+            std::string(specs::defaulted_key::sha256),
+            std::string(specs::defaulted_key::size),
+            std::string(specs::defaulted_key::fn),
+            std::string(specs::defaulted_key::url),
+        };
+
         return pkg_info;
     }
 

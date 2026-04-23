@@ -9,6 +9,7 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <solv/pooltypes.h>
 
@@ -106,6 +107,20 @@ namespace solv
 
         /** The type for which the solvable is used. */
         auto type() const -> SolvableType;
+
+        /**
+         * Get the ``defaulted_keys`` stored in this solvable.
+         *
+         * Stored as a comma-separated string in ``SOLVABLE_KEYWORDS`` (repurposed
+         * for conda-specific metadata) and deserialized when retrieved.
+         *
+         * @note A call to @ref ObjRepoView::internalize is required after
+         *       @ref ObjSolvableView::set_defaulted_keys for this attribute to be available.
+         *
+         * @see ObjSolvableView::set_defaulted_keys
+         * @see PackageInfo::defaulted_keys
+         */
+        auto defaulted_keys() const -> std::vector<std::string>;
 
     private:
 
@@ -431,6 +446,20 @@ namespace solv
          * @see ObjSolvableViewConst::type
          */
         void set_type(SolvableType val) const;
+
+        /**
+         * Set the ``defaulted_keys`` for this solvable.
+         *
+         * Serialized as a comma-separated string in ``SOLVABLE_KEYWORDS``
+         * (repurposed for conda-specific metadata).
+         *
+         * @note A call to @ref ObjRepoView::internalize is required for this attribute
+         *       to be available for lookup via @ref ObjSolvableViewConst::defaulted_keys.
+         *
+         * @see ObjSolvableViewConst::defaulted_keys
+         * @see PackageInfo::defaulted_keys
+         */
+        void set_defaulted_keys(const std::vector<std::string>& keys) const;
     };
 
     /***************************************

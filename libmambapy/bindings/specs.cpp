@@ -733,7 +733,9 @@ namespace mambapy
                 py::arg("track_features") = decltype(PackageInfo::track_features)(),
                 py::arg("depends") = decltype(PackageInfo::dependencies)(),
                 py::arg("constrains") = decltype(PackageInfo::constrains)(),
-                py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys)(),
+                // Default `["_initialized"]` = trust all fields.
+                // See `PackageInfo::defaulted_keys`.
+                py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys){ "_initialized" },
                 py::arg("noarch") = decltype(PackageInfo::noarch)(),
                 py::arg("size") = decltype(PackageInfo::size)(),
                 py::arg("timestamp") = decltype(PackageInfo::timestamp)()

@@ -9,6 +9,7 @@
 #include <charconv>
 #include <cstdint>
 #include <limits>
+#include <string_view>
 
 #include <solv/knownid.h>
 #include <solv/pool.h>
@@ -517,5 +518,68 @@ namespace solv
         using Num = std::underlying_type_t<SolvableType>;
         // (Ab)using meaningless key
         ::solvable_set_num(raw(), SOLVABLE_INSTALLSTATUS, static_cast<Num>(val));
+    }
+
+    namespace
+    {
+        auto split_csv(std::string_view str) -> std::vector<std::string>
+        {
+            // `std::ranges::split_view` would be the natural choice, but its pre-P2210R2
+            // inner iterator is not usable with `std::string`'s iterator-pair constructor
+            // on GCC 11 (linuxbrew CI). See the same workaround in
+            // `libmamba/src/util/path_manip.cpp::path_is_prefix`.
+            std::vector<std::string> result;
+            for (auto pos = str.find(','); pos != std::string_view::npos; pos = str.find(','))
+            {
+                result.emplace_back(str.substr(0, pos));
+                str.remove_prefix(pos + 1);
+            }
+            result.emplace_back(str);
+            return result;
+        }
+
+        auto join_csv(const std::vector<std::string>& keys) -> std::string
+        {
+            std::string out;
+            for (const auto& k : keys)
+            {
+                if (!out.empty())
+                {
+                    out += ',';
+                }
+                out += k;
+            }
+            return out;
+        }
+    }
+
+    auto ObjSolvableViewConst::defaulted_keys() const -> std::vector<std::string>
+    {
+        // `SOLVABLE_KEYWORDS` repurposed for conda-specific `defaulted_keys` storage.
+        const char* str = ::solvable_lookup_str(const_cast<::Solvable*>(raw()), SOLVABLE_KEYWORDS);
+        if (str == nullptr || str[0] == '\0')
+        {
+            return {};
+        }
+
+        return split_csv(str);
+    }
+
+    void ObjSolvableView::set_defaulted_keys(const std::vector<std::string>& keys) const
+    {
+        // Exclusive-ownership assumption: `SOLVABLE_KEYWORDS` is entirely owned by
+        // `defaulted_keys`. The plain comma-separated encoding has no namespace prefix,
+        // so other data cannot coexist in this field without a format change.
+        // `SOLVABLE_KEYWORDS` is unused in the conda ecosystem (libsolv maps it from
+        // RPM's Keywords tag, which has no conda equivalent), so collision risk is nil.
+        if (keys.empty())
+        {
+            // Store empty string for empty list (libsolv's unset behavior is unreliable)
+            ::solvable_set_str(raw(), SOLVABLE_KEYWORDS, "");
+            return;
+        }
+
+        const auto serialized = join_csv(keys);
+        ::solvable_set_str(raw(), SOLVABLE_KEYWORDS, serialized.c_str());
     }
 }

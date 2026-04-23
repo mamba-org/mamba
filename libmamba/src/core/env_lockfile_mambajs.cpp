@@ -96,6 +96,20 @@ namespace mamba
                 // chosen channel mirror url
             }
 
+            // The mambajs lockfile only contains: name, version, build, subdir, channel, hash.
+            // All other fields have stub values and should be replaced from `index.json`.
+            // See issue #4095.
+            package.info.defaulted_keys = {
+                std::string(specs::defaulted_key::initialized),
+                std::string(specs::defaulted_key::build_number),
+                std::string(specs::defaulted_key::license),
+                std::string(specs::defaulted_key::size),
+                std::string(specs::defaulted_key::timestamp),
+                std::string(specs::defaulted_key::track_features),
+                std::string(specs::defaulted_key::depends),
+                std::string(specs::defaulted_key::constrains),
+            };
+
             return package;
         }
 

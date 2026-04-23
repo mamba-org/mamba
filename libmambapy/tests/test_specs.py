@@ -839,6 +839,14 @@ def test_PackageInfo():
     assert other == pkg
     assert other is not pkg
 
+    # Default defaulted_keys contains _initialized sentinel (issue #4095)
+    default_pkg = PackageInfo()
+    assert default_pkg.defaulted_keys == ["_initialized"]
+
+    # Explicit defaulted_keys overrides the default
+    custom_pkg = PackageInfo(name="foo", defaulted_keys=["_initialized", "license", "timestamp"])
+    assert custom_pkg.defaulted_keys == ["_initialized", "license", "timestamp"]
+
 
 def test_PackageInfo_V2Migrator():
     """Explicit migration help added from v1 to v2."""

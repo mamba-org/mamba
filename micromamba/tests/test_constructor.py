@@ -1,8 +1,22 @@
+"""
+Tests for micromamba constructor command.
+
+Includes tests for:
+- Basic package extraction
+- URL-derived metadata handling (issue #4095)
+- Consistent field presence (depends/constrains arrays)
+"""
+
 import glob
+import hashlib
 import json
 import os
 import shutil
 import subprocess
+import tarfile
+from pathlib import Path
+
+import pytest
 
 from . import helpers
 
@@ -83,3 +97,278 @@ class TestInstall:
             assert repodata_record["md5"] == "123412341234"
             assert repodata_record["url"] == "http://testurl.com/conda-forge/linux-64/" + pkg
             assert repodata_record["depends"] == index["depends"]
+
+
+class TestURLDerivedMetadata:
+    """
+    Tests for URL-derived metadata handling (GitHub issue #4095).
+
+    When packages are installed from URLs (not from solver), the PackageInfo
+    is created via from_url() which only has stub values for metadata fields.
+    The constructor should merge these with values from index.json.
+
+    Also tests consistent field presence:
+    - depends and constrains should always be present as arrays
+    - track_features should be omitted when empty
+    """
+
+    pkg_name = "testmeta-1.0-h0_42"
+    pkg_filename = pkg_name + ".tar.bz2"
+    index_json = {
+        "name": "testmeta",
+        "version": "1.0",
+        "build": "h0_42",
+        "build_number": 42,
+        "license": "MIT",
+        "timestamp": 1234567890,
+        "depends": ["python >=3.8"],
+        "constrains": ["otherpkg >=2.0"],
+    }
+
+    @pytest.fixture(autouse=True, scope="class")
+    def _setup(self, tmp_path_factory):
+        """Set up temp dirs and env vars via fixtures."""
+        base = tmp_path_factory.mktemp("mamba_test_url")
+        root_prefix = base / "root"
+        pkgs_dir = root_prefix / "pkgs"
+        pkgs_dir.mkdir(parents=True)
+
+        type(self).root_prefix = str(root_prefix)
+        type(self).pkgs_dir = pkgs_dir
+        type(self).pkg_path = pkgs_dir / self.pkg_filename
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("MAMBA_ROOT_PREFIX", self.root_prefix)
+            mp.setenv("CONDA_PREFIX", self.root_prefix)
+
+            self._create_test_package(base)
+
+            (pkgs_dir / "urls").write_text(
+                f"http://test.example.com/channel/linux-64/{self.pkg_filename}#abc123def456\n"
+            )
+
+            yield
+
+    @classmethod
+    def _create_test_package(cls, base):
+        """Create a minimal conda package tarball."""
+        info_dir = base / "pkg_build" / cls.pkg_name / "info"
+        info_dir.mkdir(parents=True)
+
+        (info_dir / "index.json").write_text(json.dumps(cls.index_json))
+        (info_dir / "paths.json").write_text(json.dumps({"paths": [], "paths_version": 1}))
+
+        with tarfile.open(cls.pkg_path, "w:bz2") as tar:
+            tar.add(info_dir, arcname="info")
+
+    def test_url_derived_metadata_from_index_json(self):
+        """
+        Test that URL-derived packages get metadata from index.json.
+
+        This is the core test for GitHub issue #4095. When packages are
+        installed from URLs, the repodata_record.json should contain
+        correct values from index.json, not stub values.
+
+        Specifically tests:
+        - license comes from index.json (not empty string)
+        - timestamp comes from index.json (not 0)
+        - build_number comes from index.json (not 0)
+        - depends comes from index.json
+        - constrains comes from index.json
+        """
+        constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
+
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
+        assert repodata_path.exists(), f"repodata_record.json not found at {repodata_path}"
+        repodata_record = json.loads(repodata_path.read_text())
+
+        assert repodata_record.get("license") == "MIT", (
+            f"license should be 'MIT' from index.json, got '{repodata_record.get('license')}'"
+        )
+        assert repodata_record.get("timestamp") == 1234567890, (
+            f"timestamp should be 1234567890 from index.json, got {repodata_record.get('timestamp')}"
+        )
+        assert repodata_record.get("build_number") == 42, (
+            f"build_number should be 42 from index.json, got {repodata_record.get('build_number')}"
+        )
+        assert repodata_record.get("depends") == ["python >=3.8"], (
+            f"depends should match index.json, got {repodata_record.get('depends')}"
+        )
+        assert repodata_record.get("constrains") == ["otherpkg >=2.0"], (
+            f"constrains should match index.json, got {repodata_record.get('constrains')}"
+        )
+
+    def test_consistent_field_presence(self):
+        """
+        Test that depends and constrains are always present as arrays.
+
+        Even if they're missing from index.json, they should be present
+        as empty arrays in repodata_record.json (matching conda behavior).
+        """
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
+        if not repodata_path.exists():
+            constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
+
+        repodata_record = json.loads(repodata_path.read_text())
+
+        assert "depends" in repodata_record, "depends should be present"
+        assert isinstance(repodata_record["depends"], list), "depends should be a list"
+
+        assert "constrains" in repodata_record, "constrains should be present"
+        assert isinstance(repodata_record["constrains"], list), "constrains should be a list"
+
+    def test_track_features_omitted_when_empty(self):
+        """
+        Test that track_features is omitted when empty.
+
+        Matches conda behavior to reduce JSON noise.
+        """
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
+
+        if not repodata_path.exists():
+            constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
+
+        repodata_record = json.loads(repodata_path.read_text())
+
+        if "track_features" in repodata_record:
+            tf = repodata_record["track_features"]
+            assert tf, f"track_features should be omitted when empty, got '{tf}'"
+
+
+class TestChannelPatchPreservation:
+    """
+    Tests that cached channel repodata values (including channel patches) are preserved.
+
+    This is a regression test for the fix that simplified constructor.cpp to trust
+    cached repodata instead of incorrectly erasing fields based on pkg_info.defaulted_keys.
+
+    The old (incorrect) behavior:
+    - pkg_info from from_url() has defaulted_keys listing stub fields
+    - Those fields were erased from cached repodata (a DIFFERENT object!)
+    - Then filled from index.json
+
+    The new (correct) behavior:
+    - Trust cached repodata values (they may contain intentional channel patches)
+    - Only fill in MISSING keys from index.json
+
+    See GitHub issue #4095.
+    """
+
+    pkg_name = "patchtest-1.0-h0_1"
+    pkg_filename = pkg_name + ".tar.bz2"
+    channel_url = "http://patched.example.com/channel/linux-64/"
+
+    index_json = {
+        "name": "patchtest",
+        "version": "1.0",
+        "build": "h0_1",
+        "build_number": 1,
+        "license": "BSD-3-Clause",
+        "timestamp": 1000000000,
+        "depends": ["libfoo >=1.0"],
+        "constrains": [],
+    }
+
+    patched_repodata = {
+        "name": "patchtest",
+        "version": "1.0",
+        "build": "h0_1",
+        "build_number": 1,
+        "license": "MIT",
+        "timestamp": 2000000000,
+        "depends": ["libfoo >=1.0", "libbar <2.0"],
+        "constrains": ["conflicting-pkg"],
+    }
+
+    @pytest.fixture(autouse=True, scope="class")
+    def _setup(self, tmp_path_factory):
+        """Set up temp dirs and env vars via fixtures."""
+        base = tmp_path_factory.mktemp("mamba_test_channel_patch")
+        root_prefix = base / "root"
+        pkgs_dir = root_prefix / "pkgs"
+        cache_dir = pkgs_dir / "cache"
+        cache_dir.mkdir(parents=True)
+
+        type(self).root_prefix = str(root_prefix)
+        type(self).pkgs_dir = pkgs_dir
+        type(self).pkg_path = pkgs_dir / self.pkg_filename
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("MAMBA_ROOT_PREFIX", self.root_prefix)
+            mp.setenv("CONDA_PREFIX", self.root_prefix)
+
+            self._create_test_package(base)
+            self._create_cached_repodata(cache_dir)
+
+            (pkgs_dir / "urls").write_text(
+                f"{self.channel_url}{self.pkg_filename}#deadbeef12345678\n"
+            )
+
+            yield
+
+    @classmethod
+    def _create_test_package(cls, base):
+        """Create a minimal conda package tarball with index.json."""
+        info_dir = base / "pkg_build" / cls.pkg_name / "info"
+        info_dir.mkdir(parents=True)
+
+        (info_dir / "index.json").write_text(json.dumps(cls.index_json))
+        (info_dir / "paths.json").write_text(json.dumps({"paths": [], "paths_version": 1}))
+
+        with tarfile.open(cls.pkg_path, "w:bz2") as tar:
+            tar.add(info_dir, arcname="info")
+
+    @classmethod
+    def _create_cached_repodata(cls, cache_dir: Path):
+        """Create cached channel repodata with patched values."""
+        repodata = {
+            "packages": {
+                cls.pkg_filename: cls.patched_repodata,
+            },
+            "packages.conda": {},
+        }
+
+        url_hash = hashlib.md5(cls.channel_url.encode()).hexdigest()[:8]
+        (cache_dir / f"{url_hash}.json").write_text(json.dumps(repodata))
+
+    def test_channel_patches_preserved(self):
+        """
+        Test that channel-patched values in cached repodata are preserved.
+
+        This is a RED-GREEN test:
+        - RED (old code): Would erase 'license', 'timestamp', 'depends', 'constrains'
+          from cached repodata based on pkg_info.defaulted_keys, then fill from
+          index.json, losing the channel patches.
+        - GREEN (new code): Trusts cached repodata, preserving channel patches.
+          Only fills in MISSING keys from index.json.
+
+        The test verifies that the patched values (which differ from index.json)
+        are preserved in the final repodata_record.json.
+        """
+        constructor("--prefix", self.root_prefix, "--extract-conda-pkgs")
+
+        repodata_path = self.pkgs_dir / self.pkg_name / "info" / "repodata_record.json"
+        assert repodata_path.exists(), f"repodata_record.json not found at {repodata_path}"
+        repodata_record = json.loads(repodata_path.read_text())
+
+        assert repodata_record.get("license") == "MIT", (
+            f"Channel-patched license 'MIT' should be preserved, "
+            f"got '{repodata_record.get('license')}' (index.json has 'BSD-3-Clause')"
+        )
+
+        assert repodata_record.get("timestamp") == 2000000000, (
+            f"Channel-patched timestamp 2000000000 should be preserved, "
+            f"got {repodata_record.get('timestamp')} (index.json has 1000000000)"
+        )
+
+        expected_depends = ["libfoo >=1.0", "libbar <2.0"]
+        assert repodata_record.get("depends") == expected_depends, (
+            f"Channel-patched depends {expected_depends} should be preserved, "
+            f"got {repodata_record.get('depends')} (index.json has ['libfoo >=1.0'])"
+        )
+
+        expected_constrains = ["conflicting-pkg"]
+        assert repodata_record.get("constrains") == expected_constrains, (
+            f"Channel-patched constrains {expected_constrains} should be preserved, "
+            f"got {repodata_record.get('constrains')} (index.json has [])"
+        )

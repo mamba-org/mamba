@@ -15,10 +15,12 @@
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/package_info.hpp"
 
 namespace mamba
 {
     std::string compute_short_python_version(const std::string& long_version);
+    std::string effective_python_site_packages_path(const specs::PackageInfo& python_pkg);
     // supply short python version, e.g. 2.7, 3.5...
     fs::u8path get_python_short_path(const std::string& python_version);
     fs::u8path get_python_site_packages_short_path(const std::string& python_version);

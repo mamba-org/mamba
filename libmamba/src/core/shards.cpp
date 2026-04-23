@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <sstream>
+#include <optional>
 #include <thread>
 
 #include <fmt/format.h>
@@ -17,6 +17,7 @@
 #include <msgpack/zone.h>
 #include <zstd.h>
 
+#include "mamba/core/cache_paths.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/shard_types.hpp"
@@ -33,6 +34,8 @@
 #include "mamba/util/url.hpp"
 #include "mamba/util/url_manip.hpp"
 #include "mamba/validation/tools.hpp"
+
+#include "core/shard_python_minor_prefilter.hpp"
 
 namespace mamba
 {
@@ -183,7 +186,8 @@ namespace mamba
          * This handles the case where sha256 and md5 can be either strings or bytes
          * (as per Python TypedDict: NotRequired[str | bytes]).
          */
-        auto parse_shard_package_record(const msgpack_object& obj) -> specs::RepoDataPackage
+        auto parse_shard_package_record(const msgpack_object& obj, std::string_view package_filename)
+            -> specs::RepoDataPackage
         {
             specs::RepoDataPackage record;
 
@@ -222,6 +226,7 @@ namespace mamba
                     else if (key == "version")
                     {
                         const auto version_str = msgpack_object_to_string(val_obj);
+                        record.raw_version = version_str;
                         auto parsed = specs::Version::parse(version_str);
                         record.version = parsed ? parsed.value() : specs::Version(0, { { { 0 } } });
                     }
@@ -364,8 +369,12 @@ namespace mamba
                 catch (const std::exception& e)
                 {
                     LOG_WARNING << "Failed to parse field '" << key
-                                << "' (type=" << static_cast<int>(val_obj.type)
-                                << ") in shard package record: " << e.what();
+                                << "' (msgpack type=" << static_cast<int>(val_obj.type)
+                                << ") in shard package record"
+                                << (package_filename.empty()
+                                        ? ""
+                                        : (" for '" + std::string(package_filename) + "'"))
+                                << ": " << e.what() << ". This field will be ignored.";
                     // Continue parsing other fields
                 }
             }
@@ -383,6 +392,60 @@ namespace mamba
 
             return record;
         }
+
+        /**
+         * Whether a raw shard package record's ``depends`` list is compatible with the
+         * requested environment python minor.
+         *
+         * When ``python_minor_version_for_prefilter`` is unset, returns true (no prefilter).
+         * When set, inspects ``depends`` entries for ``python`` and keeps the record only if
+         * each such constraint contains that minor (see
+         * ``matches_python_minor``).
+         */
+        bool record_depends_on_python_minor_version_for_prefilter(
+            const msgpack_object& raw_record_obj,
+            const std::optional<specs::Version>& python_minor_version_for_prefilter
+        )
+        {
+            if (!python_minor_version_for_prefilter.has_value())
+            {
+                // No requested python minor version is provided
+                // so the build is installable in the environment.
+                return true;
+            }
+            if (raw_record_obj.type != MSGPACK_OBJECT_MAP)
+            {
+                return true;
+            }
+            for (std::uint32_t i = 0; i < raw_record_obj.via.map.size; ++i)
+            {
+                const msgpack_object& key_obj = raw_record_obj.via.map.ptr[i].key;
+                const msgpack_object& val_obj = raw_record_obj.via.map.ptr[i].val;
+                std::string key;
+                try
+                {
+                    key = msgpack_object_to_string(key_obj);
+                }
+                catch (const std::exception&)
+                {
+                    continue;
+                }
+                if (key != "depends")
+                {
+                    continue;
+                }
+                const auto depends = msgpack_object_to_string_array(val_obj);
+                for (const auto& dep : depends)
+                {
+                    if (!matches_python_minor(dep, python_minor_version_for_prefilter.value()))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return true;
+        }
     }
 
     /******************
@@ -396,7 +459,8 @@ namespace mamba
         specs::AuthenticationDataBase auth_info,
         download::RemoteFetchParams remote_fetch_params,
         std::size_t download_threads,
-        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors
+        std::optional<std::reference_wrapper<const download::mirror_map>> mirrors,
+        std::optional<specs::Version> python_minor_version_for_prefilter
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -405,8 +469,11 @@ namespace mamba
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(normalize_to_affinity_concurrency(static_cast<int>(download_threads)))
         , m_mirrors(std::move(mirrors))
-        , m_pkgs_cache_root(fs::u8path(util::user_cache_dir()) / "conda" / "pkgs")
-        , m_shard_cache_dir(m_pkgs_cache_root / "cache" / "shards")
+        , m_python_minor_version_for_prefilter(std::move(python_minor_version_for_prefilter))
+        , m_pkgs_cache_root(
+              fs::u8path(util::user_cache_dir()) / std::string(cache_paths::conda_pkgs_relative)
+          )
+        , m_shard_cache_dir(m_pkgs_cache_root / std::string(cache_paths::cache_shards_relative))
     {
     }
 
@@ -927,19 +994,35 @@ namespace mamba
             const msgpack_object& obj = unpacked.data;
             ShardDict shard;
 
-            auto parse_package_records = [](const msgpack_object& map_obj,
-                                            std::map<std::string, specs::RepoDataPackage>& target_map,
-                                            const std::string& map_name)
+            auto parse_package_records = [this](
+                                             const msgpack_object& map_obj,
+                                             std::map<std::string, specs::RepoDataPackage>& target_map,
+                                             const std::string& map_name
+                                         )
             {
                 for (std::uint32_t k = 0; k < map_obj.via.map.size; ++k)
                 {
+                    const auto& msgpack_record = map_obj.via.map.ptr[k];
+                    const msgpack_object& val = msgpack_record.val;
+                    const msgpack_object& key = msgpack_record.key;
                     try
                     {
-                        std::string pkg_filename = msgpack_object_to_string(map_obj.via.map.ptr[k].key);
-                        specs::RepoDataPackage record = parse_shard_package_record(
-                            map_obj.via.map.ptr[k].val
+                        // Filter out builds which depend on another python minor version
+                        // than the one requested. This significantly reduces the number of
+                        // builds to parse and to provide to the solver for dependency resolution.
+                        if (!record_depends_on_python_minor_version_for_prefilter(
+                                val,
+                                m_python_minor_version_for_prefilter
+                            ))
+                        {
+                            continue;
+                        }
+                        std::string pkg_filename = msgpack_object_to_string(key);
+                        specs::RepoDataPackage parsed_record = parse_shard_package_record(
+                            val,
+                            pkg_filename
                         );
-                        target_map[pkg_filename] = record;
+                        target_map[pkg_filename] = std::move(parsed_record);
                     }
                     catch (const std::exception& e)
                     {

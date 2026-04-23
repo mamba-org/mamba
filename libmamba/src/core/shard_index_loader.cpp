@@ -34,6 +34,12 @@
 
 namespace
 {
+    auto done_with_duration(std::chrono::steady_clock::duration elapsed) -> std::string
+    {
+        const double seconds = std::chrono::duration<double>(elapsed).count();
+        return fmt::format("✔ Done ({:.1f} sec)", seconds);
+    }
+
     /**
      * Parse the "shards" map from msgpack (package name -> hash bytes).
      */
@@ -611,8 +617,9 @@ namespace mamba
                 label = label.substr(0, 82) + "...";
             }
 
-            Console::instance().print(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
+            Console::instance().print_in_place(fmt::format("{:<85} {:>20}", label, "⧖ Starting"));
         }
+        const auto started_at = std::chrono::steady_clock::now();
 
         // Build download request
         auto request_opt = build_shard_index_request(
@@ -686,7 +693,14 @@ namespace mamba
                 {
                     done_label = done_label.substr(0, 82) + "...";
                 }
-                Console::instance().print(fmt::format("{:<85} {:>20}", done_label, "✔ Done"));
+                Console::instance().print_in_place(
+                    fmt::format(
+                        "{:<85} {:>20}",
+                        done_label,
+                        done_with_duration(std::chrono::steady_clock::now() - started_at)
+                    ),
+                    true
+                );
             }
             return std::optional<ShardsIndexDict>(std::move(index_result.value()));
         }

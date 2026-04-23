@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <chrono>
 #include <set>
 #include <vector>
 
@@ -43,6 +44,12 @@ namespace mamba
 
     namespace
     {
+        auto done_with_duration(std::chrono::steady_clock::duration elapsed) -> std::string
+        {
+            const double seconds = std::chrono::duration<double>(elapsed).count();
+            return fmt::format("✔ Done ({:.1f} sec)", seconds);
+        }
+
         void add_names_from_specs(const std::vector<std::string>& specs, std::set<std::string>& names)
         {
             for (const auto& spec : specs)
@@ -111,10 +118,11 @@ namespace mamba
         }
         if (Console::can_report_status())
         {
-            Console::instance().print(
+            Console::instance().print_in_place(
                 fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "⧖ Starting")
             );
         }
+        const auto started_at = std::chrono::steady_clock::now();
         if (strategy == "bfs")
         {
             reachable_bfs(root_packages, root_shards);
@@ -125,8 +133,13 @@ namespace mamba
         }
         if (Console::can_report_status())
         {
-            Console::instance().print(
-                fmt::format("{:<85} {:>20}", "Fetching and Parsing Packages' Shards", "✔ Done")
+            Console::instance().print_in_place(
+                fmt::format(
+                    "{:<85} {:>20}",
+                    "Fetching and Parsing Packages' Shards",
+                    done_with_duration(std::chrono::steady_clock::now() - started_at)
+                ),
+                true
             );
         }
     }

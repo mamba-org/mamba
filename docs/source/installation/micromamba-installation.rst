@@ -116,7 +116,7 @@ If you want to quickly use micromamba in an ad-hoc usecase, you can run
 
 This shell hook modifies your shell variables to include the micromamba command.
 
-If you want to persist these changes, you can automatically write them to your ``.bashrc`` (or ``.zshrc``) by running ``./micromamba shell init ...``.
+If you want to persist these changes, you can automatically write them to your ``.bashrc`` (or ``.zshrc``) by running ``./bin/micromamba shell init ...``.
 This also allows you to choose a custom MAMBA_ROOT_ENVIRONMENT, which is where the packages and repodata cache will live.
 
 .. code:: sh

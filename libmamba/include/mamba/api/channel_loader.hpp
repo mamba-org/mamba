@@ -7,11 +7,13 @@
 #ifndef MAMBA_API_CHANNEL_LOADER_HPP
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/specs/version.hpp"
 
 namespace mamba
 {
@@ -41,6 +43,8 @@ namespace mamba
      * @param subdir_idx Index of the subdir to load in \p subdirs.
      * @param loaded_subdirs_with_shards Set of subdir names already loaded via shards (updated).
      * @param priorities Repo priorities aligned with \p subdirs.
+     * @param python_minor_version_for_prefilter Optional python minor for shard record prefiltering
+     * (from \c prepare_solver_context).
      * @return The repo for the requested subdir, or unexpected mamba_error on failure.
      */
     auto load_subdir_with_shards(
@@ -50,7 +54,8 @@ namespace mamba
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities
+        const std::vector<solver::libsolv::Priorities>& priorities,
+        std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt
     ) -> expected_t<solver::libsolv::RepoInfo>;
 
     class ChannelContext;
@@ -67,9 +72,12 @@ namespace mamba
      *      for subdirs that will not use shards.
      *   4. Optionally, when offline, add repos from local `pkgs_dir`.
      *   5. For each subdir, load it into the database:
-     *        - when sharded repodata is enabled and up to date (and `root_packages` non-empty),
-     *          prefer `load_subdir_with_shards` and fall back to full repodata on failure;
-     *        - otherwise, load from full repodata (cached or freshly downloaded).
+     *        - when sharded repodata is enabled with non-empty `root_packages`, full-repodata
+     *          subdirs (no shard index) load first; dependency names from those repos extend
+     *          `root_packages` so shard-based loads stay complete across channels; then shard
+     *          subdirs load, with fallback to full `repodata.json` if shard loading fails.
+     *        - otherwise, prefer shards when applicable with the same fallback, or load full
+     *          repodata when shards are disabled or `root_packages` is empty.
      *      Recoverable errors are aggregated and, when cache corruption is detected, a single
      *      retry with cache invalidation is performed before reporting failure.
      *
@@ -86,7 +94,8 @@ namespace mamba
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         MultiPackageCache& package_caches,
-        const std::vector<std::string>& root_packages = {}
+        const std::vector<std::string>& root_packages = {},
+        std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt
     ) -> expected_t<void, mamba_aggregated_error>;
 
     /* Brief Creates channels and mirrors objects,

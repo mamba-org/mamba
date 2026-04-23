@@ -35,6 +35,58 @@ namespace mamba
         return util::concat(sv[0], '.', sv[1]);
     }
 
+    auto effective_python_site_packages_path(const specs::PackageInfo& python_pkg) -> std::string
+    {
+        const std::string short_ver = compute_short_python_version(python_pkg.version);
+        std::string compact = short_ver;
+        util::replace_all(compact, ".", "");
+        const bool freethreaded_build = !python_pkg.build_string.empty() && !compact.empty()
+                                        && util::contains(
+                                            python_pkg.build_string,
+                                            util::concat("cp", compact, "t")
+                                        );
+
+        const std::string ft_site_packages = (short_ver.empty() || python_pkg.build_string.empty())
+                                                 ? std::string{}
+                                                 : (fs::u8path("lib")
+                                                    / util::concat("python", short_ver, "t")
+                                                    / "site-packages")
+                                                       .generic_string();
+
+        if (!python_pkg.python_site_packages_path.empty())
+        {
+            if (freethreaded_build && !ft_site_packages.empty())
+            {
+                const std::string std_site_packages = short_ver.empty()
+                                                          ? std::string{}
+#ifdef _WIN32
+                                                          : (fs::u8path("Lib") / "site-packages")
+                                                                .generic_string();
+#else
+                                                          : (fs::u8path("lib")
+                                                             / util::concat("python", short_ver)
+                                                             / "site-packages")
+                                                                .generic_string();
+#endif
+                if (python_pkg.python_site_packages_path == std_site_packages)
+                {
+                    return ft_site_packages;
+                }
+            }
+            return python_pkg.python_site_packages_path;
+        }
+
+        if (short_ver.empty() || python_pkg.build_string.empty())
+        {
+            return {};
+        }
+        if (!freethreaded_build)
+        {
+            return {};
+        }
+        return ft_site_packages;
+    }
+
     // supply short python version, e.g. 2.7, 3.5...
     fs::u8path get_python_short_path(const std::string& python_version [[maybe_unused]])
     {

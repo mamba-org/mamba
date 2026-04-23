@@ -8,12 +8,14 @@
 #define MAMBA_UTILS_HPP
 
 #include <functional>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/specs/version.hpp"
 
 #include "tl/expected.hpp"
 
@@ -52,6 +54,7 @@ namespace mamba
     }
 
     using command_args = std::vector<std::string>;
+    inline constexpr std::string_view fallback_python_minor = "3.14";
 
     /**
      * Build the command-line invocation for a secondary package manager (e.g. pip/uv).
@@ -75,17 +78,25 @@ namespace mamba
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
 
     /**
-     * Ensure that ``"pip"`` is present in ``root_packages`` when ``"python"`` is requested.
-     *
-     * This is used by both install and update flows to automatically add ``pip`` when
-     * ``python`` is part of the requested specs, unless ``pip`` is already present.
+     * Extract exact package names from matchspec strings.
+     * Returns an empty vector if any query is not an exact package name.
      */
-    void add_pip_if_python(std::vector<std::string>& root_packages);
+    std::vector<std::string>
+    extract_exact_package_names_from_specs(const std::vector<std::string>& specs);
+
+    /**
+     * Ensure python-related roots are present when ``"python"`` is requested.
+     *
+     * This adds ``pip`` and ``python_abi`` to ``root_packages`` when ``python`` is part of
+     * the requested specs, unless they are already present.
+     */
+    void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
 
     /**
      * Build root packages for sharded repodata loading.
      *
-     * Starts from requested specs and adds ``pip`` when ``python`` is present.
+     * Starts from requested specs and adds python-related roots (``pip``, ``python_abi``)
+     * when ``python`` is present.
      */
     std::vector<std::string> build_sharded_root_packages(const std::vector<std::string>& raw_specs);
 
@@ -121,11 +132,17 @@ namespace mamba
 
     /**
      * Prepare solver state: channels, package cache, database, and root package loading.
+     * Computes ``python_minor_version_for_prefilter`` for sharded repodata: explicit python from
+     * specs, implicit fallback on the first solve attempt, or the installed prefix minor on retry
+     * when no explicit python is given. When ``no_py_pin`` is true (``--no-py-pin``), no python
+     * minor is used for shard prefiltering.
      */
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
         ChannelContext& channel_context,
-        const std::vector<std::string>& raw_specs
+        const std::vector<std::string>& raw_specs,
+        bool is_retry,
+        bool no_py_pin
     );
 
     /**
@@ -210,6 +227,17 @@ namespace mamba
         const Context& ctx,
         pip::Update update
     );
+
+    /**
+     * Extract an explicit python minor requirement (e.g. "3.12") from specs.
+     *
+     * Parses each ``python`` ``MatchSpec``, applies ``relax_version_spec_to_minor`` to the
+     * version, and returns the version if it is a single ``==`` equality (e.g. full pins relax to
+     * ``major.minor``). Skips specs that do not parse or do not yield such an equality after
+     * relaxation.
+     */
+    std::optional<specs::Version>
+    extract_requested_python_minor(const std::vector<std::string>& specs);
 
 }
 

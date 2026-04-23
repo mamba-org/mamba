@@ -49,6 +49,36 @@ namespace mamba
 #endif
         }
 
+        TEST_CASE("effective_python_site_packages_path")
+        {
+            auto python_pkg = specs::PackageInfo("python");
+            python_pkg.version = "3.13.1";
+            python_pkg.build_string = "h9a34b6e_5_cp313t";
+
+            SECTION("preserves explicit freethreaded path")
+            {
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+
+            SECTION("rewrites standard path for freethreaded builds")
+            {
+                python_pkg.python_site_packages_path =
+#ifdef _WIN32
+                    "Lib/site-packages";
+#else
+                    "lib/python3.13/site-packages";
+#endif
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+        }
+
         TEST_CASE("get_bin_directory_short_path")
         {
             auto path = get_bin_directory_short_path().string();

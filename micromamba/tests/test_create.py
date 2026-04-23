@@ -1916,9 +1916,10 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     cmd = ["-n", env_name, f"python={version}.*={build}", "six"]
 
     if platform.system() == "Windows":
-        # For noarch-python packages on Windows, libmamba should install into the
-        # canonical `Lib/site-packages` location (independent of freethreading).
-        site_packages = env_prefix / "Lib" / "site-packages"
+        if build.endswith("t"):
+            site_packages = env_prefix / "lib" / f"python{version}t" / "site-packages"
+        else:
+            site_packages = env_prefix / "Lib" / "site-packages"
         if version == "2.7":
             cmd += ["-c", "defaults"]  # for vc=9.*
     else:
@@ -1970,7 +1971,7 @@ def test_create_check_dirs(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
 
     if platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "site-packages" / "traitlets")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "traitlets")
     else:
         assert os.path.isdir(env_prefix / "lib" / "python3.8" / "site-packages" / "traitlets")
 
@@ -1986,9 +1987,9 @@ def test_create_python_site_packages_path(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
 
     if platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "python3.13t" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "python3.13" / "site-packages" / "imagesize")
+        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory
         assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
@@ -2529,13 +2530,23 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert len(packages) == 1
-    pkg = packages[0]
-    assert pkg["name"] == "pandoc"
-    if spec == "pandoc=3.1.13":
-        assert pkg["version"] == "3.1.13"
-    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert len(packages) >= 1
+
+    # All resolved packages must come from the mirrored OCI channel.
+    assert all(
+        package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        for package in packages
+    )
+
+    requested_name = spec.split("=")[0]
+    requested_pkg = next(
+        (package for package in packages if package["name"] == requested_name), None
+    )
+    assert requested_pkg is not None
+    if "=" in spec:
+        requested_version = spec.split("=", 1)[1]
+        assert requested_pkg["version"] == requested_version
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -2561,18 +2572,13 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
     assert len(packages) > 2
-    assert any(
-        package["name"] == "xtensor"
-        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert all(
+        package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
         for package in packages
     )
-    assert any(
-        package["name"] == "xtl"
-        and package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-        for package in packages
-    )
+    assert any(package["name"] == "xtensor" for package in packages)
+    assert any(package["name"] == "xtl" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -2601,11 +2607,13 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    assert len(packages) == 1
-    pkg = packages[0]
-    assert pkg["name"] == "_go_select"
-    assert pkg["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
-    assert pkg["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+    assert len(packages) >= 1
+    assert all(
+        package["base_url"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        and package["channel"] == "oci://ghcr.io/channel-mirrors/conda-forge"
+        for package in packages
+    )
+    assert any(package["name"] == "_go_select" for package in packages)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)

@@ -4,12 +4,16 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cctype>
+#include <chrono>
+#include <fstream>
 #include <unordered_set>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <fmt/ranges.h>
+#include <nlohmann/json.hpp>
 #include <reproc++/run.hpp>
 #include <reproc/reproc.h>
 
@@ -31,7 +35,11 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/specs/version_spec.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/string.hpp"
+
+#include "core/shard_python_minor_prefilter.hpp"
 
 #include "utils.hpp"
 
@@ -39,6 +47,12 @@ namespace mamba
 {
     namespace
     {
+        auto done_with_duration(std::chrono::steady_clock::duration elapsed) -> std::string
+        {
+            const double seconds = std::chrono::duration<double>(elapsed).count();
+            return fmt::format("✔ Done ({:.1f} sec)", seconds);
+        }
+
         tl::expected<command_args, std::runtime_error> get_pkg_mgr_install_command(
             const std::string& name,
             const std::string& target_prefix,
@@ -113,6 +127,64 @@ namespace mamba
                     )
                 );
             }
+        }
+
+        std::optional<specs::Version>
+        installed_python_minor_for_prefix(const fs::u8path& target_prefix)
+        {
+            const auto parse_minor = [](std::string_view v) -> std::optional<specs::Version>
+            {
+                auto maybe_version = specs::Version::parse(std::string(v));
+                if (maybe_version.has_value())
+                {
+                    return maybe_version.value();
+                }
+                return std::nullopt;
+            };
+            const auto conda_meta = target_prefix / "conda-meta";
+            if (!fs::exists(conda_meta) || !fs::is_directory(conda_meta))
+            {
+                return std::nullopt;
+            }
+
+            for (const auto& entry : fs::directory_iterator(conda_meta))
+            {
+                if (!entry.is_regular_file() || entry.path().extension() != ".json")
+                {
+                    continue;
+                }
+                std::ifstream infile(entry.path().std_path());
+                if (!infile.is_open())
+                {
+                    continue;
+                }
+                nlohmann::json j;
+                try
+                {
+                    infile >> j;
+                }
+                catch (const std::exception&)
+                {
+                    continue;
+                }
+                if (!j.is_object() || j.value("name", "") != "python")
+                {
+                    continue;
+                }
+                const std::string version = j.value("version", "");
+                auto dot = version.find('.');
+                if (dot == std::string::npos)
+                {
+                    continue;
+                }
+                auto second_dot = version.find('.', dot + 1);
+                if (second_dot == std::string::npos)
+                {
+                    return parse_minor(version);
+                }
+                return parse_minor(version.substr(0, second_dot));
+            }
+            return std::nullopt;
         }
     }
 
@@ -271,10 +343,41 @@ namespace mamba
         return names;
     }
 
-    void add_pip_if_python(std::vector<std::string>& root_packages)
+    std::vector<std::string>
+    extract_exact_package_names_from_specs(const std::vector<std::string>& specs)
+    {
+        std::vector<std::string> names;
+        names.reserve(specs.size());
+        for (const auto& s : specs)
+        {
+            auto parsed = specs::MatchSpec::parse(s);
+            if (!parsed)
+            {
+                LOG_WARNING << "Skipping invalid MatchSpec '" << s
+                            << "' while extracting exact package names: " << parsed.error().what();
+                continue;
+            }
+            if (parsed->name().is_free() || !parsed->name().is_exact())
+            {
+                return {};
+            }
+            auto name = parsed->name().to_string();
+            if (name.empty())
+            {
+                LOG_WARNING << "Skipping MatchSpec with empty package name while extracting exact package names: '"
+                            << s << "'";
+                continue;
+            }
+            names.push_back(std::move(name));
+        }
+        return names;
+    }
+
+    void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages)
     {
         bool has_python = false;
         bool has_pip = false;
+        bool has_python_abi = false;
         for (const auto& pkg : root_packages)
         {
             if (pkg == "python")
@@ -285,10 +388,22 @@ namespace mamba
             {
                 has_pip = true;
             }
+            if (pkg == "python_abi")
+            {
+                has_python_abi = true;
+            }
         }
-        if (has_python && !has_pip)
+        if (!has_python)
+        {
+            return;
+        }
+        if (!has_pip)
         {
             root_packages.push_back("pip");
+        }
+        if (!has_python_abi)
+        {
+            root_packages.push_back("python_abi");
         }
     }
 
@@ -299,7 +414,7 @@ namespace mamba
     )
     {
         std::vector<std::string> root_packages = extract_package_names_from_specs(raw_specs);
-        add_pip_if_python(root_packages);
+        add_python_related_roots_if_python_requested(root_packages);
         if (!fs::exists(ctx.prefix_params.target_prefix))
         {
             return root_packages;
@@ -363,10 +478,11 @@ namespace mamba
     {
         if (Console::can_report_status())
         {
-            Console::instance().print(
+            Console::instance().print_in_place(
                 fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
             );
         }
+        const auto started_at = std::chrono::steady_clock::now();
         auto outcome = solver::libsolv::Solver()
                            .solve(
                                db,
@@ -378,7 +494,14 @@ namespace mamba
                            .value();
         if (Console::can_report_status())
         {
-            Console::instance().print(fmt::format("{:<85} {:>20}", "Resolving Environment", "✔ Done"));
+            Console::instance().print_in_place(
+                fmt::format(
+                    "{:<85} {:>20}",
+                    "Resolving Environment",
+                    done_with_duration(std::chrono::steady_clock::now() - started_at)
+                ),
+                true
+            );
         }
         return outcome;
     }
@@ -434,7 +557,9 @@ namespace mamba
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
         ChannelContext& channel_context,
-        const std::vector<std::string>& raw_specs
+        const std::vector<std::string>& raw_specs,
+        bool is_retry,
+        bool no_py_pin
     )
     {
         populate_context_channels_from_specs(raw_specs, ctx);
@@ -444,7 +569,58 @@ namespace mamba
         auto root_packages = ctx.repodata_use_shards
                                  ? build_sharded_root_packages(ctx, channel_context, raw_specs)
                                  : std::vector<std::string>{};
-        auto maybe_load = load_channels(ctx, channel_context, db, package_caches, root_packages);
+
+        const std::optional<specs::Version> python_minor_version_for_prefilter =
+            [&]() -> std::optional<specs::Version>
+        {
+            if (no_py_pin)
+            {
+                LOG_DEBUG << "Shard python minor prefilter disabled (--no-py-pin).";
+                return std::nullopt;
+            }
+
+            const auto maybe_explicit_requested_python_minor = extract_requested_python_minor(
+                raw_specs
+            );
+
+            if (maybe_explicit_requested_python_minor.has_value())
+            {
+                LOG_DEBUG << "Pre-filtering shards using explicitly requested python minor version: "
+                          << maybe_explicit_requested_python_minor.value().to_string();
+                return maybe_explicit_requested_python_minor.value();
+            }
+
+            if (is_retry)
+            {
+                LOG_DEBUG << "Retry without prefiltering on any python minor version.";
+                return std::nullopt;
+            }
+
+            const auto maybe_installed_python_minor = installed_python_minor_for_prefix(
+                ctx.prefix_params.target_prefix
+            );
+
+            if (maybe_installed_python_minor.has_value())
+            {
+                LOG_DEBUG << "Pre-filtering shards using installed python minor version: "
+                          << maybe_installed_python_minor.value().to_string();
+                return maybe_installed_python_minor.value();
+            }
+
+            LOG_DEBUG << "Pre-filtering shards using fallback python minor version: "
+                      << fallback_python_minor;
+            return specs::Version::parse(std::string(fallback_python_minor)).value();
+        }();
+
+        auto maybe_load = load_channels(
+            ctx,
+            channel_context,
+            db,
+            package_caches,
+            root_packages,
+            python_minor_version_for_prefilter
+        );
+
         if (!maybe_load)
         {
             throw maybe_load.error();
@@ -484,6 +660,11 @@ namespace mamba
         if (unsolvable == nullptr)
         {
             return false;
+        }
+        if (!is_retry)
+        {
+            retry_fn();
+            return true;
         }
         unsolvable->explain_problems_to(
             db,
@@ -599,4 +780,40 @@ namespace mamba
             execute_other_pkg_managers(other_specs, ctx, update);
         }
     }
+
+    std::optional<specs::Version>
+    extract_requested_python_minor(const std::vector<std::string>& specs)
+    {
+        for (const auto& spec : specs)
+        {
+            auto maybe_name = specs::MatchSpec::extract_name(spec);
+            if (!maybe_name.has_value() || maybe_name.value() != "python")
+            {
+                continue;
+            }
+            auto maybe_ms = specs::MatchSpec::parse(spec);
+            if (!maybe_ms.has_value())
+            {
+                continue;
+            }
+            const auto& raw_version_spec = maybe_ms.value().version();
+            // Pins like ``python=2`` or ``python=3`` specify only the major version. Relaxing those
+            // to ``2.0`` / ``3.0`` for shard prefiltering would drop packages whose ``depends``
+            // require a real minor (e.g. ``python >=2.7``). Skip the prefilter for such specs.
+            if (auto maybe_single_v = version_from_single_equality_spec(raw_version_spec))
+            {
+                if (maybe_single_v->version().size() <= std::size_t{ 1 })
+                {
+                    return std::nullopt;
+                }
+            }
+            const specs::VersionSpec relaxed = relax_version_spec_to_minor(raw_version_spec);
+            if (auto maybe_v = version_from_single_equality_spec(relaxed))
+            {
+                return maybe_v;
+            }
+        }
+        return std::nullopt;
+    }
+
 }

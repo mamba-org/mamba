@@ -365,6 +365,7 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "clone-conflict-specs"
     helpers.create("-n", "src-env-for-conflict", "xtensor", "--json", no_dry_run=True)
 
+    # We expect this run to fail
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create(
             "--clone",
@@ -375,8 +376,9 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
             "--json",
             no_dry_run=True,
         )
-    stderr = info.value.stderr.decode()
-    assert "Cannot use --clone together with package specs." in stderr
+    json_output = json.loads(info.value.stdout.decode())
+
+    assert helpers.find_message_in_json_logs(json_output, "Cannot use --clone together with package specs.") != None
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -398,9 +400,9 @@ def test_clone_conflicts_with_file(tmp_home, tmp_root_prefix, tmp_path):
             "--json",
             no_dry_run=True,
         )
-    stderr = info.value.stderr.decode()
+    json_output = json.loads(info.value.stdout.decode())
 
-    assert "Cannot use --clone together with package specs." in stderr
+    assert helpers.find_message_in_json_logs(json_output, "Cannot use --clone together with package specs.") != None
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -412,15 +414,15 @@ def test_clone_non_existing_source(tmp_home, tmp_root_prefix, tmp_path):
         helpers.create(
             "--clone", "this-env-does-not-exist", "-n", env_name, "--json", no_dry_run=True
         )
-    stderr = info.value.stderr.decode()
-    assert "Could not find environment to clone: this-env-does-not-exist" in stderr
+    json_output = json.loads(info.value.stdout.decode())
+    assert helpers.find_message_in_json_logs(json_output, "Could not find environment to clone: this-env-does-not-exist") != None
 
     # Non-existing prefix path
     non_existing_prefix = tmp_path / "does-not-exist"
     with pytest.raises(subprocess.CalledProcessError) as info2:
         helpers.create("--clone", non_existing_prefix, "-n", env_name, "--json", no_dry_run=True)
-    stderr2 = info2.value.stderr.decode()
-    assert f"Source prefix '{non_existing_prefix}" in stderr2
+    json_output2 = json.loads(info2.value.stdout.decode())
+    assert helpers.find_message_in_json_logs(json_output2, f"Source prefix '{non_existing_prefix}") != None
 
 
 @pytest.mark.skipif(

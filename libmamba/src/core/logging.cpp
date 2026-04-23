@@ -116,6 +116,11 @@ namespace mamba::logging
 
     auto stop_logging(stop_reason reason) -> AnyLogHandler
     {
+        if (not details::current_log_handler)
+        {
+            // No installed log-handler: do nothing.
+            return {};
+        }
         return change_log_handler({}, {}, reason, {});
     }
 

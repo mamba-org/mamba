@@ -93,6 +93,17 @@ namespace mamba::download
                     }
 #endif
                 }
+                else if (ssl_verify == "<truststore>")
+                {
+                    // Use OS trust store (Schannel on Windows, system certs on Unix)
+#ifdef LIBMAMBA_STATIC_DEPS
+                    curl_easy_setopt(handle, CURLOPT_CAINFO, nullptr);
+                    if (proxy)
+                    {
+                        curl_easy_setopt(handle, CURLOPT_PROXY_CAINFO, nullptr);
+                    }
+#endif
+                }
                 else
                 {
                     if (!fs::exists(ssl_verify))

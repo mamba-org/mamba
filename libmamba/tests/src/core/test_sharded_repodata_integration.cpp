@@ -1017,12 +1017,12 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
         return UpdateAllSolveResult{ std::move(packages), has_conda_smithy_in_db };
     };
 
-    const auto traditional = solve_update_all_like_api(/*use_shards=*/false);
+    const auto flat = solve_update_all_like_api(/*use_shards=*/false);
     const auto sharded = solve_update_all_like_api(/*use_shards=*/true);
 
-    REQUIRE(traditional.has_conda_smithy_in_db);
+    REQUIRE(flat.has_conda_smithy_in_db);
     REQUIRE(sharded.has_conda_smithy_in_db);
-    REQUIRE(traditional.packages == sharded.packages);
+    REQUIRE(flat.packages == sharded.packages);
 }
 
 TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::core][sharded][.integration]")
@@ -1126,16 +1126,16 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
         };
     };
 
-    const auto traditional = solve_update_all_like_api(/*use_shards=*/false);
+    const auto flat = solve_update_all_like_api(/*use_shards=*/false);
     const auto sharded = solve_update_all_like_api(/*use_shards=*/true);
 
     // Reproducer package names from the issue comment should be present in the solver universe in
     // both modes.
-    REQUIRE(traditional.has_python_in_db);
-    REQUIRE(traditional.has_conda_smithy_in_db);
-    REQUIRE(traditional.has_conda_forge_pinning_in_db);
-    REQUIRE(traditional.has_chardet_in_db);
-    REQUIRE(traditional.has_requests_in_db);
+    REQUIRE(flat.has_python_in_db);
+    REQUIRE(flat.has_conda_smithy_in_db);
+    REQUIRE(flat.has_conda_forge_pinning_in_db);
+    REQUIRE(flat.has_chardet_in_db);
+    REQUIRE(flat.has_requests_in_db);
     REQUIRE(sharded.has_python_in_db);
     REQUIRE(sharded.has_conda_smithy_in_db);
     REQUIRE(sharded.has_conda_forge_pinning_in_db);
@@ -1143,7 +1143,7 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
     REQUIRE(sharded.has_requests_in_db);
 
     // Sharded mode should produce the same update-all solution as flat mode.
-    REQUIRE(traditional.solution == sharded.solution);
+    REQUIRE(flat.solution == sharded.solution);
 }
 
 TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integration]")

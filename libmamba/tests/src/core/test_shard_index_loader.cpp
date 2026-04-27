@@ -670,7 +670,8 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
         );
 
         SubdirDownloadParams params;
-        params.offline = false;
+        // Keep this section deterministic: validate pure cache-hit behavior without network.
+        params.offline = true;
 
         auto result = ShardIndexLoader::fetch_and_parse_shard_index(
             no_shards_subdir.value(),
@@ -688,6 +689,22 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
 
     SECTION("Cache hit path")
     {
+        const auto local_dir = TemporaryDirectory();
+        auto local_resolve_params = ChannelContext::ChannelResolveParams{
+            { "linux-64", "noarch" },
+            specs::CondaURL::parse("https://conda.anaconda.org").value()
+        };
+        auto local_channel = specs::Channel::resolve(
+                                 specs::UnresolvedChannel::parse("file://" + local_dir.path().string())
+                                     .value(),
+                                 local_resolve_params
+        )
+                                 .value()
+                                 .front();
+        auto local_caches = MultiPackageCache({ local_dir.path() }, ValidationParams{});
+        auto local_subdir = SubdirIndexLoader::create({}, local_channel, "linux-64", local_caches);
+        REQUIRE(local_subdir.has_value());
+
         // Create a cached shard index file
         std::map<std::string, std::vector<std::uint8_t>> shards;
         std::vector<std::uint8_t> hash(32, 0xAA);
@@ -702,7 +719,7 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
         );
 
         auto compressed_data = compress_zstd(msgpack_data);
-        auto cache_path = ShardIndexLoader::shard_index_cache_path(subdir.value());
+        auto cache_path = ShardIndexLoader::shard_index_cache_path(local_subdir.value());
         fs::create_directories(cache_path.parent_path());
         std::ofstream cache_file(cache_path.string(), std::ios::binary);
         cache_file.write(
@@ -711,29 +728,29 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
         );
         cache_file.close();
 
-        // Note: We can't directly set shards on const metadata().
-        // Instead, we test the cache hit path by ensuring the cache file exists
-        // and shards are marked as available through the check request mechanism.
-        // For this test, we'll just verify the cache file can be read.
-
         SubdirDownloadParams params;
-        params.offline = false;
+        params.offline = true;
+
+        download::mirror_map local_mirrors;
+        local_mirrors.add_unique_mirror(
+            local_channel.id(),
+            download::make_mirror(local_channel.url().str())
+        );
 
         auto result = ShardIndexLoader::fetch_and_parse_shard_index(
-            subdir.value(),
+            local_subdir.value(),
             params,
             auth_info,
-            mirrors,
+            local_mirrors,
             download_options,
-            remote_fetch_params
+            remote_fetch_params,
+            3600  // explicit positive TTL: allow cache-hit path
         );
 
         REQUIRE(result.has_value());
-        if (result.value().has_value())
-        {
-            const auto& index = result.value().value();
-            REQUIRE(index.shards.find("test-pkg") != index.shards.end());
-        }
+        REQUIRE(result.value().has_value());
+        const auto& index = result.value().value();
+        REQUIRE(index.shards.find("test-pkg") != index.shards.end());
     }
 
     SECTION("TTL check with expired cache")

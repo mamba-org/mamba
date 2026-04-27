@@ -392,7 +392,7 @@ namespace mamba
                 p_subdir = &(*subdirs_first);
             }
 
-            if (p_subdir != nullptr && !p_subdir->valid_cache_found())
+            if (p_subdir != nullptr)
             {
                 auto check_list = p_subdir->build_check_requests(params);
                 std::move(check_list.begin(), check_list.end(), std::back_inserter(requests));

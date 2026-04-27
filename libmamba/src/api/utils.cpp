@@ -578,7 +578,7 @@ namespace mamba
         auto db = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
-        auto root_packages = ctx.repodata_use_shards
+        auto root_packages = ctx.use_sharded_repodata
                                  ? build_sharded_root_packages(ctx, channel_context, raw_specs)
                                  : std::vector<std::string>{};
 

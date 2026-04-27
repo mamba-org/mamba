@@ -209,12 +209,12 @@ namespace
     )
     {
         // Save original shard setting
-        const bool original_use_shards = ctx.repodata_use_shards;
+        const bool original_use_shards = ctx.use_sharded_repodata;
 
         // Set shard usage
-        ctx.repodata_use_shards = use_shards;
+        ctx.use_sharded_repodata = use_shards;
 
-        on_scope_exit restore_settings{ [&] { ctx.repodata_use_shards = original_use_shards; } };
+        on_scope_exit restore_settings{ [&] { ctx.use_sharded_repodata = original_use_shards; } };
 
         // Create database
         libsolv::Database db{
@@ -396,7 +396,7 @@ TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::cor
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
     // Use a temp directory for package cache to ensure a writable path (required for shard index
@@ -465,7 +465,7 @@ TEST_CASE("Sharded repodata - noarch-only root package is installable", "[mamba:
 }
 
 // Resolves `python` using the real `conda-forge` channel (repo.anaconda.org / conda.anaconda.org)
-// with `repodata_use_shards`: shard index fetch, per-package shard downloads, repodata build, and
+// with `use_sharded_repodata`: shard index fetch, per-package shard downloads, repodata build, and
 // solver. This is the same sharded path `micromamba create` uses before linking; linking is not
 // exercised here so the test stays stable in constrained CI environments.
 TEST_CASE(
@@ -475,17 +475,17 @@ TEST_CASE(
 {
     auto& ctx = mambatests::context();
     const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.repodata_use_shards;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
     const bool saved_offline = ctx.offline;
     on_scope_exit restore_ctx{ [&]
                                {
                                    ctx.channels = saved_channels;
-                                   ctx.repodata_use_shards = saved_use_shards;
+                                   ctx.use_sharded_repodata = saved_use_shards;
                                    ctx.offline = saved_offline;
                                } };
 
     ctx.channels = { "conda-forge" };
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
     const TemporaryDirectory tmp_dir;
@@ -517,7 +517,7 @@ TEST_CASE(
 
 // Exercises the same sharded path with a large dependency tree: shard index, per-package shards,
 // repodata build, and solver. Ensures packages like tensorflow (many python-version-specific
-// builds in shards) remain resolvable when `repodata_use_shards` is enabled.
+// builds in shards) remain resolvable when `use_sharded_repodata` is enabled.
 TEST_CASE(
     "Sharded repodata - solve tensorflow with conda-forge (anaconda.org)",
     "[mamba::core][sharded][.integration]"
@@ -525,17 +525,17 @@ TEST_CASE(
 {
     auto& ctx = mambatests::context();
     const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.repodata_use_shards;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
     const bool saved_offline = ctx.offline;
     on_scope_exit restore_ctx{ [&]
                                {
                                    ctx.channels = saved_channels;
-                                   ctx.repodata_use_shards = saved_use_shards;
+                                   ctx.use_sharded_repodata = saved_use_shards;
                                    ctx.offline = saved_offline;
                                } };
 
     ctx.channels = { "conda-forge" };
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
     const TemporaryDirectory tmp_dir;
@@ -570,13 +570,13 @@ TEST_CASE("Sharded repodata - solve xeus-python-dev specs on emscripten", "[mamb
     auto& ctx = mambatests::context();
     const std::vector<std::string> saved_channels = ctx.channels;
     const std::string saved_platform = ctx.platform;
-    const bool saved_use_shards = ctx.repodata_use_shards;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
     const bool saved_offline = ctx.offline;
     on_scope_exit restore_ctx{ [&]
                                {
                                    ctx.channels = saved_channels;
                                    ctx.platform = saved_platform;
-                                   ctx.repodata_use_shards = saved_use_shards;
+                                   ctx.use_sharded_repodata = saved_use_shards;
                                    ctx.offline = saved_offline;
                                } };
 
@@ -585,7 +585,7 @@ TEST_CASE("Sharded repodata - solve xeus-python-dev specs on emscripten", "[mamb
         "https://prefix.dev/conda-forge",
     };
     ctx.platform = "emscripten-wasm32";
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
     const TemporaryDirectory tmp_dir;
@@ -843,16 +843,16 @@ TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integr
     std::vector<std::string> update_specs = { "python" };
 
     // For update, we need to create prefix data and use Update request
-    const bool original_use_shards = ctx.repodata_use_shards;
+    const bool original_use_shards = ctx.use_sharded_repodata;
     const auto saved_safety_checks = ctx.validation_params.safety_checks;
     on_scope_exit restore_ctx_update{ [&]
                                       {
-                                          ctx.repodata_use_shards = original_use_shards;
+                                          ctx.use_sharded_repodata = original_use_shards;
                                           ctx.validation_params.safety_checks = saved_safety_checks;
                                       } };
 
     // Test traditional update
-    ctx.repodata_use_shards = false;
+    ctx.use_sharded_repodata = false;
     libsolv::Database db_traditional{ channel_context.params() };
     MultiPackageCache package_caches_traditional{ { cache_dir }, ctx.validation_params };
     std::vector<std::string> root_packages_traditional;
@@ -888,7 +888,7 @@ TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integr
     auto solution_traditional = std::get<Solution>(outcome_traditional.value());
 
     // Test sharded update
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
     libsolv::Database db_sharded{ channel_context.params() };
     MultiPackageCache package_caches_sharded{ { cache_dir }, ctx.validation_params };
     std::vector<std::string> root_packages_sharded = extract_root_packages(update_specs);
@@ -959,15 +959,15 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
 
     auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
     {
-        const bool saved_use_shards = ctx.repodata_use_shards;
+        const bool saved_use_shards = ctx.use_sharded_repodata;
         const auto saved_target_prefix = ctx.prefix_params.target_prefix;
         on_scope_exit restore_ctx{ [&]
                                    {
-                                       ctx.repodata_use_shards = saved_use_shards;
+                                       ctx.use_sharded_repodata = saved_use_shards;
                                        ctx.prefix_params.target_prefix = saved_target_prefix;
                                    } };
 
-        ctx.repodata_use_shards = use_shards;
+        ctx.use_sharded_repodata = use_shards;
         ctx.prefix_params.target_prefix = prefix_path;
 
         auto [db, package_caches] = prepare_solver_context(
@@ -1066,15 +1066,15 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
 
     auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
     {
-        const bool saved_use_shards = ctx.repodata_use_shards;
+        const bool saved_use_shards = ctx.use_sharded_repodata;
         const auto saved_target_prefix = ctx.prefix_params.target_prefix;
         on_scope_exit restore_ctx{ [&]
                                    {
-                                       ctx.repodata_use_shards = saved_use_shards;
+                                       ctx.use_sharded_repodata = saved_use_shards;
                                        ctx.prefix_params.target_prefix = saved_target_prefix;
                                    } };
 
-        ctx.repodata_use_shards = use_shards;
+        ctx.use_sharded_repodata = use_shards;
         ctx.prefix_params.target_prefix = prefix_path;
 
         auto [db, package_caches] = prepare_solver_context(
@@ -1188,16 +1188,16 @@ TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integr
     std::vector<std::string> remove_specs = { "numpy" };
 
     // For remove, we need to create prefix data and use Remove request
-    const bool original_use_shards = ctx.repodata_use_shards;
+    const bool original_use_shards = ctx.use_sharded_repodata;
     const auto saved_safety_checks = ctx.validation_params.safety_checks;
     on_scope_exit restore_ctx_remove{ [&]
                                       {
-                                          ctx.repodata_use_shards = original_use_shards;
+                                          ctx.use_sharded_repodata = original_use_shards;
                                           ctx.validation_params.safety_checks = saved_safety_checks;
                                       } };
 
     // Test traditional remove
-    ctx.repodata_use_shards = false;
+    ctx.use_sharded_repodata = false;
     libsolv::Database db_traditional{ channel_context.params() };
     MultiPackageCache package_caches_traditional{ { cache_dir }, ctx.validation_params };
     std::vector<std::string> root_packages_traditional;
@@ -1233,7 +1233,7 @@ TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integr
     auto solution_traditional = std::get<Solution>(outcome_traditional.value());
 
     // Test sharded remove
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
     libsolv::Database db_sharded{ channel_context.params() };
     MultiPackageCache package_caches_sharded{ { cache_dir }, ctx.validation_params };
     std::vector<std::string> root_packages_sharded = extract_root_packages(remove_specs);
@@ -1391,7 +1391,7 @@ TEST_CASE(
 {
     Context ctx;
     ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";

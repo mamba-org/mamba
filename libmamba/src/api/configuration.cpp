@@ -1510,7 +1510,7 @@ namespace mamba
                    .set_rc_configurable()
                    .description("Channels that have zstd encoded repodata (saves a HEAD request)"));
 
-        insert(Configurable("repodata_use_shards", &m_context.repodata_use_shards)
+        insert(Configurable("use_sharded_repodata", &m_context.use_sharded_repodata)
                    .group("Repodata")
                    .set_rc_configurable()
                    .description(

@@ -36,7 +36,7 @@ namespace mamba
      * targeted subdir (e.g. sharded repodata is enabled, metadata is up to date, and
      * \p root_packages is non-empty).
      *
-     * @param ctx Context (repodata_use_shards, shard TTL, download params, etc.).
+     * @param ctx Context (use_sharded_repodata, shard TTL, download params, etc.).
      * @param database Libsolv database to add repos into.
      * @param root_packages Root package names for reachability (e.g. install specs).
      * @param subdirs All subdir loaders; \p subdir_idx is the one to load.
@@ -85,7 +85,7 @@ namespace mamba
      * @param channel_context The channel context where channels are created and stored.
      * @param database The libsolv database where channel data is loaded.
      * @param package_caches The package caches used for downloading and caching packages.
-     * @param root_packages When non-empty and repodata_use_shards is true, use sharded
+     * @param root_packages When non-empty and use_sharded_repodata is true, use sharded
      *                      repodata to load only reachable packages from these roots (faster for
      *                      install/update).
      */

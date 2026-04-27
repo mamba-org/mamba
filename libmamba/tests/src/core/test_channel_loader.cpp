@@ -162,7 +162,7 @@ TEST_CASE("load_channels with root_packages", "[mamba::core][mamba::api::channel
 {
     auto& ctx = mambatests::context();
     ctx.channels = { "conda-forge" };
-    ctx.repodata_use_shards = true;
+    ctx.use_sharded_repodata = true;
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     solver::libsolv::Database db{ channel_context.params() };

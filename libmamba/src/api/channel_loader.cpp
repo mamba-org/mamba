@@ -288,7 +288,7 @@ namespace mamba
          *   - optionally fetches fresh full ``repodata.json`` and loads it if there is no cache.
          * Subdirs without a shard index load full ``repodata.json`` directly.
          *
-         * When ``repodata_use_shards`` is false, or ``root_packages`` is empty, loads full
+         * When ``use_sharded_repodata`` is false, or ``root_packages`` is empty, loads full
          * repodata (or native solv cache) as usual.
          */
         expected_t<solver::libsolv::RepoInfo> load_single_subdir(
@@ -306,7 +306,7 @@ namespace mamba
         )
         {
             auto& subdir = subdirs[subdir_idx];
-            const bool shards_requested = ctx.repodata_use_shards && !root_packages.empty();
+            const bool shards_requested = ctx.use_sharded_repodata && !root_packages.empty();
             const auto load_flat_repodata_with_status = [&]() -> expected_t<solver::libsolv::RepoInfo>
             {
                 if (shards_requested && !subdir.metadata().has_shards())
@@ -334,7 +334,7 @@ namespace mamba
                 return flat_res;
             };
 
-            bool use_shards = ctx.repodata_use_shards
+            bool use_shards = ctx.use_sharded_repodata
                               && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                               && !root_packages.empty();
 
@@ -443,7 +443,7 @@ namespace mamba
             std::vector<SubdirIndexLoader*> subdirs_needing_index;
             for (auto& s : subdirs)
             {
-                bool use_shards = ctx.repodata_use_shards
+                bool use_shards = ctx.use_sharded_repodata
                                   && s.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                                   && !root_packages.empty();
                 if (!use_shards)
@@ -599,7 +599,7 @@ namespace mamba
         {
             std::set<std::string> loaded_subdirs_with_shards;
             bool loading_failed = false;
-            const bool shard_then_expand = ctx.repodata_use_shards && !root_packages.empty();
+            const bool shard_then_expand = ctx.use_sharded_repodata && !root_packages.empty();
             std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
             bool used_flat_repodata = false;
             std::optional<std::chrono::steady_clock::time_point> flat_repodata_started_at;
@@ -607,7 +607,7 @@ namespace mamba
             auto try_load = [&](std::size_t i, bool full_repodata_only_pass) -> void
             {
                 auto& subdir = subdirs[i];
-                bool use_shards = ctx.repodata_use_shards
+                bool use_shards = ctx.use_sharded_repodata
                                   && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                                   && !root_packages.empty();
 

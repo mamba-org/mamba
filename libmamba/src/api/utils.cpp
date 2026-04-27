@@ -430,6 +430,18 @@ namespace mamba
 
         auto prefix_data = std::move(maybe_prefix_data).value();
         std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+
+        // For `update --all`, requested specs are often empty. Seed traversal with historically
+        // requested package names so shard loading does not miss update candidates that are not
+        // reachable from plain installed-package names.
+        for (const auto& [name, /*spec*/ _] : prefix_data.history().get_requested_specs_map())
+        {
+            if (seen.insert(name).second)
+            {
+                root_packages.push_back(name);
+            }
+        }
+
         for (const auto& [name, /*record*/ _] : prefix_data.records())
         {
             if (seen.insert(name).second)

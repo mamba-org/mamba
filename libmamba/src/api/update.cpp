@@ -18,6 +18,7 @@
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/transaction.hpp"
+#include "mamba/core/util_scope.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -150,6 +151,19 @@ namespace mamba
             auto& no_pin = config.at("no_pin").value<bool>();
             auto& no_py_pin = config.at("no_py_pin").value<bool>();
             auto& retry_clean_cache = config.at("retry_clean_cache").value<bool>();
+
+            // `update --all` is particularly sensitive to stale shard index snapshots because no
+            // explicit specs constrain which package names must be present in the remote universe.
+            // Force shard-index refresh for this command shape so shard mode sees the same update
+            // candidates as flat repodata.
+            const bool force_fresh_shard_index = update_params.update_all == UpdateAll::Yes
+                                                 && ctx.repodata_use_shards && !ctx.offline;
+            const auto saved_shards_ttl = ctx.repodata_shards_ttl;
+            on_scope_exit restore_shards_ttl{ [&] { ctx.repodata_shards_ttl = saved_shards_ttl; } };
+            if (force_fresh_shard_index)
+            {
+                ctx.repodata_shards_ttl = 0;
+            }
 
             validate_target_prefix_and_channels(ctx, /* create_env= */ false);
             auto [db, package_caches] = prepare_solver_context(

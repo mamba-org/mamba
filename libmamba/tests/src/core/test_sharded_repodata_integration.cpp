@@ -1025,6 +1025,127 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
     REQUIRE(traditional.packages == sharded.packages);
 }
 
+TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::core][sharded][.integration]")
+{
+    auto& ctx = mambatests::context();
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto prefix_path = tmp_dir.path() / "env_issue_4240";
+    fs::create_directories(prefix_path / "conda-meta");
+
+    // Seed history with the exact package set from the issue example so update-all root expansion
+    // uses these names in shard mode.
+    History history(prefix_path, channel_context);
+    History::UserRequest req;
+    req.date = "2026-04-27 00:00:00";
+    req.cmd = "update --all";
+    req.conda_version = "25.0.0";
+    req.update = {
+        "python=3.12",   "conda-smithy=3.61.1", "conda-forge-pinning=2026.04.23.11.42.25",
+        "chardet=5.2.0", "requests=2.33.1",
+    };
+    history.add_entry(req);
+
+    struct UpdateAllSolveResult
+    {
+        Solution solution;
+        bool has_python_in_db = false;
+        bool has_conda_smithy_in_db = false;
+        bool has_conda_forge_pinning_in_db = false;
+        bool has_chardet_in_db = false;
+        bool has_requests_in_db = false;
+    };
+
+    auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
+    {
+        const bool saved_use_shards = ctx.repodata_use_shards;
+        const auto saved_target_prefix = ctx.prefix_params.target_prefix;
+        on_scope_exit restore_ctx{ [&]
+                                   {
+                                       ctx.repodata_use_shards = saved_use_shards;
+                                       ctx.prefix_params.target_prefix = saved_target_prefix;
+                                   } };
+
+        ctx.repodata_use_shards = use_shards;
+        ctx.prefix_params.target_prefix = prefix_path;
+
+        auto [db, package_caches] = prepare_solver_context(
+            ctx,
+            channel_context,
+            /*raw_specs=*/{},
+            /*is_retry=*/false,
+            /*no_py_pin=*/false
+        );
+        (void) package_caches;
+
+        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
+        (void) prefix_data;
+
+        Request request;
+        request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+        request.flags = ctx.solver_flags;
+
+        auto has_name_in_db = [&](std::string_view name) -> bool
+        {
+            bool found = false;
+            db.for_each_package_matching(
+                specs::MatchSpec::parse(std::string(name)).value(),
+                [&](const specs::PackageInfo& pkg)
+                {
+                    if (pkg.name == name)
+                    {
+                        found = true;
+                        return util::LoopControl::Break;
+                    }
+                    return util::LoopControl::Continue;
+                }
+            );
+            return found;
+        };
+
+        auto outcome = libsolv::Solver().solve(
+            db,
+            request,
+            ctx.experimental_matchspec_parsing ? libsolv::MatchSpecParser::Mamba
+                                               : libsolv::MatchSpecParser::Libsolv
+        );
+        REQUIRE(outcome.has_value());
+        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+        return {
+            std::get<Solution>(outcome.value()), has_name_in_db("python"),
+            has_name_in_db("conda-smithy"),      has_name_in_db("conda-forge-pinning"),
+            has_name_in_db("chardet"),           has_name_in_db("requests"),
+        };
+    };
+
+    const auto traditional = solve_update_all_like_api(/*use_shards=*/false);
+    const auto sharded = solve_update_all_like_api(/*use_shards=*/true);
+
+    // Reproducer package names from the issue comment should be present in the solver universe in
+    // both modes.
+    REQUIRE(traditional.has_python_in_db);
+    REQUIRE(traditional.has_conda_smithy_in_db);
+    REQUIRE(traditional.has_conda_forge_pinning_in_db);
+    REQUIRE(traditional.has_chardet_in_db);
+    REQUIRE(traditional.has_requests_in_db);
+    REQUIRE(sharded.has_python_in_db);
+    REQUIRE(sharded.has_conda_smithy_in_db);
+    REQUIRE(sharded.has_conda_forge_pinning_in_db);
+    REQUIRE(sharded.has_chardet_in_db);
+    REQUIRE(sharded.has_requests_in_db);
+
+    // Sharded mode should produce the same update-all solution as flat mode.
+    REQUIRE(traditional.solution == sharded.solution);
+}
+
 TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();

@@ -783,3 +783,73 @@ TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index")
         // The behavior depends on whether has_up_to_date_shards() considers TTL
     }
 }
+
+TEST_CASE("ShardIndexLoader::fetch_and_parse_shard_index with ttl=0 bypasses cache")
+{
+    const auto no_shards_dir = TemporaryDirectory();
+    auto resolve_params = ChannelContext::ChannelResolveParams{
+        { "linux-64", "noarch" },
+        specs::CondaURL::parse("https://conda.anaconda.org").value()
+    };
+    auto no_shards_channel = specs::Channel::resolve(
+                                 specs::UnresolvedChannel::parse(
+                                     "file://" + no_shards_dir.path().string()
+                                 )
+                                     .value(),
+                                 resolve_params
+    )
+                                 .value()
+                                 .front();
+
+    auto no_shards_caches = MultiPackageCache({ no_shards_dir.path() }, ValidationParams{});
+    auto no_shards_subdir = SubdirIndexLoader::create({}, no_shards_channel, "linux-64", no_shards_caches);
+    REQUIRE(no_shards_subdir.has_value());
+
+    // Seed a valid cached shard index that would be incorrectly reused if ttl=0 did not force
+    // refresh.
+    std::map<std::string, std::vector<std::uint8_t>> shards;
+    std::vector<std::uint8_t> hash(32, 0xAA);
+    shards["test-pkg"] = hash;
+
+    auto msgpack_data = create_shard_index_msgpack_with_version(
+        "https://example.com/packages",
+        "https://shards.example.com",
+        "linux-64",
+        1,
+        shards
+    );
+    auto compressed_data = compress_zstd(msgpack_data);
+    auto cache_path = ShardIndexLoader::shard_index_cache_path(no_shards_subdir.value());
+    fs::create_directories(cache_path.parent_path());
+    std::ofstream cache_file(cache_path.string(), std::ios::binary);
+    cache_file.write(
+        reinterpret_cast<const char*>(compressed_data.data()),
+        static_cast<std::streamsize>(compressed_data.size())
+    );
+    cache_file.close();
+
+    specs::AuthenticationDataBase auth_info;
+    download::mirror_map mirrors;
+    mirrors.add_unique_mirror(
+        no_shards_channel.id(),
+        download::make_mirror(no_shards_channel.url().str())
+    );
+    download::Options download_options;
+    download::RemoteFetchParams remote_fetch_params;
+
+    SubdirDownloadParams params;
+    params.offline = false;
+
+    auto result = ShardIndexLoader::fetch_and_parse_shard_index(
+        no_shards_subdir.value(),
+        params,
+        auth_info,
+        mirrors,
+        download_options,
+        remote_fetch_params,
+        0  // force refresh: cached index must not be returned
+    );
+
+    REQUIRE(result.has_value());
+    REQUIRE_FALSE(result.value().has_value());
+}

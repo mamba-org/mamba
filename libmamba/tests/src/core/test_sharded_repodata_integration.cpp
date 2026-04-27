@@ -17,6 +17,7 @@
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/history.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/subdir_index.hpp"
@@ -38,6 +39,18 @@ namespace mamba
 {
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
     void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
+    std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const std::vector<std::string>& raw_specs,
+        bool is_retry,
+        bool no_py_pin
+    );
+    PrefixData load_prefix_data_and_installed(
+        Context& ctx,
+        ChannelContext& channel_context,
+        solver::libsolv::Database& db
+    );
 }
 
 using namespace mamba;
@@ -912,6 +925,104 @@ TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integr
 
     // Compare update solutions
     REQUIRE(solution_traditional == solution_sharded);
+}
+
+TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::core][sharded][.integration]")
+{
+    auto& ctx = mambatests::context();
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto prefix_path = tmp_dir.path() / "env_update_all";
+    fs::create_directories(prefix_path / "conda-meta");
+
+    History history(prefix_path, channel_context);
+    History::UserRequest req;
+    req.date = "2026-04-27 00:00:00";
+    req.cmd = "update --all";
+    req.conda_version = "25.0.0";
+    req.update = { "conda-smithy" };
+    history.add_entry(req);
+
+    struct UpdateAllSolveResult
+    {
+        std::vector<specs::PackageInfo> packages;
+        bool has_conda_smithy_in_db;
+    };
+
+    auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
+    {
+        const bool saved_use_shards = ctx.repodata_use_shards;
+        const auto saved_target_prefix = ctx.prefix_params.target_prefix;
+        on_scope_exit restore_ctx{ [&]
+                                   {
+                                       ctx.repodata_use_shards = saved_use_shards;
+                                       ctx.prefix_params.target_prefix = saved_target_prefix;
+                                   } };
+
+        ctx.repodata_use_shards = use_shards;
+        ctx.prefix_params.target_prefix = prefix_path;
+
+        auto [db, package_caches] = prepare_solver_context(
+            ctx,
+            channel_context,
+            /*raw_specs=*/{},
+            /*is_retry=*/false,
+            /*no_py_pin=*/false
+        );
+        (void) package_caches;
+
+        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
+        (void) prefix_data;
+
+        Request request;
+        request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+        request.flags = ctx.solver_flags;
+
+        bool has_conda_smithy_in_db = false;
+        db.for_each_package_matching(
+            specs::MatchSpec::parse("conda-smithy").value(),
+            [&](const specs::PackageInfo& pkg)
+            {
+                if (pkg.name == "conda-smithy")
+                {
+                    has_conda_smithy_in_db = true;
+                    return util::LoopControl::Break;
+                }
+                return util::LoopControl::Continue;
+            }
+        );
+
+        auto outcome = libsolv::Solver().solve(
+            db,
+            request,
+            ctx.experimental_matchspec_parsing ? libsolv::MatchSpecParser::Mamba
+                                               : libsolv::MatchSpecParser::Libsolv
+        );
+        REQUIRE(outcome.has_value());
+        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+        auto solution = std::get<Solution>(outcome.value());
+        std::vector<specs::PackageInfo> packages;
+        for (const auto& pkg : solution.packages())
+        {
+            packages.push_back(pkg);
+        }
+        return UpdateAllSolveResult{ std::move(packages), has_conda_smithy_in_db };
+    };
+
+    const auto traditional = solve_update_all_like_api(/*use_shards=*/false);
+    const auto sharded = solve_update_all_like_api(/*use_shards=*/true);
+
+    REQUIRE(traditional.has_conda_smithy_in_db);
+    REQUIRE(sharded.has_conda_smithy_in_db);
+    REQUIRE(traditional.packages == sharded.packages);
 }
 
 TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integration]")

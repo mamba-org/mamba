@@ -529,11 +529,13 @@ namespace mamba
         std::size_t shards_ttl
     ) -> expected_t<std::optional<ShardsIndexDict>>
     {
+        const bool force_refresh = (shards_ttl == 0);
+
         // Check cache first: if we have a cached index within TTL, use it directly
         // without HEAD check or download. This skips network when metadata state
         // was lost (e.g. fresh shell) but cache file is still valid.
         fs::u8path cache_path = shard_index_cache_path(subdir);
-        if (fs::exists(cache_path) && shards_ttl > 0)
+        if (!force_refresh && fs::exists(cache_path) && shards_ttl > 0)
         {
             if (auto age_sec = shard_index_cache_age_seconds(cache_path, subdir.name()))
             {
@@ -560,10 +562,18 @@ namespace mamba
         }
 
         // Refresh shards availability (HEAD check) if metadata is stale for TTL, then re-check.
-        if (!subdir.metadata().has_up_to_date_shards(shards_ttl))
+        if (force_refresh || !subdir.metadata().has_up_to_date_shards(shards_ttl))
         {
-            LOG_DEBUG << "Shard index metadata stale or missing for " << subdir.name()
-                      << ", running HEAD check";
+            if (force_refresh)
+            {
+                LOG_DEBUG << "Shard index refresh forced for " << subdir.name()
+                          << " (repodata_shards_ttl=0)";
+            }
+            else
+            {
+                LOG_DEBUG << "Shard index metadata stale or missing for " << subdir.name()
+                          << ", running HEAD check";
+            }
             refresh_shards_availability(
                 subdir,
                 params,
@@ -588,8 +598,9 @@ namespace mamba
             }
         }
 
-        // Check cache (metadata was fresh; cache may have been outside TTL above)
-        if (fs::exists(cache_path))
+        // Check cache (metadata was fresh; cache may have been outside TTL above).
+        // When repodata_shards_ttl=0, force a network fetch path.
+        if (!force_refresh && fs::exists(cache_path))
         {
             auto cached_index = parse_shard_index(cache_path);
             if (cached_index.has_value())

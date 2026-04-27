@@ -262,7 +262,7 @@ namespace mamba
         bool repodata_use_zst = true;
         std::vector<std::string> repodata_has_zst = { "https://conda.anaconda.org/conda-forge" };
 
-        bool repodata_use_shards = true;
+        bool use_sharded_repodata = true;
         std::size_t repodata_shards_ttl = 86400;
         // 0 means: auto (use process-affinity-based concurrency).
         std::size_t repodata_shards_threads = 0;

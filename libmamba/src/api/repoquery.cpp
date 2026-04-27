@@ -100,7 +100,7 @@ namespace mamba
                 {
                     Console::stream() << "Getting repodata from channels..." << std::endl;
                 }
-                const auto root_packages = ctx.repodata_use_shards
+                const auto root_packages = ctx.use_sharded_repodata
                                                ? repoquery_root_packages(type, queries)
                                                : std::vector<std::string>{};
                 auto exp_load = load_channels(ctx, channel_context, db, package_caches, root_packages);

@@ -157,7 +157,7 @@ namespace mamba
             // Force shard-index refresh for this command shape so shard mode sees the same update
             // candidates as flat repodata.
             const bool force_fresh_shard_index = update_params.update_all == UpdateAll::Yes
-                                                 && ctx.repodata_use_shards && !ctx.offline;
+                                                 && ctx.use_sharded_repodata && !ctx.offline;
             const auto saved_shards_ttl = ctx.repodata_shards_ttl;
             on_scope_exit restore_shards_ttl{ [&] { ctx.repodata_shards_ttl = saved_shards_ttl; } };
             if (force_fresh_shard_index)

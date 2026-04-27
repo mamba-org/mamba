@@ -431,9 +431,9 @@ namespace mamba
                 }
             }
 
-            // Ensure shards availability is set from cache for all subdirs (including those with
-            // valid repodata cache, which skip build_check_requests). This avoids fetching full
-            // repodata when shard index cache is within TTL.
+            // Ensure shards availability is set from cache for all subdirs. This complements
+            // network shard checks and still avoids full repodata downloads when shard index cache
+            // is within TTL.
             for (auto& s : subdirs)
             {
                 s.maybe_set_shards_from_cache(subdir_params);

@@ -50,7 +50,7 @@ namespace mamba
     auto load_subdir_with_shards(
         Context& ctx,
         solver::libsolv::Database& database,
-        const std::vector<std::string>& root_packages,
+        std::vector<std::string>& root_packages,
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,

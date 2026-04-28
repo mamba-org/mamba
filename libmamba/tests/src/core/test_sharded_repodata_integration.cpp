@@ -621,6 +621,64 @@ TEST_CASE("Sharded repodata - solve xeus-python-dev specs on emscripten", "[mamb
     }
 }
 
+TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba::core][sharded][.integration]")
+{
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const std::string saved_platform = ctx.platform;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.platform = saved_platform;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = {
+        "https://repo.prefix.dev/emscripten-forge-4x",
+        "https://repo.prefix.dev/conda-forge",
+    };
+    ctx.platform = "emscripten-wasm32";
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    // Mirror the exact YAML environment spec from the regression report.
+    const std::vector<std::string> specs = { "python", "obspy", "matplotlib", "numpy",
+                                             "scipy",  "pyjs",  "requests",   "pyodide-http" };
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+
+    std::unordered_set<std::string> solved_names;
+    for (const auto& pkg : sharded_solution->packages())
+    {
+        solved_names.insert(pkg.name);
+    }
+
+    // Ensure all requested specs are present in the solved environment.
+    for (const auto& name : specs)
+    {
+        REQUIRE(solved_names.count(name) == 1);
+    }
+
+    // Ensure key transitive noarch deps from the original failure path are present.
+    REQUIRE(solved_names.count("obspy") == 1);
+    REQUIRE(solved_names.count("matplotlib") == 1);
+    REQUIRE(solved_names.count("requests") == 1);
+    REQUIRE(solved_names.count("cycler") == 1);
+    REQUIRE(solved_names.count("decorator") == 1);
+    REQUIRE(solved_names.count("brotli-python") == 1);
+}
+
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();

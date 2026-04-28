@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <chrono>
 #include <optional>
+#include <ranges>
 #include <set>
 #include <sstream>
 #include <unordered_set>
@@ -583,20 +584,20 @@ namespace mamba
                 }
             };
 
-            for (const auto& [channel_url, packages] : packages_by_url)
-            {
-                for (const auto& pkg : packages)
+            std::ranges::for_each(
+                packages_by_url | std::views::values,
+                [&](const std::vector<specs::PackageInfo>& packages)
                 {
-                    for (const auto& dep : pkg.dependencies)
-                    {
-                        add_from_spec(dep);
-                    }
-                    for (const auto& c : pkg.constrains)
-                    {
-                        add_from_spec(c);
-                    }
+                    std::ranges::for_each(
+                        packages,
+                        [&](const specs::PackageInfo& pkg)
+                        {
+                            std::ranges::for_each(pkg.dependencies, add_from_spec);
+                            std::ranges::for_each(pkg.constrains, add_from_spec);
+                        }
+                    );
                 }
-            }
+            );
         }
 
         /**

@@ -1,3 +1,47 @@
+## micromamba 2.6.0 (April 29, 2026)
+
+Enhancements:
+
+- feat: Sharded Repodata Support for `repoquery` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4226>
+- feat: Prefilter Shard Records on Python Minor Version by @jjerphan in <https://github.com/mamba-org/mamba/pull/4214>
+- feat: Do not warn for missing channels index by @jjerphan in <https://github.com/mamba-org/mamba/pull/4189>
+- build: Export `libmamba-spdlog` target for building dependencies in tree by @opoplawski in <https://github.com/mamba-org/mamba/pull/4172>
+- feat: Redesign packages caches hierarchically on channels and platforms by @jjerphan in <https://github.com/mamba-org/mamba/pull/4163>
+- feat: Support Prefix Data Interoperability by @jjerphan in <https://github.com/mamba-org/mamba/pull/4123>
+
+Bug fixes:
+
+- fix: Correct `repodata_record.json` metadata for installations using explicit specifications by @maresb in <https://github.com/mamba-org/mamba/pull/4110>
+- fix: Adapt `python_site_packages_path` on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4232>
+- config sub-command output hides secrets by @Klaim in <https://github.com/mamba-org/mamba/pull/4223>
+- fix: Minor adaptations for sharded repodata support by @jjerphan in <https://github.com/mamba-org/mamba/pull/4187>
+- fix: JSON should be set to `"success": false` when any transactions failed by @Klaim in <https://github.com/mamba-org/mamba/pull/4201>
+- fix: Omit `--detach` option for run subcommand on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4185>
+- fix: Sort `mamba search` results on version numerically by @jjerphan in <https://github.com/mamba-org/mamba/pull/4160>
+- fix: Pretty print short result for `mamba search` by default by @kuepe-sl in <https://github.com/mamba-org/mamba/pull/4066>
+- fix: Show `pip` and `uv` output by default by @jjerphan in <https://github.com/mamba-org/mamba/pull/4155>
+- Graceful handling of download cancel/interruption by @Klaim in <https://github.com/mamba-org/mamba/pull/4146>
+- fix: Do not show activation message for dry runs by @jjerphan in <https://github.com/mamba-org/mamba/pull/4140>
+
+CI fixes and doc:
+
+- Fixed path in micromamba-installation.rst by @clausmichele in <https://github.com/mamba-org/mamba/pull/4194>
+- ci: Disable `mamba-content-trust and auth tests` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4186>
+- docs: Click to Copy code-blocks by @jjerphan in <https://github.com/mamba-org/mamba/pull/4175>
+- ci: Exclude C++ tests in code coverage by @jjerphan in <https://github.com/mamba-org/mamba/pull/4147>
+- ci: Use the `dev` branch from `micromamba-feedstock` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4144>
+- ci: Free disk space for all linux workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4138>
+- ci: Free disk space for linux workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4137>
+
+Maintenance:
+
+- build(deps): bump actions/github-script from 8 to 9 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4229>
+- build(deps): bump mamba-org/setup-micromamba from 2 to 3 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4219>
+- build(deps): bump codecov/codecov-action from 5 to 6 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4218>
+- maint: Increase timeout of `test_env_logging_overhead_regression` to 1 minute by @jjerphan in <https://github.com/mamba-org/mamba/pull/4217>
+- build(deps): bump actions/upload-artifact from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4180>
+- maint: Increase timeout of `test_env_logging_overhead_regression` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4173>
+
 ## micromamba 2.6.0.rc5 (April 28, 2026)
 
 Enhancements:

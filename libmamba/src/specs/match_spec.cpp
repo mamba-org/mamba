@@ -49,7 +49,7 @@ namespace mamba::specs
         {
             return make_unexpected_parse("Empty package name.");
         }
-        return { std::string(spec.substr(name_start, i - name_start)) };
+        return { util::to_lower(std::string(spec.substr(name_start, i - name_start))) };
     }
 
     auto MatchSpec::parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>

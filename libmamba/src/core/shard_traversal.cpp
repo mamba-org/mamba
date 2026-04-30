@@ -16,6 +16,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/shard_traversal.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {

@@ -428,6 +428,49 @@ TEST_CASE("Sharded repodata - python root extraction adds python_abi", "[mamba::
     }
 }
 
+TEST_CASE(
+    "Sharded repodata - mixed-case root package names behave like lowercase",
+    "[mamba::core][sharded][.integration]"
+)
+{
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto assert_both_modes_succeed = [&](const std::vector<std::string>& specs)
+    {
+        auto flat_solution = solve_environment(ctx, channel_context, specs, false, cache_dir);
+        auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+
+        REQUIRE(flat_solution.has_value());
+        REQUIRE(sharded_solution.has_value());
+    };
+
+    // Regression matrix for case-insensitive package names with and without an additional root.
+    assert_both_modes_succeed({ "python>=3.11" });
+    assert_both_modes_succeed({ "PyThOn>=3.11" });
+    assert_both_modes_succeed({ "python>=3.11", "make" });
+    assert_both_modes_succeed({ "PyThOn>=3.11", "make" });
+}
+
 TEST_CASE("Sharded repodata - noarch-only root package is installable", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();

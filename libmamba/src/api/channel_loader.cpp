@@ -29,6 +29,7 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/specs/version.hpp"
+#include "mamba/util/string.hpp"
 
 #include "utils.hpp"
 
@@ -577,10 +578,12 @@ namespace mamba
             std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
             auto add_from_spec = [&](const std::string& dep_str)
             {
-                if (auto name = specs::MatchSpec::extract_name(dep_str);
-                    name && !name->empty() && *name != "*" && seen.insert(*name).second)
+                if (auto name = specs::MatchSpec::extract_name(dep_str); name)
                 {
-                    root_packages.push_back(*name);
+                    if (!name->empty() && *name != "*" && seen.insert(*name).second)
+                    {
+                        root_packages.push_back(*name);
+                    }
                 }
             };
 

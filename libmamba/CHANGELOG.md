@@ -52,7 +52,7 @@ Bug fixes:
 - Graceful handling of download cancel/interruption by @Klaim in <https://github.com/mamba-org/mamba/pull/4146>
 - fix: Do not show activation message for dry runs by @jjerphan in <https://github.com/mamba-org/mamba/pull/4140>
 - fix: Only call `get_all_running_processes_info` when needed by @mihaitodor in <https://github.com/mamba-org/mamba/pull/4135>
-- Add #include <functional> for std::ref by @opoplawski in <https://github.com/mamba-org/mamba/pull/4132>
+- Add `#include <functional>` for `std::ref` by @opoplawski in <https://github.com/mamba-org/mamba/pull/4132>
 
 CI fixes and doc:
 

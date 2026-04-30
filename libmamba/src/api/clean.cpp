@@ -48,6 +48,27 @@ namespace mamba
         std::vector<fs::u8path> envs;
 
         MultiPackageCache caches(ctx.pkgs_dirs, ctx.validation_params);
+        const auto user_conda_cache_root = fs::u8path(util::user_cache_dir()) / "conda";
+        const auto user_conda_pkgs = user_conda_cache_root / "pkgs";
+        std::vector<fs::u8path> cache_roots;
+        for (auto* pkg_cache : caches.writable_caches())
+        {
+            cache_roots.push_back(pkg_cache->path());
+        }
+        if (clean_all)
+        {
+            const auto has_user_conda_pkgs = std::find(
+                                                 cache_roots.begin(),
+                                                 cache_roots.end(),
+                                                 user_conda_pkgs
+                                             )
+                                             != cache_roots.end();
+            if (!has_user_conda_pkgs && fs::exists(user_conda_pkgs))
+            {
+                cache_roots.push_back(user_conda_pkgs);
+            }
+        }
+
         if (!ctx.dry_run && (clean_index || clean_all))
         {
             Console::stream() << "Cleaning index cache..";
@@ -68,28 +89,30 @@ namespace mamba
                 }
             };
 
-            for (auto* pkg_cache : caches.writable_caches())
+            for (const auto& cache_root : cache_roots)
             {
-                remove_cache_dir(pkg_cache->path() / std::string(cache_paths::cache_relative));
+                remove_cache_dir(cache_root / std::string(cache_paths::cache_relative));
             }
 
             // Shard files are cached under the user cache root and may not be in configured
             // package caches (for example when only MAMBA_ROOT_PREFIX/pkgs is configured).
-            remove_cache_dir(
-                fs::u8path(util::user_cache_dir()) / std::string(cache_paths::conda_pkgs_relative)
-                / std::string(cache_paths::cache_shards_relative)
-            );
+            remove_cache_dir(user_conda_pkgs / std::string(cache_paths::cache_shards_relative));
+
+            if (clean_all)
+            {
+                remove_cache_dir(user_conda_cache_root);
+            }
         }
 
         if (!ctx.dry_run && (clean_locks || clean_all))
         {
             Console::stream() << "Cleaning lock files..";
 
-            for (auto* pkg_cache : caches.writable_caches())
+            for (const auto& cache_root : cache_roots)
             {
-                if (fs::exists(pkg_cache->path()))
+                if (fs::exists(cache_root))
                 {
-                    for (auto& p : fs::directory_iterator(pkg_cache->path()))
+                    for (auto& p : fs::directory_iterator(cache_root))
                     {
                         if (p.exists() && util::ends_with(p.path().string(), ".lock")
                             && (fs::exists(util::rstrip(p.path().string(), ".lock"))
@@ -110,9 +133,9 @@ namespace mamba
                     }
                 }
 
-                if (fs::exists(pkg_cache->path() / "cache"))
+                if (fs::exists(cache_root / "cache"))
                 {
-                    for (auto& p : fs::recursive_directory_iterator(pkg_cache->path() / "cache"))
+                    for (auto& p : fs::recursive_directory_iterator(cache_root / "cache"))
                     {
                         if (p.exists() && util::ends_with(p.path().string(), ".lock"))
                         {
@@ -176,6 +199,18 @@ namespace mamba
             return ss.str();
         };
 
+        auto is_inside_cache_metadata = [](const fs::u8path& path, const fs::u8path& cache_root)
+        {
+            auto rel = path.lexically_relative(cache_root);
+            if (rel.empty())
+            {
+                return false;
+            }
+            const auto rel_str = rel.string();
+            const auto cache_dir = std::string(cache_paths::cache_relative);
+            return rel_str == cache_dir || util::starts_with(rel_str, cache_dir + "/");
+        };
+
         auto collect_tarballs = [&]()
         {
             std::vector<fs::u8path> res;
@@ -185,16 +220,27 @@ namespace mamba
             t.set_alignment({ printers::alignment::left, printers::alignment::right });
             t.set_padding({ 2, 4 });
 
-            for (auto* pkg_cache : caches.writable_caches())
+            for (const auto& cache_root : cache_roots)
             {
-                std::string header_line = util::concat(
-                    "Package cache folder: ",
-                    pkg_cache->path().string()
-                );
-                std::vector<std::vector<printers::FormattedString>> rows;
-                for (auto& p : fs::directory_iterator(pkg_cache->path()))
+                if (!fs::exists(cache_root))
                 {
-                    std::string fname = p.path().filename().string();
+                    continue;
+                }
+                std::string header_line = util::concat("Package cache folder: ", cache_root.string());
+                std::vector<std::vector<printers::FormattedString>> rows;
+                for (auto it = fs::recursive_directory_iterator(cache_root);
+                     it != fs::recursive_directory_iterator();
+                     ++it)
+                {
+                    const auto& p = *it;
+                    if (p.is_directory())
+                    {
+                        if (is_inside_cache_metadata(p.path(), cache_root))
+                        {
+                            it.disable_recursion_pending();
+                        }
+                        continue;
+                    }
                     if (!p.is_directory()
                         && (util::ends_with(p.path().string(), ".tar.bz2")
                             || util::ends_with(p.path().string(), ".conda")))
@@ -209,7 +255,7 @@ namespace mamba
                     rows.end(),
                     [](const auto& a, const auto& b) { return a[0].s < b[0].s; }
                 );
-                t.add_rows(pkg_cache->path().string(), rows);
+                t.add_rows(cache_root.string(), rows);
             }
             if (total_size)
             {
@@ -262,16 +308,29 @@ namespace mamba
             t.set_alignment({ printers::alignment::left, printers::alignment::right });
             t.set_padding({ 2, 4 });
 
-            for (auto* pkg_cache : caches.writable_caches())
+            for (const auto& cache_root : cache_roots)
             {
-                std::string header_line = util::concat(
-                    "Package cache folder: ",
-                    pkg_cache->path().string()
-                );
-                std::vector<std::vector<printers::FormattedString>> rows;
-                for (auto& p : fs::directory_iterator(pkg_cache->path()))
+                if (!fs::exists(cache_root))
                 {
-                    if (p.is_directory() && fs::exists(p.path() / "info" / "index.json"))
+                    continue;
+                }
+                std::string header_line = util::concat("Package cache folder: ", cache_root.string());
+                std::vector<std::vector<printers::FormattedString>> rows;
+                for (auto it = fs::recursive_directory_iterator(cache_root);
+                     it != fs::recursive_directory_iterator();
+                     ++it)
+                {
+                    const auto& p = *it;
+                    if (!p.is_directory())
+                    {
+                        continue;
+                    }
+                    if (is_inside_cache_metadata(p.path(), cache_root))
+                    {
+                        it.disable_recursion_pending();
+                        continue;
+                    }
+                    if (fs::exists(p.path() / "info" / "index.json"))
                     {
                         if (installed_pkgs.find(p.path().filename().string()) != installed_pkgs.end())
                         {
@@ -289,7 +348,7 @@ namespace mamba
                     rows.end(),
                     [](const auto& a, const auto& b) { return a[0].s < b[0].s; }
                 );
-                t.add_rows(pkg_cache->path().string(), rows);
+                t.add_rows(cache_root.string(), rows);
             }
             if (total_size)
             {

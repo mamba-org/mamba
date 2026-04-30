@@ -797,6 +797,17 @@ namespace
             REQUIRE(name.value() == "scipy");
         }
 
+        SECTION("normalize extracted name to lowercase")
+        {
+            auto name = MatchSpec::extract_name("CppInterOp>=1.9");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "cppinterop");
+
+            name = MatchSpec::extract_name("   PyThOn >=3.11");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+        }
+
         SECTION("empty and operator-only specs return empty")
         {
             REQUIRE_FALSE(MatchSpec::extract_name("").has_value());

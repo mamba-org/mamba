@@ -150,7 +150,7 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec
     assert db.package_count() == 0
 
     repo = db.add_repo_from_packages(
-        [libmambapy.specs.PackageInfo(name="python")],
+        [libmambapy.specs.PackageInfo(name="python", version="3.0")],
         name="duck",
         add_pip_as_python_dependency=add_pip_as_python_dependency,
     )
@@ -171,7 +171,7 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec
     pkgs = db.packages_in_repo(repo)
     assert len(pkgs) == 1
     assert pkgs[0].name == "python"
-    assert pkgs[0].dependencies == [] if add_pip_as_python_dependency else ["pip"]
+    assert pkgs[0].dependencies == (["pip"] if add_pip_as_python_dependency else [])
 
     db.remove_repo(repo)
     assert db.repo_count() == 0
@@ -186,9 +186,9 @@ def tmp_repodata_json(tmp_path):
         json.dump(
             {
                 "packages": {
-                    "python-1.0-bld": {
+                    "python-3.0-bld": {
                         "name": "python",
-                        "version": "1.0",
+                        "version": "3.0",
                         "build": "bld",
                         "build_number": 0,
                     },
@@ -252,7 +252,7 @@ def test_Database_RepoInfo_from_repodata(
     pkgs = db.packages_in_repo(repo)
     assert len(pkgs) == repo.package_count()
     python_pkg = next(p for p in pkgs if p.name == "python")
-    assert python_pkg.dependencies == [] if add_pip_as_python_dependency else ["pip"]
+    assert python_pkg.dependencies == (["pip"] if add_pip_as_python_dependency else [])
 
     # Native serialize repo
     solv_file = tmp_path / "repodata.solv"

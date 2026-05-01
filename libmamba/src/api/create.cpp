@@ -230,7 +230,7 @@ namespace mamba
                 output["dry_run"] = true;
                 output["prefix"] = ctx.prefix_params.target_prefix;
                 output["success"] = true;
-                std::cout << output.dump(2) << std::endl;
+                Console::instance().json_write(output);
                 return;
             }
         }

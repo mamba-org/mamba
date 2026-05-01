@@ -315,7 +315,15 @@ def run_env(*args, f=None, **kwargs):
     return res.decode()
 
 
-def umamba_list(*args, **kwargs):
+def pkgs_list_from_json_result(json_result):
+    assert json_result
+    packages = json_result["packages"]
+    # TODO: consider if we check here if there was warnings or errors,
+    # maybe driven by a parameter
+    return packages
+
+
+def umamba_list(*args, json_as_pkgs_list=True, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "list"] + [str(arg) for arg in args if arg]
@@ -323,7 +331,15 @@ def umamba_list(*args, **kwargs):
 
     if "--json" in args:
         j = json.loads(res)
-        return j
+        if json_as_pkgs_list:
+            # TODO: consider checking here that there is no errors
+            # otherwise any log is lost beyond this point
+            packages = pkgs_list_from_json_result(j)
+            # empty list are currently set to null because of json flattening
+            # in libmamba, so we need to translate null as empty list instead
+            return packages if packages != None else list()
+        else:
+            return j
 
     return res.decode()
 
@@ -707,3 +723,11 @@ def assert_state_file(state_file_path: Path, expected_state: dict):
         assert state[field_name] == expected_value, (
             f"Expected {field_name} to be {expected_value}, but got {state[field_name]}"
         )
+
+def find_message_in_json_logs(json_result, message_to_find):
+    for log_record in json_result["log_history"]:
+        if message_to_find in log_record["message"]:
+            return log_record
+
+    return None
+

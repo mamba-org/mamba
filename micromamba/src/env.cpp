@@ -308,9 +308,10 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                                 }
                             }
                         }
-                        catch (nlohmann::json::exception&)
+                        catch (const nlohmann::json::exception& e)
                         {
-                            // If parsing fails, leave variables empty
+                            LOG_WARNING << "Could not read env_vars from state file "
+                                        << state_file_path.string() << ": " << e.what();
                         }
                     }
                 }

@@ -568,4 +568,17 @@ namespace mamba
 
         return result;
     }
+
+    namespace detail
+    {
+        yaml_file_contents read_yaml_file(
+            const Context& ctx,
+            const std::string& yaml_file,
+            const std::string& platform,
+            bool use_uv
+        )
+        {
+            return file_to_yaml_contents(ctx, yaml_file, platform, use_uv);
+        }
+    }
 }

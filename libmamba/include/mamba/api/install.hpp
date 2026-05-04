@@ -115,10 +115,23 @@ namespace mamba
 
         bool operator==(const other_pkg_mgr_spec& s1, const other_pkg_mgr_spec& s2);
 
-        // yaml_file_contents moved to environment_yaml.hpp
-        struct yaml_file_contents;  // Forward declaration
+        struct yaml_file_contents
+        {
+            std::string name;
+            std::vector<std::string> dependencies, channels;
+            std::map<std::string, std::string> variables;
+            std::vector<other_pkg_mgr_spec> others_pkg_mgrs_specs;
+            std::string prefix;
+        };
 
         bool eval_selector(const std::string& selector, const std::string& platform);
+
+        yaml_file_contents read_yaml_file(
+            const Context& ctx,
+            const std::string& yaml_file,
+            const std::string& platform,
+            bool use_uv
+        );
 
         inline void to_json(nlohmann::json&, const other_pkg_mgr_spec&)
         {

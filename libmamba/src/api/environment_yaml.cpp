@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <fstream>
 #include <ios>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <ostream>
@@ -352,10 +353,17 @@ namespace mamba
             root["variables"] = contents.variables;
         }
 
-        // Write to stream
+        // Write to stream (route stdout through Console for consistent CLI output)
         YAML::Emitter emitter;
         emitter << root;
-        out << emitter.c_str() << "\n";
+        if (&out == &std::cout)
+        {
+            Console::stream() << emitter.c_str() << "\n";
+        }
+        else
+        {
+            out << emitter.c_str() << "\n";
+        }
     }
 
     void

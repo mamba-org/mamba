@@ -179,6 +179,19 @@ class TestUpdate:
                     break
                 assert not x.startswith("update specs:")
 
+    def test_update_all_with_constraint(self, env_created):
+        update_res = helpers.update("--all", "xtensor<=" + self.medium_old_version, "--json")
+        xtensor_link = [
+            to_link for to_link in update_res["actions"]["LINK"] if to_link["name"] == "xtensor"
+        ][0]
+        assert xtensor_link["version"].startswith(self.medium_old_version)
+
+        if helpers.dry_run_tests == helpers.DryRun.OFF:
+            with open(Path(self.prefix) / "conda-meta" / "history") as h:
+                history = h.read()
+            assert "update specs" in history
+            assert "xtensor<=" + self.medium_old_version in history
+
     @pytest.mark.parametrize(
         "alias",
         [

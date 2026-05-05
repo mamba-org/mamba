@@ -37,7 +37,11 @@ set_update_command(CLI::App* subcom, Configuration& config)
     subcom->add_flag("--prune-deps,!--no-prune-deps", prune_deps, "Prune dependencies (default)");
 
     subcom->get_option("specs")->description("Specs to update in the environment");
-    subcom->add_flag("-a,--all", update_all, "Update all packages in the environment");
+    subcom->add_flag(
+        "-a,--all",
+        update_all,
+        "Update all packages in the environment (optionally constrained by specs)"
+    );
 
     subcom->callback(
         [&]

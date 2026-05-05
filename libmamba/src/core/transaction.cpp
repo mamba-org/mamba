@@ -257,7 +257,7 @@ namespace mamba
                 request,
                 [&](const auto& item) { m_history_entry.update.push_back(item.spec.to_string()); }
             );
-            solver::for_each_of<Request::Remove, Request::Update>(
+            solver::for_each_of<Request::Remove>(
                 request,
                 [&](const auto& item) { m_history_entry.remove.push_back(item.spec.to_string()); }
             );

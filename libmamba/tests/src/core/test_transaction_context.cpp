@@ -7,6 +7,12 @@
 #include <catch2/catch_all.hpp>
 
 // Private libmamba header
+#include "core/link.hpp"
+// Private libmamba header
+#include "mamba/core/context_params.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/specs/package_info.hpp"
+
 #include "core/transaction_context.hpp"
 
 namespace mamba
@@ -177,6 +183,106 @@ namespace mamba
             REQUIRE(ps_path_str == "bin/some_random_file");
             REQUIRE(ps_path_gen_str == "bin/some_random_file");
 #endif
+        }
+
+        TEST_CASE("unlink noarch metadata paths")
+        {
+            const auto tmp_dir = TemporaryDirectory();
+            const fs::u8path prefix = tmp_dir.path() / "prefix";
+            const fs::u8path conda_meta_dir = prefix / "conda-meta";
+            fs::create_directories(conda_meta_dir);
+
+            const fs::u8path site_packages = prefix / "lib" / "python3.14" / "site-packages";
+            fs::create_directories(site_packages / "httpx");
+            fs::create_directories(site_packages / "httpx-0.27.2.dist-info");
+
+            {
+                auto out = open_ofstream(site_packages / "httpx" / "__init__.py");
+                out << "print('old')\n";
+            }
+            {
+                auto out = open_ofstream(site_packages / "httpx-0.27.2.dist-info" / "METADATA");
+                out << "metadata\n";
+            }
+
+            const auto mk_tx_context = [&]
+            {
+                TransactionParams tx_params{
+                    .is_mamba_exe = false,
+                    .json_output = false,
+                    .verbosity = 0,
+                    .shortcuts = false,
+                    .envs_dirs = {},
+                    .platform = "linux-64",
+                    .prefix_params =
+                        PrefixParams{
+                            .target_prefix = prefix,
+                            .root_prefix = prefix,
+                            .conda_prefix = prefix,
+                            .relocate_prefix = prefix,
+                        },
+                    .link_params = {},
+                    .threads_params = {},
+                };
+
+                return TransactionContext(
+                    tx_params,
+                    { "3.14.4", "3.14.4" },
+                    "lib/python3.14/site-packages",
+                    {}
+                );
+            };
+
+            specs::PackageInfo pkg("httpx");
+            pkg.version = "0.27.2";
+            pkg.build_string = "pyhd8ed1ab_0";
+
+            SECTION("paths_data with short noarch paths is resolved")
+            {
+                {
+                    auto out = open_ofstream(conda_meta_dir / "httpx-0.27.2-pyhd8ed1ab_0.json");
+                    out << R"({
+  "name": "httpx",
+  "version": "0.27.2",
+  "build_string": "pyhd8ed1ab_0",
+  "paths_data": {
+    "paths": [
+      { "_path": "site-packages/httpx/__init__.py" },
+      { "_path": "site-packages/httpx-0.27.2.dist-info/METADATA" }
+    ],
+    "paths_version": 1
+  }
+})";
+                }
+
+                auto tx_context = mk_tx_context();
+                UnlinkPackage unlink_pkg(pkg, prefix, &tx_context);
+                REQUIRE(unlink_pkg.execute());
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx" / "__init__.py"));
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx-0.27.2.dist-info" / "METADATA"));
+            }
+
+            SECTION("legacy files list with noarch short paths is resolved")
+            {
+                {
+                    auto out = open_ofstream(conda_meta_dir / "httpx-0.27.2-pyhd8ed1ab_0.json");
+                    out << R"({
+  "name": "httpx",
+  "version": "0.27.2",
+  "build_string": "pyhd8ed1ab_0",
+  "files": [
+    "site-packages/httpx/__init__.py",
+    "site-packages/httpx-0.27.2.dist-info/METADATA"
+  ]
+})";
+                }
+
+                auto tx_context = mk_tx_context();
+                UnlinkPackage unlink_pkg(pkg, prefix, &tx_context);
+                REQUIRE(unlink_pkg.execute());
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx" / "__init__.py"));
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx-0.27.2.dist-info" / "METADATA"));
+            }
         }
     }
 }  // namespace mamba

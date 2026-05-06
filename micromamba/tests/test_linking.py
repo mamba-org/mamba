@@ -1,6 +1,7 @@
+import json
 import os
-import sys
 import platform
+import sys
 from pathlib import Path
 
 import pytest
@@ -157,6 +158,88 @@ class TestLinking:
 
         os.remove(linked_file_path)
         helpers.remove(package_to_test, "-n", TestLinking.env_name)
+
+    def test_unlink_legacy_files_metadata(self):
+        helpers.create(
+            "python=3.10",
+            "httpx=0.27.0",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        env_prefix = Path(helpers.get_env(TestLinking.env_name))
+        old_meta = next((env_prefix / "conda-meta").glob("httpx-0.27.0-*.json"))
+        with old_meta.open() as f:
+            old_record = json.load(f)
+
+        # Simulate conda metadata that only stores the legacy `files` list.
+        old_record["files"] = [p["_path"] for p in old_record["paths_data"]["paths"]]
+        old_record.pop("paths_data", None)
+        with old_meta.open("w") as f:
+            json.dump(old_record, f)
+
+        helpers.install(
+            "httpx=0.28.1",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        old_dist_info = list(
+            (env_prefix / "lib").glob("python*/site-packages/httpx-0.27.0.dist-info")
+        )
+        new_dist_info = list(
+            (env_prefix / "lib").glob("python*/site-packages/httpx-0.28.1.dist-info")
+        )
+        assert len(old_dist_info) == 0
+        assert len(new_dist_info) == 1
+
+    def test_unlink_noarch_short_paths_metadata(self):
+        helpers.create(
+            "python=3.10",
+            "httpx=0.27.0",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        env_prefix = Path(helpers.get_env(TestLinking.env_name))
+        old_meta = next((env_prefix / "conda-meta").glob("httpx-0.27.0-*.json"))
+        with old_meta.open() as f:
+            old_record = json.load(f)
+
+        # Simulate conda-generated noarch metadata where `paths_data.paths[*]._path`
+        # uses short paths like `site-packages/...` instead of full
+        # `lib/pythonX.Y/site-packages/...` entries.
+        for path in old_record["paths_data"]["paths"]:
+            current_path = path.get("_path", "")
+            if current_path.startswith("lib/python") and "/site-packages/" in current_path:
+                path["_path"] = current_path.split("/site-packages/", 1)[1]
+                path["_path"] = f"site-packages/{path['_path']}"
+
+        with old_meta.open("w") as f:
+            json.dump(old_record, f)
+
+        helpers.install(
+            "httpx=0.28.1",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        old_dist_info = list(
+            (env_prefix / "lib").glob("python*/site-packages/httpx-0.27.0.dist-info")
+        )
+        new_dist_info = list(
+            (env_prefix / "lib").glob("python*/site-packages/httpx-0.28.1.dist-info")
+        )
+        assert len(old_dist_info) == 0
+        assert len(new_dist_info) == 1
 
     @pytest.mark.skipif(
         sys.platform == "darwin" and platform.machine() == "arm64",

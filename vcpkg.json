@@ -3,7 +3,6 @@
   "dependencies": [
     "curl",
     "libiconv",
-    "libxml2",
     {
       "name": "winreg",
       "platform": "windows"

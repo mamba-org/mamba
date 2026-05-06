@@ -598,10 +598,9 @@ macro(libmamba_create_target target_name linkage output_name)
             find_library(BZIP2_LIBRARIES NAMES bz2)
             find_library(CRYPTO_LIBRARIES NAMES libcrypto)
 
-            find_library(LIBXML2_LIBRARY NAMES libxml2)
             find_library(ICONV_LIBRARY NAMES libiconv iconv)
             find_library(CHARSET_LIBRARY NAMES libcharset charset)
-            message("Found: ${LIBXML2_LIBRARY} ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
+            message("Found: ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
 
             target_link_libraries(
                 ${target_name}
@@ -609,7 +608,6 @@ macro(libmamba_create_target target_name linkage output_name)
                     ${CRYPTO_LIBRARIES}
                     ${SYSTEM_PROVIDED_LIBRARIES}
                     ${LibArchive_LIBRARY}
-                    ${LIBXML2_LIBRARY}
                     ${ICONV_LIBRARY}
                     ${CHARSET_LIBRARY}
                     zstd::libzstd_static

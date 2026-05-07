@@ -6,6 +6,7 @@
 
 #include "mamba/solver/resolvo/database.hpp"
 #include "mamba/solver/resolvo/solver.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/util/variant_cmp.hpp"
 
 namespace mamba::solver::resolvo
@@ -95,6 +96,10 @@ namespace mamba::solver::resolvo
             for (const auto& solvable_id : result)
             {
                 const auto& solvable = database.solvable_pool[solvable_id];
+                if (util::starts_with(solvable.name, "__"))
+                {
+                    continue;
+                }
                 specs::PackageInfo pkg;
                 pkg.name = solvable.name;
                 pkg.version = solvable.version;

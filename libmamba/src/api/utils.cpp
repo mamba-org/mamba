@@ -533,8 +533,14 @@ namespace mamba
                 }
             );
             resolvo_db.add_repo_from_packages(packages, "all", false);
-            auto resolvo_outcome = solver::resolvo::Solver().solve(resolvo_db, request).value();
-            return solver::libsolv::Solver::Outcome{ std::get<solver::Solution>(resolvo_outcome) };
+            auto maybe_resolvo_outcome = solver::resolvo::Solver().solve(resolvo_db, request);
+            if (!maybe_resolvo_outcome)
+            {
+                throw maybe_resolvo_outcome.error();
+            }
+            return solver::libsolv::Solver::Outcome{
+                std::get<solver::Solution>(std::move(maybe_resolvo_outcome).value())
+            };
         }();
         if (Console::can_report_status())
         {

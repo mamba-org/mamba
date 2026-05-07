@@ -607,7 +607,12 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
-            auto outcome = solve_request_with_status(ctx.experimental_matchspec_parsing, db, request);
+            auto outcome = solve_request_with_status(
+                ctx.experimental_matchspec_parsing,
+                db,
+                request,
+                ctx.experimental_resolvo_solver ? "resolvo" : "libsolv"
+            );
 
             if (handle_unsolvable_with_retry(
                     outcome,

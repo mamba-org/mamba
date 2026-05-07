@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <stdexcept>
 
@@ -1416,6 +1417,41 @@ namespace mamba
                        "This is not mean for production"
                    )
                    .set_env_var_names());
+
+        insert(Configurable("solver", std::string("libsolv"))
+                   .group("Basic")
+                   .description("Solver backend to use (`libsolv` or `resolvo`).")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .set_post_merge_hook<std::string>(
+                       [&](std::string& value)
+                       {
+                           std::string normalized = value;
+                           std::transform(
+                               normalized.begin(),
+                               normalized.end(),
+                               normalized.begin(),
+                               [](unsigned char c) { return static_cast<char>(std::tolower(c)); }
+                           );
+
+                           if (normalized == "libsolv")
+                           {
+                               m_context.experimental_resolvo_solver = false;
+                               value = normalized;
+                               return;
+                           }
+                           if (normalized == "resolvo")
+                           {
+                               m_context.experimental_resolvo_solver = true;
+                               value = normalized;
+                               return;
+                           }
+
+                           LOG_ERROR << "Invalid value for `solver`: " << value
+                                     << ". Expected `libsolv` or `resolvo`.";
+                           throw std::runtime_error("Aborting.");
+                       }
+                   ));
 
         insert(Configurable("debug", &m_context.debug)
                    .group("Basic")

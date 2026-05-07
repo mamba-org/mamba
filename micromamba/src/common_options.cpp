@@ -465,6 +465,15 @@ init_install_options(CLI::App* subcom, Configuration& config)
         repo_parsing.description()
     );
 
+    auto& solver = config.at("solver");
+    static const std::map<std::string, std::string> solver_map = {
+        { "libsolv", "libsolv" },
+        { "resolvo", "resolvo" },
+    };
+    subcom->add_option("--solver", solver.get_cli_config<std::string>(), solver.description())
+        ->transform(CLI::CheckedTransformer(solver_map, CLI::ignore_case))
+        ->option_text("libsolv|resolvo");
+
     auto& platform = config.at("platform");
     subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
         ->option_text("PLATFORM");

@@ -485,13 +485,15 @@ namespace mamba
     solver::libsolv::Solver::Outcome solve_request_with_status(
         bool experimental_matchspec_parsing,
         solver::libsolv::Database& db,
-        const solver::Request& request
+        const solver::Request& request,
+        std::string_view solver_name
     )
     {
+        const auto resolving_label = fmt::format("Resolving Environment with {}", solver_name);
         if (Console::can_report_status())
         {
             Console::instance().print_in_place(
-                fmt::format("{:<85} {:>20}", "Resolving Environment", "⧖ Starting")
+                fmt::format("{:<85} {:>20}", resolving_label, "⧖ Starting")
             );
         }
         const auto started_at = std::chrono::steady_clock::now();
@@ -509,7 +511,7 @@ namespace mamba
             Console::instance().print_in_place(
                 fmt::format(
                     "{:<85} {:>20}",
-                    "Resolving Environment",
+                    resolving_label,
                     done_with_duration(std::chrono::steady_clock::now() - started_at)
                 ),
                 true

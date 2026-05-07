@@ -607,12 +607,39 @@ namespace mamba
                 // Console stream prints on destruction
             }
 
-            auto outcome = solve_request_with_status(
-                ctx.experimental_matchspec_parsing,
-                db,
-                request,
-                ctx.experimental_resolvo_solver
-            );
+            solver::libsolv::Solver::Outcome outcome;
+            try
+            {
+                outcome = solve_request_with_status(
+                    ctx.experimental_matchspec_parsing,
+                    db,
+                    request,
+                    ctx.experimental_resolvo_solver
+                );
+            }
+            catch (const mamba_error& error)
+            {
+                if (ctx.experimental_resolvo_solver
+                    && (error.error_code() == mamba_error_code::satisfiablitity_error) && !is_retry)
+                {
+                    bool retry = true;
+                    install_specs_impl(
+                        ctx,
+                        channel_context,
+                        config,
+                        raw_specs,
+                        create_env,
+                        remove_prefix_on_failure,
+                        retry
+                    );
+                    return;
+                }
+                if (ctx.experimental_resolvo_solver && freeze_installed)
+                {
+                    Console::instance().print("Possible hints:\n  - 'freeze_installed' is turned on\n");
+                }
+                throw;
+            }
 
             if (handle_unsolvable_with_retry(
                     outcome,

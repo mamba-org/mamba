@@ -502,58 +502,72 @@ namespace mamba
             );
         }
         const auto started_at = std::chrono::steady_clock::now();
-        auto outcome = [&]() -> solver::libsolv::Solver::Outcome
+        try
         {
-            if (!use_resolvo)
+            auto outcome = [&]() -> solver::libsolv::Solver::Outcome
             {
-                LOG_DEBUG << "Using solver backend: libsolv";
-                return solver::libsolv::Solver()
-                    .solve(
-                        db,
-                        request,
-                        experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Mixed
-                    )
-                    .value();
-            }
-
-            LOG_DEBUG << "Using solver backend: resolvo";
-            solver::resolvo::Database resolvo_db(db.channel_params());
-            auto all_packages_spec = specs::MatchSpec::parse("*")
-                                         .or_else([](specs::ParseError&& err)
-                                                  { throw std::move(err); })
-                                         .value();
-            std::vector<specs::PackageInfo> packages;
-            db.for_each_package_matching(
-                all_packages_spec,
-                [&](specs::PackageInfo&& pkg)
+                if (!use_resolvo)
                 {
-                    packages.emplace_back(std::move(pkg));
-                    return util::LoopControl::Continue;
+                    LOG_DEBUG << "Using solver backend: libsolv";
+                    return solver::libsolv::Solver()
+                        .solve(
+                            db,
+                            request,
+                            experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                           : solver::libsolv::MatchSpecParser::Mixed
+                        )
+                        .value();
                 }
-            );
-            resolvo_db.add_repo_from_packages(packages, "all", false);
-            auto maybe_resolvo_outcome = solver::resolvo::Solver().solve(resolvo_db, request);
-            if (!maybe_resolvo_outcome)
+
+                LOG_DEBUG << "Using solver backend: resolvo";
+                solver::resolvo::Database resolvo_db(db.channel_params());
+                auto all_packages_spec = specs::MatchSpec::parse("*")
+                                             .or_else([](specs::ParseError&& err)
+                                                      { throw std::move(err); })
+                                             .value();
+                std::vector<specs::PackageInfo> packages;
+                db.for_each_package_matching(
+                    all_packages_spec,
+                    [&](specs::PackageInfo&& pkg)
+                    {
+                        packages.emplace_back(std::move(pkg));
+                        return util::LoopControl::Continue;
+                    }
+                );
+                resolvo_db.add_repo_from_packages(packages, "all", false);
+                auto maybe_resolvo_outcome = solver::resolvo::Solver().solve(resolvo_db, request);
+                if (!maybe_resolvo_outcome)
+                {
+                    throw maybe_resolvo_outcome.error();
+                }
+                return solver::libsolv::Solver::Outcome{
+                    std::get<solver::Solution>(std::move(maybe_resolvo_outcome).value())
+                };
+            }();
+            if (Console::can_report_status())
             {
-                throw maybe_resolvo_outcome.error();
+                Console::instance().print_in_place(
+                    fmt::format(
+                        "{:<85} {:>20}",
+                        resolving_label,
+                        done_with_duration(std::chrono::steady_clock::now() - started_at)
+                    ),
+                    true
+                );
             }
-            return solver::libsolv::Solver::Outcome{
-                std::get<solver::Solution>(std::move(maybe_resolvo_outcome).value())
-            };
-        }();
-        if (Console::can_report_status())
-        {
-            Console::instance().print_in_place(
-                fmt::format(
-                    "{:<85} {:>20}",
-                    resolving_label,
-                    done_with_duration(std::chrono::steady_clock::now() - started_at)
-                ),
-                true
-            );
+            return outcome;
         }
-        return outcome;
+        catch (...)
+        {
+            if (Console::can_report_status())
+            {
+                Console::instance().print_in_place(
+                    fmt::format("{:<85} {:>20}", resolving_label, "✗ Failed"),
+                    true
+                );
+            }
+            throw;
+        }
     }
 
     solver::libsolv::Database

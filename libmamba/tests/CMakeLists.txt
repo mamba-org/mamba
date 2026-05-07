@@ -71,6 +71,7 @@ set(
     src/specs/test_version.cpp
     # Solver tests
     src/solver/test_helpers.cpp
+    src/solver/test_solver_backend_parity.cpp
     src/solver/test_problems_graph.cpp
     src/solver/test_request.cpp
     src/solver/test_solution.cpp

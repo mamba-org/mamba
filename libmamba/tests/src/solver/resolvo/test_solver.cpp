@@ -23,6 +23,8 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"  // for PackageTypes
 #include "mamba/solver/libsolv/solver.hpp"
+#include "mamba/solver/resolvo/database.hpp"
+#include "mamba/solver/resolvo/solver.hpp"
 
 #include "mambatests.hpp"
 
@@ -32,811 +34,6 @@ using namespace mamba::specs;
 using namespace mamba::solver;
 
 using namespace resolvo;
-
-template <>
-struct std::hash<VersionSetId>
-{
-    std::size_t operator()(const VersionSetId& id) const
-    {
-        return std::hash<uint32_t>{}(id.id);
-    }
-};
-
-template <>
-struct std::hash<SolvableId>
-{
-    std::size_t operator()(const SolvableId& id) const
-    {
-        return std::hash<uint32_t>{}(id.id);
-    }
-};
-
-template <>
-struct std::hash<NameId>
-{
-    std::size_t operator()(const NameId& id) const
-    {
-        return std::hash<uint32_t>{}(id.id);
-    }
-};
-
-template <>
-struct std::hash<StringId>
-{
-    std::size_t operator()(const StringId& id) const
-    {
-        return std::hash<uint32_t>{}(id.id);
-    }
-};
-
-// Create a template Pool class that maps a key to a set of values
-template <typename ID, typename T>
-struct bijective_map
-{
-    bijective_map() = default;
-    ~bijective_map() = default;
-
-    /**
-     * Adds the value to the bijective_map and returns its associated id. If the
-     * value is already in the bijective_map, returns the id associated with it.
-     */
-    ID alloc(T value)
-    {
-        if (auto element = value_to_id.find(value); element != value_to_id.end())
-        {
-            return element->second;
-        }
-        auto id = ID{ static_cast<uint32_t>(id_to_value.size()) };
-        id_to_value[id] = value;
-        value_to_id[value] = id;
-        return id;
-    }
-
-    /**
-     * Returns the value associated with the given id.
-     */
-    T operator[](ID id)
-    {
-        return id_to_value[id];
-    }
-
-    /**
-     * Returns the id associated with the given value.
-     */
-    ID operator[](T value)
-    {
-        return value_to_id[value];
-    }
-
-    // Iterator for the bijective_map
-    auto begin()
-    {
-        return id_to_value.begin();
-    }
-
-    auto end()
-    {
-        return id_to_value.end();
-    }
-
-    auto begin() const
-    {
-        return id_to_value.begin();
-    }
-
-    auto end() const
-    {
-        return id_to_value.end();
-    }
-
-    auto cbegin()
-    {
-        return id_to_value.cbegin();
-    }
-
-    auto cend()
-    {
-        return id_to_value.cend();
-    }
-
-    auto cbegin() const
-    {
-        return id_to_value.cbegin();
-    }
-
-    auto cend() const
-    {
-        return id_to_value.cend();
-    }
-
-    auto find(T value)
-    {
-        return value_to_id.find(value);
-    }
-
-    auto begin_ids()
-    {
-        return value_to_id.begin();
-    }
-
-    auto end_ids()
-    {
-        return value_to_id.end();
-    }
-
-    auto begin_ids() const
-    {
-        return value_to_id.begin();
-    }
-
-    auto end_ids() const
-    {
-        return value_to_id.end();
-    }
-
-    auto cbegin_ids()
-    {
-        return value_to_id.cbegin();
-    }
-
-    auto cend_ids()
-    {
-        return value_to_id.cend();
-    }
-
-    auto cbegin_ids() const
-    {
-        return value_to_id.cbegin();
-    }
-
-    auto cend_ids() const
-    {
-        return value_to_id.cend();
-    }
-
-    auto size() const
-    {
-        return id_to_value.size();
-    }
-
-
-private:
-
-    std::unordered_map<T, ID> value_to_id;
-    std::unordered_map<ID, T> id_to_value;
-};
-
-struct PackageDatabase : public DependencyProvider
-{
-    virtual ~PackageDatabase() = default;
-
-    ::bijective_map<NameId, String> name_pool;
-    ::bijective_map<StringId, String> string_pool;
-
-    // MatchSpec are VersionSet in resolvo's semantics
-    ::bijective_map<VersionSetId, MatchSpec> version_set_pool;
-
-    // PackageInfo are Solvable in resolvo's semantics
-    ::bijective_map<SolvableId, PackageInfo> solvable_pool;
-
-    // PackageName to Vector<SolvableId>
-    std::unordered_map<NameId, Vector<SolvableId>> name_to_solvable;
-
-    // VersionSetId to max version
-    // TODO use `SolvableId` instead of `std::pair<Version, size_t>`?
-    std::unordered_map<VersionSetId, std::pair<Version, size_t>>
-        version_set_to_max_version_and_track_features_numbers;
-
-    /**
-     * Allocates a new requirement and return the id of the requirement.
-     */
-    VersionSetId alloc_version_set(std::string_view raw_match_spec)
-    {
-        std::string raw_match_spec_str = std::string(raw_match_spec);
-        // Replace all " v" with simply " " to work around the `v` prefix in some version strings
-        // e.g. `mingw-w64-ucrt-x86_64-crt-git v12.0.0.r2.ggc561118da h707e725_0` in
-        // `inform2w64-sysroot_win-64-v12.0.0.r2.ggc561118da-h707e725_0.conda`
-        while (raw_match_spec_str.find(" v") != std::string::npos)
-        {
-            raw_match_spec_str = raw_match_spec_str.replace(raw_match_spec_str.find(" v"), 2, " ");
-        }
-
-        // Remove any presence of selector on python version in the match spec
-        // e.g. `pillow-heif >=0.10.0,<1.0.0<py312` -> `pillow-heif >=0.10.0,<1.0.0` in
-        // `infowillow-1.6.3-pyhd8ed1ab_0.conda`
-        for (const auto specifier : { "=py", "<py", ">py", ">=py", "<=py", "!=py" })
-        {
-            while (raw_match_spec_str.find(specifier) != std::string::npos)
-            {
-                raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(specifier));
-            }
-        }
-        // Remove any white space between version
-        // e.g. `kytea >=0.1.4, 0.2.0` -> `kytea >=0.1.4,0.2.0` in
-        // `infokonoha-4.6.3-pyhd8ed1ab_0.tar.bz2`
-        while (raw_match_spec_str.find(", ") != std::string::npos)
-        {
-            raw_match_spec_str = raw_match_spec_str.replace(raw_match_spec_str.find(", "), 2, ",");
-        }
-
-        // TODO: skip allocation for now if "*.*" is in the match spec
-        if (raw_match_spec_str.find("*.*") != std::string::npos)
-        {
-            return VersionSetId{ 0 };
-        }
-
-
-        // NOTE: works around `openblas 0.2.18|0.2.18.*.` from
-        // `dlib==19.0=np110py27_blas_openblas_200` If contains "|", split on it and recurse
-        if (raw_match_spec_str.find("|") != std::string::npos)
-        {
-            std::vector<std::string> match_specs;
-            std::string match_spec;
-            for (char c : raw_match_spec_str)
-            {
-                if (c == '|')
-                {
-                    match_specs.push_back(match_spec);
-                    match_spec.clear();
-                }
-                else
-                {
-                    match_spec += c;
-                }
-            }
-            match_specs.push_back(match_spec);
-            std::vector<VersionSetId> version_sets;
-            for (const std::string& ms : match_specs)
-            {
-                alloc_version_set(ms);
-            }
-            // Placeholder return value
-            return VersionSetId{ 0 };
-        }
-
-        // NOTE: This works around some improperly encoded `constrains` in the test data, e.g.:
-        //      `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit
-        //      >= 10.2" `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
-        //      `constrains`: "pytorch-cpu = 1.13.0", "pytorch-gpu = 99999999"
-        //      `fipy-3.4.2.1-py310hff52083_3.tar.bz2`'s improperly encoded `constrains` or `dep`:
-        //      ">=4.5.2"
-        // Remove any with space after the binary operators
-        for (const std::string& op : { ">=", "<=", "==", ">", "<", "!=", "=", "==" })
-        {
-            const std::string& bad_op = op + " ";
-            while (raw_match_spec_str.find(bad_op) != std::string::npos)
-            {
-                raw_match_spec_str = raw_match_spec_str.substr(0, raw_match_spec_str.find(bad_op)) + op
-                                     + raw_match_spec_str.substr(
-                                         raw_match_spec_str.find(bad_op) + bad_op.size()
-                                     );
-            }
-            // If start with binary operator, prepend NONE
-            if (raw_match_spec_str.find(op) == 0)
-            {
-                raw_match_spec_str = "NONE " + raw_match_spec_str;
-            }
-        }
-
-        const MatchSpec match_spec = MatchSpec::parse(raw_match_spec_str).value();
-        // Add the version set to the version set pool
-        auto id = version_set_pool.alloc(match_spec);
-
-        // Add name to the Name and String pools
-        const std::string name = match_spec.name().to_string();
-        name_pool.alloc(String{ name });
-        string_pool.alloc(String{ name });
-
-        // Add the MatchSpec's string representation to the Name and String pools
-        const std::string match_spec_str = match_spec.to_string();
-        name_pool.alloc(String{ match_spec_str });
-        string_pool.alloc(String{ match_spec_str });
-        return id;
-    }
-
-    SolvableId alloc_solvable(PackageInfo package_info)
-    {
-        // Add the solvable to the solvable pool
-        auto id = solvable_pool.alloc(package_info);
-
-        // Add name to the Name and String pools
-        const std::string name = package_info.name;
-        name_pool.alloc(String{ name });
-        string_pool.alloc(String{ name });
-
-        // Add the long string representation of the package to the Name and String pools
-        const std::string long_str = package_info.long_str();
-        name_pool.alloc(String{ long_str });
-        string_pool.alloc(String{ long_str });
-
-        for (auto& dep : package_info.dependencies)
-        {
-            alloc_version_set(dep);
-        }
-        for (auto& constr : package_info.constrains)
-        {
-            alloc_version_set(constr);
-        }
-
-        //        const size_t n_track_features = package_info.track_features.size();
-        //        if(n_track_features > 0)
-        //        {
-        //            std::cout << "PackageInfo has " << package_info.long_str() << " has " <<
-        //            n_track_features << " track features" << std::endl; for (auto tf
-        //            :package_info.track_features)
-        //            {
-        //                // Add the track feature to the Name and String pools
-        //                std::cout << " - " << tf <<std::endl;
-        //            }
-        //        }
-
-        // Add the solvable to the name_to_solvable map
-        const NameId name_id = name_pool.alloc(String{ package_info.name });
-        name_to_solvable[name_id].push_back(id);
-
-        return id;
-    }
-
-    /**
-     * Returns a user-friendly string representation of the specified solvable.
-     *
-     * When formatting the solvable, it should it include both the name of
-     * the package and any other identifying properties.
-     */
-    String display_solvable(SolvableId solvable) override
-    {
-        const PackageInfo& package_info = solvable_pool[solvable];
-        return String{ package_info.long_str() };
-    }
-
-    /**
-     * Returns a user-friendly string representation of the name of the
-     * specified solvable.
-     */
-    String display_solvable_name(SolvableId solvable) override
-    {
-        const PackageInfo& package_info = solvable_pool[solvable];
-        return String{ package_info.name };
-    }
-
-    /**
-     * Returns a string representation of multiple solvables merged together.
-     *
-     * When formatting the solvables, both the name of the packages and any
-     * other identifying properties should be included.
-     */
-    String display_merged_solvables(Slice<SolvableId> solvable) override
-    {
-        std::string result;
-        for (auto& solvable_id : solvable)
-        {
-            result += solvable_pool[solvable_id].long_str();
-        }
-        return String{ result };
-    }
-
-    /**
-     * Returns an object that can be used to display the given name in a
-     * user-friendly way.
-     */
-    String display_name(NameId name) override
-    {
-        return name_pool[name];
-    }
-
-    /**
-     * Returns a user-friendly string representation of the specified version
-     * set.
-     *
-     * The name of the package should *not* be included in the display. Where
-     * appropriate, this information is added.
-     */
-    String display_version_set(VersionSetId version_set) override
-    {
-        const MatchSpec match_spec = version_set_pool[version_set];
-        return String{ match_spec.to_string() };
-    }
-
-    /**
-     * Returns the string representation of the specified string.
-     */
-    String display_string(StringId string) override
-    {
-        return string_pool[string];
-    }
-
-    /**
-     * Returns the name of the package that the specified version set is
-     * associated with.
-     */
-    NameId version_set_name(VersionSetId version_set_id) override
-    {
-        const MatchSpec match_spec = version_set_pool[version_set_id];
-        // std::cout << "Getting name id for version_set_id " << match_spec.name().to_string() <<
-        // std::endl;
-        return name_pool[String{ match_spec.name().to_string() }];
-    }
-
-    /**
-     * Returns the name of the package for the given solvable.
-     */
-    NameId solvable_name(SolvableId solvable_id) override
-    {
-        const PackageInfo& package_info = solvable_pool[solvable_id];
-        // std::cout << "Getting name id for solvable " << package_info.long_str() << std::endl;
-        return name_pool[String{ package_info.name }];
-    }
-
-    /**
-     * Obtains a list of solvables that should be considered when a package
-     * with the given name is requested.
-     */
-    Candidates get_candidates(NameId package) override
-    {
-        Candidates candidates{};
-        candidates.favored = nullptr;
-        candidates.locked = nullptr;
-        candidates.candidates = name_to_solvable[package];
-        return candidates;
-    }
-
-    std::pair<Version, size_t> find_highest_version(VersionSetId version_set_id)
-    {
-        // If the version set has already been computed, return it.
-        if (version_set_to_max_version_and_track_features_numbers.find(version_set_id)
-            != version_set_to_max_version_and_track_features_numbers.end())
-        {
-            return version_set_to_max_version_and_track_features_numbers[version_set_id];
-        }
-
-        const MatchSpec match_spec = version_set_pool[version_set_id];
-
-        const std::string& name = match_spec.name().to_string();
-
-        auto name_id = name_pool.alloc(String{ name });
-
-        auto solvables = name_to_solvable[name_id];
-
-        auto filtered = filter_candidates(solvables, version_set_id, false);
-
-        Version max_version = Version();
-        size_t max_version_n_track_features = 0;
-
-        for (auto& solvable_id : filtered)
-        {
-            const PackageInfo& package_info = solvable_pool[solvable_id];
-            const auto version = Version::parse(package_info.version).value();
-            if (version == max_version)
-            {
-                max_version_n_track_features = std::min(
-                    max_version_n_track_features,
-                    package_info.track_features.size()
-                );
-            }
-            if (version > max_version)
-            {
-                max_version = version;
-                max_version_n_track_features = package_info.track_features.size();
-            }
-        }
-
-        auto val = std::make_pair(max_version, max_version_n_track_features);
-        version_set_to_max_version_and_track_features_numbers[version_set_id] = val;
-        return val;
-    }
-
-    /**
-     * Sort the specified solvables based on which solvable to try first. The
-     * solver will iteratively try to select the highest version. If a
-     * conflict is found with the highest version the next version is
-     * tried. This continues until a solution is found.
-     */
-    void sort_candidates(Slice<SolvableId> solvables) override
-    {
-        std::sort(
-            solvables.begin(),
-            solvables.end(),
-            [&](const SolvableId& a, const SolvableId& b)
-            {
-                const PackageInfo& package_info_a = solvable_pool[a];
-                const PackageInfo& package_info_b = solvable_pool[b];
-
-                // If track features are present, prefer the solvable having the least of them.
-                if (package_info_a.track_features.size() != package_info_b.track_features.size())
-                {
-                    return package_info_a.track_features.size()
-                           < package_info_b.track_features.size();
-                }
-
-                const auto a_version = Version::parse(package_info_a.version).value();
-                const auto b_version = Version::parse(package_info_b.version).value();
-
-                if (a_version != b_version)
-                {
-                    return a_version > b_version;
-                }
-
-                if (package_info_a.build_number != package_info_b.build_number)
-                {
-                    return package_info_a.build_number > package_info_b.build_number;
-                }
-
-                // Compare the dependencies of the variants.
-                std::unordered_map<NameId, VersionSetId> a_deps;
-                std::unordered_map<NameId, VersionSetId> b_deps;
-                for (auto dep_a : package_info_a.dependencies)
-                {
-                    // TODO: have a VersionID to NameID mapping instead
-                    MatchSpec ms = MatchSpec::parse(dep_a).value();
-                    const std::string& name = ms.name().to_string();
-                    auto name_id = name_pool.alloc(String{ name });
-
-                    a_deps[name_id] = version_set_pool[ms];
-                }
-                for (auto dep_b : package_info_b.dependencies)
-                {
-                    // TODO: have a VersionID to NameID mapping instead
-                    MatchSpec ms = MatchSpec::parse(dep_b).value();
-                    const std::string& name = ms.name().to_string();
-                    auto name_id = name_pool.alloc(String{ name });
-
-                    b_deps[name_id] = version_set_pool[ms];
-                }
-
-                auto ordering_score = 0;
-                for (auto [name_id, version_set_id] : a_deps)
-                {
-                    if (b_deps.find(name_id) != b_deps.end())
-                    {
-                        auto [a_tf_version, a_n_track_features] = find_highest_version(version_set_id);
-                        auto [b_tf_version, b_n_track_features] = find_highest_version(b_deps[name_id]);
-
-                        // Favor the solvable with higher versions of their dependencies
-                        if (a_tf_version != b_tf_version)
-                        {
-                            ordering_score += a_tf_version > b_tf_version ? 1 : -1;
-                        }
-
-                        // Highly penalize the solvable if a dependencies has more track features
-                        if (a_n_track_features != b_n_track_features)
-                        {
-                            ordering_score += a_n_track_features > b_n_track_features ? -100 : 100;
-                        }
-                    }
-                }
-
-                if (ordering_score != 0)
-                {
-                    return ordering_score > 0;
-                }
-
-                return package_info_a.timestamp > package_info_b.timestamp;
-            }
-        );
-    }
-
-    /**
-     * Given a set of solvables, return the solvables that match the given
-     * version set or if `inverse` is true, the solvables that do *not* match
-     * the version set.
-     */
-    Vector<SolvableId>
-    filter_candidates(Slice<SolvableId> candidates, VersionSetId version_set_id, bool inverse) override
-    {
-        MatchSpec match_spec = version_set_pool[version_set_id];
-        Vector<SolvableId> filtered;
-
-        //        std::cout << "Candidates to filter " << match_spec.to_string() << std::endl;
-        //
-        //        for(auto& solvable_id : candidates) {
-        //            const PackageInfo& package_info = solvable_pool[solvable_id];
-        //            std::cout << " - " << package_info.long_str() << std::endl;
-        //        }
-
-        if (inverse)
-        {
-            for (auto& solvable_id : candidates)
-            {
-                const PackageInfo& package_info = solvable_pool[solvable_id];
-
-                // Is it an appropriate check? Or must another one be crafted?
-                if (!match_spec.contains_except_channel(package_info))
-                {
-                    filtered.push_back(solvable_id);
-                }
-            }
-        }
-        else
-        {
-            for (auto& solvable_id : candidates)
-            {
-                const PackageInfo& package_info = solvable_pool[solvable_id];
-
-                // Is it an appropriate check? Or must another one be crafted?
-                if (match_spec.contains_except_channel(package_info))
-                {
-                    filtered.push_back(solvable_id);
-                }
-            }
-        }
-        //        std::cout << "Filtered candidates for " << match_spec.to_string() << std::endl;
-        //
-        //        for(auto& solvable_id : filtered) {
-        //            const PackageInfo& package_info = solvable_pool[solvable_id];
-        //            std::cout << " - " << package_info.long_str() << std::endl;
-        //        }
-
-        return filtered;
-    }
-
-    /**
-     * Returns the dependencies for the specified solvable.
-     */
-    Dependencies get_dependencies(SolvableId solvable_id) override
-    {
-        const PackageInfo& package_info = solvable_pool[solvable_id];
-        // std::cout << "Getting dependencies for " << package_info.long_str() << std::endl;
-
-        Dependencies dependencies;
-
-        // TODO: do this in O(1)
-        for (auto& dep : package_info.dependencies)
-        {
-            // std::cout << "Parsing dep " << dep << std::endl;
-            const MatchSpec match_spec = MatchSpec::parse(dep).value();
-            dependencies.requirements.push_back(version_set_pool[match_spec]);
-        }
-        for (auto& constr : package_info.constrains)
-        {
-            // std::cout << "Parsing constr " << constr << std::endl;
-            // if constr contain " == " replace it with "=="
-            std::string constr2 = constr;
-            while (constr2.find(" == ") != std::string::npos)
-            {
-                constr2 = constr2.replace(constr2.find(" == "), 4, "==");
-            }
-            while (constr2.find(" >= ") != std::string::npos)
-            {
-                constr2 = constr2.replace(constr2.find(" >= "), 4, ">=");
-            }
-            const MatchSpec match_spec = MatchSpec::parse(constr2).value();
-            dependencies.constrains.push_back(version_set_pool[match_spec]);
-        }
-
-        return dependencies;
-    }
-};
-
-bool
-parse_packageinfo_json(
-    const std::string_view& filename,
-    simdjson::ondemand::object& pkg,
-    const specs::CondaURL& repo_url,
-    const std::string& channel_id,
-    PackageDatabase& db
-)
-{
-    auto maybe_package_info = PackageInfo::from_json(filename, pkg, repo_url, channel_id);
-    if (!maybe_package_info)
-    {
-        return false;
-    }
-    db.alloc_solvable(maybe_package_info.value());
-    return true;
-}
-
-void
-parse_repodata_json(
-    PackageDatabase& db,
-    const fs::u8path& filename,
-    const std::string& repo_url,
-    const std::string& channel_id,
-    bool verify_artifacts
-)
-{
-    auto parser = simdjson::ondemand::parser();
-    const auto lock = LockFile(filename);
-
-    // The json storage must be kept alive as long as we are reading the json data.
-    const auto json_content = simdjson::padded_string::load(filename.string());
-
-    // Note that with the "on-demand" parser, documents/values/objects act as iterators
-    // to go through the document.
-    auto repodata = parser.iterate(json_content);
-
-    // Get `base_url` in case 'repodata_version': 2
-    // cf. https://github.com/conda-incubator/ceps/blob/main/cep-15.md
-    const auto base_url = [&]
-    {
-        if (auto repodata_version = repodata["repodata_version"]; !repodata_version.error())
-        {
-            if (auto info = repodata["info"]; !info.error())
-            {
-                if (auto url = info["base_url"]; !url.error())
-                {
-                    return std::string(url.get_string().value_unsafe());
-                }
-            }
-        }
-
-        return repo_url;
-    }();
-
-    const auto parsed_url = specs::CondaURL::parse(base_url)
-                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                .value();
-
-    // TODO: it does not seems resolvo can handle setting signatures on solvables for now
-    // auto signatures = [&]
-    // {
-    //     auto maybe_sigs = repodata["signatures"];
-    //     if (!maybe_sigs.error() && verify_artifacts)
-    //     {
-    //         return std::make_optional(maybe_sigs);
-    //     }
-    //     else
-    //     {
-    //         LOG_DEBUG << "No signatures available or requested. Downloading without verifying
-    //         artifacts."; return decltype(std::make_optional(maybe_sigs)){};
-    //     }
-    // }();
-
-    // Process packages.conda first
-    if (auto pkgs = repodata["packages.conda"]; !pkgs.error())
-    {
-        if (auto packages_as_object = pkgs.get_object(); !packages_as_object.error())
-        {
-            for (auto field : packages_as_object)
-            {
-                if (!field.error())
-                {
-                    const std::string key(field.unescaped_key().value());
-                    if (auto value = field.value(); !value.error())
-                    {
-                        if (auto pkg_obj = value.get_object(); !pkg_obj.error())
-                        {
-                            parse_packageinfo_json(
-                                filename.string(),
-                                pkg_obj.value(),
-                                parsed_url,
-                                channel_id,
-                                db
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Then process packages
-    if (auto pkgs = repodata["packages"]; !pkgs.error())
-    {
-        if (auto packages_as_object = pkgs.get_object(); !packages_as_object.error())
-        {
-            for (auto field : packages_as_object)
-            {
-                if (!field.error())
-                {
-                    const std::string key(field.unescaped_key().value());
-                    if (auto value = field.value(); !value.error())
-                    {
-                        if (auto pkg_obj = value.get_object(); !pkg_obj.error())
-                        {
-                            parse_packageinfo_json(
-                                filename.string(),
-                                pkg_obj.value(),
-                                parsed_url,
-                                channel_id,
-                                db
-                            );
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 // from `src/test_solver.cpp`
 auto
@@ -888,37 +85,7 @@ create_libsolv_db()
     return libsolv_db;
 };
 
-PackageDatabase
-create_resolvo_db()
-{
-    PackageDatabase resolvo_db;
-
-    parse_repodata_json(
-        resolvo_db,
-        "/tmp/linux-64/repodata.json",
-        "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
-        "conda-forge",
-        false
-    );
-
-    parse_repodata_json(
-        resolvo_db,
-        "/tmp/noarch/repodata.json",
-        "https://conda.anaconda.org/conda-forge/noarch/repodata.json",
-        "conda-forge",
-        false
-    );
-
-    for (const auto& package : get_virtual_packages("linux-64"))
-    {
-        resolvo_db.alloc_solvable(package);
-    }
-
-    return resolvo_db;
-}
-
 mamba::solver::libsolv::Database libsolv_db = create_libsolv_db();
-PackageDatabase resolvo_db = create_resolvo_db();
 
 std::vector<PackageInfo>
 libsolv_resolve(const std::vector<std::string>& specs)
@@ -965,50 +132,62 @@ libsolv_resolve(const std::vector<std::string>& specs)
     return {};
 }
 
-std::vector<PackageInfo>
-resolvo_resolve(const std::vector<std::string>& specs)
+mamba::solver::resolvo::Database
+create_resolvo_libmamba_db()
 {
-    // resolvo's specification and resolution
-    resolvo::Vector<resolvo::VersionSetId> requirements;
-    for (const auto& spec : specs)
-    {
-        requirements.push_back(resolvo_db.alloc_version_set(spec));
-    }
-
-    resolvo::Vector<resolvo::VersionSetId> constraints = {};
-    resolvo::Vector<resolvo::SolvableId> result;
-
-    std::cout << "Start with resolvo" << std::endl;
-    auto tick_resolvo = std::chrono::steady_clock::now();
-    String reason = resolvo::solve(resolvo_db, requirements, constraints, result);
-    auto tack_resolvo = std::chrono::steady_clock::now();
-    std::cout << "End with resolvo" << std::endl;
-    std::cout
-        << "Elapsed time: "
-        << std::chrono::duration_cast<std::chrono::milliseconds>(tack_resolvo - tick_resolvo).count()
-        << "ms" << std::endl;
-
-    if (reason == "")
-    {
-        std::vector<PackageInfo> resolvo_resolution;
-        for (auto solvable_id : result)
+    auto resolvo_db = mamba::solver::resolvo::Database(
         {
-            PackageInfo package_info = resolvo_db.solvable_pool[solvable_id];
-            // Skip virtual package (i.e. whose `package_info.name` starts with "__")
-            if (package_info.name.find("__") != 0)
-            {
-                resolvo_resolution.push_back(package_info);
-            }
+            /* .platforms= */ { "linux-64", "noarch" },
+            /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
         }
+    );
 
-        std::sort(
-            resolvo_resolution.begin(),
-            resolvo_resolution.end(),
-            [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
-        );
-        return resolvo_resolution;
-    }
-    return {};
+    resolvo_db.add_repo_from_repodata_json(
+        "/tmp/linux-64/repodata.json",
+        "https://conda.anaconda.org/conda-forge/linux-64",
+        "conda-forge",
+        false
+    );
+    resolvo_db.add_repo_from_repodata_json(
+        "/tmp/noarch/repodata.json",
+        "https://conda.anaconda.org/conda-forge/noarch",
+        "conda-forge",
+        false
+    );
+    resolvo_db.add_repo_from_packages(get_virtual_packages("linux-64"), "virtual", false);
+    return resolvo_db;
+}
+
+mamba::solver::resolvo::Database resolvo_db = create_resolvo_libmamba_db();
+
+std::vector<PackageInfo>
+resolvo_libmamba_resolve(const std::vector<std::string>& specs)
+{
+    auto resolvo_db = create_resolvo_libmamba_db();
+
+    Request::job_list jobs;
+    std::transform(
+        specs.begin(),
+        specs.end(),
+        std::back_inserter(jobs),
+        [](const std::string& spec) { return Request::Install{ MatchSpec::parse(spec).value() }; }
+    );
+
+    const auto request = Request{
+        /* .flags= */ {},
+        /* .jobs= */ jobs,
+    };
+
+    const auto outcome = mamba::solver::resolvo::Solver().solve(resolvo_db, request);
+    REQUIRE(outcome.has_value());
+    const auto& solution = std::get<Solution>(outcome.value());
+    auto resolution = extract_package_to_install(solution);
+    std::sort(
+        resolution.begin(),
+        resolution.end(),
+        [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
+    );
+    return resolution;
 }
 
 TEST_CASE("solver::resolvo")
@@ -1019,7 +198,12 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Addition of PackageInfo to PackageDatabase")
     {
-        PackageDatabase database;
+        mamba::solver::resolvo::Database database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            }
+        );
 
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
         scikit_learn.dependencies.emplace_back("numpy >=1.20.0,<2.0a0");
@@ -1071,7 +255,12 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Filter solvables")
     {
-        PackageDatabase database;
+        mamba::solver::resolvo::Database database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            }
+        );
 
         PackageInfo skl0("scikit-learn", "1.4.0", "py310h981052a_0", 0);
         auto sol0 = database.alloc_solvable(skl0);
@@ -1167,7 +356,12 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Sort solvables increasing order")
     {
-        PackageDatabase database;
+        mamba::solver::resolvo::Database database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            }
+        );
 
         PackageInfo skl0("scikit-learn", "1.5.2", "py310h981052a_0", 0);
         auto sol0 = database.alloc_solvable(skl0);
@@ -1197,7 +391,12 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Sort solvables (build number only)")
     {
-        PackageDatabase database;
+        mamba::solver::resolvo::Database database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            }
+        );
 
         PackageInfo skl0("scikit-learn", "1.5.0", "py310h981052a_0", 0);
         auto sol0 = database.alloc_solvable(skl0);
@@ -1242,7 +441,12 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Trivial problem")
     {
-        PackageDatabase database;
+        mamba::solver::resolvo::Database database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            }
+        );
         // NOTE: the problem can only be solved when two `Solvable` are added to the
         // `PackageDatabase`
         PackageInfo scikit_learn("scikit-learn", "1.5.0", "py310h981052a_0", 0);
@@ -1263,12 +467,16 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Parse linux-64/repodata.json")
     {
-        PackageDatabase database;
+        mamba::solver::resolvo::Database database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            }
+        );
 
-        parse_repodata_json(
-            database,
+        database.add_repo_from_repodata_json(
             "/tmp/linux-64/repodata.json",
-            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
+            "https://conda.anaconda.org/conda-forge/linux-64",
             "conda-forge",
             false
         );
@@ -1278,12 +486,16 @@ TEST_CASE("solver::resolvo")
 
     SECTION("Parse noarch/repodata.json")
     {
-        PackageDatabase database;
+        mamba::solver::resolvo::Database database(
+            {
+                /* .platforms= */ { "linux-64", "noarch" },
+                /* .channel_alias= */ specs::CondaURL::parse("https://conda.anaconda.org/").value(),
+            }
+        );
 
-        parse_repodata_json(
-            database,
+        database.add_repo_from_repodata_json(
             "/tmp/noarch/repodata.json",
-            "https://conda.anaconda.org/conda-forge/noarch/repodata.json",
+            "https://conda.anaconda.org/conda-forge/noarch",
             "conda-forge",
             false
         );
@@ -1300,75 +512,32 @@ TEST_CASE("Test consistency with libsolv (environment creation)")
 
     SECTION("numpy")
     {
-        const auto request = Request{
-            /* .flags= */ {},
-            /* .jobs= */ { Request::Install{ "numpy"_ms } },
-        };
-        const auto outcome = libsolv::Solver().solve(libsolv_db, request);
+        const std::vector<std::string> specs_to_install = { "numpy" };
+        const auto libsolv_resolution = libsolv_resolve(specs_to_install);
+        const auto resolvo_resolution = resolvo_libmamba_resolve(specs_to_install);
 
-        REQUIRE(outcome.has_value());
-        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
-        const auto& solution = std::get<Solution>(outcome.value());
-
-        REQUIRE_FALSE(solution.actions.empty());
-
-        // Numpy is last because of topological sort
-        REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
-        REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "numpy");
-        REQUIRE(find_actions_with_name(solution, "numpy").size() == 1);
-
-        const auto python_actions = find_actions_with_name(solution, "python");
-        REQUIRE(python_actions.size() == 1);
-        REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
-
-        resolvo::Vector<resolvo::VersionSetId> requirements = {
-            resolvo_db.alloc_version_set("numpy"),
-        };
-
-        resolvo::Vector<resolvo::VersionSetId> constraints = {};
-        resolvo::Vector<resolvo::SolvableId> result;
-        String reason = resolvo::solve(resolvo_db, requirements, constraints, result);
-
-        REQUIRE(reason == "");
-        REQUIRE(result.size() == 31);
-        REQUIRE(resolvo_db.solvable_pool[result[0]].name == "numpy");
+        REQUIRE(resolvo_resolution.size() == libsolv_resolution.size());
+        for (std::size_t i = 0; i < libsolv_resolution.size(); ++i)
+        {
+            REQUIRE(resolvo_resolution[i].name == libsolv_resolution[i].name);
+            REQUIRE(resolvo_resolution[i].version == libsolv_resolution[i].version);
+            REQUIRE(resolvo_resolution[i].build_string == libsolv_resolution[i].build_string);
+        }
     }
 
     SECTION("scikit-learn")
     {
-        const auto request = Request{
-            /* .flags= */ {},
-            /* .jobs= */ { Request::Install{ "scikit-learn"_ms } },
-        };
+        const std::vector<std::string> specs_to_install = { "scikit-learn" };
+        const auto libsolv_resolution = libsolv_resolve(specs_to_install);
+        const auto resolvo_resolution = resolvo_libmamba_resolve(specs_to_install);
 
-        const auto outcome = libsolv::Solver().solve(libsolv_db, request);
-
-        REQUIRE(outcome.has_value());
-        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
-        const auto& solution = std::get<Solution>(outcome.value());
-
-        REQUIRE_FALSE(solution.actions.empty());
-
-        // scikit-learn is last because of topological sort
-        REQUIRE(std::holds_alternative<Solution::Install>(solution.actions.back()));
-        REQUIRE(std::get<Solution::Install>(solution.actions.back()).install.name == "scikit-learn");
-        REQUIRE(find_actions_with_name(solution, "scikit-learn").size() == 1);
-
-        const auto python_actions = find_actions_with_name(solution, "scikit-learn");
-        REQUIRE(python_actions.size() == 1);
-        REQUIRE(std::holds_alternative<Solution::Install>(python_actions.front()));
-
-        resolvo::Vector<resolvo::VersionSetId> requirements = {
-            resolvo_db.alloc_version_set("scikit-learn"),
-        };
-
-        resolvo::Vector<resolvo::VersionSetId> constraints = {};
-        resolvo::Vector<resolvo::SolvableId> result;
-        String reason = resolvo::solve(resolvo_db, requirements, constraints, result);
-
-        REQUIRE(reason == "");
-        REQUIRE(result.size() == 36);
-        REQUIRE(resolvo_db.solvable_pool[result[0]].name == "scikit-learn");
+        REQUIRE(resolvo_resolution.size() == libsolv_resolution.size());
+        for (std::size_t i = 0; i < libsolv_resolution.size(); ++i)
+        {
+            REQUIRE(resolvo_resolution[i].name == libsolv_resolution[i].name);
+            REQUIRE(resolvo_resolution[i].version == libsolv_resolution[i].version);
+            REQUIRE(resolvo_resolution[i].build_string == libsolv_resolution[i].build_string);
+        }
     }
 
     SECTION("scikit-learn explicit")
@@ -1455,34 +624,8 @@ TEST_CASE("Test consistency with libsolv (environment creation)")
             [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
         );
 
-        // resolvo's specification and resolution
-        resolvo::Vector<resolvo::VersionSetId> requirements;
-        for (const auto& spec : specs_to_install)
-        {
-            requirements.push_back(resolvo_db.alloc_version_set(spec));
-        }
-
-        resolvo::Vector<resolvo::VersionSetId> constraints = {};
-        resolvo::Vector<resolvo::SolvableId> result;
-        String reason = resolvo::solve(resolvo_db, requirements, constraints, result);
-
-        REQUIRE(reason == "");
-        REQUIRE(result.size() == known_resolution.size());
-
-        std::vector<PackageInfo> resolvo_resolution;
-        std::transform(
-            result.begin(),
-            result.end(),
-            std::back_inserter(resolvo_resolution),
-            [&](const resolvo::SolvableId& solvable_id)
-            { return resolvo_db.solvable_pool[solvable_id]; }
-        );
-
-        std::sort(
-            resolvo_resolution.begin(),
-            resolvo_resolution.end(),
-            [&](const PackageInfo& a, const PackageInfo& b) { return a.name < b.name; }
-        );
+        std::vector<PackageInfo> resolvo_resolution = resolvo_libmamba_resolve(specs_to_install);
+        REQUIRE(resolvo_resolution.size() == known_resolution.size());
 
         // Check libsolv's PackageInfo against the know resolution
         for (size_t i = 0; i < libsolv_resolution.size(); i++)
@@ -1537,7 +680,7 @@ TEST_CASE("Test consistency with libsolv (environment creation)")
             }
 
             std::cout << std::endl;
-            std::vector<PackageInfo> resolvo_resolution = resolvo_resolve(specs_to_install);
+            std::vector<PackageInfo> resolvo_resolution = resolvo_libmamba_resolve(specs_to_install);
 
             // Print all the packages from resolvo
             std::cout << "resolvo resolution:" << std::endl;
@@ -1601,7 +744,7 @@ TEST_CASE("Test consistency with libsolv (environment creation)")
 
         std::cout << std::endl;
 
-        std::vector<PackageInfo> resolvo_resolution = resolvo_resolve(specs_to_install);
+        std::vector<PackageInfo> resolvo_resolution = resolvo_libmamba_resolve(specs_to_install);
 
         // Print all the packages from resolvo
         std::cout << "resolvo resolution:" << std::endl;

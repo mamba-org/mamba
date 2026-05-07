@@ -190,7 +190,7 @@ namespace mamba
                 ctx.experimental_matchspec_parsing,
                 db,
                 request,
-                ctx.experimental_resolvo_solver ? "resolvo" : "libsolv"
+                ctx.experimental_resolvo_solver
             );
 
             if (handle_unsolvable_with_retry(

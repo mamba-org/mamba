@@ -112,7 +112,7 @@ namespace mamba
         bool experimental_matchspec_parsing,
         solver::libsolv::Database& db,
         const solver::Request& request,
-        std::string_view solver_name = "libsolv"
+        bool use_resolvo = false
     );
 
     /**

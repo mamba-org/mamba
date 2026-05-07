@@ -33,7 +33,10 @@
 #include "mamba/core/util_os.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/database.hpp"
+#include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/solver/request.hpp"
+#include "mamba/solver/resolvo/database.hpp"
+#include "mamba/solver/resolvo/solver.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/version_spec.hpp"
 #include "mamba/util/environment.hpp"
@@ -486,9 +489,11 @@ namespace mamba
         bool experimental_matchspec_parsing,
         solver::libsolv::Database& db,
         const solver::Request& request,
-        std::string_view solver_name
+        bool use_resolvo
     )
     {
+        const auto solver_name = use_resolvo ? std::string_view("resolvo")
+                                             : std::string_view("libsolv");
         const auto resolving_label = fmt::format("Resolving Environment with {}", solver_name);
         if (Console::can_report_status())
         {
@@ -497,15 +502,40 @@ namespace mamba
             );
         }
         const auto started_at = std::chrono::steady_clock::now();
-        auto outcome = solver::libsolv::Solver()
-                           .solve(
-                               db,
-                               request,
-                               experimental_matchspec_parsing
-                                   ? solver::libsolv::MatchSpecParser::Mamba
-                                   : solver::libsolv::MatchSpecParser::Mixed
-                           )
-                           .value();
+        auto outcome = [&]() -> solver::libsolv::Solver::Outcome
+        {
+            if (!use_resolvo)
+            {
+                LOG_DEBUG << "Using solver backend: libsolv";
+                return solver::libsolv::Solver()
+                    .solve(
+                        db,
+                        request,
+                        experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
+                                                       : solver::libsolv::MatchSpecParser::Mixed
+                    )
+                    .value();
+            }
+
+            LOG_DEBUG << "Using solver backend: resolvo";
+            solver::resolvo::Database resolvo_db(db.channel_params());
+            auto all_packages_spec = specs::MatchSpec::parse("*")
+                                         .or_else([](specs::ParseError&& err)
+                                                  { throw std::move(err); })
+                                         .value();
+            std::vector<specs::PackageInfo> packages;
+            db.for_each_package_matching(
+                all_packages_spec,
+                [&](specs::PackageInfo&& pkg)
+                {
+                    packages.emplace_back(std::move(pkg));
+                    return util::LoopControl::Continue;
+                }
+            );
+            resolvo_db.add_repo_from_packages(packages, "all", false);
+            auto resolvo_outcome = solver::resolvo::Solver().solve(resolvo_db, request).value();
+            return solver::libsolv::Solver::Outcome{ std::get<solver::Solution>(resolvo_outcome) };
+        }();
         if (Console::can_report_status())
         {
             Console::instance().print_in_place(

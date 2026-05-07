@@ -114,7 +114,6 @@ namespace mamba
                       "New BSD license, The libarchive distribution as a whole is Copyright by Tim Kientzle and is subject to the copyright notice reproduced at the bottom of this file." },
                     { "libev",
                       "BSD license, All files in libev are Copyright (c)2007,2008,2009,2010,2011,2012,2013 Marc Alexander Lehmann." },
-                    { "liblz4", "LZ4 Library, Copyright (c) 2011-2016, Yann Collet" },
                     { "libnghttp2",
                       "MIT license, Copyright (c) 2012, 2014, 2015, 2016 Tatsuhiro Tsujikawa; 2012, 2014, 2015, 2016 nghttp2 contributors" },
                     { "libopenssl_3", "Apache license, Version 2.0, January 2004" },

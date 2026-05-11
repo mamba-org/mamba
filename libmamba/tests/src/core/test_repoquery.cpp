@@ -13,6 +13,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/history.hpp"
+#include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 
@@ -159,4 +160,69 @@ TEST_CASE(
     REQUIRE(
         std::find(root_packages.begin(), root_packages.end(), "conda-smithy") != root_packages.end()
     );
+}
+
+TEST_CASE(
+    "build_sharded_root_packages env-update specs do not seed shards from every installed package",
+    "[mamba::api][repoquery]"
+)
+{
+    // Non-regression for https://gist.github.com/minrk/5fdabeb7ab8cd2c69cbc27588fed1903 :
+    // after a large explicit install, `mamba env update` must not treat every conda-meta record
+    // as a shard BFS root (that explodes shard coverage and solver time).
+    auto& ctx = mambatests::context();
+    const auto saved_target_prefix = ctx.prefix_params.target_prefix;
+    on_scope_exit restore_target_prefix{ [&]
+                                         { ctx.prefix_params.target_prefix = saved_target_prefix; } };
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path conda_meta = tmp_dir.path() / "conda-meta";
+    fs::create_directories(conda_meta);
+    ctx.prefix_params.target_prefix = tmp_dir.path();
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    constexpr std::size_t ballast_count = 80;
+    for (std::size_t i = 0; i < ballast_count; ++i)
+    {
+        const std::string name = "sharded_roots_ballast_" + std::to_string(i);
+        auto pkg_json = conda_meta / (name + "-1.0-h0_0.json");
+        auto out = open_ofstream(pkg_json);
+        out << R"({"name":")" << name
+            << R"(","version":"1.0","build_string":"h0_0","channel":"conda-forge","subdir":"linux-64"})";
+    }
+
+    History history(tmp_dir.path(), channel_context);
+    History::UserRequest req;
+    req.date = "2026-05-11 00:00:00";
+    req.cmd = "install";
+    req.conda_version = "25.0.0";
+    req.update = { "jupyterlab=4.0" };
+    history.add_entry(req);
+
+    const auto prefix_data = PrefixData::create(tmp_dir.path(), channel_context);
+    REQUIRE(prefix_data.has_value());
+    REQUIRE(prefix_data->records().size() >= ballast_count);
+
+    const std::vector<std::string> env_update_specs = {
+        "python=3.9", "xeus-cling=0.6.0", "xtensor=0.20.8", "xtensor-blas=0.16.1", "notebook",
+    };
+    const auto root_packages = build_sharded_root_packages(ctx, channel_context, env_update_specs);
+
+    const auto contains = [&](std::string_view n)
+    { return std::find(root_packages.begin(), root_packages.end(), n) != root_packages.end(); };
+
+    REQUIRE(contains("python"));
+    REQUIRE(contains("xeus-cling"));
+    REQUIRE(contains("xtensor"));
+    REQUIRE(contains("xtensor-blas"));
+    REQUIRE(contains("notebook"));
+    REQUIRE(contains("pip"));
+    REQUIRE(contains("python_abi"));
+    REQUIRE(contains("jupyterlab"));
+
+    REQUIRE_FALSE(contains("sharded_roots_ballast_0"));
+    REQUIRE_FALSE(contains("sharded_roots_ballast_79"));
+
+    REQUIRE(root_packages.size() < 32);
 }

@@ -534,7 +534,7 @@ namespace mamba::logging
         }
     }
 
-    auto LogHandler_History::is_started() const -> bool
+    inline auto LogHandler_History::is_started() const -> bool
     {
         return pimpl != nullptr;
     }

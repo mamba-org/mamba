@@ -46,12 +46,24 @@ namespace mamba
                                             util::concat("cp", compact, "t")
                                         );
 
+        // Unix free-threaded installs use lib/pythonX.Yt/site-packages. Windows CPython (conda
+        // layout) keeps third-party packages under Lib/site-packages for both GIL and free-threaded
+        // builds — see https://github.com/mamba-org/mamba/issues/4267
+        const std::string unix_style_ft_site_packages = (short_ver.empty()
+                                                         || python_pkg.build_string.empty())
+                                                            ? std::string{}
+                                                            : (fs::u8path("lib")
+                                                               / util::concat("python", short_ver, "t")
+                                                               / "site-packages")
+                                                                  .generic_string();
+
+#ifdef _WIN32
         const std::string ft_site_packages = (short_ver.empty() || python_pkg.build_string.empty())
                                                  ? std::string{}
-                                                 : (fs::u8path("lib")
-                                                    / util::concat("python", short_ver, "t")
-                                                    / "site-packages")
-                                                       .generic_string();
+                                                 : (fs::u8path("Lib") / "site-packages").generic_string();
+#else
+        const std::string ft_site_packages = unix_style_ft_site_packages;
+#endif
 
         if (!python_pkg.python_site_packages_path.empty())
         {
@@ -72,6 +84,12 @@ namespace mamba
                 {
                     return ft_site_packages;
                 }
+#ifdef _WIN32
+                if (python_pkg.python_site_packages_path == unix_style_ft_site_packages)
+                {
+                    return ft_site_packages;
+                }
+#endif
             }
             return python_pkg.python_site_packages_path;
         }

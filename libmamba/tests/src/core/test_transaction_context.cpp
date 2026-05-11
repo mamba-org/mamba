@@ -55,13 +55,16 @@ namespace mamba
             python_pkg.version = "3.13.1";
             python_pkg.build_string = "h9a34b6e_5_cp313t";
 
-            SECTION("preserves explicit freethreaded path")
+            SECTION("freethreaded site-packages path")
             {
                 python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
 
-                REQUIRE(
-                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
-                );
+#ifdef _WIN32
+                const auto expected = std::string("Lib/site-packages");
+#else
+                const auto expected = std::string("lib/python3.13t/site-packages");
+#endif
+                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
             }
 
             SECTION("rewrites standard path for freethreaded builds")
@@ -73,9 +76,61 @@ namespace mamba
                     "lib/python3.13/site-packages";
 #endif
 
-                REQUIRE(
-                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
-                );
+#ifdef _WIN32
+                const auto expected = std::string("Lib/site-packages");
+#else
+                const auto expected = std::string("lib/python3.13t/site-packages");
+#endif
+                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
+            }
+        }
+
+        // Regression: https://github.com/mamba-org/mamba/issues/4267
+        // `micromamba create ... "python=3.14" pip python-freethreading` — noarch :python (pip)
+        // must target a directory on sys.path; Windows uses Lib/site-packages for free-threaded
+        // CPython, not lib/python3.14t/site-packages.
+        TEST_CASE("effective_python_site_packages_path python 3.14 freethreading")
+        {
+            auto python_pkg = specs::PackageInfo("python");
+            python_pkg.version = "3.14.0";
+            python_pkg.build_string = "habcdef_0_cp314t";
+
+            SECTION("rewrites std site-packages from repodata for free-threaded 3.14")
+            {
+                python_pkg.python_site_packages_path =
+#ifdef _WIN32
+                    "Lib/site-packages";
+#else
+                    "lib/python3.14/site-packages";
+#endif
+
+#ifdef _WIN32
+                const auto expected = std::string("Lib/site-packages");
+#else
+                const auto expected = std::string("lib/python3.14t/site-packages");
+#endif
+                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
+            }
+
+#ifdef _WIN32
+            SECTION("normalizes unix-style free-threaded path on Windows")
+            {
+                python_pkg.python_site_packages_path = "lib/python3.14t/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+#endif
+
+            SECTION("infers site-packages when repodata omits python_site_packages_path")
+            {
+                python_pkg.python_site_packages_path.clear();
+
+#ifdef _WIN32
+                const auto expected = std::string("Lib/site-packages");
+#else
+                const auto expected = std::string("lib/python3.14t/site-packages");
+#endif
+                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
             }
         }
 

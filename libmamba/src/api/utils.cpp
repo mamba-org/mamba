@@ -442,13 +442,10 @@ namespace mamba
             }
         }
 
-        for (const auto& [name, /*record*/ _] : prefix_data.records())
-        {
-            if (seen.insert(name).second)
-            {
-                root_packages.push_back(name);
-            }
-        }
+        // Do not add every installed package name as a shard root: installed solvables are loaded
+        // separately into the solver DB, and BFS from all prefix records forces a near-channel-wide
+        // shard subset (very slow solves), e.g. `mamba env update` after a large `@EXPLICIT`
+        // install.
         return root_packages;
     }
 

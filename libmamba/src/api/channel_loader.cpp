@@ -971,7 +971,8 @@ namespace mamba
                     ctx.remote_fetch_params,
                     normalize_to_affinity_concurrency(static_cast<int>(ctx.repodata_shards_threads)),
                     std::cref(ctx.mirrors),
-                    python_minor_version_for_prefilter
+                    python_minor_version_for_prefilter,
+                    ctx.repodata_shards_ttl
                 );
                 url_to_subdir_idx[sdir_url] = j;
             }

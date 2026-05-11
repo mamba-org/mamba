@@ -5,8 +5,12 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <chrono>
+#include <map>
 #include <set>
 #include <string>
+#include <string_view>
+#include <thread>
 #include <tuple>
 #include <unordered_set>
 #include <variant>
@@ -389,6 +393,61 @@ namespace
         }
 
         return true;
+    }
+
+    auto list_msgpack_zst_files(const fs::u8path& dir) -> std::vector<fs::u8path>
+    {
+        std::vector<fs::u8path> paths;
+        if (!fs::exists(dir))
+        {
+            return paths;
+        }
+        for (const auto& entry : fs::directory_iterator(dir))
+        {
+            if (!entry.is_regular_file())
+            {
+                continue;
+            }
+            const auto filename = entry.path().filename().string();
+            if (util::ends_with(filename, ".msgpack.zst"))
+            {
+                paths.push_back(entry.path());
+            }
+        }
+        std::sort(paths.begin(), paths.end());
+        return paths;
+    }
+
+    auto file_mtimes(const std::vector<fs::u8path>& paths) -> std::map<fs::u8path, fs::file_time_type>
+    {
+        std::map<fs::u8path, fs::file_time_type> mtimes;
+        for (const auto& path : paths)
+        {
+            mtimes[path] = fs::last_write_time(path);
+        }
+        return mtimes;
+    }
+
+    /**
+     * Assert each path exists and was written strictly after `before`.
+     *
+     * Do not pass `fs::last_write_time(...) > before` directly to Catch2 `REQUIRE` on Apple
+     * platforms: libc++ may use a `time_point` whose `duration` rep is `__int128`, and Catch's
+     * stringification of the expression hits an ambiguous `operator<<` for `__int128` (CI
+     * macOS/arm64 with `-Werror`).
+     */
+    void require_each_path_newer_than(
+        std::string_view label,
+        const std::map<fs::u8path, fs::file_time_type>& before_mtimes
+    )
+    {
+        for (const auto& [path, mtime_before] : before_mtimes)
+        {
+            INFO(label << " " << path.string());
+            REQUIRE(fs::exists(path));
+            const bool is_newer = fs::last_write_time(path) > mtime_before;
+            REQUIRE(is_newer);
+        }
     }
 }
 
@@ -1531,4 +1590,81 @@ TEST_CASE(
 
     // Verify both environments are equivalent (confirms offline used only cached data)
     REQUIRE(compare_environments(prefix_online, prefix_offline, channel_context));
+}
+
+TEST_CASE(
+    "Sharded repodata - expired TTL refreshes shard index and package shards",
+    "[mamba::core][sharded][.integration]"
+)
+{
+    Context ctx;
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.repodata_shards_ttl = 1;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    const fs::u8path xdg_cache_home = tmp_dir.path() / "xdg-cache";
+    fs::create_directories(cache_dir);
+    fs::create_directories(xdg_cache_home);
+
+    const auto previous_xdg_cache_home = util::get_env("XDG_CACHE_HOME");
+    util::set_env("XDG_CACHE_HOME", xdg_cache_home.string());
+    on_scope_exit restore_xdg_cache_home{
+        [&]
+        {
+            if (previous_xdg_cache_home.has_value())
+            {
+                util::set_env("XDG_CACHE_HOME", previous_xdg_cache_home.value());
+            }
+            else
+            {
+                util::unset_env("XDG_CACHE_HOME");
+            }
+        }
+    };
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const std::vector<std::string> specs = { "xtensor" };
+    const fs::u8path prefix_first = tmp_dir.path() / "env_first";
+    const fs::u8path prefix_second = tmp_dir.path() / "env_second";
+
+    expected_t<void> install_first = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_first,
+        cache_dir
+    );
+    REQUIRE(install_first.has_value());
+
+    const fs::u8path shard_index_cache_dir = cache_dir / "cache";
+    const auto shard_index_paths = list_msgpack_zst_files(shard_index_cache_dir);
+    REQUIRE_FALSE(shard_index_paths.empty());
+    const auto shard_index_mtimes_before = file_mtimes(shard_index_paths);
+
+    const fs::u8path package_shards_dir = xdg_cache_home / "conda" / "pkgs" / "cache" / "shards";
+    const auto package_shard_paths = list_msgpack_zst_files(package_shards_dir);
+    REQUIRE_FALSE(package_shard_paths.empty());
+    const auto package_shard_mtimes_before = file_mtimes(package_shard_paths);
+
+    // Ensure all cached shard files are older than TTL before second installation.
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    expected_t<void> install_second = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_second,
+        cache_dir
+    );
+    REQUIRE(install_second.has_value());
+
+    require_each_path_newer_than("shard index", shard_index_mtimes_before);
+    require_each_path_newer_than("package shard", package_shard_mtimes_before);
 }

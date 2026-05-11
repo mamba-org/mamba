@@ -106,7 +106,7 @@ namespace mamba::specs
         }
 
         // There may be '-' in the name
-        out.m_name = NameSpec(util::to_lower(std::string(head.value())));
+        out.m_name = NameSpec(util::to_lower(head.value()));
 
         return { std::move(out) };
     }
@@ -678,7 +678,7 @@ namespace mamba::specs
         {
             return parse_error("Empty package name.");
         }
-        out.m_name = NameSpec(util::to_lower(std::string(name_str)));
+        out.m_name = NameSpec(util::to_lower(name_str));
 
         // Set the version and build string, but avoid overriding in case nothing is specified
         // as it may already be set in attribute as in ``numpy[version=1.12]``.

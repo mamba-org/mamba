@@ -321,7 +321,7 @@ namespace mamba
             );
         }
 
-        logging::set_log_handler(log_history_handler.get()); // use the existing logging parameters
+        logging::set_log_handler(log_history_handler.get());  // use the existing logging parameters
     }
 
     using ConsoleBuffer = std::vector<std::string>;
@@ -379,7 +379,7 @@ namespace mamba
 
     Console::~Console()
     {
-        // Note: even if the json is empty, we should still print 
+        // Note: even if the json is empty, we should still print
         // and empty json object as long as `--json` is used.
         if (context().output_params.json and not p_data->is_json_print_cancelled)
         {
@@ -609,7 +609,7 @@ namespace mamba
     {
         if (context().output_params.json)
         {
-            nlohmann::json tmp = j.flatten(); // FIXME: flattening makes empty arrays 'null'
+            nlohmann::json tmp = j.flatten();  // FIXME: flattening makes empty arrays 'null'
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
             {
                 p_data->json_log[p_data->json_hier + it.key()] = it.value();
@@ -632,7 +632,7 @@ namespace mamba
     {
         if (context().output_params.json)
         {
-            nlohmann::json tmp = j.flatten(); // FIXME: flattening makes empty arrays 'null'
+            nlohmann::json tmp = j.flatten();  // FIXME: flattening makes empty arrays 'null'
             for (auto it = tmp.begin(); it != tmp.end(); ++it)
             {
                 p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index) + it.key()] = it.value();

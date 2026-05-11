@@ -378,7 +378,12 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
         )
     json_output = json.loads(info.value.stdout.decode())
 
-    assert helpers.find_message_in_json_logs(json_output, "Cannot use --clone together with package specs.") != None
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Cannot use --clone together with package specs."
+        )
+        is not None
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -402,7 +407,12 @@ def test_clone_conflicts_with_file(tmp_home, tmp_root_prefix, tmp_path):
         )
     json_output = json.loads(info.value.stdout.decode())
 
-    assert helpers.find_message_in_json_logs(json_output, "Cannot use --clone together with package specs.") != None
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Cannot use --clone together with package specs."
+        )
+        is not None
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -415,14 +425,22 @@ def test_clone_non_existing_source(tmp_home, tmp_root_prefix, tmp_path):
             "--clone", "this-env-does-not-exist", "-n", env_name, "--json", no_dry_run=True
         )
     json_output = json.loads(info.value.stdout.decode())
-    assert helpers.find_message_in_json_logs(json_output, "Could not find environment to clone: this-env-does-not-exist") != None
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Could not find environment to clone: this-env-does-not-exist"
+        )
+        is not None
+    )
 
     # Non-existing prefix path
     non_existing_prefix = tmp_path / "does-not-exist"
     with pytest.raises(subprocess.CalledProcessError) as info2:
         helpers.create("--clone", non_existing_prefix, "-n", env_name, "--json", no_dry_run=True)
     json_output2 = json.loads(info2.value.stdout.decode())
-    assert helpers.find_message_in_json_logs(json_output2, f"Source prefix '{non_existing_prefix}") != None
+    assert (
+        helpers.find_message_in_json_logs(json_output2, f"Source prefix '{non_existing_prefix}")
+        is not None
+    )
 
 
 @pytest.mark.skipif(

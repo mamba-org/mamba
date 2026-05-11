@@ -337,7 +337,7 @@ def umamba_list(*args, json_as_pkgs_list=True, **kwargs):
             packages = pkgs_list_from_json_result(j)
             # empty list are currently set to null because of json flattening
             # in libmamba, so we need to translate null as empty list instead
-            return packages if packages != None else list()
+            return packages if packages is not None else list()
         else:
             return j
 
@@ -724,10 +724,10 @@ def assert_state_file(state_file_path: Path, expected_state: dict):
             f"Expected {field_name} to be {expected_value}, but got {state[field_name]}"
         )
 
+
 def find_message_in_json_logs(json_result, message_to_find):
     for log_record in json_result["log_history"]:
         if message_to_find in log_record["message"]:
             return log_record
 
     return None
-

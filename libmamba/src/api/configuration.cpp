@@ -815,7 +815,6 @@ namespace mamba
 
         mamba::log_level log_level_fallback_hook(Configuration& config)
         {
-
             if (config.at("verbose").configured())
             {
                 const auto& ctx = config.context();
@@ -2300,7 +2299,7 @@ namespace mamba
 
         if (this->at("print_config_only").value<bool>())
         {
-            // TOOD: fix this for the case where `--json` is used
+            // TODO: fix this for the case where `--json` is used
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
             print_dump(*this, dump_opts);

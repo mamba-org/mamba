@@ -32,7 +32,7 @@ namespace mamba::logging::testing
         std::size_t stop_count = 0;
         std::size_t log_count = 0;
         std::size_t real_output_log_count = 0;
-        std::size_t filtered_out_log_count = 0; 
+        std::size_t filtered_out_log_count = 0;
         std::size_t log_level_change_count = 0;
         std::size_t params_change_count = 0;
         std::size_t backtrace_size_change_count = 0;

@@ -208,8 +208,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 out << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
 
                 out << "  \"name\": \""
-                          << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
-                          << "\",\n";
+                    << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix) << "\",\n";
                 out << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
 
                 out << "}\n";

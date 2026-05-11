@@ -55,7 +55,8 @@ namespace mamba
     {
         if (output_params.json or output_params.quiet)
         {
-            throw mamba_error{ "cannot start logging with `--json` or `--quiet`", mamba_error_code::incorrect_usage };
+            throw mamba_error{ "cannot start logging with `--json` or `--quiet`",
+                               mamba_error_code::incorrect_usage };
         }
 
         // Only change the log-handler if specified, keep the current one otherwise.
@@ -109,7 +110,7 @@ namespace mamba
         }
 
         // Do not start logging if `--json` or `--quiet` are used.
-        if (options.enable_logging and not (output_params.json or output_params.quiet))
+        if (options.enable_logging and not(output_params.json or output_params.quiet))
         {
             start_logging(std::move(log_handler));
         }

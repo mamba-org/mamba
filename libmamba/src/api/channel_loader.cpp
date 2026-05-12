@@ -185,7 +185,11 @@ namespace mamba
         }
 
         // Forward declarations for helpers defined later in this namespace.
-        void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors);
+        void create_mirrors(
+            const specs::Channel& channel,
+            download::mirror_map& mirrors,
+            specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
+        );
 
         void create_subdirs(
             Context& ctx,
@@ -879,7 +883,7 @@ namespace mamba
         void create_mirrors(
             const specs::Channel& channel,
             download::mirror_map& mirrors,
-            specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
+            specs::Channel::UrlPriority priority
         )
         {
             for (const specs::CondaURL& url : channel.mirror_urls())

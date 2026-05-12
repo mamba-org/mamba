@@ -612,7 +612,7 @@ macro(libmamba_create_target target_name linkage output_name)
             # suffixes). LibArchive and CURL both pull zlib via find_package before CONFIG is
             # preferred; load ZLIB's CMake package first. See
             # https://github.com/microsoft/vcpkg/pull/51235
-            find_package(ZLIB CONFIG REQUIRED)
+            find_package(ZLIB REQUIRED NO_MODULE)
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive MODULE REQUIRED)

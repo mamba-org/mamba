@@ -192,8 +192,11 @@ jobs:
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
-          set CMAKE_PREFIX_PATH=.\vcpkg_installed\x64-windows-static-md;%CONDA_PREFIX%\Library
+          set "VCPKG_ROOT=C:\vcpkg"
+          set CMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library
           cmake -B build/ -G Ninja ^
+            -D "CMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
+            -D "VCPKG_TARGET_TRIPLET=x64-windows-static-md" ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^

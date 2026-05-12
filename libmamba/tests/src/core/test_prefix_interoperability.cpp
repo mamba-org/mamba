@@ -141,7 +141,13 @@ namespace mamba
         auto tmp_dir = TemporaryDirectory();
         auto prefix_path = tmp_dir.path() / "prefix";
         fs::create_directories(prefix_path / "conda-meta");
-        fs::create_directories(prefix_path / "bin");
+#ifdef _WIN32
+        const auto uv_exe = prefix_path / "Scripts" / "uv.exe";
+        fs::create_directories(uv_exe.parent_path());
+#else
+        const auto uv_exe = prefix_path / "bin" / "uv";
+        fs::create_directories(uv_exe.parent_path());
+#endif
 
         auto& ctx = mambatests::context();
         auto channel_context = ChannelContext::make_simple(ctx);
@@ -159,18 +165,17 @@ namespace mamba
             })";
         }
 
-        // Minimal fake `uv` executable answering `uv pip list --format json`.
-        const auto uv_exe = prefix_path / "bin" / "uv";
-        {
-            auto out = open_ofstream(uv_exe);
-            out << "#!/bin/sh\n";
-            out << "echo '[{\"name\":\"demo-pkg\",\"version\":\"1.2.3\"}]'\n";
-        }
+        // Fake `uv`: copy the lock test helper (it recognizes `pip list --format json` and prints
+        // fixed JSON). On Windows this must be a real PE (see util::get_path_dirs /
+        // util::which_in).
+        fs::copy_file(mambatests::testing_libmamba_lock_exe, uv_exe, fs::copy_options::overwrite_existing);
+#ifndef _WIN32
         fs::permissions(
             uv_exe,
             fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
             fs::perm_options::add
         );
+#endif
 
         const auto prefix_data = PrefixData::create(prefix_path, channel_context, false).value();
         const auto pip_it = prefix_data.pip_records().find("demo-pkg");

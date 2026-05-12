@@ -126,6 +126,7 @@ set(
 message(STATUS "Building libmamba C++ tests")
 
 add_executable(test_libmamba ${LIBMAMBA_TEST_SRCS})
+add_dependencies(test_libmamba testing_libmamba_lock)
 mamba_target_add_compile_warnings(test_libmamba WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
 target_include_directories(

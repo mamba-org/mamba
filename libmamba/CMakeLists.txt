@@ -577,7 +577,27 @@ macro(libmamba_create_target target_name linkage output_name)
 
         elseif(WIN32)
 
-            set(CMAKE_PREFIX_PATH "$ENV{VCPKG_ROOT}/installed/x64-windows-static-md/")
+            # vcpkg: prefer manifest install dir (./vcpkg_installed/$TRIPLET), else classic layout.
+            if(DEFINED VCPKG_TARGET_TRIPLET)
+                set(_mamba_vcpkg_triplet "${VCPKG_TARGET_TRIPLET}")
+            else()
+                set(_mamba_vcpkg_triplet "x64-windows-static-md")
+            endif()
+            set(
+                _mamba_vcpkg_installed
+                "${CMAKE_SOURCE_DIR}/vcpkg_installed/${_mamba_vcpkg_triplet}"
+            )
+            if(EXISTS "${_mamba_vcpkg_installed}")
+                set(_mamba_vcpkg_prefix "${_mamba_vcpkg_installed}")
+            elseif(DEFINED ENV{VCPKG_ROOT})
+                set(_mamba_vcpkg_prefix "$ENV{VCPKG_ROOT}/installed/${_mamba_vcpkg_triplet}")
+            else()
+                message(
+                    FATAL_ERROR
+                        "Windows static libmamba needs vcpkg packages under ${_mamba_vcpkg_installed} or VCPKG_ROOT"
+                )
+            endif()
+            list(PREPEND CMAKE_PREFIX_PATH "${_mamba_vcpkg_prefix}" "$ENV{CONDA_PREFIX}/Library")
 
             # TODO AND CONTEXT: We found a link error in libarchive which lacked a link to XmlLite
             # which is provided by Windows. libarchive has cmake scripts doing the necessary work to
@@ -587,6 +607,12 @@ macro(libmamba_create_target target_name linkage output_name)
             # libarchive doesnt do it itself.
             set(SYSTEM_PROVIDED_LIBRARIES XmlLite.lib) # required by libarchive
             set(ENABLE_WIN32_XMLLITE ON)
+
+            # vcpkg zlib 1.3.2+: FindZLIB.cmake does not match Windows library names (z/zs, debug
+            # suffixes). LibArchive and CURL both pull zlib via find_package before CONFIG is
+            # preferred; load ZLIB's CMake package first. See
+            # https://github.com/microsoft/vcpkg/pull/51235
+            find_package(ZLIB CONFIG REQUIRED)
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive MODULE REQUIRED)
@@ -621,7 +647,7 @@ macro(libmamba_create_target target_name linkage output_name)
 
             add_compile_definitions(LIBARCHIVE_STATIC CURL_STATICLIB)
             include_directories($ENV{CONDA_PREFIX}/Library/include/)
-            include_directories($ENV{VCPKG_ROOT}/installed/x64-windows-static-md/include/)
+            include_directories("${_mamba_vcpkg_prefix}/include/")
         endif()
     else()
         message("   -> Dynamically linking against libmamba (shared) dependencies")

@@ -22,6 +22,40 @@ class TestLinking:
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
 
+    # httpx unlink / conda-metadata interoperability tests
+    _HTTPX_UNLINK_OLD_VER = "0.27.0"
+    _HTTPX_UNLINK_NEW_VER = "0.28.1"
+
+    @staticmethod
+    def _httpx_dist_info_resolved(env_prefix: Path, httpx_version: str) -> set[Path]:
+        """Paths to httpx-*.dist-info under lib, deduplicated by real path.
+
+        Conda Python may expose ``lib/python3.1`` as a symlink to ``lib/python3.10``;
+        ``python*/site-packages/`` then matches the same directory twice.
+        """
+        pattern = f"python*/site-packages/httpx-{httpx_version}.dist-info"
+        return {p.resolve() for p in (env_prefix / "lib").glob(pattern)}
+
+    @staticmethod
+    def _resolved_paths_from_conda_meta_record(env_prefix: Path, record: dict) -> set[Path]:
+        """Absolute resolved paths declared by a conda-meta package record."""
+        rels: list[str] = []
+        if "paths_data" in record:
+            rels = [entry["_path"] for entry in record["paths_data"]["paths"]]
+        elif "files" in record:
+            rels = list(record["files"])
+        return {(env_prefix / rel).resolve() for rel in rels}
+
+    @staticmethod
+    def _paths_under_httpx_dist_info(paths: set[Path], httpx_version: str) -> set[Path]:
+        marker = f"httpx-{httpx_version}.dist-info"
+        return {p for p in paths if marker in p.parts}
+
+    @staticmethod
+    def _assert_paths_removed(paths: set[Path], *, label: str) -> None:
+        stale = sorted(p for p in paths if p.exists())
+        assert not stale, f"{label} should be removed but still exist: {stale}"
+
     @classmethod
     def setup_class(cls):
         os.environ["MAMBA_ROOT_PREFIX"] = TestLinking.root_prefix
@@ -160,9 +194,12 @@ class TestLinking:
         helpers.remove(package_to_test, "-n", TestLinking.env_name)
 
     def test_unlink_legacy_files_metadata(self):
+        old_ver = self._HTTPX_UNLINK_OLD_VER
+        new_ver = self._HTTPX_UNLINK_NEW_VER
+
         helpers.create(
             "python=3.10",
-            "httpx=0.27.0",
+            f"httpx={old_ver}",
             "-n",
             TestLinking.env_name,
             "--json",
@@ -170,9 +207,15 @@ class TestLinking:
         )
 
         env_prefix = Path(helpers.get_env(TestLinking.env_name))
-        old_meta = next((env_prefix / "conda-meta").glob("httpx-0.27.0-*.json"))
+        old_meta = next((env_prefix / "conda-meta").glob(f"httpx-{old_ver}-*.json"))
         with old_meta.open() as f:
             old_record = json.load(f)
+
+        prev_dist_info_paths = self._paths_under_httpx_dist_info(
+            self._resolved_paths_from_conda_meta_record(env_prefix, old_record),
+            old_ver,
+        )
+        assert prev_dist_info_paths, "expected previous httpx dist-info files before upgrade"
 
         # Simulate conda metadata that only stores the legacy `files` list.
         old_record["files"] = [p["_path"] for p in old_record["paths_data"]["paths"]]
@@ -181,26 +224,27 @@ class TestLinking:
             json.dump(old_record, f)
 
         helpers.install(
-            "httpx=0.28.1",
+            f"httpx={new_ver}",
             "-n",
             TestLinking.env_name,
             "--json",
             no_dry_run=True,
         )
 
-        old_dist_info = list(
-            (env_prefix / "lib").glob("python*/site-packages/httpx-0.27.0.dist-info")
+        self._assert_paths_removed(
+            prev_dist_info_paths,
+            label=f"httpx {old_ver} dist-info",
         )
-        new_dist_info = list(
-            (env_prefix / "lib").glob("python*/site-packages/httpx-0.28.1.dist-info")
-        )
-        assert len(old_dist_info) == 0
-        assert len(new_dist_info) == 1
+        assert len(self._httpx_dist_info_resolved(env_prefix, old_ver)) == 0
+        assert len(self._httpx_dist_info_resolved(env_prefix, new_ver)) == 1
 
     def test_unlink_noarch_short_paths_metadata(self):
+        old_ver = self._HTTPX_UNLINK_OLD_VER
+        new_ver = self._HTTPX_UNLINK_NEW_VER
+
         helpers.create(
             "python=3.10",
-            "httpx=0.27.0",
+            f"httpx={old_ver}",
             "-n",
             TestLinking.env_name,
             "--json",
@@ -208,9 +252,15 @@ class TestLinking:
         )
 
         env_prefix = Path(helpers.get_env(TestLinking.env_name))
-        old_meta = next((env_prefix / "conda-meta").glob("httpx-0.27.0-*.json"))
+        old_meta = next((env_prefix / "conda-meta").glob(f"httpx-{old_ver}-*.json"))
         with old_meta.open() as f:
             old_record = json.load(f)
+
+        prev_dist_info_paths = self._paths_under_httpx_dist_info(
+            self._resolved_paths_from_conda_meta_record(env_prefix, old_record),
+            old_ver,
+        )
+        assert prev_dist_info_paths, "expected previous httpx dist-info files before upgrade"
 
         # Simulate conda-generated noarch metadata where `paths_data.paths[*]._path`
         # uses short paths like `site-packages/...` instead of full
@@ -225,21 +275,19 @@ class TestLinking:
             json.dump(old_record, f)
 
         helpers.install(
-            "httpx=0.28.1",
+            f"httpx={new_ver}",
             "-n",
             TestLinking.env_name,
             "--json",
             no_dry_run=True,
         )
 
-        old_dist_info = list(
-            (env_prefix / "lib").glob("python*/site-packages/httpx-0.27.0.dist-info")
+        self._assert_paths_removed(
+            prev_dist_info_paths,
+            label=f"httpx {old_ver} dist-info",
         )
-        new_dist_info = list(
-            (env_prefix / "lib").glob("python*/site-packages/httpx-0.28.1.dist-info")
-        )
-        assert len(old_dist_info) == 0
-        assert len(new_dist_info) == 1
+        assert len(self._httpx_dist_info_resolved(env_prefix, old_ver)) == 0
+        assert len(self._httpx_dist_info_resolved(env_prefix, new_ver)) == 1
 
     @pytest.mark.skipif(
         sys.platform == "darwin" and platform.machine() == "arm64",

@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from packaging.version import Version
 
 # Need to import everything to get fixtures
 from .helpers import *  # noqa: F403
@@ -542,3 +543,340 @@ class TestUpdateConfig:
         helpers.install("quantstack::sphinx", no_dry_run=True)
         res = helpers.update("quantstack::sphinx", "-c", "conda-forge", "--json")
         assert "actions" not in res
+
+
+def _update_all_transaction_empty(res: dict) -> bool:
+    if "actions" not in res:
+        return True
+    act = res["actions"]
+    link = act.get("LINK") or []
+    unlink = act.get("UNLINK") or []
+    return len(link) == 0 and len(unlink) == 0
+
+
+def _list_name_version_map(prefix: Path) -> dict[str, str]:
+    rows = helpers.umamba_list("-p", str(prefix), "--json")
+    return {r["name"]: r["version"] for r in rows}
+
+
+# Older pins that are expected to be upgradable on conda-forge (see TestUpdate.old_version).
+_UPDATE_ALL_OLD_XTENSOR = "0.21.10"
+# xtensor 0.21.10 requires xtl >=0.6.21,<0.7; both must be upgradable via --all.
+_UPDATE_ALL_OLD_XTL = "0.6.21"
+
+
+@pytest.mark.skipif(
+    helpers.dry_run_tests == helpers.DryRun.ULTRA_DRY, reason="Running ultra dry tests"
+)
+class TestUpdateAllExtensive:
+    """Integration coverage for ``micromamba update --all`` (solver + CLI)."""
+
+    @pytest.mark.parametrize("all_flag", ["--all", "-a"])
+    def test_update_all_prefix_short_and_long_flag(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+        all_flag,
+    ):
+        env_prefix = tmp_path / "env-update-all-flags"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        before = _list_name_version_map(env_prefix)["xtensor"]
+        assert before.startswith(_UPDATE_ALL_OLD_XTENSOR)
+
+        out = helpers.update("--json", "-p", str(env_prefix), all_flag, no_dry_run=True)
+        assert out["success"] is True
+        assert "actions" in out
+        linked = [p for p in out["actions"]["LINK"] if p["name"] == "xtensor"]
+        assert len(linked) == 1
+        assert not linked[0]["version"].startswith(_UPDATE_ALL_OLD_XTENSOR)
+
+        after = _list_name_version_map(env_prefix)["xtensor"]
+        assert Version(after) > Version(before)
+
+    def test_update_all_named_env(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        env_name = helpers.random_string()
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-n",
+            env_name,
+            "--json",
+            no_dry_run=True,
+        )
+        env_prefix = tmp_root_prefix / "envs" / env_name
+        before = _list_name_version_map(env_prefix)["xtensor"]
+
+        out = helpers.update("--json", "-n", env_name, "--all", no_dry_run=True)
+        assert out["success"] is True
+        linked = [p for p in out["actions"]["LINK"] if p["name"] == "xtensor"]
+        assert len(linked) == 1
+        assert Version(linked[0]["version"]) > Version(before)
+
+    def test_update_all_uses_active_conda_prefix(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        env_prefix = tmp_path / "env-update-all-active-prefix"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        os.environ["CONDA_PREFIX"] = str(env_prefix)
+        before = _list_name_version_map(env_prefix)["xtensor"]
+
+        out = helpers.update("--json", "--all", no_dry_run=True)
+        assert out["success"] is True
+        linked = [p for p in out["actions"]["LINK"] if p["name"] == "xtensor"]
+        assert len(linked) == 1
+        assert Version(_list_name_version_map(env_prefix)["xtensor"]) > Version(before)
+
+    def test_update_all_upgrades_multiple_pinned_packages(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        env_prefix = tmp_path / "env-update-all-multi"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            f"xtl={_UPDATE_ALL_OLD_XTL}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        before = _list_name_version_map(env_prefix)
+        assert before["xtensor"].startswith(_UPDATE_ALL_OLD_XTENSOR)
+        assert Version(before["xtl"]) == Version(_UPDATE_ALL_OLD_XTL)
+
+        out = helpers.update("--json", "-p", str(env_prefix), "--all", no_dry_run=True)
+        assert out["success"] is True
+        names_linked = {p["name"] for p in out["actions"]["LINK"]}
+        assert "xtensor" in names_linked
+        assert "xtl" in names_linked
+
+        after = _list_name_version_map(env_prefix)
+        assert Version(after["xtensor"]) > Version(before["xtensor"])
+        assert Version(after["xtl"]) > Version(before["xtl"])
+
+    def test_update_all_second_call_is_noop(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        env_prefix = tmp_path / "env-update-all-idempotent"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        first = helpers.update("--json", "-p", str(env_prefix), "--all", no_dry_run=True)
+        assert first["success"] is True
+        assert not _update_all_transaction_empty(first)
+
+        second = helpers.update("--json", "-p", str(env_prefix), "--all", no_dry_run=True)
+        assert second["success"] is True
+        assert _update_all_transaction_empty(second) or second.get("message") == (
+            "All requested packages already installed"
+        )
+
+    @pytest.mark.skipif(
+        helpers.dry_run_tests != helpers.DryRun.OFF,
+        reason="Dry-run test needs a real prefix between steps",
+    )
+    def test_update_all_dry_run_does_not_change_prefix(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        env_prefix = tmp_path / "env-update-all-dry-run"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        before = _list_name_version_map(env_prefix)["xtensor"]
+
+        preview = helpers.update(
+            "--json",
+            "-p",
+            str(env_prefix),
+            "--all",
+            "--dry-run",
+            no_dry_run=True,
+        )
+        assert preview["success"] is True
+        assert any(p["name"] == "xtensor" for p in preview["actions"]["LINK"])
+        assert _list_name_version_map(env_prefix)["xtensor"] == before
+
+        applied = helpers.update("--json", "-p", str(env_prefix), "--all", no_dry_run=True)
+        assert applied["success"] is True
+        assert Version(_list_name_version_map(env_prefix)["xtensor"]) > Version(before)
+
+    @pytest.mark.parametrize("extra_flag", [(), ("--no-prune-deps",)])
+    def test_update_all_prune_dependency_flags(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+        extra_flag,
+    ):
+        env_prefix = tmp_path / f"env-update-all-prune-{len(extra_flag)}"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        args = ["--json", "-p", str(env_prefix), "--all", *extra_flag]
+        out = helpers.update(*args, no_dry_run=True)
+        assert out["success"] is True
+        assert any(p["name"] == "xtensor" for p in out["actions"]["LINK"])
+
+    def test_update_all_explicit_channel(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        env_prefix = tmp_path / "env-update-all-channel"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        out = helpers.update(
+            "--json",
+            "-p",
+            str(env_prefix),
+            "--all",
+            "-c",
+            "conda-forge",
+            no_dry_run=True,
+        )
+        assert out["success"] is True
+        for p in out["actions"]["LINK"]:
+            if p["name"] == "xtensor":
+                assert p["channel"] == "conda-forge"
+                break
+        else:
+            pytest.fail("expected xtensor in LINK")
+
+    def test_update_all_quiet(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        env_prefix = tmp_path / "env-update-all-quiet"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        out = helpers.update("-p", str(env_prefix), "--all", "--quiet", no_dry_run=True)
+        assert out == ""
+
+    def test_update_all_latest_env_still_succeeds(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        """A small env pinned to recent versions should still solve ``update --all``."""
+        env_prefix = tmp_path / "env-update-all-recent"
+        helpers.create("python=3.11", "xtensor", "-p", str(env_prefix), "--json", no_dry_run=True)
+        out = helpers.update("--json", "-p", str(env_prefix), "--all", no_dry_run=True)
+        assert out["success"] is True
+
+    @pytest.mark.parametrize("json_flag", ["--json", ""])
+    def test_update_all_non_json_and_json_exit_ok(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+        json_flag,
+    ):
+        env_prefix = tmp_path / f"env-update-all-out-{json_flag or 'plain'}"
+        helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        args = ["-p", str(env_prefix), "--all"]
+        if json_flag:
+            args.append(json_flag)
+        out = helpers.update(*args, no_dry_run=True)
+        if json_flag:
+            assert isinstance(out, dict)
+            assert out["success"] is True
+        else:
+            assert isinstance(out, str)
+            assert "error" not in out.lower()
+
+    def test_update_all_unlink_matches_previous_xtensor_build(
+        self,
+        tmp_home,
+        tmp_clean_env,
+        tmp_root_prefix,
+        tmp_path,
+    ):
+        """Regression-style check that UNLINK contains the previously installed xtensor."""
+        env_prefix = tmp_path / "env-update-all-unlink"
+        create_out = helpers.create(
+            f"xtensor={_UPDATE_ALL_OLD_XTENSOR}",
+            "-p",
+            str(env_prefix),
+            "--json",
+            no_dry_run=True,
+        )
+        assert create_out["success"] is True
+        prev = next(p for p in create_out["actions"]["LINK"] if p["name"] == "xtensor")
+
+        upd = helpers.update("--json", "-p", str(env_prefix), "--all", no_dry_run=True)
+        assert upd["success"] is True
+        unlinked = [p for p in upd["actions"]["UNLINK"] if p["name"] == "xtensor"]
+        assert len(unlinked) == 1
+        u = unlinked[0]
+        assert u["version"] == prev["version"]
+        assert u["build_string"] == prev["build_string"]

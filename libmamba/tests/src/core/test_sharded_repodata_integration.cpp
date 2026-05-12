@@ -449,6 +449,162 @@ namespace
             REQUIRE(is_newer);
         }
     }
+
+    /**
+     * Write a minimal conda history so get_requested_specs_map() seeds sharded roots the same way
+     * as after a real `update --all` (see build_sharded_root_packages in api/utils.cpp).
+     */
+    void write_update_all_history(
+        const fs::u8path& prefix_path,
+        ChannelContext& channel_context,
+        const std::vector<std::vector<std::string>>& history_revision_updates
+    )
+    {
+        REQUIRE_FALSE(history_revision_updates.empty());
+        fs::create_directories(prefix_path / "conda-meta");
+        History history(prefix_path, channel_context);
+        for (std::size_t rev = 0; rev < history_revision_updates.size(); ++rev)
+        {
+            History::UserRequest req;
+            req.cmd = "update --all";
+            req.conda_version = "25.0.0";
+            req.date = std::string("2026-04-") + (rev + 1 < 10 ? "0" : "") + std::to_string(rev + 1)
+                       + " 00:00:00";
+            req.update = history_revision_updates[rev];
+            history.add_entry(req);
+        }
+    }
+
+    [[nodiscard]] bool channel_db_contains_package_name(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const fs::u8path& prefix_path,
+        bool use_shards,
+        std::string_view package_name
+    )
+    {
+        const bool saved_use_shards = ctx.use_sharded_repodata;
+        const auto saved_target_prefix = ctx.prefix_params.target_prefix;
+        on_scope_exit restore_ctx{ [&]
+                                   {
+                                       ctx.use_sharded_repodata = saved_use_shards;
+                                       ctx.prefix_params.target_prefix = saved_target_prefix;
+                                   } };
+
+        ctx.use_sharded_repodata = use_shards;
+        ctx.prefix_params.target_prefix = prefix_path;
+
+        auto [db, package_caches] = prepare_solver_context(
+            ctx,
+            channel_context,
+            /*raw_specs=*/{},
+            /*is_retry=*/false,
+            /*no_py_pin=*/false
+        );
+        (void) package_caches;
+
+        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
+        (void) prefix_data;
+
+        bool found = false;
+        db.for_each_package_matching(
+            specs::MatchSpec::parse(std::string(package_name)).value(),
+            [&](const specs::PackageInfo& pkg)
+            {
+                if (pkg.name == package_name)
+                {
+                    found = true;
+                    return util::LoopControl::Break;
+                }
+                return util::LoopControl::Continue;
+            }
+        );
+        return found;
+    }
+
+    /**
+     * Solve `update --all` with the same prefix/history in flat vs sharded repodata mode.
+     * Caller must have written history with write_update_all_history().
+     */
+    [[nodiscard]] std::pair<Solution, Solution> compute_update_all_flat_sharded_parity(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const fs::u8path& prefix_path,
+        bool clean_dependencies
+    )
+    {
+        auto solve_one = [&](bool use_shards) -> Solution
+        {
+            const bool saved_use_shards = ctx.use_sharded_repodata;
+            const auto saved_target_prefix = ctx.prefix_params.target_prefix;
+            on_scope_exit restore_ctx{ [&]
+                                       {
+                                           ctx.use_sharded_repodata = saved_use_shards;
+                                           ctx.prefix_params.target_prefix = saved_target_prefix;
+                                       } };
+
+            ctx.use_sharded_repodata = use_shards;
+            ctx.prefix_params.target_prefix = prefix_path;
+
+            auto [db, package_caches] = prepare_solver_context(
+                ctx,
+                channel_context,
+                /*raw_specs=*/{},
+                /*is_retry=*/false,
+                /*no_py_pin=*/false
+            );
+            (void) package_caches;
+
+            auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
+            (void) prefix_data;
+
+            Request request;
+            request.jobs.emplace_back(
+                Request::UpdateAll{ /* .clean_dependencies= */ clean_dependencies }
+            );
+            request.flags = ctx.solver_flags;
+
+            auto outcome = libsolv::Solver().solve(
+                db,
+                request,
+                ctx.experimental_matchspec_parsing ? libsolv::MatchSpecParser::Mamba
+                                                   : libsolv::MatchSpecParser::Libsolv
+            );
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            return std::get<Solution>(outcome.value());
+        };
+
+        return { solve_one(/*use_shards=*/false), solve_one(/*use_shards=*/true) };
+    }
+
+    void run_update_all_parity_case(
+        Context& ctx,
+        ChannelContext& channel_context,
+        const TemporaryDirectory& tmp_dir,
+        std::string_view env_subdir,
+        const std::vector<std::vector<std::string>>& history_revision_updates,
+        bool clean_dependencies,
+        const std::vector<std::string>& packages_that_must_appear_in_db
+    )
+    {
+        const fs::u8path prefix_path = tmp_dir.path() / env_subdir;
+        write_update_all_history(prefix_path, channel_context, history_revision_updates);
+
+        for (const auto& name : packages_that_must_appear_in_db)
+        {
+            REQUIRE(channel_db_contains_package_name(ctx, channel_context, prefix_path, false, name));
+            REQUIRE(channel_db_contains_package_name(ctx, channel_context, prefix_path, true, name));
+        }
+
+        const auto [flat, sharded] = compute_update_all_flat_sharded_parity(
+            ctx,
+            channel_context,
+            prefix_path,
+            clean_dependencies
+        );
+        REQUIRE(flat == sharded);
+    }
 }
 
 TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::core][sharded][.integration]")
@@ -1100,89 +1256,15 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
     ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
     init_channels(ctx, channel_context);
 
-    const auto prefix_path = tmp_dir.path() / "env_update_all";
-    fs::create_directories(prefix_path / "conda-meta");
-
-    History history(prefix_path, channel_context);
-    History::UserRequest req;
-    req.date = "2026-04-27 00:00:00";
-    req.cmd = "update --all";
-    req.conda_version = "25.0.0";
-    req.update = { "conda-smithy" };
-    history.add_entry(req);
-
-    struct UpdateAllSolveResult
-    {
-        std::vector<specs::PackageInfo> packages;
-        bool has_conda_smithy_in_db;
-    };
-
-    auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
-    {
-        const bool saved_use_shards = ctx.use_sharded_repodata;
-        const auto saved_target_prefix = ctx.prefix_params.target_prefix;
-        on_scope_exit restore_ctx{ [&]
-                                   {
-                                       ctx.use_sharded_repodata = saved_use_shards;
-                                       ctx.prefix_params.target_prefix = saved_target_prefix;
-                                   } };
-
-        ctx.use_sharded_repodata = use_shards;
-        ctx.prefix_params.target_prefix = prefix_path;
-
-        auto [db, package_caches] = prepare_solver_context(
-            ctx,
-            channel_context,
-            /*raw_specs=*/{},
-            /*is_retry=*/false,
-            /*no_py_pin=*/false
-        );
-        (void) package_caches;
-
-        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-        (void) prefix_data;
-
-        Request request;
-        request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
-        request.flags = ctx.solver_flags;
-
-        bool has_conda_smithy_in_db = false;
-        db.for_each_package_matching(
-            specs::MatchSpec::parse("conda-smithy").value(),
-            [&](const specs::PackageInfo& pkg)
-            {
-                if (pkg.name == "conda-smithy")
-                {
-                    has_conda_smithy_in_db = true;
-                    return util::LoopControl::Break;
-                }
-                return util::LoopControl::Continue;
-            }
-        );
-
-        auto outcome = libsolv::Solver().solve(
-            db,
-            request,
-            ctx.experimental_matchspec_parsing ? libsolv::MatchSpecParser::Mamba
-                                               : libsolv::MatchSpecParser::Libsolv
-        );
-        REQUIRE(outcome.has_value());
-        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
-        auto solution = std::get<Solution>(outcome.value());
-        std::vector<specs::PackageInfo> packages;
-        for (const auto& pkg : solution.packages())
-        {
-            packages.push_back(pkg);
-        }
-        return UpdateAllSolveResult{ std::move(packages), has_conda_smithy_in_db };
-    };
-
-    const auto flat = solve_update_all_like_api(/*use_shards=*/false);
-    const auto sharded = solve_update_all_like_api(/*use_shards=*/true);
-
-    REQUIRE(flat.has_conda_smithy_in_db);
-    REQUIRE(sharded.has_conda_smithy_in_db);
-    REQUIRE(flat.packages == sharded.packages);
+    run_update_all_parity_case(
+        ctx,
+        channel_context,
+        tmp_dir,
+        "env_update_all",
+        { { "conda-smithy" } },
+        /*clean_dependencies=*/false,
+        { "conda-smithy" }
+    );
 }
 
 TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::core][sharded][.integration]")
@@ -1198,112 +1280,241 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
     ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
     init_channels(ctx, channel_context);
 
-    const auto prefix_path = tmp_dir.path() / "env_issue_4240";
-    fs::create_directories(prefix_path / "conda-meta");
-
     // Seed history with the exact package set from the issue example so update-all root expansion
     // uses these names in shard mode.
-    History history(prefix_path, channel_context);
-    History::UserRequest req;
-    req.date = "2026-04-27 00:00:00";
-    req.cmd = "update --all";
-    req.conda_version = "25.0.0";
-    req.update = {
-        "python=3.12",   "conda-smithy=3.61.1", "conda-forge-pinning=2026.04.23.11.42.25",
-        "chardet=5.2.0", "requests=2.33.1",
-    };
-    history.add_entry(req);
+    run_update_all_parity_case(
+        ctx,
+        channel_context,
+        tmp_dir,
+        "env_issue_4240",
+        { {
+            "python=3.12",
+            "conda-smithy=3.61.1",
+            "conda-forge-pinning=2026.04.23.11.42.25",
+            "chardet=5.2.0",
+            "requests=2.33.1",
+        } },
+        /*clean_dependencies=*/false,
+        { "python", "conda-smithy", "conda-forge-pinning", "chardet", "requests" }
+    );
+}
 
-    struct UpdateAllSolveResult
+TEST_CASE(
+    "Sharded repodata - update --all flat vs sharded parity (extended matrix)",
+    "[mamba::core][sharded][.integration]"
+)
+{
+    auto& ctx = mambatests::context();
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    SECTION("history: python only")
     {
-        Solution solution;
-        bool has_python_in_db = false;
-        bool has_conda_smithy_in_db = false;
-        bool has_conda_forge_pinning_in_db = false;
-        bool has_chardet_in_db = false;
-        bool has_requests_in_db = false;
-    };
-
-    auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
-    {
-        const bool saved_use_shards = ctx.use_sharded_repodata;
-        const auto saved_target_prefix = ctx.prefix_params.target_prefix;
-        on_scope_exit restore_ctx{ [&]
-                                   {
-                                       ctx.use_sharded_repodata = saved_use_shards;
-                                       ctx.prefix_params.target_prefix = saved_target_prefix;
-                                   } };
-
-        ctx.use_sharded_repodata = use_shards;
-        ctx.prefix_params.target_prefix = prefix_path;
-
-        auto [db, package_caches] = prepare_solver_context(
+        run_update_all_parity_case(
             ctx,
             channel_context,
-            /*raw_specs=*/{},
-            /*is_retry=*/false,
-            /*no_py_pin=*/false
+            tmp_dir,
+            "ua_matrix_python",
+            { { "python" } },
+            false,
+            { "python" }
         );
-        (void) package_caches;
+    }
 
-        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-        (void) prefix_data;
-
-        Request request;
-        request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
-        request.flags = ctx.solver_flags;
-
-        auto has_name_in_db = [&](std::string_view name) -> bool
-        {
-            bool found = false;
-            db.for_each_package_matching(
-                specs::MatchSpec::parse(std::string(name)).value(),
-                [&](const specs::PackageInfo& pkg)
-                {
-                    if (pkg.name == name)
-                    {
-                        found = true;
-                        return util::LoopControl::Break;
-                    }
-                    return util::LoopControl::Continue;
-                }
-            );
-            return found;
-        };
-
-        auto outcome = libsolv::Solver().solve(
-            db,
-            request,
-            ctx.experimental_matchspec_parsing ? libsolv::MatchSpecParser::Mamba
-                                               : libsolv::MatchSpecParser::Libsolv
+    SECTION("history: python and numpy")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_py_np",
+            { { "python", "numpy" } },
+            false,
+            { "python", "numpy" }
         );
-        REQUIRE(outcome.has_value());
-        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
-        return {
-            std::get<Solution>(outcome.value()), has_name_in_db("python"),
-            has_name_in_db("conda-smithy"),      has_name_in_db("conda-forge-pinning"),
-            has_name_in_db("chardet"),           has_name_in_db("requests"),
-        };
-    };
+    }
 
-    const auto flat = solve_update_all_like_api(/*use_shards=*/false);
-    const auto sharded = solve_update_all_like_api(/*use_shards=*/true);
+    SECTION("history: numpy and scipy")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_np_scipy",
+            { { "numpy", "scipy" } },
+            false,
+            { "numpy", "scipy" }
+        );
+    }
 
-    // Reproducer package names from the issue comment should be present in the solver universe in
-    // both modes.
-    REQUIRE(flat.has_python_in_db);
-    REQUIRE(flat.has_conda_smithy_in_db);
-    REQUIRE(flat.has_conda_forge_pinning_in_db);
-    REQUIRE(flat.has_chardet_in_db);
-    REQUIRE(flat.has_requests_in_db);
-    REQUIRE(sharded.has_python_in_db);
-    REQUIRE(sharded.has_conda_smithy_in_db);
-    REQUIRE(sharded.has_conda_forge_pinning_in_db);
-    REQUIRE(sharded.has_chardet_in_db);
-    REQUIRE(sharded.has_requests_in_db);
+    SECTION("history: requests stack")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_requests",
+            { { "requests", "urllib3", "certifi" } },
+            false,
+            { "requests", "urllib3", "certifi" }
+        );
+    }
 
-    // Sharded mode should produce the same update-all solution as flat mode.
-    REQUIRE(flat.solution == sharded.solution);
+    SECTION("history: openssl and ca-certificates")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_tls",
+            { { "openssl", "ca-certificates" } },
+            false,
+            { "openssl", "ca-certificates" }
+        );
+    }
+
+    SECTION("history: pip setuptools wheel")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_pip_tools",
+            { { "pip", "setuptools", "wheel" } },
+            false,
+            { "pip", "setuptools", "wheel" }
+        );
+    }
+
+    SECTION("history: tzdata (noarch)")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_tzdata",
+            { { "tzdata" } },
+            false,
+            { "tzdata" }
+        );
+    }
+
+    SECTION("history: compression libs lz4 and zstd")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_lz4_zstd",
+            { { "lz4", "zstd" } },
+            false,
+            { "lz4", "zstd" }
+        );
+    }
+
+    SECTION("history: libffi and sqlite")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_ffi_sqlite",
+            { { "libffi", "sqlite" } },
+            false,
+            { "libffi", "sqlite" }
+        );
+    }
+
+    SECTION("history: click and packaging")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_click_pkg",
+            { { "click", "packaging" } },
+            false,
+            { "click", "packaging" }
+        );
+    }
+
+    SECTION("history: pyyaml")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_pyyaml",
+            { { "pyyaml" } },
+            false,
+            { "pyyaml" }
+        );
+    }
+
+    SECTION("history: pandas")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_pandas",
+            { { "pandas" } },
+            false,
+            { "pandas" }
+        );
+    }
+
+    SECTION("history: two revisions (numpy then scipy)")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_two_rev",
+            { { "numpy" }, { "scipy" } },
+            false,
+            { "numpy", "scipy" }
+        );
+    }
+
+    SECTION("history: python + numpy with clean_dependencies")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_clean_deps",
+            { { "python", "numpy" } },
+            /*clean_dependencies=*/true,
+            { "python", "numpy" }
+        );
+    }
+
+    SECTION("history: many roots (smoke)")
+    {
+        run_update_all_parity_case(
+            ctx,
+            channel_context,
+            tmp_dir,
+            "ua_matrix_many",
+            { {
+                "python",
+                "numpy",
+                "requests",
+                "openssl",
+                "tzdata",
+            } },
+            false,
+            { "python", "numpy", "requests", "openssl", "tzdata" }
+        );
+    }
 }
 
 TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integration]")

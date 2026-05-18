@@ -34,7 +34,8 @@ dependencies:
   - openssl
   - libopenssl-static
   - zstd-static
-  - zlib
+  # zlib 1.3.2 has breaking changes on Windows: https://github.com/madler/zlib/issues/1181
+  - zlib <1.3.2
   - libnghttp2-static
   - lz4-c-static
   # libmamba test dependencies

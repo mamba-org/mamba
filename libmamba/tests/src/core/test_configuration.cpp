@@ -1127,6 +1127,8 @@ namespace mamba
 
             TEST_BOOL_CONFIGURABLE(retry_clean_cache, config.at("retry_clean_cache").value<bool>());
 
+            TEST_BOOL_CONFIGURABLE(use_sharded_repodata, ctx.use_sharded_repodata);
+
             TEST_BOOL_CONFIGURABLE(allow_softlinks, ctx.link_params.allow_softlinks);
 
             TEST_BOOL_CONFIGURABLE(always_softlink, ctx.link_params.always_softlink);

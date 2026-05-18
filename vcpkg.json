@@ -3,6 +3,7 @@
   "dependencies": [
     "curl",
     "libiconv",
+    "zlib",
     {
       "name": "winreg",
       "platform": "windows"

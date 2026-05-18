@@ -613,6 +613,7 @@ macro(libmamba_create_target target_name linkage output_name)
             # preferred; load ZLIB's CMake package first. See
             # https://github.com/microsoft/vcpkg/pull/51235
             find_package(ZLIB REQUIRED NO_MODULE)
+            mamba_target_check_type(ZLIB::ZLIB STATIC_LIBRARY FATAL_ERROR)
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive MODULE REQUIRED)
@@ -642,6 +643,7 @@ macro(libmamba_create_target target_name linkage output_name)
                     ${BZIP2_LIBRARIES}
                     ${LIBLZMA_LIBRARIES}
                     CURL::libcurl
+                    ZLIB::ZLIB
                     ${sodium_LIBRARY_RELEASE}
             )
 

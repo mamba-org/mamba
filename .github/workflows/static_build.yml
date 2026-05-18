@@ -214,6 +214,16 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\build\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: Verify micromamba has no zlib DLL dependency
+        shell: cmd /C call {0}
+        run: |
+          dumpbin /dependents build\micromamba\micromamba.exe > micromamba-deps.txt
+          findstr /i /c:"zlib.dll" /c:"z.dll" micromamba-deps.txt >nul
+          if not errorlevel 1 (
+            echo ERROR: micromamba.exe must not depend on zlib.dll or z.dll
+            type micromamba-deps.txt
+            exit /b 1
+          )
       - name: build cache statistics
         run: sccache --show-stats
       - name: Archive-build artifact
@@ -221,12 +231,14 @@ jobs:
         run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
 
       - name: Test basic commands
+        shell: cmd /C call {0}
         run: |
+          set "PATH=%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem"
           mkdir test_prefix
-          ${{ github.workspace }}/build/micromamba/micromamba.exe --version
-          ${{ github.workspace }}/build/micromamba/micromamba.exe --help
-          ${{ github.workspace }}/build/micromamba/micromamba.exe env create -y -n testenv -r ./test_prefix "python<3.13"
-          ${{ github.workspace }}/build/micromamba/micromamba.exe list -n testenv -r ./test_prefix  --log-level 1
+          ${{ github.workspace }}\build\micromamba\micromamba.exe --version
+          ${{ github.workspace }}\build\micromamba\micromamba.exe --help
+          ${{ github.workspace }}\build\micromamba\micromamba.exe env create -y -n testenv -r ./test_prefix "python<3.13"
+          ${{ github.workspace }}\build\micromamba\micromamba.exe list -n testenv -r ./test_prefix --log-level 1
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7

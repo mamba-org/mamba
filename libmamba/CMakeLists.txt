@@ -613,7 +613,18 @@ macro(libmamba_create_target target_name linkage output_name)
             # preferred; load ZLIB's CMake package first. See
             # https://github.com/microsoft/vcpkg/pull/51235
             find_package(ZLIB REQUIRED NO_MODULE)
-            mamba_target_check_type(ZLIB::ZLIB STATIC_LIBRARY FATAL_ERROR)
+            # zlib 1.3.2+ exports ZLIB::ZLIBSTATIC for static builds; ZLIB::ZLIB is shared-only.
+            if(TARGET ZLIB::ZLIBSTATIC)
+                set(_mamba_zlib_target ZLIB::ZLIBSTATIC)
+                if(NOT TARGET ZLIB::ZLIB)
+                    add_library(ZLIB::ZLIB ALIAS ZLIB::ZLIBSTATIC)
+                endif()
+            elseif(TARGET ZLIB::ZLIB)
+                set(_mamba_zlib_target ZLIB::ZLIB)
+            else()
+                message(FATAL_ERROR "ZLIB found but no ZLIB::ZLIBSTATIC or ZLIB::ZLIB target")
+            endif()
+            mamba_target_check_type(${_mamba_zlib_target} STATIC_LIBRARY FATAL_ERROR)
 
             # For Windows we have a vcpkg based build system right now.
             find_package(LibArchive MODULE REQUIRED)
@@ -643,7 +654,7 @@ macro(libmamba_create_target target_name linkage output_name)
                     ${BZIP2_LIBRARIES}
                     ${LIBLZMA_LIBRARIES}
                     CURL::libcurl
-                    ZLIB::ZLIB
+                    ${_mamba_zlib_target}
                     ${sodium_LIBRARY_RELEASE}
             )
 

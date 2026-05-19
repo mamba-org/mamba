@@ -1,3 +1,16 @@
+## 2026.05.19
+
+Release: 2.6.2 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [libmamba] fix: Use `zlib<1.3.2` for static builds by @jjerphan in <https://github.com/mamba-org/mamba/pull/4281>
+- [libmamba] fix: Set environment variables for `use_sharded_repodata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4279>
+
+CI fixes and doc:
+
+- [all] ci: Use micromamba 2.6.0 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4280>
+
 ## 2026.05.13
 
 Release: 2.6.1 (libmamba, mamba, micromamba, libmambapy)

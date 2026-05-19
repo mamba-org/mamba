@@ -1,3 +1,9 @@
+## micromamba 2.6.2 (May 19, 2026)
+
+CI fixes and doc:
+
+- ci: Use micromamba 2.6.0 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4280>
+
 ## micromamba 2.6.1 (May 13, 2026)
 
 Bug fixes:

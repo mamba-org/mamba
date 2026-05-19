@@ -28,13 +28,25 @@ class TestLinking:
 
     @staticmethod
     def _httpx_dist_info_resolved(env_prefix: Path, httpx_version: str) -> set[Path]:
-        """Paths to httpx-*.dist-info under lib, deduplicated by real path.
+        """Paths to httpx-*.dist-info under lib/Lib, deduplicated by real path.
 
         Conda Python may expose ``lib/python3.1`` as a symlink to ``lib/python3.10``;
         ``python*/site-packages/`` then matches the same directory twice.
+        On Windows, site-packages live under ``Lib/site-packages/``.
         """
-        pattern = f"python*/site-packages/httpx-{httpx_version}.dist-info"
-        return {p.resolve() for p in (env_prefix / "lib").glob(pattern)}
+        marker = f"httpx-{httpx_version}.dist-info"
+        patterns = (
+            f"python*/site-packages/{marker}",
+            f"site-packages/{marker}",
+        )
+        found: set[Path] = set()
+        for lib_dir in ("lib", "Lib"):
+            base = env_prefix / lib_dir
+            if not base.is_dir():
+                continue
+            for pattern in patterns:
+                found.update(p.resolve() for p in base.glob(pattern))
+        return found
 
     @staticmethod
     def _resolved_paths_from_conda_meta_record(env_prefix: Path, record: dict) -> set[Path]:
@@ -264,11 +276,14 @@ class TestLinking:
 
         # Simulate conda-generated noarch metadata where `paths_data.paths[*]._path`
         # uses short paths like `site-packages/...` instead of full
-        # `lib/pythonX.Y/site-packages/...` entries.
+        # `lib/pythonX.Y/site-packages/...` or `Lib/site-packages/...` entries.
         for path in old_record["paths_data"]["paths"]:
             current_path = path.get("_path", "")
             if current_path.startswith("lib/python") and "/site-packages/" in current_path:
                 path["_path"] = current_path.split("/site-packages/", 1)[1]
+                path["_path"] = f"site-packages/{path['_path']}"
+            elif current_path.startswith("Lib/site-packages/"):
+                path["_path"] = current_path.removeprefix("Lib/site-packages/")
                 path["_path"] = f"site-packages/{path['_path']}"
 
         with old_meta.open("w") as f:

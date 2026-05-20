@@ -1308,6 +1308,20 @@ namespace mamba::fs
         return std::filesystem::weakly_canonical(path, std::forward<OtherArgs>(args)...);
     }
 
+    /**
+     * Return true if @p prefix is a path prefix of @p path (component-wise).
+     */
+    [[nodiscard]] inline auto path_has_prefix(const u8path& path, const u8path& prefix) -> bool
+    {
+        const auto pair = std::mismatch(
+            prefix.std_path().begin(),
+            prefix.std_path().end(),
+            path.std_path().begin(),
+            path.std_path().end()
+        );
+        return pair.second == prefix.std_path().end();
+    }
+
 }
 
 template <>

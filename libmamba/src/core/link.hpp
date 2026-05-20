@@ -50,6 +50,9 @@ namespace mamba
         std::string command, module, func;
     };
 
+    /** Parse and validate a noarch:python entry point (``command = module:func``). */
+    python_entry_point_parsed parse_entry_point(const std::string& ep_def);
+
     class UnlinkPackage
     {
     public:

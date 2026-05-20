@@ -5,11 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <iostream>
+#include <iterator>
 #include <regex>
 #include <string>
 #include <tuple>
 #include <vector>
 
+#include <fmt/format.h>
 #include <reproc++/reproc.hpp>
 #include <reproc++/run.hpp>
 
@@ -34,7 +36,119 @@
 
 namespace mamba
 {
-    static const std::regex MENU_PATH_REGEX("^menu[/\\\\].*\\.json$", std::regex_constants::icase);
+    namespace
+    {
+        const std::regex MENU_PATH_REGEX("^menu[/\\\\].*\\.json$", std::regex_constants::icase);
+
+        const std::regex
+            python_identifier_chain_regex(R"(^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$)");
+
+        void validate_python_identifier_chain(const std::string& value, const char* field_name)
+        {
+            if (!std::regex_match(value, python_identifier_chain_regex))
+            {
+                throw std::runtime_error(
+                    fmt::format(
+                        "Invalid entry point {} '{}': expected a dotted chain of Python identifiers",
+                        field_name,
+                        value
+                    )
+                );
+            }
+        }
+
+        void validate_entry_point_command(const std::string& command)
+        {
+            if (command.empty() || command == "." || command == "..")
+            {
+                throw std::runtime_error(
+                    fmt::format("Invalid entry point command name '{}': must be a simple file name", command)
+                );
+            }
+
+            if (command.find('/') != std::string::npos || command.find('\\') != std::string::npos
+                || command.find('\0') != std::string::npos || command.find('\n') != std::string::npos
+                || command.find('\r') != std::string::npos || command.find('\t') != std::string::npos)
+            {
+                throw std::runtime_error(
+                    fmt::format(
+                        "Invalid entry point command name '{}': path separators and control characters are not allowed",
+                        command
+                    )
+                );
+            }
+
+            if (util::starts_with(command, ".."))
+            {
+                throw std::runtime_error(
+                    fmt::format("Invalid entry point command name '{}': must not start with '..'", command)
+                );
+            }
+
+            const fs::u8path command_path(command);
+            if (command_path.is_absolute())
+            {
+                throw std::runtime_error(
+                    fmt::format(
+                        "Invalid entry point command name '{}': absolute paths are not allowed",
+                        command
+                    )
+                );
+            }
+
+#if _WIN32
+            if (command.size() >= 2 && command[1] == ':')
+            {
+                throw std::runtime_error(
+                    fmt::format(
+                        "Invalid entry point command name '{}': Windows drive paths are not allowed",
+                        command
+                    )
+                );
+            }
+#endif
+        }
+
+        void
+        assert_path_within_prefix(const fs::u8path& path, const fs::u8path& prefix, std::string_view description)
+        {
+            std::error_code ec;
+            const fs::u8path canon_path = fs::weakly_canonical(path, ec);
+            if (ec)
+            {
+                throw std::runtime_error(
+                    fmt::format("Cannot resolve {} path '{}': {}", description, path.string(), ec.message())
+                );
+            }
+
+            const fs::u8path canon_prefix = fs::weakly_canonical(prefix, ec);
+            if (ec)
+            {
+                throw std::runtime_error(
+                    fmt::format("Cannot resolve environment prefix '{}': {}", prefix.string(), ec.message())
+                );
+            }
+
+            const auto [prefix_it, path_it] = std::mismatch(
+                canon_prefix.std_path().begin(),
+                canon_prefix.std_path().end(),
+                canon_path.std_path().begin(),
+                canon_path.std_path().end()
+            );
+
+            if (prefix_it != canon_prefix.std_path().end() || path_it == canon_path.std_path().end())
+            {
+                throw std::runtime_error(
+                    fmt::format(
+                        "Refusing to write {} outside environment prefix: '{}'",
+                        description,
+                        path.string()
+                    )
+                );
+            }
+        }
+
+    }
 
     void python_entry_point_template(std::ostream& out, const python_entry_point_parsed& p)
     {
@@ -96,11 +210,30 @@ namespace mamba
     {
         // def looks like: "wheel = wheel.cli:main"
         auto cmd_mod_func = util::rsplit(ep_def, ":", 1);
+        if (cmd_mod_func.size() != 2)
+        {
+            throw std::runtime_error(
+                fmt::format("Invalid entry point definition '{}': missing ':'", ep_def)
+            );
+        }
+
         auto command_module = util::rsplit(cmd_mod_func[0], "=", 1);
+        if (command_module.size() != 2)
+        {
+            throw std::runtime_error(
+                fmt::format("Invalid entry point definition '{}': missing '='", ep_def)
+            );
+        }
+
         python_entry_point_parsed result;
         result.command = util::strip(command_module[0]);
         result.module = util::strip(command_module[1]);
         result.func = util::strip(cmd_mod_func[1]);
+
+        validate_entry_point_command(result.command);
+        validate_python_identifier_chain(result.module, "module");
+        validate_python_identifier_chain(result.func, "callable");
+
         return result;
     }
 
@@ -156,9 +289,18 @@ namespace mamba
         std::string win_script = path.string() + "-script.py";
         std::string win_script_gen_str = path.generic_string() + "-script.py";
         fs::u8path script_path = target_prefix / win_script;
+        fs::u8path script_exe = path;
+        script_exe.replace_extension("exe");
+        fs::u8path script_exe_path = target_prefix / script_exe;
 #else
         fs::u8path script_path = target_prefix / path;
 #endif
+
+        assert_path_within_prefix(script_path, target_prefix, "python entry point script");
+#ifdef _WIN32
+        assert_path_within_prefix(script_exe_path, target_prefix, "python entry point executable");
+#endif
+
         if (fs::exists(script_path))
         {
             m_clobber_warnings.push_back(fs::relative(script_path, target_prefix).string());
@@ -185,19 +327,16 @@ namespace mamba
         out_file.close();
 
 #ifdef _WIN32
-        fs::u8path script_exe = path;
-        script_exe.replace_extension("exe");
-
-        if (fs::exists(target_prefix / script_exe))
+        if (fs::exists(script_exe_path))
         {
-            m_clobber_warnings.push_back(fs::relative(script_exe.string()).string());
-            fs::remove(target_prefix / script_exe);
+            m_clobber_warnings.push_back(fs::relative(script_exe_path, target_prefix).string());
+            fs::remove(script_exe_path);
         }
 
-        std::ofstream conda_exe_f = open_ofstream(target_prefix / script_exe, std::ios::binary);
+        std::ofstream conda_exe_f = open_ofstream(script_exe_path, std::ios::binary);
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
-        make_executable(target_prefix / script_exe);
+        make_executable(script_exe_path);
         return std::array<std::string, 2>{ win_script_gen_str, script_exe.generic_string() };
 #else
         if (!python_path.empty())

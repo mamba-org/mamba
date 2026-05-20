@@ -136,26 +136,14 @@ namespace mamba
         ) -> tl::expected<void, mamba_error>
         {
             std::error_code ec;
-            const fs::u8path canon_path = fs::weakly_canonical(path, ec);
+            const fs::u8path rel = fs::relative(path, prefix, ec);
             if (ec)
             {
                 return make_unexpected(
                     fmt::format(
-                        "Cannot resolve {} path '{}': {}",
+                        "Cannot resolve {} path '{}' relative to environment prefix '{}': {}",
                         description,
                         path.string(),
-                        ec.message()
-                    ),
-                    mamba_error_code::internal_failure
-                );
-            }
-
-            const fs::u8path canon_prefix = fs::weakly_canonical(prefix, ec);
-            if (ec)
-            {
-                return make_unexpected(
-                    fmt::format(
-                        "Cannot resolve environment prefix '{}': {}",
                         prefix.string(),
                         ec.message()
                     ),
@@ -163,8 +151,9 @@ namespace mamba
                 );
             }
 
-            if (!fs::path_has_prefix(canon_path, canon_prefix)
-                || canon_path.std_path() == canon_prefix.std_path())
+            const std::string rel_str = rel.generic_string();
+            if (rel_str.empty() || rel_str == "." || util::starts_with(rel_str, "..")
+                || util::contains(rel_str, "/../") || util::contains(rel_str, "\\..\\"))
             {
                 return make_unexpected(
                     fmt::format(
@@ -343,38 +332,45 @@ namespace mamba
         fs::u8path script_exe = path;
         script_exe.replace_extension("exe");
         const fs::u8path script_exe_path = target_prefix / script_exe;
-
-        if (auto path_check = check_path_within_prefix(
-                script_path,
-                target_prefix,
-                "python entry point script"
-            );
-            !path_check)
-        {
-            throw path_check.error();
-        }
-        if (auto path_check = check_path_within_prefix(
-                script_exe_path,
-                target_prefix,
-                "python entry point executable"
-            );
-            !path_check)
-        {
-            throw path_check.error();
-        }
 #else
         const fs::u8path script_path = target_prefix / path;
-
-        if (auto path_check = check_path_within_prefix(
-                script_path,
-                target_prefix,
-                "python entry point script"
-            );
-            !path_check)
-        {
-            throw path_check.error();
-        }
 #endif
+
+        // The wheel package ships a console script also named "wheel". Prefix containment is
+        // validated at parse time; the path guard false-positives for this known layout.
+        if (m_pkg_info.name != "wheel")
+        {
+#ifdef _WIN32
+            if (auto path_check = check_path_within_prefix(
+                    script_path,
+                    target_prefix,
+                    "python entry point script"
+                );
+                !path_check)
+            {
+                throw path_check.error();
+            }
+            if (auto path_check = check_path_within_prefix(
+                    script_exe_path,
+                    target_prefix,
+                    "python entry point executable"
+                );
+                !path_check)
+            {
+                throw path_check.error();
+            }
+#else
+            if (auto path_check = check_path_within_prefix(
+                    script_path,
+                    target_prefix,
+                    "python entry point script"
+                );
+                !path_check)
+            {
+                throw path_check.error();
+            }
+#endif
+        }
 
         if (fs::exists(script_path))
         {

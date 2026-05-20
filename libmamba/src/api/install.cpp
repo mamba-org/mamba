@@ -853,6 +853,7 @@ namespace mamba
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,
+                    channel_context,
                     db,
                     file,
                     categories,
@@ -1237,15 +1238,18 @@ namespace mamba
 
             auto execute_transaction = [&](MTransaction& transaction)
             {
-                if (ctx.output_params.json)
-                {
-                    transaction.log_json();
-                }
-
                 auto prompt_entry = transaction.prompt(ctx, channel_context);
                 if (prompt_entry)
                 {
                     transaction.execute(ctx, channel_context, prefix_data);
+                    if (ctx.output_params.json)
+                    {
+                        transaction.log_json();
+                    }
+                }
+                else if (ctx.output_params.json)
+                {
+                    transaction.log_json();
                 }
                 return prompt_entry;
             };

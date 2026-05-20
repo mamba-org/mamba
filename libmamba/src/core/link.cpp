@@ -343,9 +343,6 @@ namespace mamba
         fs::u8path script_exe = path;
         script_exe.replace_extension("exe");
         const fs::u8path script_exe_path = target_prefix / script_exe;
-#else
-        const fs::u8path script_path = target_prefix / path;
-#endif
 
         if (auto path_check = check_path_within_prefix(
                 script_path,
@@ -356,11 +353,22 @@ namespace mamba
         {
             throw path_check.error();
         }
-#ifdef _WIN32
         if (auto path_check = check_path_within_prefix(
                 script_exe_path,
                 target_prefix,
                 "python entry point executable"
+            );
+            !path_check)
+        {
+            throw path_check.error();
+        }
+#else
+        const fs::u8path script_path = target_prefix / path;
+
+        if (auto path_check = check_path_within_prefix(
+                script_path,
+                target_prefix,
+                "python entry point script"
             );
             !path_check)
         {

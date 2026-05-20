@@ -1359,10 +1359,22 @@ namespace mamba
                 for (auto& ep : link_json["noarch"]["entry_points"])
                 {
                     // install entry points
-                    auto entry_point_parsed = parse_entry_point(ep.get<std::string>());
+                    const auto ep_def = ep.get<std::string>();
+                    auto entry_point_parsed = parse_entry_point(ep_def);
                     if (!entry_point_parsed)
                     {
-                        throw entry_point_parsed.error();
+                        throw mamba_error(
+                            fmt::format(
+                                "Invalid noarch:python entry point '{}' in package '{}' ({}): {}\n"
+                                "The package distributor must correct the entry_points declared in "
+                                "info/link.json.",
+                                ep_def,
+                                m_pkg_info.name,
+                                m_pkg_info.build_string,
+                                entry_point_parsed.error().what()
+                            ),
+                            entry_point_parsed.error().error_code()
+                        );
                     }
                     auto entry_point_path = get_bin_directory_short_path()
                                             / entry_point_parsed->command;

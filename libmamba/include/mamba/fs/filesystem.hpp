@@ -1319,7 +1319,7 @@ namespace mamba::fs
             path.std_path().begin(),
             path.std_path().end()
         );
-        return pair.second == prefix.std_path().end();
+        return pair.first == prefix.std_path().end();
     }
 
 }

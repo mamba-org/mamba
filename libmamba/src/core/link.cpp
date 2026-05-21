@@ -48,8 +48,10 @@ namespace mamba
         const std::regex
             python_identifier_chain_regex(R"(^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$)");
 
-        constexpr std::array forbidden_entry_point_command_chars = {
-            '/', '\\', '\0', '\n', '\r', '\t', ' ',
+        constexpr std::array forbidden_entry_point_command_substrings = {
+            std::string_view("/"),  std::string_view("\\"), std::string_view("\0"),
+            std::string_view("\n"), std::string_view("\r"), std::string_view("\t"),
+            std::string_view(" "),
         };
 
         auto check_python_identifier_chain(std::string_view value, std::string_view field_name)
@@ -82,7 +84,7 @@ namespace mamba
                 );
             }
 
-            if (util::contains_any(command, forbidden_entry_point_command_chars))
+            if (util::contains_any(command, forbidden_entry_point_command_substrings))
             {
                 return make_unexpected(
                     fmt::format(

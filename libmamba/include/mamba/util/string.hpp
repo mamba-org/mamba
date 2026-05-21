@@ -83,10 +83,10 @@ namespace mamba::util
     [[nodiscard]] auto contains(char c1, char c2) -> bool;
 
     /**
-     * Check if the string contains any of the given characters.
+     * Check if the string contains any of the given substrings.
      */
-    template <typename CharRange>
-    [[nodiscard]] auto contains_any(std::string_view str, const CharRange& chars) -> bool;
+    template <typename StrRange>
+    [[nodiscard]] auto contains_any(std::string_view str, const StrRange& substrings) -> bool;
 
     /**
      * Check if any of the strings starts with the prefix.
@@ -438,15 +438,18 @@ namespace mamba::util
     extern template bool starts_with_any(std::string_view, const std::vector<std::string>&);
     extern template bool starts_with_any(std::string_view, const std::vector<std::string_view>&);
 
-    template <typename CharRange>
-    auto contains_any(std::string_view str, const CharRange& chars) -> bool
+    template <typename StrRange>
+    auto contains_any(std::string_view str, const StrRange& substrings) -> bool
     {
         return std::any_of(
-            chars.begin(),
-            chars.end(),
-            [&str](const char c) { return contains(str, c); }
+            substrings.cbegin(),
+            substrings.cend(),
+            [&str](const auto& sub) { return contains(str, sub); }
         );
     }
+
+    extern template bool contains_any(std::string_view, const std::vector<std::string>&);
+    extern template bool contains_any(std::string_view, const std::vector<std::string_view>&);
 
     /***************************************
      *  Implementation of strip functions  *

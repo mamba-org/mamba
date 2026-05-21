@@ -62,6 +62,32 @@ namespace mamba
     class MultiPackageCache;
 
     /**
+     * Whether to run the flat-first root expansion pass before loading shard subdirs.
+     *
+     * Returns true only when sharded repodata is enabled, \p root_packages is non-empty, and at
+     * least one subdir has an up-to-date shard index (issue #4277: skip on pure-flat channel sets).
+     */
+    [[nodiscard]] auto should_shard_then_expand_roots(
+        bool use_sharded_repodata,
+        const std::vector<std::string>& root_packages,
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool;
+
+    /**
+     * Extend \p root_packages with dependency names reachable from current roots in \p full_repos.
+     *
+     * Builds a name → records index once, then walks dependencies by package name. Used to seed
+     * shard BFS when mixing flat and sharded channels (e.g. a flat label channel plus sharded
+     * conda-forge).
+     */
+    void expand_shard_root_packages_from_full_repodata_repos(
+        const solver::libsolv::Database& database,
+        const std::vector<solver::libsolv::RepoInfo>& full_repos,
+        std::vector<std::string>& root_packages
+    );
+
+    /**
      * Creates channels and mirrors objects and loads channels into the libsolv database.
      *
      * High level workflow:
@@ -72,10 +98,11 @@ namespace mamba
      *      for subdirs that will not use shards.
      *   4. Optionally, when offline, add repos from local `pkgs_dir`.
      *   5. For each subdir, load it into the database:
-     *        - when sharded repodata is enabled with non-empty `root_packages`, full-repodata
-     *          subdirs (no shard index) load first; dependency names from those repos extend
-     *          `root_packages` so shard-based loads stay complete across channels; then shard
-     *          subdirs load, with fallback to full `repodata.json` if shard loading fails.
+     *        - when sharded repodata is enabled with non-empty `root_packages` and at least one
+     *          subdir has shards, full-repodata subdirs (no shard index) load first; dependency
+     *          names from those repos extend `root_packages` so shard-based loads stay complete
+     *          across channels; then shard subdirs load, with fallback to full `repodata.json` if
+     *          shard loading fails.
      *        - otherwise, prefer shards when applicable with the same fallback, or load full
      *          repodata when shards are disabled or `root_packages` is empty.
      *      Recoverable errors are aggregated and, when cache corruption is detected, a single

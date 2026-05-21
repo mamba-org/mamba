@@ -711,8 +711,9 @@ namespace mamba
     {
         if (json_output)
         {
-            Console::instance().json_write(
-                { { "success", false }, { "solver_problems", unsolvable.problems(db) } }
+            Console::instance().set_json_output(
+                { .to_assign{ { "/solver_problems"_json_pointer, unsolvable.problems(db) } },
+                  .set_success = false }
             );
         }
     }

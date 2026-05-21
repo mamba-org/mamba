@@ -122,7 +122,7 @@ namespace mamba
     struct JSONEdit
     {
         std::vector<JSONAssign> to_assign;
-        std::optional<bool> set_success;
+        std::optional<bool> set_success = std::nullopt;
     };
 
     class Console

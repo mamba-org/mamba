@@ -373,14 +373,10 @@ namespace mamba
             const Context& ctx,
             const specs::PackageInfo& pkg,
             std::string_view phase,
-            const std::exception& cause
+            const mamba_error& cause
         )
         {
             rollback.rollback(ctx);
-
-            const auto error_code = dynamic_cast<const mamba_error*>(&cause) != nullptr
-                                        ? dynamic_cast<const mamba_error&>(cause).error_code()
-                                        : mamba_error_code::internal_failure;
 
             throw mamba_error(
                 fmt::format(
@@ -392,8 +388,79 @@ namespace mamba
                     pkg.build_string,
                     cause.what()
                 ),
-                error_code
+                cause.error_code()
             );
+        }
+
+        [[noreturn]] void rethrow_transaction_cancelled_after_rollback(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase,
+            const std::exception& cause
+        )
+        {
+            rollback.rollback(ctx);
+
+            throw mamba_error(
+                fmt::format(
+                    "Transaction cancelled while {} package '{}' ({}).\n"
+                    "{}\n"
+                    "All changes from this transaction have been rolled back.",
+                    phase,
+                    pkg.name,
+                    pkg.build_string,
+                    cause.what()
+                ),
+                mamba_error_code::internal_failure
+            );
+        }
+
+        [[noreturn]] void rethrow_transaction_cancelled_after_rollback_unknown(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase
+        )
+        {
+            rollback.rollback(ctx);
+
+            throw mamba_error(
+                fmt::format(
+                    "Transaction cancelled while {} package '{}' ({}).\n"
+                    "An unknown error occurred.\n"
+                    "All changes from this transaction have been rolled back.",
+                    phase,
+                    pkg.name,
+                    pkg.build_string
+                ),
+                mamba_error_code::internal_failure
+            );
+        }
+
+        [[noreturn]] void handle_unexpected_package_execute_exception(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase
+        )
+        {
+            try
+            {
+                throw;
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR << "Unexpected error while " << phase << " package '" << pkg.name
+                          << "': " << e.what();
+                rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, phase, e);
+            }
+            catch (...)
+            {
+                LOG_ERROR << "Unexpected non-standard exception while " << phase << " package '"
+                          << pkg.name << "'";
+                rethrow_transaction_cancelled_after_rollback_unknown(rollback, ctx, pkg, phase);
+            }
         }
     }
 
@@ -650,9 +717,13 @@ namespace mamba
                 {
                     up.execute();
                 }
-                catch (const std::exception& e)
+                catch (const mamba_error& e)
                 {
                     rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, "unlinking", e);
+                }
+                catch (...)
+                {
+                    handle_unexpected_package_execute_exception(rollback, ctx, pkg, "unlinking");
                 }
                 rollback.record(up);
             }
@@ -690,9 +761,13 @@ namespace mamba
             {
                 lp.execute();
             }
-            catch (const std::exception& e)
+            catch (const mamba_error& e)
             {
                 rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, "linking", e);
+            }
+            catch (...)
+            {
+                handle_unexpected_package_execute_exception(rollback, ctx, pkg, "linking");
             }
             rollback.record(lp);
             m_history_entry.link_dists.push_back(pkg.long_str());

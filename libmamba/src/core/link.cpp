@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <iostream>
@@ -49,9 +50,8 @@ namespace mamba
             python_identifier_chain_regex(R"(^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$)");
 
         constexpr std::array forbidden_entry_point_command_substrings = {
-            std::string_view("/"),  std::string_view("\\"), std::string_view("\0"),
-            std::string_view("\n"), std::string_view("\r"), std::string_view("\t"),
-            std::string_view(" "),
+            std::string_view("/"),  std::string_view("\\"), std::string_view("\n"),
+            std::string_view("\r"), std::string_view("\t"), std::string_view(" "),
         };
 
         auto check_python_identifier_chain(std::string_view value, std::string_view field_name)
@@ -84,7 +84,12 @@ namespace mamba
                 );
             }
 
-            if (util::contains_any(command, forbidden_entry_point_command_substrings))
+            if (util::contains_any(command, forbidden_entry_point_command_substrings)
+                || std::any_of(
+                    command.begin(),
+                    command.end(),
+                    [](char c) { return util::is_control(c); }
+                ))
             {
                 return make_unexpected(
                     fmt::format(
@@ -269,7 +274,7 @@ namespace mamba
 
         if (errors.size() == 1)
         {
-            return tl::unexpected(std::move(errors[0]));
+            return tl::unexpected(std::move(errors.front()));
         }
         if (errors.size() > 1)
         {

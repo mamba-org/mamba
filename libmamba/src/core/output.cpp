@@ -334,7 +334,8 @@ namespace mamba
 
     Console::~Console()
     {
-        if (!p_data->is_json_print_cancelled && !p_data->json_output.is_null())
+        if (not context().output_params.quiet and not p_data->is_json_print_cancelled
+            and not p_data->json_output.is_null())
         {
             this->print_json_output();
         }
@@ -370,7 +371,7 @@ namespace mamba
 
     void Console::print(std::string_view str, bool force_print)
     {
-        if (force_print || !(context().output_params.quiet || context().output_params.json))
+        if (force_print or not (context().output_params.quiet or context().output_params.json))
         {
             auto synched_data = p_data->m_synched_data.synchronize();
 
@@ -392,7 +393,7 @@ namespace mamba
 
     void Console::print_in_place(std::string_view str, bool finalize, bool force_print)
     {
-        if (force_print || !(context().output_params.quiet || context().output_params.json))
+        if (force_print or !(context().output_params.quiet or context().output_params.json))
         {
             auto synched_data = p_data->m_synched_data.synchronize();
 
@@ -572,16 +573,31 @@ namespace mamba
 
     void Console::edit_json_output(std::function<void(nlohmann::json&)> edit_func)
     {
+        if (not context().output_params.json)
+        {
+            return;
+        }
+
         p_data->edit_json_output(std::move(edit_func));
     }
 
     void Console::set_json_output_success(bool is_success)
     {
+        if (not context().output_params.json)
+        {
+            return;
+        }
+
         p_data->edit_json_output([=](auto& json_output) { json_output["success"] = is_success; });
     }
 
     void Console::set_json_output(JSONEdit edit)
     {
+        if (not context().output_params.json)
+        {
+            return;
+        }
+
         p_data->edit_json_output(
             [&](auto& json_output)
             {

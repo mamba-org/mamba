@@ -296,6 +296,7 @@ namespace mamba
         const Context& m_context;
 
         nlohmann::json json_output;
+        // THIS IS A CANARY TO DETECT ACTUAL CONCURRENT CALLS OF THESE JSON APIS
         std::atomic<bool> is_editing_json_output{ false };  // TODO: consider using a
                                                             // synchronized_value<json>s
 
@@ -334,7 +335,7 @@ namespace mamba
 
     Console::~Console()
     {
-        if (not context().output_params.quiet and not p_data->is_json_print_cancelled
+        if (/*not context().output_params.quiet and*/ not p_data->is_json_print_cancelled
             and not p_data->json_output.is_null())
         {
             this->print_json_output();

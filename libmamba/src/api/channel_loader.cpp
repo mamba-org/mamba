@@ -634,7 +634,17 @@ namespace mamba
         {
             std::set<std::string> loaded_subdirs_with_shards;
             bool loading_failed = false;
-            const bool shard_then_expand = ctx.use_sharded_repodata && !root_packages.empty();
+            // Only run the cross-channel root expansion when at least one subdir in the
+            // load list actually advertises shards. On pure-flat channel sets the expansion
+            // has no consumer and its O(records x names) full-repo scan is pure overhead.
+            const bool any_sharded = std::any_of(
+                subdirs.begin(),
+                subdirs.end(),
+                [&](const SubdirIndexLoader& s)
+                { return s.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl); }
+            );
+            const bool shard_then_expand = ctx.use_sharded_repodata && !root_packages.empty()
+                                           && any_sharded;
             std::size_t roots_after_full_repodata_pass = root_packages.size();
             std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
             bool used_flat_repodata = false;

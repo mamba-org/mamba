@@ -10,6 +10,7 @@
 #include <reproc++/drain.hpp>
 
 #include "mamba/core/output.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
@@ -49,47 +50,53 @@ namespace mamba
         // Unix free-threaded installs use lib/pythonX.Yt/site-packages. Windows CPython (conda
         // layout) keeps third-party packages under Lib/site-packages for both GIL and free-threaded
         // builds — see https://github.com/mamba-org/mamba/issues/4267
-        const std::string unix_style_ft_site_packages = (short_ver.empty()
-                                                         || python_pkg.build_string.empty())
-                                                            ? std::string{}
-                                                            : (fs::u8path("lib")
-                                                               / util::concat("python", short_ver, "t")
-                                                               / "site-packages")
-                                                                  .generic_string();
+        const bool missing_version_info = short_ver.empty() || python_pkg.build_string.empty();
 
-#ifdef _WIN32
-        const std::string ft_site_packages = (short_ver.empty() || python_pkg.build_string.empty())
-                                                 ? std::string{}
-                                                 : (fs::u8path("Lib") / "site-packages").generic_string();
-#else
-        const std::string ft_site_packages = unix_style_ft_site_packages;
-#endif
+        // Use the package subdir, not the host OS (repoquery --platform must not rewrite linux
+        // repodata when mamba runs on Windows). See https://github.com/mamba-org/mamba/issues/4286
+        const bool use_windows_layout = !python_pkg.platform.empty()
+                                            ? specs::platform_is_win(python_pkg.platform)
+                                            : specs::platform_is_win(specs::build_platform());
+
+        const std::string free_threaded_site_packages_unix = missing_version_info
+                                                                 ? std::string{}
+                                                                 : (fs::u8path("lib")
+                                                                    / util::concat("python", short_ver, "t")
+                                                                    / "site-packages")
+                                                                       .generic_string();
+
+        const std::string std_site_packages_win = missing_version_info
+                                                      ? std::string{}
+                                                      : (fs::u8path("Lib") / "site-packages")
+                                                            .generic_string();
+
+        const std::string free_threaded_site_packages = use_windows_layout
+                                                            ? std_site_packages_win
+                                                            : free_threaded_site_packages_unix;
+
+        const std::string std_site_packages_gil_unix = missing_version_info
+                                                           ? std::string{}
+                                                           : (fs::u8path("lib")
+                                                              / util::concat("python", short_ver)
+                                                              / "site-packages")
+                                                                 .generic_string();
+
+        const std::string std_site_packages = use_windows_layout ? std_site_packages_win
+                                                                 : std_site_packages_gil_unix;
 
         if (!python_pkg.python_site_packages_path.empty())
         {
-            if (freethreaded_build && !ft_site_packages.empty())
+            if (freethreaded_build && !free_threaded_site_packages.empty())
             {
-                const std::string std_site_packages = short_ver.empty()
-                                                          ? std::string{}
-#ifdef _WIN32
-                                                          : (fs::u8path("Lib") / "site-packages")
-                                                                .generic_string();
-#else
-                                                          : (fs::u8path("lib")
-                                                             / util::concat("python", short_ver)
-                                                             / "site-packages")
-                                                                .generic_string();
-#endif
                 if (python_pkg.python_site_packages_path == std_site_packages)
                 {
-                    return ft_site_packages;
+                    return free_threaded_site_packages;
                 }
-#ifdef _WIN32
-                if (python_pkg.python_site_packages_path == unix_style_ft_site_packages)
+                if (use_windows_layout
+                    && python_pkg.python_site_packages_path == free_threaded_site_packages_unix)
                 {
-                    return ft_site_packages;
+                    return free_threaded_site_packages;
                 }
-#endif
             }
             return python_pkg.python_site_packages_path;
         }
@@ -102,7 +109,7 @@ namespace mamba
         {
             return {};
         }
-        return ft_site_packages;
+        return free_threaded_site_packages;
     }
 
     // supply short python version, e.g. 2.7, 3.5...

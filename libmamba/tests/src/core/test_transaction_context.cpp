@@ -55,33 +55,50 @@ namespace mamba
             python_pkg.version = "3.13.1";
             python_pkg.build_string = "h9a34b6e_5_cp313t";
 
-            SECTION("freethreaded site-packages path")
+            SECTION("linux package keeps repodata path on any host")
             {
+                python_pkg.platform = "linux-64";
                 python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
 
-#ifdef _WIN32
-                const auto expected = std::string("Lib/site-packages");
-#else
-                const auto expected = std::string("lib/python3.13t/site-packages");
-#endif
-                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
             }
 
-            SECTION("rewrites standard path for freethreaded builds")
+            SECTION("freethreaded site-packages path on Windows")
             {
-                python_pkg.python_site_packages_path =
-#ifdef _WIN32
-                    "Lib/site-packages";
-#else
-                    "lib/python3.13/site-packages";
-#endif
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
 
-#ifdef _WIN32
-                const auto expected = std::string("Lib/site-packages");
-#else
-                const auto expected = std::string("lib/python3.13t/site-packages");
-#endif
-                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("freethreaded site-packages path on Unix")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+
+            SECTION("rewrites standard path for freethreaded Windows builds")
+            {
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("rewrites standard path for freethreaded Unix builds")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
             }
         }
 
@@ -95,42 +112,136 @@ namespace mamba
             python_pkg.version = "3.14.0";
             python_pkg.build_string = "habcdef_0_cp314t";
 
-            SECTION("rewrites std site-packages from repodata for free-threaded 3.14")
+            SECTION("rewrites std site-packages from repodata for free-threaded 3.14 on Windows")
             {
-                python_pkg.python_site_packages_path =
-#ifdef _WIN32
-                    "Lib/site-packages";
-#else
-                    "lib/python3.14/site-packages";
-#endif
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
 
-#ifdef _WIN32
-                const auto expected = std::string("Lib/site-packages");
-#else
-                const auto expected = std::string("lib/python3.14t/site-packages");
-#endif
-                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
             }
 
-#ifdef _WIN32
+            SECTION("rewrites std site-packages from repodata for free-threaded 3.14 on Unix")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.14/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
+            }
+
             SECTION("normalizes unix-style free-threaded path on Windows")
             {
+                python_pkg.platform = "win-64";
                 python_pkg.python_site_packages_path = "lib/python3.14t/site-packages";
 
                 REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
             }
-#endif
 
-            SECTION("infers site-packages when repodata omits python_site_packages_path")
+            SECTION("infers site-packages when repodata omits python_site_packages_path on Windows")
             {
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path.clear();
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("infers site-packages when repodata omits python_site_packages_path on Unix")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path.clear();
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
+            }
+        }
+
+        // Regression: https://github.com/mamba-org/mamba/issues/4286
+        // `mamba repoquery search ... --platform linux-64` on a Windows host must not rewrite
+        // linux repodata `python_site_packages_path` to `Lib/site-packages`.
+        TEST_CASE("effective_python_site_packages_path repoquery cross-platform #4286", "[regression][4286]")
+        {
+            SECTION("linux-64 free-threaded python from issue report")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.1";
+                python_pkg.build_string = "h4724d56_1_cp313t";
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+
+            SECTION("win-64 free-threaded python from issue report")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.1";
+                python_pkg.build_string = "h7c1dbca_0_cp314t";
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("linux repodata path is not normalized to Windows layout")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.13.1";
+                python_pkg.build_string = "h9a34b6e_5_cp313t";
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) != "Lib/site-packages");
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+
+            SECTION("win-64 repodata path is not rewritten to unix free-threaded layout")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.13.1";
+                python_pkg.build_string = "h9a34b6e_5_cp313t";
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) != "lib/python3.13t/site-packages"
+                );
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("non-Windows subdirs never use Lib/site-packages inference")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.0";
+                python_pkg.build_string = "habcdef_0_cp314t";
+                python_pkg.platform = "osx-arm64";
+                python_pkg.python_site_packages_path.clear();
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
+            }
+
+            SECTION("empty platform falls back to build platform for local installs")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.0";
+                python_pkg.build_string = "habcdef_0_cp314t";
+                python_pkg.platform.clear();
                 python_pkg.python_site_packages_path.clear();
 
 #ifdef _WIN32
-                const auto expected = std::string("Lib/site-packages");
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
 #else
-                const auto expected = std::string("lib/python3.14t/site-packages");
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
 #endif
-                REQUIRE(effective_python_site_packages_path(python_pkg) == expected);
             }
         }
 

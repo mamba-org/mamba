@@ -791,8 +791,15 @@ namespace mamba
 
         void rc_loading_hook(Configuration& config, const RCConfigLevel& level)
         {
-            auto& rc_files = config.at("rc_files").value<std::vector<fs::u8path>>();
-            config.set_rc_values(rc_files, level);
+            auto& rc_files = config.at("rc_files");
+            auto possible_rc_paths = rc_files.value<std::vector<fs::u8path>>();
+
+            if (rc_files.env_var_configured() && !rc_files.cli_configured() && !rc_files.api_configured())
+            {
+                possible_rc_paths.clear();
+            }
+
+            config.set_rc_values(std::move(possible_rc_paths), level);
         }
 
         void post_root_prefix_rc_loading(Configuration& config)

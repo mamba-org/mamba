@@ -1284,6 +1284,109 @@ namespace mamba
                 REQUIRE(config.at("channel_alias").value<std::string>() == "http://inner.com");
             }
 
+            // Regression test: env-provided rc files should merge with default sources
+            TEST_CASE_METHOD(Configuration, "env_rc_files_merge_with_default_sources")
+            {
+                auto temp_prefix = std::make_unique<TemporaryDirectory>();
+                auto temp_home = std::make_unique<TemporaryDirectory>();
+
+                util::set_env("MAMBA_ROOT_PREFIX", temp_prefix->path().string());
+                util::set_env("MAMBA_TARGET_PREFIX", temp_prefix->path().string());
+                util::set_env("HOME", temp_home->path().string());
+                util::set_env("USERPROFILE", temp_home->path().string());
+
+                auto root_config_file = temp_prefix->path() / ".condarc";
+                std::ofstream out_root_config(root_config_file.std_path());
+                out_root_config << "channel_alias: http://root.com\n";
+                out_root_config.close();
+
+                SECTION("CONDARC")
+                {
+                    auto user_config_file = temp_home->path() / ".condarc";
+                    std::ofstream out_user_config(user_config_file.std_path());
+                    out_user_config << "channel_alias: http://user.com\n";
+                    out_user_config.close();
+
+                    auto env_config_file = temp_home->path() / "env.condarc";
+                    std::ofstream out_env_config(env_config_file.std_path());
+                    out_env_config << "channel_alias: http://env.com\n";
+                    out_env_config.close();
+
+                    util::set_env("CONDARC", env_config_file.string());
+                    config.load();
+
+                    REQUIRE(config.valid_sources().size() == 3);
+                    REQUIRE(
+                        std::find(
+                            config.valid_sources().begin(),
+                            config.valid_sources().end(),
+                            root_config_file
+                        )
+                        != config.valid_sources().end()
+                    );
+                    REQUIRE(
+                        std::find(
+                            config.valid_sources().begin(),
+                            config.valid_sources().end(),
+                            user_config_file
+                        )
+                        != config.valid_sources().end()
+                    );
+                    REQUIRE(
+                        std::find(
+                            config.valid_sources().begin(),
+                            config.valid_sources().end(),
+                            env_config_file
+                        )
+                        != config.valid_sources().end()
+                    );
+                    REQUIRE(config.at("channel_alias").value<std::string>() == "http://env.com");
+                }
+
+                SECTION("MAMBARC")
+                {
+                    auto user_config_file = temp_home->path() / ".mambarc";
+                    std::ofstream out_user_config(user_config_file.std_path());
+                    out_user_config << "channel_alias: http://user.com\n";
+                    out_user_config.close();
+
+                    auto env_config_file = temp_home->path() / "env.mambarc";
+                    std::ofstream out_env_config(env_config_file.std_path());
+                    out_env_config << "channel_alias: http://env.com\n";
+                    out_env_config.close();
+
+                    util::set_env("MAMBARC", env_config_file.string());
+                    config.load();
+
+                    REQUIRE(config.valid_sources().size() == 3);
+                    REQUIRE(
+                        std::find(
+                            config.valid_sources().begin(),
+                            config.valid_sources().end(),
+                            root_config_file
+                        )
+                        != config.valid_sources().end()
+                    );
+                    REQUIRE(
+                        std::find(
+                            config.valid_sources().begin(),
+                            config.valid_sources().end(),
+                            user_config_file
+                        )
+                        != config.valid_sources().end()
+                    );
+                    REQUIRE(
+                        std::find(
+                            config.valid_sources().begin(),
+                            config.valid_sources().end(),
+                            env_config_file
+                        )
+                        != config.valid_sources().end()
+                    );
+                    REQUIRE(config.at("channel_alias").value<std::string>() == "http://env.com");
+                }
+            }
+
             TEST_CASE_METHOD(Configuration, "print_scalar_node")
             {
                 using namespace detail;

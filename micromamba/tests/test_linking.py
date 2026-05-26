@@ -28,25 +28,36 @@ class TestLinking:
 
     @staticmethod
     def _httpx_dist_info_resolved(env_prefix: Path, httpx_version: str) -> set[Path]:
-        """Paths to httpx-*.dist-info under lib/Lib, deduplicated by real path.
+        """Paths to httpx-*.dist-info, deduplicated by inode.
 
         Conda Python may expose ``lib/python3.1`` as a symlink to ``lib/python3.10``;
         ``python*/site-packages/`` then matches the same directory twice.
         On Windows, site-packages live under ``Lib/site-packages/``.
+        On case-insensitive macOS, ``lib`` and ``Lib`` refer to the same tree; inode
+        deduplication avoids counting it twice when both names are probed.
         """
         marker = f"httpx-{httpx_version}.dist-info"
-        patterns = (
-            f"python*/site-packages/{marker}",
-            f"site-packages/{marker}",
-        )
-        found: set[Path] = set()
-        for lib_dir in ("lib", "Lib"):
+        if sys.platform == "win32":
+            lib_dirs = ("Lib",)
+            patterns = (f"site-packages/{marker}",)
+        else:
+            lib_dirs = ("lib",)
+            patterns = (f"python*/site-packages/{marker}",)
+
+        found: dict[tuple[int, int], Path] = {}
+        for lib_dir in lib_dirs:
             base = env_prefix / lib_dir
             if not base.is_dir():
                 continue
             for pattern in patterns:
-                found.update(p.resolve() for p in base.glob(pattern))
-        return found
+                for path in base.glob(pattern):
+                    resolved = path.resolve()
+                    try:
+                        st = resolved.stat()
+                    except OSError:
+                        continue
+                    found.setdefault((st.st_dev, st.st_ino), resolved)
+        return set(found.values())
 
     @staticmethod
     def _resolved_paths_from_conda_meta_record(env_prefix: Path, record: dict) -> set[Path]:

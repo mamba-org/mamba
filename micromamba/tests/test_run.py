@@ -74,6 +74,15 @@ class TestRun:
         print(res)
         assert len(res) > 0
 
+    def test_double_dash_separator(self):
+        """`micromamba run` accepts `--` like `conda run` (mamba#4216)."""
+        res = umamba_run("--", "echo", "hello")
+        assert res.strip() == "hello"
+
+    def test_double_dash_separator_with_prefix(self):
+        res = umamba_run("-p", os.environ["CONDA_PREFIX"], "--", "echo", "hello")
+        assert res.strip() == "hello"
+
     @pytest.mark.skipif(platform == "win32", reason="bash specific test")
     @pytest.mark.parametrize("inp", ["(", "a\nb", "a'b\""])
     def test_quoting(self, inp):

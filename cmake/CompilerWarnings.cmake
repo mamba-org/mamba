@@ -22,9 +22,8 @@ function(mamba_target_add_compile_warnings target)
 
     set(
         msvc_warnings
-        # External sever warnings
-        /experimental:external
-        /external:W1
+        # /experimental:external and /external:W1 are set globally in the top-level CMakeLists.txt
+        # on MSVC (including CMAKE_INCLUDE_SYSTEM_FLAG_CXX_WARNING for imported targets).
         # Baseline reasonable warnings
         /W4
         # "identifier": conversion from "type1" to "type1", possible loss of data

@@ -203,16 +203,17 @@ namespace mamba
         assert(!s.filename.empty());
         const auto pkg_name = specs::strip_archive_extension(s.filename);
         const auto folder = package_cache_folder_relative_path(s);
-        const fs::u8path tarball_path = m_path / folder / s.filename;
-        LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '" << pkg_name
-                  << "'";
 
-        bool valid = false;
-        if (fs::exists(tarball_path))
+        auto validate_tarball = [&](const fs::u8path& tarball_path)
         {
+            if (!fs::exists(tarball_path))
+            {
+                return false;
+            }
+
             // validate that this tarball has the right size and MD5 sum
             // we handle the case where s.size == 0 (explicit packages) or md5 is unknown
-            valid = s.size == 0 || validation::file_size(tarball_path, s.size);
+            bool valid = s.size == 0 || validation::file_size(tarball_path, s.size);
             if (!s.md5.empty())
             {
                 valid = valid && (validation::md5sum(tarball_path) == s.md5);
@@ -280,9 +281,24 @@ namespace mamba
                     LOG_TRACE << "Package tarball '" << tarball_path.string() << "' removed";
                 }
             }
-            m_valid_tarballs[pkg] = valid;
+            return valid;
+        };
+
+        LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package tarball '" << pkg_name
+                  << "'";
+
+        // Try hierarchical path
+        fs::u8path tarball_path = m_path / folder / s.filename;
+        bool valid = validate_tarball(tarball_path);
+
+        // Fall back to flat path if hierarchical is missing or invalid
+        if (!valid)
+        {
+            tarball_path = m_path / s.filename;
+            valid = validate_tarball(tarball_path);
         }
 
+        m_valid_tarballs[pkg] = valid;
         LOG_DEBUG << "'" << pkg_name << "' tarball cache is " << (valid ? "valid" : "invalid");
         return valid;
     }
@@ -313,8 +329,6 @@ namespace mamba
     bool
     PackageCacheData::has_valid_extracted_dir(const specs::PackageInfo& s, const ValidationParams& params)
     {
-        bool valid = false, can_validate = false;
-
         const std::string pkg = s.long_str();
         if (m_valid_extracted_dir.find(pkg) != m_valid_extracted_dir.end())
         {
@@ -323,150 +337,163 @@ namespace mamba
 
         auto pkg_name = specs::strip_archive_extension(s.filename);
         const auto folder = package_cache_folder_relative_path(s);
-        const fs::u8path extracted_dir = m_path / folder / pkg_name;
-        LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
-                  << pkg_name << "'";
 
-        if (fs::exists(extracted_dir))
+        auto validate_extracted_dir = [&](const fs::u8path& extracted_dir) -> bool
         {
-            auto repodata_record_path = extracted_dir / "info" / "repodata_record.json";
-            if (fs::exists(repodata_record_path))
+            if (!fs::exists(extracted_dir))
             {
-                try
+                return false;
+            }
+
+            auto repodata_record_path = extracted_dir / "info" / "repodata_record.json";
+            if (!fs::exists(repodata_record_path))
+            {
+                return false;
+            }
+
+            try
+            {
+                std::ifstream repodata_record_f(repodata_record_path.std_path());
+                nlohmann::json repodata_record;
+                repodata_record_f >> repodata_record;
+
+                bool valid = true;
+
+                // we can only validate if we have at least one data point of these three
+                bool can_validate = (!s.md5.empty() && repodata_record.contains("md5"))
+                                    || (!s.sha256.empty() && repodata_record.contains("sha256"));
+                if (!can_validate)
                 {
-                    std::ifstream repodata_record_f(repodata_record_path.std_path());
-                    nlohmann::json repodata_record;
-                    repodata_record_f >> repodata_record;
-
-                    valid = true;
-
-                    // we can only validate if we have at least one data point of these three
-                    can_validate = (!s.md5.empty() && repodata_record.contains("md5"))
-                                   || (!s.sha256.empty() && repodata_record.contains("sha256"));
-                    if (!can_validate)
+                    if (params.safety_checks == VerificationLevel::Warn)
                     {
-                        if (params.safety_checks == VerificationLevel::Warn)
-                        {
-                            LOG_WARNING
-                                << "Could not validate package '" + repodata_record_path.string()
-                                       + "': md5 and sha256 sum unknown.\n"
-                                         "Set safety_checks to disabled to override this warning.";
-                        }
-                        else if (params.safety_checks == VerificationLevel::Enabled)
-                        {
-                            throw std::runtime_error(
-                                "Could not validate package '" + repodata_record_path.string()
-                                + "': md5 and sha256 sum unknown.\n"
-                                  "Set safety_checks to warn or disabled to override this error."
-                            );
-                        }
+                        LOG_WARNING
+                            << "Could not validate package '" + repodata_record_path.string()
+                                   + "': md5 and sha256 sum unknown.\n"
+                                     "Set safety_checks to disabled to override this warning.";
                     }
+                    else if (params.safety_checks == VerificationLevel::Enabled)
+                    {
+                        throw std::runtime_error(
+                            "Could not validate package '" + repodata_record_path.string()
+                            + "': md5 and sha256 sum unknown.\n"
+                              "Set safety_checks to warn or disabled to override this error."
+                        );
+                    }
+                }
 
-                    // Validate size
-                    if (s.size != 0)
+                // Validate size
+                if (s.size != 0)
+                {
+                    valid = repodata_record["size"].get<std::size_t>() == s.size;
+                    if (!valid)
                     {
-                        valid = repodata_record["size"].get<std::size_t>() == s.size;
-                        if (!valid)
-                        {
-                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                        << "' has invalid size";
-                        }
-                    }
-
-                    // Validate checksum
-                    if (!s.sha256.empty() && repodata_record.contains("sha256"))
-                    {
-                        // TODO handle case if repodata_record __does not__ contain any value
-                        if (s.sha256 != repodata_record["sha256"].get<std::string>())
-                        {
-                            valid = false;
-                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                        << "' has invalid SHA-256 checksum";
-                        }
-                        else if (s.size == 0)
-                        {
-                            // in case we have no s.size
-                            // set valid true here
-                            valid = true;
-                        }
-                    }
-                    else if (!s.md5.empty() && repodata_record.contains("md5"))
-                    {
-                        // TODO handle case if repodata_record __does not__ contain any value
-                        if (s.md5 != repodata_record["md5"].get<std::string>())
-                        {
-                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                        << "' has invalid MD5 checksum";
-                            valid = false;
-                        }
-                        else if (s.size == 0)
-                        {
-                            // for explicit env, we have no size, nor sha256 so we need to
-                            // set valid true here
-                            valid = true;
-                        }
-                    }
-                    else if (s.size != 0)
-                    {
-                        // cannot validate if we don't know either md5 or sha256
                         LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                    << "' has no checksum";
+                                    << "' has invalid size";
+                    }
+                }
+
+                // Validate checksum
+                if (valid && !s.sha256.empty() && repodata_record.contains("sha256"))
+                {
+                    // TODO handle case if repodata_record __does not__ contain any value
+                    if (s.sha256 != repodata_record["sha256"].get<std::string>())
+                    {
+                        valid = false;
+                        LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                    << "' has invalid SHA-256 checksum";
+                    }
+                    else if (s.size == 0)
+                    {
+                        // in case we have no s.size
+                        // set valid true here
+                        valid = true;
+                    }
+                }
+                else if (valid && !s.md5.empty() && repodata_record.contains("md5"))
+                {
+                    // TODO handle case if repodata_record __does not__ contain any value
+                    if (s.md5 != repodata_record["md5"].get<std::string>())
+                    {
+                        LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                    << "' has invalid MD5 checksum";
                         valid = false;
                     }
-
-                    // Validate URL
-                    if (valid)
+                    else if (s.size == 0)
                     {
-                        if (!repodata_record["url"].get<std::string>().empty())
-                        {
-                            const auto pkg_url = repodata_record["url"].get<std::string>();
-                            if (!compare_cleaned_url(pkg_url, s.package_url))
-                            {
-                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                            << "' has invalid url";
-                                valid = false;
-                            }
-                        }
-                        else
-                        {
-                            const auto pkg_channel = repodata_record["channel"].get<std::string>();
-                            if (pkg_channel != s.channel)
-                            {
-                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                            << "' has invalid channel";
-                                valid = false;
-                            }
-                        }
+                        // for explicit env, we have no size, nor sha256 so we need to
+                        // set valid true here
+                        valid = true;
                     }
                 }
-                catch (const nlohmann::json::exception& e)
+                else if (valid && s.size != 0)
                 {
+                    // cannot validate if we don't know either md5 or sha256
                     LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                << "' has invalid 'repodata_record.json' file: " << e.what();
+                                << "' has no checksum";
                     valid = false;
                 }
-                catch (const std::runtime_error& re)
+
+                // Validate URL
+                if (valid)
                 {
-                    LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                << " couldn't be validated due to runtime error: " << re.what();
-                    valid = false;
-                }
-                catch (const std::exception& ex)
-                {
-                    LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
-                                << " couldn't be validated due to error: " << ex.what();
-                    valid = false;
+                    if (!repodata_record["url"].get<std::string>().empty())
+                    {
+                        const auto pkg_url = repodata_record["url"].get<std::string>();
+                        if (!compare_cleaned_url(pkg_url, s.package_url))
+                        {
+                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                        << "' has invalid url";
+                            valid = false;
+                        }
+                    }
+                    else
+                    {
+                        const auto pkg_channel = repodata_record["channel"].get<std::string>();
+                        if (pkg_channel != s.channel)
+                        {
+                            LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                        << "' has invalid channel";
+                            valid = false;
+                        }
+                    }
                 }
 
                 if (valid)
                 {
                     valid = validate(extracted_dir, params);
                 }
+                return valid;
             }
-        }
-        else
+            catch (const nlohmann::json::exception& e)
+            {
+                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                            << "' has invalid 'repodata_record.json' file: " << e.what();
+            }
+            catch (const std::runtime_error& re)
+            {
+                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                            << " couldn't be validated due to runtime error: " << re.what();
+            }
+            catch (const std::exception& ex)
+            {
+                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                            << " couldn't be validated due to error: " << ex.what();
+            }
+            return false;
+        };
+
+        LOG_DEBUG << "Verify cache '" << m_path.string() << "' for package extracted directory '"
+                  << pkg_name << "'";
+
+        // Try hierarchical path
+        fs::u8path extracted_dir = m_path / folder / pkg_name;
+        bool valid = validate_extracted_dir(extracted_dir);
+
+        // Fall back to flat path
+        if (!valid)
         {
-            LOG_DEBUG << "Extracted package cache '" << extracted_dir.string() << "' not found";
+            extracted_dir = m_path / pkg_name;
+            valid = validate_extracted_dir(extracted_dir);
         }
 
         m_valid_extracted_dir[pkg] = valid;
@@ -558,7 +585,11 @@ namespace mamba
         {
             if (c.has_valid_tarball(s, m_params))
             {
-                const fs::u8path path = c.path() / folder;
+                fs::u8path path = c.path() / folder;
+                if (!fs::exists(path / s.filename))
+                {
+                    path = c.path();
+                }
                 m_cached_tarballs[pkg] = path;
                 return path;
             }
@@ -590,7 +621,12 @@ namespace mamba
         {
             if (c.has_valid_extracted_dir(s, m_params))
             {
-                const fs::u8path path = c.path() / folder;
+                fs::u8path path = c.path() / folder;
+                // Checking the existence of "repodata_record.json" is more robust
+                if (!fs::exists(path / s.str() / "info" / "repodata_record.json"))
+                {
+                    path = c.path();
+                }
                 m_cached_extracted_dirs[pkg] = path;
                 return path;
             }

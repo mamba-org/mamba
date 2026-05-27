@@ -156,18 +156,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Cache vcpkg packages
-        uses: actions/cache@v5
-        with:
-          # The installed packages are in %VCPKG_INSTALLATION_ROOT%\installed\x64-windows-static
-          # and the info which packages are installed is in %VCPKG_INSTALLATION_ROOT%\installed\vcpkg
-          path: C:\Users\runneradmin\AppData\Local\vcpkg
-          key: vcpkg-win-64-appdata
-      - name: Install dependencies with vcpkg
-        shell: cmd
-        # remove libsolv overlay-ports once https://github.com/microsoft/vcpkg/pull/31275 is released
-        run: |
-          vcpkg install --triplet x64-windows-static-md
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -189,17 +177,25 @@ jobs:
             libsolv-static>=0.7.24
             reproc-cpp-static>=14.2.4.post0
             libmsgpack-c-static
+            libcurl-static>=8.4.0
+            libarchive-minimal-static
+            zstd-static
+            zlib
+            libssh2-static
+            openssl
+            libopenssl-static
+            libiconv
+            winreg
       - name: build micromamba
         shell: cmd /C call {0}
         run: |
-          set "VCPKG_ROOT=C:\vcpkg"
           set CMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library
+          set LIBRARY_PREFIX=%CONDA_PREFIX%\Library
           cmake -B build/ -G Ninja ^
-            -D "CMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" ^
-            -D "VCPKG_TARGET_TRIPLET=x64-windows-static-md" ^
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
             -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDLL" ^
+            -D CMAKE_INSTALL_PREFIX=%CONDA_PREFIX%\Library ^
             -D CMAKE_BUILD_TYPE="Release" ^
             -D BUILD_LIBMAMBA=ON ^
             -D BUILD_LIBMAMBA_SPDLOG=ON ^
@@ -214,6 +210,12 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\build\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
+      - name: Install mingw objdump
+        shell: bash -l {0}
+        run: micromamba install -n mambabuild -y -c conda-forge binutils
+      - name: Check micromamba PE dependencies
+        shell: bash -l {0}
+        run: bash dev/check_micromamba_windows_dlls.sh build/micromamba/micromamba.exe
       - name: build cache statistics
         run: sccache --show-stats
       - name: Archive-build artifact

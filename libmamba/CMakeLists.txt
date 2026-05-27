@@ -577,71 +577,73 @@ macro(libmamba_create_target target_name linkage output_name)
 
         elseif(WIN32)
 
-            # vcpkg: prefer manifest install dir (./vcpkg_installed/$TRIPLET), else classic layout.
-            if(DEFINED VCPKG_TARGET_TRIPLET)
-                set(_mamba_vcpkg_triplet "${VCPKG_TARGET_TRIPLET}")
+            if(DEFINED ENV{LIBRARY_PREFIX})
+                set(_mamba_deps_prefix "$ENV{LIBRARY_PREFIX}")
+            elseif(DEFINED ENV{CONDA_PREFIX})
+                set(_mamba_deps_prefix "$ENV{CONDA_PREFIX}/Library")
             else()
-                set(_mamba_vcpkg_triplet "x64-windows-static-md")
+                message(FATAL_ERROR "Windows static libmamba needs LIBRARY_PREFIX or CONDA_PREFIX")
             endif()
-            set(
-                _mamba_vcpkg_installed
-                "${CMAKE_SOURCE_DIR}/vcpkg_installed/${_mamba_vcpkg_triplet}"
+            list(PREPEND CMAKE_PREFIX_PATH "${_mamba_deps_prefix}")
+            message(
+                STATUS
+                    "Windows static libmamba: linking conda-forge static dependencies from ${_mamba_deps_prefix}"
             )
-            if(EXISTS "${_mamba_vcpkg_installed}")
-                set(_mamba_vcpkg_prefix "${_mamba_vcpkg_installed}")
-            elseif(DEFINED ENV{VCPKG_ROOT})
-                set(_mamba_vcpkg_prefix "$ENV{VCPKG_ROOT}/installed/${_mamba_vcpkg_triplet}")
-            else()
-                message(
-                    FATAL_ERROR
-                        "Windows static libmamba needs vcpkg packages under ${_mamba_vcpkg_installed} or VCPKG_ROOT"
-                )
-            endif()
-            list(PREPEND CMAKE_PREFIX_PATH "${_mamba_vcpkg_prefix}" "$ENV{CONDA_PREFIX}/Library")
 
             # TODO AND CONTEXT: We found a link error in libarchive which lacked a link to XmlLite
             # which is provided by Windows. libarchive has cmake scripts doing the necessary work to
             # link that library but for some reason we couldnt identify it is not linking in this
             # specific case (it was before but the version changed apparently). As a workaround we
             # manually link with that required library but a better solution would be to find why
-            # libarchive doesnt do it itself.
-            set(SYSTEM_PROVIDED_LIBRARIES XmlLite.lib) # required by libarchive
+            # libarchive doesnt do it itself. XmlLite: libarchive; others: libcurl / OpenSSL static
+            # linking on Windows.
+            set(
+                SYSTEM_PROVIDED_LIBRARIES
+                XmlLite.lib
+                wldap32
+                bcrypt
+                advapi32
+                crypt32
+                secur32
+                ws2_32
+                iphlpapi
+            )
             set(ENABLE_WIN32_XMLLITE ON)
 
-            # For Windows we have a vcpkg based build system right now.
-            find_package(LibArchive MODULE REQUIRED)
-            find_package(CURL CONFIG REQUIRED)
-            find_library(LIBLZMA_LIBRARIES lzma REQUIRED)
-            find_library(LZ4_LIBRARY NAMES lz4)
-            find_library(LZO2_LIBRARY NAMES lzo2)
-            find_package(zstd CONFIG REQUIRED)
-            find_library(BZIP2_LIBRARIES NAMES bz2)
-            find_library(CRYPTO_LIBRARIES NAMES libcrypto)
-
-            find_library(ICONV_LIBRARY NAMES libiconv iconv)
-            find_library(CHARSET_LIBRARY NAMES libcharset charset)
-            message("Found: ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
-
-            target_link_libraries(
-                ${target_name}
-                PUBLIC
-                    ${CRYPTO_LIBRARIES}
-                    ${SYSTEM_PROVIDED_LIBRARIES}
-                    ${LibArchive_LIBRARY}
-                    ${ICONV_LIBRARY}
-                    ${CHARSET_LIBRARY}
-                    zstd::libzstd_static
-                    ${LZ4_LIBRARY}
-                    ${LZO2_LIBRARY}
-                    ${BZIP2_LIBRARIES}
-                    ${LIBLZMA_LIBRARIES}
-                    CURL::libcurl
-                    ${sodium_LIBRARY_RELEASE}
+            set(
+                REQUIRED_STATIC_DEPS
+                archive_static.lib
+                iconv.lib
+                charset.lib
+                zstd_static.lib
+                bzip2_static.lib
+                zlibstatic.lib
+                libssh2_static.lib
+                libssl_static.lib
+                libcrypto_static.lib
+                libcurl_a.lib
             )
 
+            set(STATIC_DEPS "")
+            foreach(LIB ${REQUIRED_STATIC_DEPS})
+                set(TMP_LIB "${LIB}-NOTFOUND")
+                find_library(TMP_LIB NAMES "${LIB}")
+                if(NOT ${TMP_LIB} STREQUAL "TMP_LIB-NOTFOUND")
+                    list(APPEND STATIC_DEPS "${TMP_LIB}")
+                else()
+                    list(APPEND STATIC_DEPS "${LIB}-NOTFOUND")
+                endif()
+            endforeach(LIB)
+
+            message("   -> Found static dependencies:")
+            foreach(LIB ${STATIC_DEPS})
+                message("      - ${LIB}")
+            endforeach(LIB)
+
+            target_link_libraries(${target_name} PUBLIC ${SYSTEM_PROVIDED_LIBRARIES} ${STATIC_DEPS})
+
             add_compile_definitions(LIBARCHIVE_STATIC CURL_STATICLIB)
-            include_directories($ENV{CONDA_PREFIX}/Library/include/)
-            include_directories("${_mamba_vcpkg_prefix}/include/")
+            include_directories("${_mamba_deps_prefix}/include/")
         endif()
     else()
         message("   -> Dynamically linking against libmamba (shared) dependencies")

@@ -194,7 +194,6 @@ namespace mamba
                 python_pkg.platform = "linux-64";
                 python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
 
-                REQUIRE(effective_python_site_packages_path(python_pkg) != "Lib/site-packages");
                 REQUIRE(
                     effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
                 );
@@ -208,9 +207,6 @@ namespace mamba
                 python_pkg.platform = "win-64";
                 python_pkg.python_site_packages_path = "Lib/site-packages";
 
-                REQUIRE(
-                    effective_python_site_packages_path(python_pkg) != "lib/python3.13t/site-packages"
-                );
                 REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
             }
 

@@ -207,6 +207,23 @@ namespace
         return result;
     }
 
+    /**
+     * Read classic conda environment specs (one MatchSpec per non-empty, non-comment line).
+     */
+    std::vector<std::string> read_classic_env_specs(const fs::u8path& path)
+    {
+        std::vector<std::string> specs;
+        for (const auto& line : read_lines(path))
+        {
+            if (line.empty() || line.front() == '#')
+            {
+                continue;
+            }
+            specs.push_back(line);
+        }
+        return specs;
+    }
+
     expected_t<SolveResult> solve_common(
         Context& ctx,
         ChannelContext& channel_context,
@@ -788,6 +805,8 @@ TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba
 TEST_CASE("Sharded repodata - solve omni env specs", "[mamba::core][sharded][.integration]")
 {
     // Non-regression for https://github.com/mamba-org/mamba/issues/4277
+    // Large classic env file (omni.env.txt): sharded loading and root expansion must remain
+    // solvable when mixing flat bioconda subdirs with sharded conda-forge.
     auto& ctx = mambatests::context();
     const std::vector<std::string> saved_channels = ctx.channels;
     const bool saved_use_shards = ctx.use_sharded_repodata;
@@ -810,7 +829,7 @@ TEST_CASE("Sharded repodata - solve omni env specs", "[mamba::core][sharded][.in
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     init_channels(ctx, channel_context);
 
-    const auto specs = read_lines(mambatests::test_data_dir / "env_file/omni.env.txt");
+    const auto specs = read_classic_env_specs(mambatests::test_data_dir / "env_file/omni.env.txt");
     REQUIRE(specs.size() >= 80);
 
     auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);

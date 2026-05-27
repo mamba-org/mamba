@@ -279,7 +279,7 @@ jobs:
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           unset CONDARC  # Interferes with tests
           # Only rerun flaky tests on the `main` branch
-          python -m pytest micromamba/tests/ --durations=30 \
+          python -m pytest micromamba/tests/ \
               ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 

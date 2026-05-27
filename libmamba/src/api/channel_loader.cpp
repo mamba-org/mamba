@@ -9,6 +9,7 @@
 #include <optional>
 #include <set>
 #include <sstream>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "mamba/api/channel_loader.hpp"
@@ -523,6 +524,15 @@ namespace mamba
             std::vector<std::string>& root_packages
         )
         {
+            std::unordered_map<std::string, std::vector<specs::PackageInfo>> packages_by_name;
+            for (const auto& repo : full_repos)
+            {
+                database.for_each_package_in_repo(
+                    repo,
+                    [&](const specs::PackageInfo& pkg) { packages_by_name[pkg.name].push_back(pkg); }
+                );
+            }
+
             std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
             std::vector<std::string> frontier(root_packages.begin(), root_packages.end());
             auto add_from_spec = [&](const std::string& dep_str)
@@ -545,26 +555,22 @@ namespace mamba
                 const std::string pkg_name = std::move(frontier.back());
                 frontier.pop_back();
 
-                for (const auto& repo : full_repos)
+                const auto records_it = packages_by_name.find(pkg_name);
+                if (records_it == packages_by_name.end())
                 {
-                    database.for_each_package_in_repo(
-                        repo,
-                        [&](const specs::PackageInfo& pkg)
-                        {
-                            if (pkg.name != pkg_name)
-                            {
-                                return;
-                            }
-                            for (const auto& dep : pkg.dependencies)
-                            {
-                                add_from_spec(dep);
-                            }
-                            for (const auto& c : pkg.constrains)
-                            {
-                                add_from_spec(c);
-                            }
-                        }
-                    );
+                    continue;
+                }
+
+                for (const auto& pkg : records_it->second)
+                {
+                    for (const auto& dep : pkg.dependencies)
+                    {
+                        add_from_spec(dep);
+                    }
+                    for (const auto& c : pkg.constrains)
+                    {
+                        add_from_spec(c);
+                    }
                 }
             }
         }

@@ -2,15 +2,11 @@
 # Source: conda-build overlinking allowlist (micromamba feedstock).
 # Format: dll_name<TAB>category<TAB>description
 # See also: https://github.com/mamba-org/mamba/issues/4276
-# Commented for tests
-# KERNEL32.dll	Windows system	Core Windows kernel base API (process, memory, files, synchronization).
-# api-ms-win-crt-convert-l1-1-0.dll	UCRT (ucrt)	Universal C Runtime forwarder: string/character conversion (_wtoi, strtod, …).
-# MSVCP140.dll	MSVC runtime (vc14_runtime)	Microsoft C++ standard library runtime (/MD builds).
-random.dll	Others	Just to test logic
 ADVAPI32.dll	Windows system	Advanced Windows 32 Base API (registry, services, security helpers).
 bcrypt.dll	Windows system	Windows Cryptographic Primitives (BCrypt) used for hashing and crypto.
 CRYPT32.dll	Windows system	Crypto API32: certificates, message encoding, and related crypto services.
 IPHLPAPI.DLL	Windows system	IP Helper API for network adapter and IP configuration queries.
+KERNEL32.dll	Windows system	Core Windows kernel base API (process, memory, files, synchronization).
 ole32.dll	Windows system	OLE/COM runtime used by some Windows components and libraries.
 Secur32.dll	Windows system	Security Support Provider Interface (SSPI) for authentication packages.
 SHELL32.dll	Windows system	Windows shell API (paths, shortcuts, shell folders).
@@ -18,6 +14,7 @@ USER32.dll	Windows system	Windows user-interface API (minimal use from dependenc
 WLDAP32.dll	Windows system	LDAP client API; pulled in by libcurl when LDAP support is enabled.
 WS2_32.dll	Windows system	Windows Sockets 2 API for TCP/UDP networking.
 XmlLite.dll	Windows system	Lightweight streaming XML parser provided by Windows.
+api-ms-win-crt-convert-l1-1-0.dll	UCRT (ucrt)	Universal C Runtime forwarder: string/character conversion (_wtoi, strtod, …).
 api-ms-win-crt-environment-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: environment access (getenv, _putenv, …).
 api-ms-win-crt-filesystem-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: filesystem operations (_mkdir, _unlink, …).
 api-ms-win-crt-heap-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: heap allocation (malloc, free, calloc, …).
@@ -28,5 +25,6 @@ api-ms-win-crt-stdio-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: standard I/O (printf
 api-ms-win-crt-string-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: C string and memory routines (strcpy, memcpy, …).
 api-ms-win-crt-time-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: time and date (time, localtime, strftime, …).
 api-ms-win-crt-utility-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: utility routines (qsort, bsearch, system, …).
+MSVCP140.dll	MSVC runtime (vc14_runtime)	Microsoft C++ standard library runtime (/MD builds).
 VCRUNTIME140.dll	MSVC runtime (vc14_runtime)	Microsoft C runtime helpers (exceptions, EH scaffolding).
 VCRUNTIME140_1.dll	MSVC runtime (vc14_runtime)	Additional MSVC C++ exception-handling support on x64.

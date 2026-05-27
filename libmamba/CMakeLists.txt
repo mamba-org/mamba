@@ -595,133 +595,52 @@ macro(libmamba_create_target target_name linkage output_name)
             # link that library but for some reason we couldnt identify it is not linking in this
             # specific case (it was before but the version changed apparently). As a workaround we
             # manually link with that required library but a better solution would be to find why
-            # libarchive doesnt do it itself.
-            set(SYSTEM_PROVIDED_LIBRARIES XmlLite.lib) # required by libarchive
+            # libarchive doesnt do it itself. XmlLite: libarchive; others: libcurl / OpenSSL static
+            # linking on Windows.
+            set(
+                SYSTEM_PROVIDED_LIBRARIES
+                XmlLite.lib
+                wldap32
+                bcrypt
+                advapi32
+                crypt32
+                secur32
+                ws2_32
+                iphlpapi
+            )
             set(ENABLE_WIN32_XMLLITE ON)
 
-            set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".a")
-            find_library(
-                LibArchive_LIBRARY
-                NAMES archive_static archive libarchive
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
+            set(
+                REQUIRED_STATIC_DEPS
+                archive_static.lib
+                iconv.lib
+                charset.lib
+                zstd_static.lib
+                bzip2_static.lib
+                zlibstatic.lib
+                libssh2_static.lib
+                libssl_static.lib
+                libcrypto_static.lib
+                libcurl_a.lib
             )
-            find_path(
-                LibArchive_INCLUDE_DIR
-                NAMES archive.h
-                PATHS "${_mamba_deps_prefix}/include"
-                NO_DEFAULT_PATH
-            )
-            if(NOT LibArchive_LIBRARY OR NOT LibArchive_INCLUDE_DIR)
-                message(FATAL_ERROR "libarchive not found under ${_mamba_deps_prefix}")
-            endif()
 
-            find_library(
-                MAMBA_CURL_LIBRARY
-                NAMES libcurl_a curl libcurl
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            find_path(
-                MAMBA_CURL_INCLUDE_DIR
-                NAMES curl/curl.h
-                PATHS "${_mamba_deps_prefix}/include"
-                NO_DEFAULT_PATH
-            )
-            if(NOT MAMBA_CURL_LIBRARY OR NOT MAMBA_CURL_INCLUDE_DIR)
-                message(FATAL_ERROR "libcurl not found under ${_mamba_deps_prefix}")
-            endif()
-            if(NOT TARGET CURL::libcurl)
-                add_library(CURL::libcurl STATIC IMPORTED)
-            endif()
-            set_target_properties(
-                CURL::libcurl
-                PROPERTIES
-                    IMPORTED_LOCATION "${MAMBA_CURL_LIBRARY}"
-                    INTERFACE_INCLUDE_DIRECTORIES "${MAMBA_CURL_INCLUDE_DIR}"
-                    INTERFACE_COMPILE_DEFINITIONS CURL_STATICLIB
-            )
-            find_library(
-                ZSTD_LIBRARY
-                NAMES zstd_static libzstd_static zstd
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            if(NOT ZSTD_LIBRARY)
-                message(FATAL_ERROR "zstd static library not found under ${_mamba_deps_prefix}")
-            endif()
-            find_library(
-                BZIP2_LIBRARIES
-                NAMES bzip2_static bzip2 libbz2_static libbz2
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            find_library(
-                ZLIB_LIBRARY
-                NAMES zlibstatic zlib z
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            find_library(
-                LIBSSH2_LIBRARY
-                NAMES libssh2_static libssh2
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            if(NOT LIBSSH2_LIBRARY)
-                message(FATAL_ERROR "libssh2 static library not found under ${_mamba_deps_prefix}")
-            endif()
-            find_library(
-                LIBSSL_LIBRARY
-                NAMES libssl_static libssl ssl
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            find_library(
-                LIBCRYPTO_LIBRARY
-                NAMES libcrypto_static libcrypto crypto
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            if(NOT LIBCRYPTO_LIBRARY)
-                message(FATAL_ERROR "libcrypto not found under ${_mamba_deps_prefix}")
-            endif()
-            find_library(
-                ICONV_LIBRARY
-                NAMES iconv libiconv
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            find_library(
-                CHARSET_LIBRARY
-                NAMES charset libcharset
-                PATHS "${_mamba_deps_prefix}/lib"
-                NO_DEFAULT_PATH
-            )
-            message("Found: ${ICONV_LIBRARY} ${CHARSET_LIBRARY}")
+            set(STATIC_DEPS "")
+            foreach(LIB ${REQUIRED_STATIC_DEPS})
+                set(TMP_LIB "${LIB}-NOTFOUND")
+                find_library(TMP_LIB NAMES "${LIB}")
+                if(NOT ${TMP_LIB} STREQUAL "TMP_LIB-NOTFOUND")
+                    list(APPEND STATIC_DEPS "${TMP_LIB}")
+                else()
+                    list(APPEND STATIC_DEPS "${LIB}-NOTFOUND")
+                endif()
+            endforeach(LIB)
 
-            target_link_libraries(
-                ${target_name}
-                PUBLIC
-                    ${SYSTEM_PROVIDED_LIBRARIES}
-                    ${LibArchive_LIBRARY}
-                    ${ICONV_LIBRARY}
-                    ${CHARSET_LIBRARY}
-                    ${ZSTD_LIBRARY}
-                    ${BZIP2_LIBRARIES}
-                    ${ZLIB_LIBRARY}
-                    ${LIBSSH2_LIBRARY}
-                    ${LIBSSL_LIBRARY}
-                    ${LIBCRYPTO_LIBRARY}
-                    CURL::libcurl
-                    wldap32
-                    bcrypt
-                    advapi32
-                    crypt32
-                    secur32
-                    ws2_32
-                    iphlpapi
-            )
+            message("   -> Found static dependencies:")
+            foreach(LIB ${STATIC_DEPS})
+                message("      - ${LIB}")
+            endforeach(LIB)
+
+            target_link_libraries(${target_name} PUBLIC ${SYSTEM_PROVIDED_LIBRARIES} ${STATIC_DEPS})
 
             add_compile_definitions(LIBARCHIVE_STATIC CURL_STATICLIB)
             include_directories("${_mamba_deps_prefix}/include/")

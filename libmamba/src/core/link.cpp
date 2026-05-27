@@ -490,6 +490,22 @@ namespace mamba
         const fs::u8path& target_prefix = m_context->prefix_params().target_prefix;
         fs::u8path dst = target_prefix / subtarget;
 
+        // Conda metadata for noarch Python packages can store short paths like
+        // `site-packages/...` or `python-scripts/...`. Resolve those to the
+        // actual prefix-relative destination before unlinking.
+        if (!fs::exists(dst))
+        {
+            const auto resolved_subtarget = get_python_noarch_target_path(
+                subtarget,
+                m_context->python_params().site_packages_path
+            );
+            fs::u8path resolved_dst = target_prefix / resolved_subtarget;
+            if (resolved_dst != dst)
+            {
+                dst = std::move(resolved_dst);
+            }
+        }
+
         LOG_TRACE << "Unlinking '" << dst.string() << "'";
         std::error_code err;
 
@@ -576,7 +592,32 @@ namespace mamba
         nlohmann::json json_record;
         json_file >> json_record;
 
-        for (auto& path : json_record["paths_data"]["paths"])
+        nlohmann::json paths_to_unlink = nlohmann::json::array();
+        if (json_record.contains("paths_data") && json_record["paths_data"].is_object()
+            && json_record["paths_data"].contains("paths")
+            && json_record["paths_data"]["paths"].is_array())
+        {
+            paths_to_unlink = json_record["paths_data"]["paths"];
+        }
+        else if (json_record.contains("files") && json_record["files"].is_array())
+        {
+            LOG_DEBUG << "Using legacy `files` list from metadata for package '" << m_specifier
+                      << "'";
+            for (const auto& file : json_record["files"])
+            {
+                if (file.is_string())
+                {
+                    paths_to_unlink.push_back({ { "_path", file.get<std::string>() } });
+                }
+            }
+        }
+        else
+        {
+            LOG_WARNING << "No unlinkable file list found in conda-meta JSON for package '"
+                        << m_specifier << "'";
+        }
+
+        for (auto& path : paths_to_unlink)
         {
             std::string fpath = path["_path"];
             if (std::regex_match(fpath, MENU_PATH_REGEX))

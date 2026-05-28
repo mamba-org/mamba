@@ -449,6 +449,7 @@ namespace
             REQUIRE(is_newer);
         }
     }
+
 }
 
 TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::core][sharded][.integration]")
@@ -503,7 +504,7 @@ TEST_CASE(
                                    ctx.offline = saved_offline;
                                } };
 
-    ctx.channels = { "conda-forge" };
+    ctx.channels = { "https://prefix.dev/conda-forge" };
     ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
@@ -586,7 +587,7 @@ TEST_CASE(
                                    ctx.offline = saved_offline;
                                } };
 
-    ctx.channels = { "conda-forge" };
+    ctx.channels = { "https://prefix.dev/conda-forge" };
     ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
@@ -829,6 +830,93 @@ TEST_CASE("Sharded repodata - solve omni env specs", "[mamba::core][sharded][.in
     REQUIRE(solved_names.count("pytorch") == 1);
     REQUIRE(solved_names.count("scanpy") == 1);
     REQUIRE(solved_names.count("pysam") == 1);
+}
+
+TEST_CASE("Sharded repodata - solve Apache Arrow sphinx env specs", "[mamba::core][sharded][.integration]")
+{
+    // Non-regression for Apache Arrow docs environment:
+    // https://raw.githubusercontent.com/apache/arrow/eb375a5c38b46ce96725f2f7f6376eba0e516e4f/ci/conda_env_sphinx.txt
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto specs = read_lines(
+        mambatests::test_data_dir / "env_file/apache_arrow_conda_env_sphinx.txt"
+    );
+    REQUIRE(specs.size() >= 15);
+
+    // Warm cache (shard index + shard/repodata files), then assert timed solve.
+    auto warmup_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(warmup_solution.has_value());
+
+    const auto started_at = std::chrono::steady_clock::now();
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now() - started_at
+    );
+    REQUIRE(sharded_solution.has_value());
+    INFO("elapsed seconds: " << elapsed.count());
+    REQUIRE(elapsed < std::chrono::seconds(5));
+}
+
+TEST_CASE("Sharded repodata - solve issue 4274 env specs", "[mamba::core][sharded][.integration]")
+{
+    // Non-regression for https://github.com/mamba-org/mamba/issues/4274#issue-4437049295
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto specs = read_lines(mambatests::test_data_dir / "env_file/issue_4274.env.txt");
+    REQUIRE(specs.size() >= 50);
+
+    // Warm cache (shard index + shard/repodata files), then assert timed solve.
+    auto warmup_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(warmup_solution.has_value());
+
+    const auto started_at = std::chrono::steady_clock::now();
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now() - started_at
+    );
+    REQUIRE(sharded_solution.has_value());
+    INFO("elapsed seconds: " << elapsed.count());
+    REQUIRE(elapsed < std::chrono::seconds(5));
 }
 
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration]")

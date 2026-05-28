@@ -453,6 +453,19 @@ namespace
         }
     }
 
+    auto read_explicit_urls(const fs::u8path& path) -> std::vector<std::string>
+    {
+        std::vector<std::string> urls;
+        for (const auto& line : read_lines(path))
+        {
+            if (line.starts_with("http://") || line.starts_with("https://"))
+            {
+                urls.push_back(line);
+            }
+        }
+        return urls;
+    }
+
 }
 
 TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::core][sharded][.integration]")

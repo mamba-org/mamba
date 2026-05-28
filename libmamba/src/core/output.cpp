@@ -295,10 +295,9 @@ namespace mamba
 
         const Context& m_context;
 
-        nlohmann::json json_output;
-        // THIS IS A CANARY TO DETECT ACTUAL CONCURRENT CALLS OF THESE JSON APIS
-        std::atomic<bool> is_editing_json_output{ false };  // TODO: consider using a
-                                                            // synchronized_value<json>s
+        nlohmann::json json_output;  // TODO: consider using a synchronized_value<json>
+        // THIS IS A CANARY TO DETECT CONCURRENT CALLS OF THESE JSON APIS
+        std::atomic<bool> is_editing_json_output{ false };
 
         bool is_json_print_cancelled = false;
 
@@ -372,7 +371,7 @@ namespace mamba
 
     void Console::print(std::string_view str, bool force_print)
     {
-        if (force_print or not (context().output_params.quiet or context().output_params.json))
+        if (force_print or not(context().output_params.quiet or context().output_params.json))
         {
             auto synched_data = p_data->m_synched_data.synchronize();
 
@@ -555,12 +554,12 @@ namespace mamba
     template <std::invocable<nlohmann::json&> F>
     void ConsoleData::edit_json_output(F&& edit_func)
     {
-        // TODO: make this function thread-safes
         bool already_editing = is_editing_json_output.exchange(true);
         if (already_editing)
         {
-            LOG_WARNING << "json output edited from more than one places";  // TODO: print
-                                                                            // stacktrace
+            // TODO: print/report a stacktrace
+            LOG_ERROR << "json output concurrently edited by more than one thread - call ignored";
+            return;
         }
 
         auto _ = on_scope_exit([&] { is_editing_json_output = false; });

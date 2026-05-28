@@ -37,13 +37,13 @@
 #include "mamba/specs/version.hpp"
 
 #include "mambatests.hpp"
-#include "utils.hpp"
 
 // extract_package_names_from_specs is implemented in api/utils.cpp (header is not in public include
 // path)
 namespace mamba
 {
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
+    std::vector<std::string> read_explicit_urls(const fs::u8path& path);
     void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
@@ -951,7 +951,7 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
     init_channels(ctx, channel_context);
     ctx.prefix_params.target_prefix = prefix_path;
 
-    const auto explicit_urls = mambatests::read_explicit_urls(
+    const auto explicit_urls = read_explicit_urls(
         mambatests::test_data_dir / "env_file/minrk_environment.py-3.9-linux-64.lock"
     );
     REQUIRE(explicit_urls.size() >= 150);

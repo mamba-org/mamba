@@ -247,6 +247,9 @@ namespace mamba::solver::resolvo
 
         // Maps for quick lookups
         std::unordered_map<::resolvo::NameId, ::resolvo::Vector<::resolvo::SolvableId>> name_to_solvable;
+        std::unordered_map<::resolvo::SolvableId, ::resolvo::Dependencies> solvable_to_dependencies;
+        std::unordered_map<::resolvo::SolvableId, std::unordered_map<::resolvo::NameId, ::resolvo::VersionSetId>>
+            solvable_to_dependency_version_sets;
         std::unordered_map<::resolvo::VersionSetUnionId, ::resolvo::Vector<::resolvo::VersionSetId>>
             version_set_unions;
         std::unordered_map<::resolvo::ConditionId, ::resolvo::Condition> conditions;

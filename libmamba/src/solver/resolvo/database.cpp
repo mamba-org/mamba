@@ -326,6 +326,37 @@ namespace mamba::solver::resolvo
      */
     ::resolvo::SolvableId Database::alloc_solvable(specs::PackageInfo package_info)
     {
+        ::resolvo::Dependencies dependencies;
+        std::unordered_map<::resolvo::NameId, ::resolvo::VersionSetId> dependency_version_sets;
+        dependency_version_sets.reserve(package_info.dependencies.size());
+
+        for (const auto& dep : package_info.dependencies)
+        {
+            const auto version_set_id = alloc_version_set(dep);
+            const auto match_spec = version_set_pool[version_set_id];
+            const auto dep_name_id = name_pool.alloc(
+                ::resolvo::String{ match_spec.name().to_string() }
+            );
+            dependencies.requirements.push_back(
+                ::resolvo::ConditionalRequirement(::resolvo::Requirement(version_set_id))
+            );
+            dependency_version_sets[dep_name_id] = version_set_id;
+        }
+        for (const auto& constr : package_info.constrains)
+        {
+            // if constr contain " == " replace it with "=="
+            std::string constr2 = constr;
+            while (constr2.find(" == ") != std::string::npos)
+            {
+                constr2 = constr2.replace(constr2.find(" == "), 4, "==");
+            }
+            while (constr2.find(" >= ") != std::string::npos)
+            {
+                constr2 = constr2.replace(constr2.find(" >= "), 4, ">=");
+            }
+            dependencies.constrains.push_back(alloc_version_set(constr2));
+        }
+
         // Add the solvable to the solvable pool
         auto id = solvable_pool.alloc(package_info);
 
@@ -339,18 +370,11 @@ namespace mamba::solver::resolvo
         name_pool.alloc(::resolvo::String{ long_str });
         string_pool.alloc(::resolvo::String{ long_str });
 
-        for (auto& dep : package_info.dependencies)
-        {
-            alloc_version_set(dep);
-        }
-        for (auto& constr : package_info.constrains)
-        {
-            alloc_version_set(constr);
-        }
-
         // Add the solvable to the name_to_solvable map
         const auto name_id = name_pool.alloc(::resolvo::String{ package_info.name });
         name_to_solvable[name_id].push_back(id);
+        solvable_to_dependencies[id] = std::move(dependencies);
+        solvable_to_dependency_version_sets[id] = std::move(dependency_version_sets);
 
         return id;
     }
@@ -564,34 +588,16 @@ namespace mamba::solver::resolvo
                 }
 
                 // Compare the dependencies of the variants.
-                std::unordered_map<::resolvo::NameId, ::resolvo::VersionSetId> a_deps;
-                std::unordered_map<::resolvo::NameId, ::resolvo::VersionSetId> b_deps;
-                for (auto dep_a : package_info_a.dependencies)
-                {
-                    // TODO: have a VersionID to NameID mapping instead
-                    specs::MatchSpec ms = specs::MatchSpec::parse(dep_a).value();
-                    const std::string& name = ms.name().to_string();
-                    auto name_id = name_pool.alloc(::resolvo::String{ name });
-
-                    a_deps[name_id] = version_set_pool[ms];
-                }
-                for (auto dep_b : package_info_b.dependencies)
-                {
-                    // TODO: have a VersionID to NameID mapping instead
-                    specs::MatchSpec ms = specs::MatchSpec::parse(dep_b).value();
-                    const std::string& name = ms.name().to_string();
-                    auto name_id = name_pool.alloc(::resolvo::String{ name });
-
-                    b_deps[name_id] = version_set_pool[ms];
-                }
+                const auto& a_deps = solvable_to_dependency_version_sets.at(a);
+                const auto& b_deps = solvable_to_dependency_version_sets.at(b);
 
                 auto ordering_score = 0;
                 for (auto [name_id, version_set_id] : a_deps)
                 {
-                    if (b_deps.find(name_id) != b_deps.end())
+                    if (const auto b_it = b_deps.find(name_id); b_it != b_deps.end())
                     {
                         auto [a_tf_version, a_n_track_features] = find_highest_version(version_set_id);
-                        auto [b_tf_version, b_n_track_features] = find_highest_version(b_deps[name_id]);
+                        auto [b_tf_version, b_n_track_features] = find_highest_version(b_it->second);
 
                         // Favor the solvable with higher versions of their dependencies
                         if (a_tf_version != b_tf_version)
@@ -666,34 +672,6 @@ namespace mamba::solver::resolvo
      */
     ::resolvo::Dependencies Database::get_dependencies(::resolvo::SolvableId solvable_id)
     {
-        const specs::PackageInfo& package_info = solvable_pool[solvable_id];
-
-        ::resolvo::Dependencies dependencies;
-
-        // TODO: do this in O(1)
-        for (auto& dep : package_info.dependencies)
-        {
-            const specs::MatchSpec match_spec = specs::MatchSpec::parse(dep).value();
-            dependencies.requirements.push_back(
-                ::resolvo::ConditionalRequirement(::resolvo::Requirement(version_set_pool[match_spec]))
-            );
-        }
-        for (auto& constr : package_info.constrains)
-        {
-            // if constr contain " == " replace it with "=="
-            std::string constr2 = constr;
-            while (constr2.find(" == ") != std::string::npos)
-            {
-                constr2 = constr2.replace(constr2.find(" == "), 4, "==");
-            }
-            while (constr2.find(" >= ") != std::string::npos)
-            {
-                constr2 = constr2.replace(constr2.find(" >= "), 4, ">=");
-            }
-            const specs::MatchSpec match_spec = specs::MatchSpec::parse(constr2).value();
-            dependencies.constrains.push_back(version_set_pool[match_spec]);
-        }
-
-        return dependencies;
+        return solvable_to_dependencies.at(solvable_id);
     }
 }

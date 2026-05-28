@@ -19,6 +19,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/api/channel_loader.hpp"
+#include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/history.hpp"
@@ -448,6 +449,42 @@ namespace
             const bool is_newer = fs::last_write_time(path) > mtime_before;
             REQUIRE(is_newer);
         }
+    }
+
+    auto read_explicit_urls(const fs::u8path& path) -> std::vector<std::string>
+    {
+        std::vector<std::string> urls;
+        for (const auto& line : read_lines(path))
+        {
+            if (line.starts_with("http://") || line.starts_with("https://"))
+            {
+                urls.push_back(line);
+            }
+        }
+        return urls;
+    }
+
+    auto read_yaml_dependencies_specs(const fs::u8path& path) -> std::vector<std::string>
+    {
+        std::vector<std::string> specs;
+        bool in_dependencies = false;
+        for (const auto& line : read_lines(path))
+        {
+            if (line == "dependencies:")
+            {
+                in_dependencies = true;
+                continue;
+            }
+            if (!in_dependencies)
+            {
+                continue;
+            }
+            if (line.starts_with("  - "))
+            {
+                specs.push_back(line.substr(4));
+            }
+        }
+        return specs;
     }
 
 }
@@ -917,6 +954,120 @@ TEST_CASE("Sharded repodata - solve issue 4274 env specs", "[mamba::core][sharde
     REQUIRE(sharded_solution.has_value());
     INFO("elapsed seconds: " << elapsed.count());
     REQUIRE(elapsed < std::chrono::seconds(5));
+}
+
+TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::core][sharded][.integration]")
+{
+    // Non-regression for https://gist.github.com/minrk/5fdabeb7ab8cd2c69cbc27588fed1903
+    // Flow: create from @EXPLICIT lock, then solve downgrade update specs.
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    const auto saved_target_prefix = ctx.prefix_params.target_prefix;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                                   ctx.prefix_params.target_prefix = saved_target_prefix;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    const fs::u8path prefix_path = tmp_dir.path() / "minrk_env";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+    ctx.prefix_params.target_prefix = prefix_path;
+
+    const auto explicit_urls = read_explicit_urls(
+        mambatests::test_data_dir / "env_file/minrk_environment.py-3.9-linux-64.lock"
+    );
+    REQUIRE(explicit_urls.size() >= 150);
+    install_explicit_specs(
+        ctx,
+        channel_context,
+        explicit_urls,
+        /*create_env=*/true,
+        /*remove_prefix_on_failure=*/true
+    );
+
+    const auto update_specs = read_yaml_dependencies_specs(
+        mambatests::test_data_dir / "env_file/minrk_downgrade.yml"
+    );
+    REQUIRE(update_specs.size() >= 5);
+
+    auto solve_update_from_existing_prefix =
+        [&](bool use_shards) -> std::pair<Solution, std::chrono::steady_clock::duration>
+    {
+        const bool saved_mode = ctx.use_sharded_repodata;
+        const auto saved_prefix = ctx.prefix_params.target_prefix;
+        on_scope_exit restore_mode{ [&]
+                                    {
+                                        ctx.use_sharded_repodata = saved_mode;
+                                        ctx.prefix_params.target_prefix = saved_prefix;
+                                    } };
+
+        ctx.use_sharded_repodata = use_shards;
+        ctx.prefix_params.target_prefix = prefix_path;
+
+        const auto started_at = std::chrono::steady_clock::now();
+        auto [db, package_caches] = prepare_solver_context(
+            ctx,
+            channel_context,
+            update_specs,
+            /*is_retry=*/false,
+            /*no_py_pin=*/false
+        );
+        (void) package_caches;
+
+        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
+        (void) prefix_data;
+
+        Request request;
+        for (const auto& spec : update_specs)
+        {
+            auto parsed = specs::MatchSpec::parse(spec);
+            REQUIRE(parsed.has_value());
+            request.jobs.push_back(Request::Update{ parsed.value() });
+        }
+        request.flags = ctx.solver_flags;
+
+        auto outcome = libsolv::Solver().solve(
+            db,
+            request,
+            ctx.experimental_matchspec_parsing ? libsolv::MatchSpecParser::Mamba
+                                               : libsolv::MatchSpecParser::Libsolv
+        );
+        REQUIRE(outcome.has_value());
+        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+        return {
+            std::get<Solution>(outcome.value()),
+            std::chrono::steady_clock::now() - started_at,
+        };
+    };
+
+    const auto [flat_solution, flat_elapsed] = solve_update_from_existing_prefix(/*use_shards=*/false);
+    const auto [sharded_solution, sharded_elapsed] = solve_update_from_existing_prefix(
+        /*use_shards=*/true
+    );
+
+    INFO(
+        "flat elapsed seconds: " << std::chrono::duration_cast<std::chrono::seconds>(flat_elapsed).count()
+    );
+    INFO(
+        "sharded elapsed seconds: "
+        << std::chrono::duration_cast<std::chrono::seconds>(sharded_elapsed).count()
+    );
+
+    REQUIRE(sharded_solution == flat_solution);
+    REQUIRE(sharded_elapsed < std::chrono::seconds(30));
 }
 
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration]")

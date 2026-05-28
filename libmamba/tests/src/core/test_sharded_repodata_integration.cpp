@@ -37,6 +37,7 @@
 #include "mamba/specs/version.hpp"
 
 #include "mambatests.hpp"
+#include "utils.hpp"
 
 // extract_package_names_from_specs is implemented in api/utils.cpp (header is not in public include
 // path)
@@ -51,7 +52,7 @@ namespace mamba
         bool is_retry,
         bool no_py_pin
     );
-    PrefixData load_prefix_data_and_installed(
+    [[nodiscard]] PrefixData load_prefix_data_and_installed(
         Context& ctx,
         ChannelContext& channel_context,
         solver::libsolv::Database& db
@@ -449,42 +450,6 @@ namespace
             const bool is_newer = fs::last_write_time(path) > mtime_before;
             REQUIRE(is_newer);
         }
-    }
-
-    auto read_explicit_urls(const fs::u8path& path) -> std::vector<std::string>
-    {
-        std::vector<std::string> urls;
-        for (const auto& line : read_lines(path))
-        {
-            if (line.starts_with("http://") || line.starts_with("https://"))
-            {
-                urls.push_back(line);
-            }
-        }
-        return urls;
-    }
-
-    auto read_yaml_dependencies_specs(const fs::u8path& path) -> std::vector<std::string>
-    {
-        std::vector<std::string> specs;
-        bool in_dependencies = false;
-        for (const auto& line : read_lines(path))
-        {
-            if (line == "dependencies:")
-            {
-                in_dependencies = true;
-                continue;
-            }
-            if (!in_dependencies)
-            {
-                continue;
-            }
-            if (line.starts_with("  - "))
-            {
-                specs.push_back(line.substr(4));
-            }
-        }
-        return specs;
     }
 
 }
@@ -986,7 +951,7 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
     init_channels(ctx, channel_context);
     ctx.prefix_params.target_prefix = prefix_path;
 
-    const auto explicit_urls = read_explicit_urls(
+    const auto explicit_urls = mambatests::read_explicit_urls(
         mambatests::test_data_dir / "env_file/minrk_environment.py-3.9-linux-64.lock"
     );
     REQUIRE(explicit_urls.size() >= 150);
@@ -998,9 +963,13 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
         /*remove_prefix_on_failure=*/true
     );
 
-    const auto update_specs = read_yaml_dependencies_specs(
-        mambatests::test_data_dir / "env_file/minrk_downgrade.yml"
+    const auto parsed_downgrade_file = mamba::detail::read_yaml_file(
+        ctx,
+        (mambatests::test_data_dir / "env_file/minrk_downgrade.yml").string(),
+        ctx.platform,
+        /*use_uv=*/false
     );
+    const auto& update_specs = parsed_downgrade_file.dependencies;
     REQUIRE(update_specs.size() >= 5);
 
     auto solve_update_from_existing_prefix =
@@ -1025,10 +994,10 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
             /*is_retry=*/false,
             /*no_py_pin=*/false
         );
-        (void) package_caches;
+        REQUIRE(!package_caches.first_writable_path().empty());
 
         auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-        (void) prefix_data;
+        REQUIRE(!prefix_data.records().empty());
 
         Request request;
         for (const auto& spec : update_specs)
@@ -1426,10 +1395,10 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
             /*is_retry=*/false,
             /*no_py_pin=*/false
         );
-        (void) package_caches;
+        REQUIRE(!package_caches.first_writable_path().empty());
 
         auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-        (void) prefix_data;
+        REQUIRE(!prefix_data.records().empty());
 
         Request request;
         request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
@@ -1533,10 +1502,10 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
             /*is_retry=*/false,
             /*no_py_pin=*/false
         );
-        (void) package_caches;
+        REQUIRE(!package_caches.first_writable_path().empty());
 
         auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-        (void) prefix_data;
+        REQUIRE(!prefix_data.records().empty());
 
         Request request;
         request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });

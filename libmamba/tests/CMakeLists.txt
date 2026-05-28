@@ -87,6 +87,8 @@ set(
     # Core tests
     ../longpath.manifest
     src/core/test_activation.cpp
+    src/core/utils.cpp
+    src/core/utils.hpp
     src/core/test_channel_context.cpp
     src/core/test_channel_loader.cpp
     src/core/test_clean.cpp

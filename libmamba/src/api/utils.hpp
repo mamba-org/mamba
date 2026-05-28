@@ -148,7 +148,7 @@ namespace mamba
     /**
      * Load target prefix metadata and register installed packages in the solver database.
      */
-    PrefixData load_prefix_data_and_installed(
+    [[nodiscard]] PrefixData load_prefix_data_and_installed(
         Context& ctx,
         ChannelContext& channel_context,
         solver::libsolv::Database& db

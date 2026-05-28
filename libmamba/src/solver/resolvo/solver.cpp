@@ -100,20 +100,9 @@ namespace mamba::solver::resolvo
                 {
                     continue;
                 }
-                specs::PackageInfo pkg;
-                pkg.name = solvable.name;
-                pkg.version = solvable.version;
-                pkg.build_string = solvable.build_string;
-                pkg.build_number = solvable.build_number;
-                pkg.channel = solvable.channel;
-                pkg.md5 = solvable.md5;
-                pkg.sha256 = solvable.sha256;
-                pkg.track_features = solvable.track_features;
-                pkg.dependencies = solvable.dependencies;
-                pkg.constrains = solvable.constrains;
-                pkg.timestamp = solvable.timestamp;
-                pkg.license = solvable.license;
-                pkg.size = solvable.size;
+                // Preserve full package metadata (url, filename, platform, hashes, etc.)
+                // so downstream transaction/cache logic behaves exactly like libsolv.
+                specs::PackageInfo pkg = solvable;
 
                 solution.actions.emplace_back(Solution::Install{ std::move(pkg) });
             }

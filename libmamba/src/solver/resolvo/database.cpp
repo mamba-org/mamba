@@ -275,6 +275,12 @@ namespace mamba::solver::resolvo
             return ::resolvo::VersionSetId{ 0 };
         }
 
+        if (const auto it = normalized_matchspec_to_version_set_id.find(raw_match_spec_str);
+            it != normalized_matchspec_to_version_set_id.end())
+        {
+            return it->second;
+        }
+
         // NOTE: This works around some improperly encoded `constrains` in the test data, e.g.:
         //      `openmpi-4.1.4-ha1ae619_102`'s improperly encoded `constrains`: "cudatoolkit
         //      >= 10.2" `pytorch-1.13.0-cpu_py310h02c325b_0.conda`'s improperly encoded
@@ -312,6 +318,7 @@ namespace mamba::solver::resolvo
         const std::string match_spec_str = match_spec.to_string();
         name_pool.alloc(::resolvo::String{ match_spec_str });
         string_pool.alloc(::resolvo::String{ match_spec_str });
+        normalized_matchspec_to_version_set_id.emplace(raw_match_spec_str, id);
         return id;
     }
 

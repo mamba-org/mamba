@@ -255,6 +255,7 @@ namespace mamba::solver::resolvo
         std::unordered_map<::resolvo::ConditionId, ::resolvo::Condition> conditions;
         std::unordered_map<::resolvo::VersionSetId, std::pair<specs::Version, size_t>>
             version_set_to_max_version_and_track_features_numbers;
+        std::unordered_map<std::string, ::resolvo::VersionSetId> normalized_matchspec_to_version_set_id;
 
         specs::ChannelResolveParams m_channel_params;
     };

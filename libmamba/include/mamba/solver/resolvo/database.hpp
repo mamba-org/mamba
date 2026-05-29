@@ -235,7 +235,7 @@ namespace mamba::solver::resolvo
         bijective_map<::resolvo::VersionSetId, specs::MatchSpec> version_set_pool;
         bijective_map<::resolvo::SolvableId, specs::PackageInfo> solvable_pool;
 
-        bool has_package(const specs::MatchSpec& spec)
+        bool has_package(const specs::MatchSpec& spec) override
         {
             auto candidates = get_candidates(
                 name_pool.alloc(::resolvo::String(spec.name().to_string()))

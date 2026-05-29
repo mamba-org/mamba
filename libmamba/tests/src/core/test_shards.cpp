@@ -29,10 +29,12 @@
 #include "mamba/validation/tools.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 #include "test_shard_utils.hpp"
 
 using namespace mamba;
 using namespace mambatests::shard_test_utils;
+using mambatests::make_simple_channel;
 
 namespace mamba
 {
@@ -49,18 +51,6 @@ namespace mamba
 
 namespace
 {
-    auto make_simple_channel(std::string_view chan) -> specs::Channel
-    {
-        const auto resolve_params = ChannelContext::ChannelResolveParams{
-            { "linux-64", "noarch" },
-            specs::CondaURL::parse("https://conda.anaconda.org").value()
-        };
-
-        return specs::Channel::resolve(specs::UnresolvedChannel::parse(chan).value(), resolve_params)
-            .value()
-            .front();
-    }
-
     /**
      * Create a valid shard data with checksums (required for validation).
      */

@@ -10,11 +10,34 @@
 
 #include <concepts>
 #include <functional>
+#include <string_view>
 #include <thread>
 #include <utility>
 
+#include "mamba/core/channel_context.hpp"
+#include "mamba/specs/channel.hpp"
+#include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/unresolved_channel.hpp"
+
 namespace mambatests
 {
+    /** Resolve a channel string with typical test defaults (conda.anaconda.org, linux-64/noarch).
+     */
+    [[nodiscard]] inline auto make_simple_channel(std::string_view chan) -> mamba::specs::Channel
+    {
+        const auto resolve_params = mamba::ChannelContext::ChannelResolveParams{
+            { "linux-64", "noarch" },
+            mamba::specs::CondaURL::parse("https://conda.anaconda.org").value()
+        };
+
+        return mamba::specs::Channel::resolve(
+                   mamba::specs::UnresolvedChannel::parse(chan).value(),
+                   resolve_params
+        )
+            .value()
+            .front();
+    }
+
     /** Throws a string immediately, used in tests for code that should not be reachable. */
     inline void fail_now()
     {

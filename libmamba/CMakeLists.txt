@@ -456,6 +456,7 @@ find_package(reproc++ CONFIG REQUIRED)
 find_package(Libsolv MODULE REQUIRED)
 find_package(Resolvo CONFIG REQUIRED)
 include(FixResolvoWindows)
+include(CheckResolvoConditions)
 find_package(msgpack-c CONFIG REQUIRED)
 add_subdirectory(ext/solv-cpp)
 
@@ -735,6 +736,10 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(Threads REQUIRED)
 
         target_link_libraries(${target_name} PUBLIC Threads::Threads)
+    endif()
+
+    if(LIBMAMBA_RESOLVO_HAS_CONDITIONS)
+        target_compile_definitions(${target_name} PUBLIC LIBMAMBA_RESOLVO_HAS_CONDITIONS)
     endif()
 
     list(APPEND libmamba_targets ${target_name})

@@ -69,6 +69,7 @@ namespace std
         }
     };
 
+#ifdef LIBMAMBA_RESOLVO_HAS_CONDITIONS
     template <>
     struct hash<::resolvo::ConditionId>
     {
@@ -77,6 +78,7 @@ namespace std
             return static_cast<size_t>(id.id);
         }
     };
+#endif
 }
 
 namespace mamba::solver::resolvo
@@ -213,7 +215,9 @@ namespace mamba::solver::resolvo
         ::resolvo::NameId solvable_name(::resolvo::SolvableId solvable_id) override;
         ::resolvo::Slice<::resolvo::VersionSetId>
         version_sets_in_union(::resolvo::VersionSetUnionId version_set_union_id) override;
+#ifdef LIBMAMBA_RESOLVO_HAS_CONDITIONS
         ::resolvo::Condition resolve_condition(::resolvo::ConditionId condition) override;
+#endif
         ::resolvo::Candidates get_candidates(::resolvo::NameId package) override;
         void sort_candidates(::resolvo::Slice<::resolvo::SolvableId> solvables) override;
         ::resolvo::Vector<::resolvo::SolvableId> filter_candidates(
@@ -252,7 +256,9 @@ namespace mamba::solver::resolvo
             solvable_to_dependency_version_sets;
         std::unordered_map<::resolvo::VersionSetUnionId, ::resolvo::Vector<::resolvo::VersionSetId>>
             version_set_unions;
+#ifdef LIBMAMBA_RESOLVO_HAS_CONDITIONS
         std::unordered_map<::resolvo::ConditionId, ::resolvo::Condition> conditions;
+#endif
         std::unordered_map<::resolvo::VersionSetId, std::pair<specs::Version, size_t>>
             version_set_to_max_version_and_track_features_numbers;
         std::unordered_map<std::string, ::resolvo::VersionSetId> normalized_matchspec_to_version_set_id;

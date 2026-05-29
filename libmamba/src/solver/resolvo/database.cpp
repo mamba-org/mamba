@@ -344,9 +344,15 @@ namespace mamba::solver::resolvo
             const auto dep_name_id = name_pool.alloc(
                 ::resolvo::String{ match_spec.name().to_string() }
             );
+#ifdef LIBMAMBA_RESOLVO_HAS_CONDITIONS
             dependencies.requirements.push_back(
                 ::resolvo::ConditionalRequirement(::resolvo::Requirement(version_set_id))
             );
+#else
+            dependencies.requirements.push_back(
+                ::resolvo::cbindgen_private::resolvo_requirement_single(version_set_id)
+            );
+#endif
             dependency_version_sets[dep_name_id] = version_set_id;
         }
         for (const auto& constr : package_info.constrains)
@@ -485,6 +491,7 @@ namespace mamba::solver::resolvo
         return empty;
     }
 
+#ifdef LIBMAMBA_RESOLVO_HAS_CONDITIONS
     ::resolvo::Condition Database::resolve_condition(::resolvo::ConditionId condition_id)
     {
         if (auto it = conditions.find(condition_id); it != conditions.end())
@@ -493,6 +500,7 @@ namespace mamba::solver::resolvo
         }
         return ::resolvo::Condition(::resolvo::VersionSetId{ 0 });
     }
+#endif
 
     /**
      * Obtains a list of solvables that should be considered when a package

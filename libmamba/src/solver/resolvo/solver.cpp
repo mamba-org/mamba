@@ -117,16 +117,17 @@ namespace mamba::solver::resolvo
         auto constraints = request_to_constraints(request, database);
         ::resolvo::Vector<::resolvo::SolvableId> result;
 
-        ::resolvo::Vector<::resolvo::VersionSetId> req_vec;
-        for (const auto& req : requirements)
-        {
-            req_vec.push_back(req);
-        }
-
         ::resolvo::Vector<::resolvo::VersionSetId> constr_vec;
         for (const auto& constr : constraints)
         {
             constr_vec.push_back(constr);
+        }
+
+#ifdef LIBMAMBA_RESOLVO_HAS_CONDITIONS
+        ::resolvo::Vector<::resolvo::VersionSetId> req_vec;
+        for (const auto& req : requirements)
+        {
+            req_vec.push_back(req);
         }
 
         ::resolvo::Vector<::resolvo::ConditionalRequirement> req_conditional;
@@ -140,6 +141,19 @@ namespace mamba::solver::resolvo
             .constraints = constr_vec,
             .soft_requirements = {},
         };
+#else
+        ::resolvo::Vector<::resolvo::Requirement> req_vec;
+        for (const auto& req : requirements)
+        {
+            req_vec.push_back(::resolvo::cbindgen_private::resolvo_requirement_single(req));
+        }
+
+        ::resolvo::Problem problem = {
+            .requirements = req_vec,
+            .constraints = constr_vec,
+            .soft_requirements = {},
+        };
+#endif
 
         ::resolvo::String reason = ::resolvo::solve(database, problem, result);
 

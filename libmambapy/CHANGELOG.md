@@ -1,3 +1,14 @@
+## libmambapy 2.7.0.alpha0 (May 29, 2026)
+
+CI fixes and doc:
+
+- ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
 ## libmambapy 2.6.2 (May 19, 2026)
 
 CI fixes and doc:

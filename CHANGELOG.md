@@ -1,3 +1,27 @@
+## 2026.05.29
+
+Release: 2.7.0.alpha0 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [libmamba] fix: Harden `noarch:python` entry point linking by @jjerphan in <https://github.com/mamba-org/mamba/pull/4282>
+- [libmamba] fix: Guard Root Packages' Expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4283>
+- [micromamba, libmamba] fix: Adapt root packages expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4298>
+- [micromamba, libmamba] fix: Populate `python_site_packages_path` independently from host by @jjerphan in <https://github.com/mamba-org/mamba/pull/4288>
+- [libmamba] Fallback to flat cache dir if missing hierarchical by @Hind-M in <https://github.com/mamba-org/mamba/pull/4290>
+- [micromamba, libmamba] fix: Adapt `noarch` unlink path normalization for conda interoperability by @jjerphan in <https://github.com/mamba-org/mamba/pull/4259>
+
+CI fixes and doc:
+
+- [all] ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- [all] ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- [micromamba] Increase test timeout by @Hind-M in <https://github.com/mamba-org/mamba/pull/4294>
+- [libmamba] maint: Use dependencies from conda-forge for Windows micromamba build by @jjerphan in <https://github.com/mamba-org/mamba/pull/4293>
+- [all] maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
 ## 2026.05.19
 
 Release: 2.6.2 (libmamba, mamba, micromamba, libmambapy)

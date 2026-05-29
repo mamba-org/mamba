@@ -455,6 +455,7 @@ find_package(reproc CONFIG REQUIRED)
 find_package(reproc++ CONFIG REQUIRED)
 find_package(Libsolv MODULE REQUIRED)
 find_package(Resolvo CONFIG REQUIRED)
+include(FixResolvoWindows)
 find_package(msgpack-c CONFIG REQUIRED)
 add_subdirectory(ext/solv-cpp)
 

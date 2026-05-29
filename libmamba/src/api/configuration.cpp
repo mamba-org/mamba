@@ -1420,7 +1420,14 @@ namespace mamba
 
         insert(Configurable("solver", std::string("libsolv"))
                    .group("Basic")
-                   .description("Solver backend to use (`libsolv` or `resolvo`).")
+                   .description(
+                       "Solver backend to use (`libsolv`, `resolvo`, or `libmamba` as an alias for `libsolv`)."
+                   )
+                   .long_description(unindent(R"(
+                        `libsolv` uses the Libsolv backend (default).
+                        `resolvo` uses the experimental Resolvo backend.
+                        `libmamba` is accepted as an alias for `libsolv` for compatibility with Conda,
+                        which sets `solver: libmamba` in `.condarc` to select Libsolv via libmamba.)"))
                    .set_rc_configurable()
                    .set_env_var_names()
                    .set_post_merge_hook<std::string>(
@@ -1434,10 +1441,10 @@ namespace mamba
                                [](unsigned char c) { return static_cast<char>(std::tolower(c)); }
                            );
 
-                           if (normalized == "libsolv")
+                           if (normalized == "libsolv" || normalized == "libmamba")
                            {
                                m_context.experimental_resolvo_solver = false;
-                               value = normalized;
+                               value = "libsolv";
                                return;
                            }
                            if (normalized == "resolvo")
@@ -1447,8 +1454,9 @@ namespace mamba
                                return;
                            }
 
-                           LOG_ERROR << "Invalid value for `solver`: " << value
-                                     << ". Expected `libsolv` or `resolvo`.";
+                           LOG_ERROR
+                               << "Invalid value for `solver`: " << value
+                               << ". Expected `libsolv`, `resolvo`, or `libmamba` (alias for `libsolv`).";
                            throw std::runtime_error("Aborting.");
                        }
                    ));

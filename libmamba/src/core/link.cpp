@@ -44,14 +44,15 @@ namespace mamba
 {
     namespace
     {
+        using namespace std::literals::string_view_literals;
+
         const std::regex MENU_PATH_REGEX("^menu[/\\\\].*\\.json$", std::regex_constants::icase);
 
         const std::regex
             python_identifier_chain_regex(R"(^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$)");
 
         constexpr std::array forbidden_entry_point_command_substrings = {
-            std::string_view("/"),  std::string_view("\\"), std::string_view("\n"),
-            std::string_view("\r"), std::string_view("\t"), std::string_view(" "),
+            "/"sv, "\\"sv, "\n"sv, "\r"sv, "\t"sv, " "sv,
         };
 
         auto check_python_identifier_chain(std::string_view value, std::string_view field_name)

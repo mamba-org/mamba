@@ -880,4 +880,17 @@ namespace mamba
         return std::nullopt;
     }
 
+    std::vector<std::string> read_explicit_urls(const fs::u8path& path)
+    {
+        std::vector<std::string> urls;
+        for (const auto& line : read_lines(path))
+        {
+            if (line.starts_with("http://") || line.starts_with("https://"))
+            {
+                urls.push_back(line);
+            }
+        }
+        return urls;
+    }
+
 }

@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/specs/version.hpp"
 
@@ -76,6 +77,11 @@ namespace mamba
      * Only extracts exact name matches (no version constraints).
      */
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
+
+    /**
+     * Read http(s) URLs from a text file (one URL per line).
+     */
+    std::vector<std::string> read_explicit_urls(const fs::u8path& path);
 
     /**
      * Extract exact package names from matchspec strings.

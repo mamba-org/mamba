@@ -510,77 +510,12 @@ namespace mamba
         }
 
         /**
-         * Extend ``root_packages`` with dependency (and constrain) names reachable from current
-         * roots via repos loaded from full repodata (e.g. labels without shards), using a name BFS
-         * so the whole subdir is not scanned. Feeds shard BFS on sharded channels (e.g.
-         * conda-forge). For example, ``conda-forge/label/mamba_prerelease`` has no
-         * ``repodata_shards`` on anaconda.org while main ``conda-forge`` is sharded; prerelease
-         * ``mamba`` / ``libmamba`` there may depend on e.g. ``libmsgpack-c`` resolved from shards,
-         * which roots like ``mamba`` alone would not reach without this pass.
-         */
-        void expand_shard_root_packages_from_full_repodata_repos(
-            const solver::libsolv::Database& database,
-            const std::vector<solver::libsolv::RepoInfo>& full_repos,
-            std::vector<std::string>& root_packages
-        )
-        {
-            std::unordered_map<std::string, std::vector<specs::PackageInfo>> packages_by_name;
-            for (const auto& repo : full_repos)
-            {
-                database.for_each_package_in_repo(
-                    repo,
-                    [&](const specs::PackageInfo& pkg) { packages_by_name[pkg.name].push_back(pkg); }
-                );
-            }
-
-            std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
-            std::vector<std::string> frontier(root_packages.begin(), root_packages.end());
-            auto add_from_spec = [&](const std::string& dep_str)
-            {
-                if (auto name = specs::MatchSpec::extract_name(dep_str))
-                {
-                    if (!name->empty() && *name != "*")
-                    {
-                        if (seen.insert(*name).second)
-                        {
-                            frontier.push_back(*name);
-                            root_packages.push_back(*name);
-                        }
-                    }
-                }
-            };
-
-            while (!frontier.empty())
-            {
-                const std::string pkg_name = std::move(frontier.back());
-                frontier.pop_back();
-
-                const auto records_it = packages_by_name.find(pkg_name);
-                if (records_it == packages_by_name.end())
-                {
-                    continue;
-                }
-
-                for (const auto& pkg : records_it->second)
-                {
-                    for (const auto& dep : pkg.dependencies)
-                    {
-                        add_from_spec(dep);
-                    }
-                    for (const auto& c : pkg.constrains)
-                    {
-                        add_from_spec(c);
-                    }
-                }
-            }
-        }
-
-        /**
          * Load all subdirs into the database, with a single retry on cache corruption.
          *
-         * When sharded repodata is enabled with non-empty ``root_packages``, subdirs that load from
-         * full repodata (no shard index) run first; roots are expanded from those repos so shard
-         * loads on other channels stay complete. Otherwise a single pass is used.
+         * When sharded repodata is enabled with non-empty ``root_packages`` and at least one
+         * subdir has a shard index, subdirs that load from full repodata (no shard index) run
+         * first; roots are expanded from those repos so shard loads on other channels stay
+         * complete. Otherwise a single pass is used.
          *
          * For each `SubdirIndexLoader`, this:
          *   - skips subdirs already loaded via shards,
@@ -606,7 +541,12 @@ namespace mamba
         {
             std::set<std::string> loaded_subdirs_with_shards;
             bool loading_failed = false;
-            const bool shard_then_expand = ctx.use_sharded_repodata && !root_packages.empty();
+            const bool shard_then_expand = should_shard_then_expand_roots(
+                ctx.use_sharded_repodata,
+                root_packages,
+                subdirs,
+                ctx.repodata_shards_ttl
+            );
             std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
             bool used_flat_repodata = false;
             std::optional<std::chrono::steady_clock::time_point> flat_repodata_started_at;
@@ -1129,6 +1069,82 @@ namespace mamba
             for (const specs::Channel& channel : channel_context.make_channel(pkg_info.channel))
             {
                 create_mirrors(channel, context.mirrors);
+            }
+        }
+    }
+
+    auto should_shard_then_expand_roots(
+        bool use_sharded_repodata,
+        const std::vector<std::string>& root_packages,
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool
+    {
+        if (!use_sharded_repodata || root_packages.empty())
+        {
+            return false;
+        }
+        return std::any_of(
+            subdirs.begin(),
+            subdirs.end(),
+            [&](const SubdirIndexLoader& s)
+            { return s.metadata().has_up_to_date_shards(repodata_shards_ttl); }
+        );
+    }
+
+    void expand_shard_root_packages_from_full_repodata_repos(
+        const solver::libsolv::Database& database,
+        const std::vector<solver::libsolv::RepoInfo>& full_repos,
+        std::vector<std::string>& root_packages
+    )
+    {
+        std::unordered_map<std::string, std::vector<specs::PackageInfo>> packages_by_name;
+        for (const auto& repo : full_repos)
+        {
+            database.for_each_package_in_repo(
+                repo,
+                [&](const specs::PackageInfo& pkg) { packages_by_name[pkg.name].push_back(pkg); }
+            );
+        }
+
+        std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+        std::vector<std::string> frontier(root_packages.begin(), root_packages.end());
+        auto add_from_spec = [&](const std::string& dep_str)
+        {
+            if (auto name = specs::MatchSpec::extract_name(dep_str))
+            {
+                if (!name->empty() && *name != "*")
+                {
+                    if (seen.insert(*name).second)
+                    {
+                        frontier.push_back(*name);
+                        root_packages.push_back(*name);
+                    }
+                }
+            }
+        };
+
+        while (!frontier.empty())
+        {
+            const std::string pkg_name = std::move(frontier.back());
+            frontier.pop_back();
+
+            const auto records_it = packages_by_name.find(pkg_name);
+            if (records_it == packages_by_name.end())
+            {
+                continue;
+            }
+
+            for (const auto& pkg : records_it->second)
+            {
+                for (const auto& dep : pkg.dependencies)
+                {
+                    add_from_spec(dep);
+                }
+                for (const auto& c : pkg.constrains)
+                {
+                    add_from_spec(c);
+                }
             }
         }
     }

@@ -281,6 +281,9 @@ namespace mamba::util
     template bool starts_with_any(std::string_view, const std::vector<std::string>&);
     template bool starts_with_any(std::string_view, const std::vector<std::string_view>&);
 
+    template bool contains_any(std::string_view, const std::vector<std::string>&);
+    template bool contains_any(std::string_view, const std::vector<std::string_view>&);
+
     /******************************************************
      *  Implementation of remove prefix/suffix functions  *
      ******************************************************/

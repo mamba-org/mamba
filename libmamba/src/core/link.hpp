@@ -12,6 +12,7 @@
 #include <tuple>
 #include <vector>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -49,6 +50,9 @@ namespace mamba
     {
         std::string command, module, func;
     };
+
+    /** Parse and validate a noarch:python entry point (``command = module:func``). */
+    auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>;
 
     class UnlinkPackage
     {

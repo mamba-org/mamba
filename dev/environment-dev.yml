@@ -20,7 +20,7 @@ dependencies:
   - libarchive>=3.8 lgpl_*
   - libcurl >=7.86
   - libsodium
-  - resolvo-cpp==0.1.0
+  - resolvo-cpp==0.3.0
   - libsolv >=0.7.18
   - libmsgpack-c
   - nlohmann_json

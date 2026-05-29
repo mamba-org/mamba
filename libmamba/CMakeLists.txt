@@ -504,11 +504,11 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp ${MSGPACK_TARGET}
+            PUBLIC
+                fmt::fmt-header-only yaml-cpp::yaml-cpp ${MSGPACK_TARGET} simdjson::simdjson_static
             PRIVATE
                 reproc
                 reproc++
-                simdjson::simdjson_static
                 solv::libsolv_static
                 solv::libsolvext_static
                 solv::cpp
@@ -670,7 +670,12 @@ macro(libmamba_create_target target_name linkage output_name)
         target_link_libraries(
             ${target_name}
             PUBLIC
-                ${LIBSOLV_LIBRARIES} ${LIBSOLVEXT_LIBRARIES} yaml-cpp::yaml-cpp fmt::fmt msgpack-c
+                ${LIBSOLV_LIBRARIES}
+                ${LIBSOLVEXT_LIBRARIES}
+                yaml-cpp::yaml-cpp
+                fmt::fmt
+                msgpack-c
+                simdjson::simdjson
             PRIVATE
                 ${LibArchive_LIBRARIES}
                 ${CURL_LIBRARIES}
@@ -678,7 +683,6 @@ macro(libmamba_create_target target_name linkage output_name)
                 BZip2::BZip2
                 reproc
                 reproc++
-                simdjson::simdjson
                 zstd::libzstd_shared
                 solv::libsolv
                 solv::libsolvext

@@ -98,12 +98,16 @@ namespace mamba
         // TODO do we need to do something with `shell_prefix -> root_prefix?`?
         if (ctx.output_params.json)
         {
-            Console::instance().set_json_output(
-                { .to_assign{ { "/operation"_json_pointer, "shell_hook" },
-                              { "/context/shell_type"_json_pointer, shell_type },
-                              { "/actions/print"_json_pointer, activator->hook(shell_type) } },
-                  .set_success = true }
-            );
+            // clang-format off
+            Console::instance().set_json_output({ 
+                .to_assign{ 
+                    { "/operation"_json_pointer, "shell_hook" },
+                    { "/context/shell_type"_json_pointer, shell_type },
+                    { "/actions/print"_json_pointer, activator->hook(shell_type) } 
+                },
+                .set_success = true 
+            });
+            // clang-format on
         }
         else
         {

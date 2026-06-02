@@ -222,10 +222,13 @@ namespace mamba
         // if no action required, don't even start logging them
         if (!empty())
         {
-            Console::instance().set_json_output(
-                { .to_assign{
-                    { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() } } }
-            );
+            // clang-format off
+            Console::instance().set_json_output({ 
+                .to_assign{
+                    { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() } 
+                } 
+            });
+            // clang-format on
         }
 
         std::tie(
@@ -284,11 +287,13 @@ namespace mamba
         // if no action required, don't even start logging them
         if (!empty())
         {
-            Console::instance().set_json_output(
-                { .to_assign{
+            // clang-format off
+            Console::instance().set_json_output({ 
+                .to_assign{
                     { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() },
-                } }
-            );
+                }
+             });
+            // clang-format on
         }
     }
 
@@ -373,16 +378,23 @@ namespace mamba
         // failure.
         Console::JSonFailureOnException fail_json_on_exception;
 
-        Console::instance().set_json_output(
-            { .to_assign{ { "/dry_run"_json_pointer, ctx.dry_run },
-                          { "/prefix"_json_pointer, ctx.prefix_params.target_prefix.string() } } }
-        );
+        // clang-format off
+        Console::instance().set_json_output({ 
+            .to_assign{ 
+                { "/dry_run"_json_pointer, ctx.dry_run },
+                { "/prefix"_json_pointer, ctx.prefix_params.target_prefix.string() } 
+            } 
+        });
+
         if (empty())
         {
-            Console::instance().set_json_output(
-                { .to_assign{ { "/message"_json_pointer, "All requested packages already installed" } } }
-            );
+            Console::instance().set_json_output({ 
+                .to_assign{ 
+                    { "/message"_json_pointer, "All requested packages already installed" } 
+                } 
+            });
         }
+        // clang-format on
 
         if (ctx.dry_run)
         {

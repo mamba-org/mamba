@@ -393,7 +393,7 @@ namespace mamba
 
     void Console::print_in_place(std::string_view str, bool finalize, bool force_print)
     {
-        if (force_print or !(context().output_params.quiet or context().output_params.json))
+        if (force_print or not (context().output_params.quiet or context().output_params.json))
         {
             auto synched_data = p_data->m_synched_data.synchronize();
 

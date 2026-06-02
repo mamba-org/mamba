@@ -711,10 +711,14 @@ namespace mamba
     {
         if (json_output)
         {
-            Console::instance().set_json_output(
-                { .to_assign{ { "/solver_problems"_json_pointer, unsolvable.problems(db) } },
-                  .set_success = false }
-            );
+            // clang-format off
+            Console::instance().set_json_output({ 
+                .to_assign{ 
+                    { "/solver_problems"_json_pointer, unsolvable.problems(db) } 
+                },
+                .set_success = false 
+            });
+            // clang-format on
         }
     }
 

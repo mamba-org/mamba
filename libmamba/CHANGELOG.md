@@ -1,3 +1,24 @@
+## libmamba 2.7.0 (June 02, 2026)
+
+Bug fixes:
+
+- fix: Harden `noarch:python` entry point linking by @jjerphan in <https://github.com/mamba-org/mamba/pull/4282>
+- fix: Guard Root Packages' Expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4283>
+- fix: Adapt root packages expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4298>
+- fix: Populate `python_site_packages_path` independently from host by @jjerphan in <https://github.com/mamba-org/mamba/pull/4288>
+- Fallback to flat cache dir if missing hierarchical by @Hind-M in <https://github.com/mamba-org/mamba/pull/4290>
+- fix: Adapt `noarch` unlink path normalization for conda interoperability by @jjerphan in <https://github.com/mamba-org/mamba/pull/4259>
+
+CI fixes and doc:
+
+- ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- maint: Use dependencies from conda-forge for Windows micromamba build by @jjerphan in <https://github.com/mamba-org/mamba/pull/4293>
+- maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
 ## libmamba 2.7.0.alpha0 (May 29, 2026)
 
 Bug fixes:

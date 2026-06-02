@@ -1,3 +1,21 @@
+## micromamba 2.7.0 (June 02, 2026)
+
+Bug fixes:
+
+- fix: Adapt root packages expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4298>
+- fix: Populate `python_site_packages_path` independently from host by @jjerphan in <https://github.com/mamba-org/mamba/pull/4288>
+- fix: Adapt `noarch` unlink path normalization for conda interoperability by @jjerphan in <https://github.com/mamba-org/mamba/pull/4259>
+
+CI fixes and doc:
+
+- ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- Increase test timeout by @Hind-M in <https://github.com/mamba-org/mamba/pull/4294>
+- maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
 ## micromamba 2.7.0.alpha0 (May 29, 2026)
 
 Bug fixes:

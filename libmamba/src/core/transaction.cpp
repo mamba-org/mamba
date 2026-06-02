@@ -224,10 +224,10 @@ namespace mamba
         if (!empty())
         {
             // clang-format off
-            Console::instance().set_json_output({ 
+            Console::instance().set_json_output({
                 .to_assign{
-                    { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() } 
-                } 
+                    { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() }
+                }
             });
             // clang-format on
         }
@@ -289,7 +289,7 @@ namespace mamba
         if (!empty())
         {
             // clang-format off
-            Console::instance().set_json_output({ 
+            Console::instance().set_json_output({
                 .to_assign{
                     { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() },
                 }
@@ -486,19 +486,19 @@ namespace mamba
         Console::JSonFailureOnException fail_json_on_exception;
 
         // clang-format off
-        Console::instance().set_json_output({ 
-            .to_assign{ 
+        Console::instance().set_json_output({
+            .to_assign{
                 { "/dry_run"_json_pointer, ctx.dry_run },
-                { "/prefix"_json_pointer, ctx.prefix_params.target_prefix.string() } 
-            } 
+                { "/prefix"_json_pointer, ctx.prefix_params.target_prefix.string() }
+            }
         });
 
         if (empty())
         {
-            Console::instance().set_json_output({ 
-                .to_assign{ 
-                    { "/message"_json_pointer, "All requested packages already installed" } 
-                } 
+            Console::instance().set_json_output({
+                .to_assign{
+                    { "/message"_json_pointer, "All requested packages already installed" }
+                }
             });
         }
         // clang-format on

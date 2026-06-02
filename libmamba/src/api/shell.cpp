@@ -99,13 +99,13 @@ namespace mamba
         if (ctx.output_params.json)
         {
             // clang-format off
-            Console::instance().set_json_output({ 
-                .to_assign{ 
+            Console::instance().set_json_output({
+                .to_assign{
                     { "/operation"_json_pointer, "shell_hook" },
                     { "/context/shell_type"_json_pointer, shell_type },
-                    { "/actions/print"_json_pointer, activator->hook(shell_type) } 
+                    { "/actions/print"_json_pointer, activator->hook(shell_type) }
                 },
-                .set_success = true 
+                .set_success = true
             });
             // clang-format on
         }

@@ -99,6 +99,7 @@ set(
     src/core/test_filesystem.cpp
     src/core/test_history.cpp
     src/core/test_invoke.cpp
+    src/core/test_link_entry_points.cpp
     src/core/test_lockfile.cpp
     src/core/test_output.cpp
     src/core/test_package_cache.cpp

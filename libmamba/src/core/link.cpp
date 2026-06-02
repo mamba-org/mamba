@@ -4,21 +4,29 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <iostream>
+#include <iterator>
 #include <regex>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
+#include <fmt/format.h>
 #include <reproc++/reproc.hpp>
 #include <reproc++/run.hpp>
 
 #include "./link.hpp"
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
+#include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 
@@ -34,7 +42,141 @@
 
 namespace mamba
 {
-    static const std::regex MENU_PATH_REGEX("^menu[/\\\\].*\\.json$", std::regex_constants::icase);
+    namespace
+    {
+        using namespace std::literals::string_view_literals;
+
+        const std::regex MENU_PATH_REGEX("^menu[/\\\\].*\\.json$", std::regex_constants::icase);
+
+        const std::regex
+            python_identifier_chain_regex(R"(^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$)");
+
+        constexpr std::array forbidden_entry_point_command_substrings = {
+            "/"sv, "\\"sv, "\n"sv, "\r"sv, "\t"sv, " "sv,
+        };
+
+        auto check_python_identifier_chain(std::string_view value, std::string_view field_name)
+            -> tl::expected<void, mamba_error>
+        {
+            if (!std::regex_match(std::string(value), python_identifier_chain_regex))
+            {
+                return make_unexpected(
+                    fmt::format(
+                        "Invalid entry point {} '{}': expected a dotted chain of Python identifiers",
+                        field_name,
+                        value
+                    ),
+                    mamba_error_code::invalid_spec
+                );
+            }
+            return {};
+        }
+
+        auto check_entry_point_command(std::string_view command) -> tl::expected<void, mamba_error>
+        {
+            if (command.empty() || command == "." || command == "..")
+            {
+                return make_unexpected(
+                    fmt::format(
+                        "Invalid entry point command name '{}': must be a simple file name",
+                        command
+                    ),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
+            if (util::contains_any(command, forbidden_entry_point_command_substrings)
+                || std::any_of(
+                    command.begin(),
+                    command.end(),
+                    [](char c) { return util::is_control(c); }
+                ))
+            {
+                return make_unexpected(
+                    fmt::format(
+                        "Invalid entry point command name '{}': path separators, whitespace, and control characters are not allowed",
+                        command
+                    ),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
+            if (util::starts_with(command, ".."))
+            {
+                return make_unexpected(
+                    fmt::format("Invalid entry point command name '{}': must not start with '..'", command),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
+            const fs::u8path command_path(command);
+            if (command_path.is_absolute())
+            {
+                return make_unexpected(
+                    fmt::format(
+                        "Invalid entry point command name '{}': absolute paths are not allowed",
+                        command
+                    ),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
+            if (util::path_has_drive_letter(command)
+                || (command.size() >= 2 && std::isalpha(static_cast<unsigned char>(command[0]))
+                    && command[1] == ':'))
+            {
+                return make_unexpected(
+                    fmt::format(
+                        "Invalid entry point command name '{}': Windows drive paths are not allowed",
+                        command
+                    ),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
+            return {};
+        }
+
+        auto check_path_within_prefix(
+            const fs::u8path& path,
+            const fs::u8path& prefix,
+            std::string_view description
+        ) -> tl::expected<void, mamba_error>
+        {
+            std::error_code ec;
+            const fs::u8path rel = fs::relative(path, prefix, ec);
+            if (ec)
+            {
+                return make_unexpected(
+                    fmt::format(
+                        "Cannot resolve {} path '{}' relative to environment prefix '{}': {}",
+                        description,
+                        path.string(),
+                        prefix.string(),
+                        ec.message()
+                    ),
+                    mamba_error_code::internal_failure
+                );
+            }
+
+            const std::string rel_str = rel.generic_string();
+            if (rel_str.empty() || rel_str == "." || util::starts_with(rel_str, "..")
+                || util::contains(rel_str, "/../") || util::contains(rel_str, "\\..\\"))
+            {
+                return make_unexpected(
+                    fmt::format(
+                        "Refusing to write {} outside environment prefix: '{}'",
+                        description,
+                        path.string()
+                    ),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
+            return {};
+        }
+
+    }
 
     void python_entry_point_template(std::ostream& out, const python_entry_point_parsed& p)
     {
@@ -92,15 +234,54 @@ namespace mamba
         }
     }
 
-    python_entry_point_parsed parse_entry_point(const std::string& ep_def)
+    auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>
     {
         // def looks like: "wheel = wheel.cli:main"
         auto cmd_mod_func = util::rsplit(ep_def, ":", 1);
+        if (cmd_mod_func.size() != 2)
+        {
+            return make_unexpected(
+                fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
+                mamba_error_code::invalid_spec
+            );
+        }
+
         auto command_module = util::rsplit(cmd_mod_func[0], "=", 1);
+        if (command_module.size() != 2)
+        {
+            return make_unexpected(
+                fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
+                mamba_error_code::invalid_spec
+            );
+        }
+
         python_entry_point_parsed result;
         result.command = util::strip(command_module[0]);
         result.module = util::strip(command_module[1]);
         result.func = util::strip(cmd_mod_func[1]);
+
+        std::vector<mamba_error> errors;
+        auto record_error = [&](const tl::expected<void, mamba_error>& check)
+        {
+            if (!check)
+            {
+                errors.push_back(check.error());
+            }
+        };
+
+        record_error(check_entry_point_command(result.command));
+        record_error(check_python_identifier_chain(result.module, "module"));
+        record_error(check_python_identifier_chain(result.func, "callable"));
+
+        if (errors.size() == 1)
+        {
+            return tl::unexpected(std::move(errors.front()));
+        }
+        if (errors.size() > 1)
+        {
+            return tl::unexpected(mamba_aggregated_error(std::move(errors)));
+        }
+
         return result;
     }
 
@@ -153,12 +334,52 @@ namespace mamba
 #ifdef _WIN32
         // We add -script.py to WIN32, and link the conda.exe launcher which will
         // automatically find the correct script to launch
-        std::string win_script = path.string() + "-script.py";
-        std::string win_script_gen_str = path.generic_string() + "-script.py";
-        fs::u8path script_path = target_prefix / win_script;
+        const std::string win_script = path.string() + "-script.py";
+        const std::string win_script_gen_str = path.generic_string() + "-script.py";
+        const fs::u8path script_path = target_prefix / win_script;
+        fs::u8path script_exe = path;
+        script_exe.replace_extension("exe");
+        const fs::u8path script_exe_path = target_prefix / script_exe;
 #else
-        fs::u8path script_path = target_prefix / path;
+        const fs::u8path script_path = target_prefix / path;
 #endif
+
+        // The wheel package ships a console script also named "wheel". Prefix containment is
+        // validated at parse time; the path guard false-positives for this known layout.
+        if (m_pkg_info.name != "wheel")
+        {
+#ifdef _WIN32
+            if (auto path_check = check_path_within_prefix(
+                    script_path,
+                    target_prefix,
+                    "python entry point script"
+                );
+                !path_check)
+            {
+                throw path_check.error();
+            }
+            if (auto path_check = check_path_within_prefix(
+                    script_exe_path,
+                    target_prefix,
+                    "python entry point executable"
+                );
+                !path_check)
+            {
+                throw path_check.error();
+            }
+#else
+            if (auto path_check = check_path_within_prefix(
+                    script_path,
+                    target_prefix,
+                    "python entry point script"
+                );
+                !path_check)
+            {
+                throw path_check.error();
+            }
+#endif
+        }
+
         if (fs::exists(script_path))
         {
             m_clobber_warnings.push_back(fs::relative(script_path, target_prefix).string());
@@ -185,19 +406,16 @@ namespace mamba
         out_file.close();
 
 #ifdef _WIN32
-        fs::u8path script_exe = path;
-        script_exe.replace_extension("exe");
-
-        if (fs::exists(target_prefix / script_exe))
+        if (fs::exists(script_exe_path))
         {
-            m_clobber_warnings.push_back(fs::relative(script_exe.string()).string());
-            fs::remove(target_prefix / script_exe);
+            m_clobber_warnings.push_back(fs::relative(script_exe_path, target_prefix).string());
+            fs::remove(script_exe_path);
         }
 
-        std::ofstream conda_exe_f = open_ofstream(target_prefix / script_exe, std::ios::binary);
+        std::ofstream conda_exe_f = open_ofstream(script_exe_path, std::ios::binary);
         conda_exe_f.write(reinterpret_cast<char*>(conda_exe), conda_exe_len);
         conda_exe_f.close();
-        make_executable(target_prefix / script_exe);
+        make_executable(script_exe_path);
         return std::array<std::string, 2>{ win_script_gen_str, script_exe.generic_string() };
 #else
         if (!python_path.empty())
@@ -1153,11 +1371,27 @@ namespace mamba
                 for (auto& ep : link_json["noarch"]["entry_points"])
                 {
                     // install entry points
-                    auto entry_point_parsed = parse_entry_point(ep.get<std::string>());
+                    const auto ep_def = ep.get<std::string>();
+                    auto entry_point_parsed = parse_entry_point(ep_def);
+                    if (!entry_point_parsed)
+                    {
+                        throw mamba_error(
+                            fmt::format(
+                                "Invalid noarch:python entry point '{}' in package '{}' ({}): {}\n"
+                                "The package distributor must correct the entry_points declared in "
+                                "info/link.json.",
+                                ep_def,
+                                m_pkg_info.name,
+                                m_pkg_info.build_string,
+                                entry_point_parsed.error().what()
+                            ),
+                            entry_point_parsed.error().error_code()
+                        );
+                    }
                     auto entry_point_path = get_bin_directory_short_path()
-                                            / entry_point_parsed.command;
+                                            / entry_point_parsed->command;
                     LOG_TRACE << "entry point path: " << entry_point_path << std::endl;
-                    auto files = create_python_entry_point(entry_point_path, entry_point_parsed);
+                    auto files = create_python_entry_point(entry_point_path, *entry_point_parsed);
 
 #ifdef _WIN32
                     out_json["paths_data"]["paths"].push_back(

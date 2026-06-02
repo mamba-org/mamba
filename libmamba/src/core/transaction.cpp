@@ -23,6 +23,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
 #include "mamba/core/env_lockfile.hpp"
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
@@ -371,6 +372,112 @@ namespace mamba
         std::stack<LinkPackage> m_link_stack;
     };
 
+    namespace
+    {
+        [[noreturn]] void rethrow_transaction_cancelled_after_rollback(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase,
+            std::string_view cause_message,
+            mamba_error_code error_code
+        )
+        {
+            rollback.rollback(ctx);
+
+            throw mamba_error(
+                fmt::format(
+                    "Transaction cancelled while {} package '{}' ({}).\n"
+                    "{}\n"
+                    "All changes from this transaction have been rolled back.",
+                    phase,
+                    pkg.name,
+                    pkg.build_string,
+                    cause_message
+                ),
+                error_code
+            );
+        }
+
+        [[noreturn]] void rethrow_transaction_cancelled_after_rollback(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase,
+            const mamba_error& cause
+        )
+        {
+            rethrow_transaction_cancelled_after_rollback(
+                rollback,
+                ctx,
+                pkg,
+                phase,
+                cause.what(),
+                cause.error_code()
+            );
+        }
+
+        [[noreturn]] void rethrow_transaction_cancelled_after_rollback(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase,
+            const std::exception& cause
+        )
+        {
+            rethrow_transaction_cancelled_after_rollback(
+                rollback,
+                ctx,
+                pkg,
+                phase,
+                cause.what(),
+                mamba_error_code::internal_failure
+            );
+        }
+
+        [[noreturn]] void rethrow_transaction_cancelled_after_rollback(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase
+        )
+        {
+            rethrow_transaction_cancelled_after_rollback(
+                rollback,
+                ctx,
+                pkg,
+                phase,
+                "An unknown error occurred.",
+                mamba_error_code::internal_failure
+            );
+        }
+
+        [[noreturn]] void handle_unexpected_package_execute_exception(
+            TransactionRollback& rollback,
+            const Context& ctx,
+            const specs::PackageInfo& pkg,
+            std::string_view phase
+        )
+        {
+            try
+            {
+                throw;
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR << "Unexpected error while " << phase << " package '" << pkg.name
+                          << "': " << e.what();
+                rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, phase, e);
+            }
+            catch (...)
+            {
+                LOG_ERROR << "Unexpected non-standard exception while " << phase << " package '"
+                          << pkg.name << "'";
+                rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, phase);
+            }
+        }
+    }
+
     bool
     MTransaction::execute(const Context& ctx, ChannelContext& channel_context, PrefixData& prefix)
     {
@@ -622,7 +729,18 @@ namespace mamba
                 Console::stream() << "Unlinking " << pkg.str();
                 const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg));
                 UnlinkPackage up(pkg, cache_path, &transaction_context);
-                up.execute();
+                try
+                {
+                    up.execute();
+                }
+                catch (const mamba_error& e)
+                {
+                    rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, "unlinking", e);
+                }
+                catch (...)
+                {
+                    handle_unexpected_package_execute_exception(rollback, ctx, pkg, "unlinking");
+                }
                 rollback.record(up);
             }
             m_history_entry.unlink_dists.push_back(pkg.long_str());
@@ -655,7 +773,18 @@ namespace mamba
             Console::stream() << "Linking " << pkg.str();
             const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
             LinkPackage lp(pkg, cache_path, &transaction_context);
-            lp.execute();
+            try
+            {
+                lp.execute();
+            }
+            catch (const mamba_error& e)
+            {
+                rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, "linking", e);
+            }
+            catch (...)
+            {
+                handle_unexpected_package_execute_exception(rollback, ctx, pkg, "linking");
+            }
             rollback.record(lp);
             m_history_entry.link_dists.push_back(pkg.long_str());
         }

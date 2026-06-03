@@ -179,11 +179,11 @@ namespace mamba
         if (auto list = not_found.str(); !list.empty())
         {
             LOG_ERROR << "Could not find packages to remove:" << list << '\n';
-            Console::instance().json_write({ { "success", false } });
+            Console::instance().set_json_output_success(false);
             throw std::runtime_error("Could not find packages to remove:" + list);
         }
 
-        Console::instance().json_write({ { "success", true } });
+        Console::instance().set_json_output_success(true);
 
         m_requested_specs.reserve(pkgs_to_install.size());
         std::transform(
@@ -223,8 +223,13 @@ namespace mamba
         // if no action required, don't even start logging them
         if (!empty())
         {
-            Console::instance().json_down("actions");
-            Console::instance().json_write({ { "PREFIX", ctx.prefix_params.target_prefix.string() } });
+            // clang-format off
+            Console::instance().set_json_output({
+                .to_assign{
+                    { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() }
+                }
+            });
+            // clang-format on
         }
 
         std::tie(
@@ -283,12 +288,13 @@ namespace mamba
         // if no action required, don't even start logging them
         if (!empty())
         {
-            Console::instance().json_down("actions");
-            Console::instance().json_write(
-                {
-                    { "PREFIX", ctx.prefix_params.target_prefix.string() },
+            // clang-format off
+            Console::instance().set_json_output({
+                .to_assign{
+                    { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix.string() },
                 }
-            );
+             });
+            // clang-format on
         }
     }
 
@@ -479,21 +485,23 @@ namespace mamba
         // failure.
         Console::JSonFailureOnException fail_json_on_exception;
 
-        // JSON output
-        // back to the top level if any action was required
-        if (!empty())
-        {
-            Console::instance().json_up();
-        }
-        Console::instance().json_write(
-            { { "dry_run", ctx.dry_run }, { "prefix", ctx.prefix_params.target_prefix.string() } }
-        );
+        // clang-format off
+        Console::instance().set_json_output({
+            .to_assign{
+                { "/dry_run"_json_pointer, ctx.dry_run },
+                { "/prefix"_json_pointer, ctx.prefix_params.target_prefix.string() }
+            }
+        });
+
         if (empty())
         {
-            Console::instance().json_write(
-                { { "message", "All requested packages already installed" } }
-            );
+            Console::instance().set_json_output({
+                .to_assign{
+                    { "/message"_json_pointer, "All requested packages already installed" }
+                }
+            });
         }
+        // clang-format on
 
         if (ctx.dry_run)
         {
@@ -852,12 +860,8 @@ namespace mamba
         {
             if (!jlist.empty())
             {
-                Console::instance().json_down(s);
-                for (nl::json j : jlist)
-                {
-                    Console::instance().json_append(j);
-                }
-                Console::instance().json_up();
+                auto json_location = nlohmann::json::json_pointer{ fmt::format("/actions/{}", s) };
+                Console::instance().set_json_output({ .to_assign{ { json_location, jlist } } });
             }
         };
 

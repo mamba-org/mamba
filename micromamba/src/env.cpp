@@ -340,7 +340,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                         std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
                     )
                 );
-                mamba::Console::instance().json_write({ { "success", true } });
+                mamba::Console::instance().set_json_output_success(true);
             }
             else
             {

@@ -79,13 +79,14 @@ namespace mamba
         template <typename T>
         void info_json_print(const T& items)
         {
-            std::map<std::string, nlohmann::json> items_map;
+            JSONEdit json_edit;
             for (const auto& [key, val] : items)
             {
-                items_map.insert({ key, val });
+                const nlohmann::json::json_pointer json_location{ fmt::format("/{}", key) };
+                json_edit.to_assign.push_back({ json_location, val });
             }
 
-            Console::instance().json_write(items_map);
+            Console::instance().set_json_output(std::move(json_edit));
         }
 
         void

@@ -182,7 +182,7 @@ namespace mamba
                     );
                 }
 
-                Console::instance().json_write({ { "success", true } });
+                Console::instance().set_json_output_success(true);
                 auto transaction = make_transaction_from_solution(
                     ctx,
                     std::move(database),

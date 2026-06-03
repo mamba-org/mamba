@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
-#include <cctype>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
@@ -20,6 +19,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/graph.hpp"
 #include "mamba/util/string.hpp"
@@ -235,15 +235,6 @@ namespace mamba
             pip_environment_variables_kv.end()
         };
 
-        const auto trim_right = [](std::string s)
-        {
-            while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
-            {
-                s.pop_back();
-            }
-            return s;
-        };
-
         struct SitePackageInspectionResult
         {
             nlohmann::json parsed_json;
@@ -418,42 +409,9 @@ namespace mamba
             }
 
             // For `uv pip list --format json`, platform information is not included in the output.
-            // We therefore compute it from the prefix Python so generated PackageInfo records keep
-            // conda-like `platform` values (e.g. "linux-x86_64"), matching list JSON expectations.
-            //
-            // This extra subprocess is not needed for the `pip` path above because `pip inspect`
-            // already provides `environment.sys_platform` and `environment.platform_machine`.
-            const std::string platform = [&]
-            {
-                const auto platform_args = std::array<std::string, 4>{
-                    python_path,
-                    "-q",
-                    "-c",
-                    "import sys, platform; print(f'{sys.platform}-{platform.machine()}')"
-                };
-                std::string platform_out, platform_err;
-                reproc::options platform_run_options;
-                auto [status, ec] = reproc::run(
-                    platform_args,
-                    platform_run_options,
-                    reproc::sink::string(platform_out),
-                    reproc::sink::string(platform_err)
-                );
-                if (ec)
-                {
-                    throw mamba_error{
-                        fmt::format(
-                            "failed to compute platform using python command:\n  error: {}\n  command ran: {}\n-> output:\n{}\n\n-> error output:{}",
-                            ec.message(),
-                            fmt::join(platform_args, " "),
-                            platform_out,
-                            platform_err
-                        ),
-                        mamba_error_code::internal_failure
-                    };
-                }
-                return trim_right(platform_out);
-            }();
+            // Infer it natively from the running binary's build platform so this path works even
+            // when no Python executable is available in the target environment.
+            const std::string platform = std::string(specs::build_platform_name());
 
             for (const auto& package : inspection.packages)
             {

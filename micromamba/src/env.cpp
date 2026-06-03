@@ -194,27 +194,24 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
 
                 dependencies << (first_dependency_printed ? "\n" : "");
 
-                std::stringstream out;
-                out << "{\n";
 
-                out << "  \"channels\": [\n";
-                for (auto channel_it = channels.begin(); channel_it != channels.end(); ++channel_it)
-                {
-                    auto last_channel = std::next(channel_it) == channels.end();
-                    out << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",") << "\n";
-                }
-                out << "  ],\n";
 
-                out << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
 
-                out << "  \"name\": \""
-                    << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix) << "\",\n";
-                out << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
+                auto deps_json = nlohmann::json::parse(fmt::format("[ {} ]", dependencies.str()));
+                assert(deps_json.is_array());
 
-                out << "}\n";
+                // clang-format off
+                mamba::JSONEdit out_json{
+                    .to_assign = {
+                        { "/channels"_json_pointer , channels },
+                        { "/dependencies"_json_pointer , std::move(deps_json) },
+                        { "/name"_json_pointer, mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix) },
+                        { "/prefix"_json_pointer , ctx.prefix_params.target_prefix }
+                    }
+                };
+                mamba::Console::instance().set_json_output(std::move(out_json));
+                // clang-format on
 
-                const auto out_json = nlohmann::json::parse(out);
-                mamba::Console::instance().json_write(out_json);
             }
             else
             {
@@ -343,7 +340,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                         std::vector<std::string>({ "Environment removed at prefix: ", prefix.string() })
                     )
                 );
-                mamba::Console::instance().json_write({ { "success", true } });
+                mamba::Console::instance().set_json_output_success(true);
             }
             else
             {

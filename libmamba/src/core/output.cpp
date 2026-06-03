@@ -20,6 +20,7 @@
 
 #include "mamba/core/context.hpp"
 #include "mamba/core/execution.hpp"
+#include "mamba/core/invoke.hpp"
 #include "mamba/core/logging_tools.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/tasksync.hpp"
@@ -344,9 +345,10 @@ namespace mamba
 
         const Context& m_context;
 
-        std::string json_hier;
-        unsigned int json_index = 0;
-        nlohmann::json json_log;
+        nlohmann::json json_output;  // TODO: consider using a synchronized_value<json>
+        // THIS IS A CANARY TO DETECT CONCURRENT CALLS OF THESE JSON APIS
+        std::atomic<bool> is_editing_json_output{ false };
+
         bool is_json_print_cancelled = false;
 
         struct Data
@@ -359,6 +361,9 @@ namespace mamba
         util::synchronized_value<Data> m_synched_data;
 
         TaskSynchronizer m_tasksync;
+
+        template <std::invocable<nlohmann::json&> F>
+        void edit_json_output(F&& edit_func);
     };
 
     Console::Console(const Context& context)
@@ -383,7 +388,7 @@ namespace mamba
         // and empty json object as long as `--json` is used.
         if (context().output_params.json and not p_data->is_json_print_cancelled)
         {
-            this->json_print();
+            this->print_json_output();
         }
 
         clear_singleton();
@@ -417,7 +422,7 @@ namespace mamba
 
     void Console::print(std::string_view str, bool force_print)
     {
-        if (force_print || !(context().output_params.quiet || context().output_params.json))
+        if (force_print or not(context().output_params.quiet or context().output_params.json))
         {
             auto synched_data = p_data->m_synched_data.synchronize();
 
@@ -439,7 +444,7 @@ namespace mamba
 
     void Console::print_in_place(std::string_view str, bool finalize, bool force_print)
     {
-        if (force_print || !(context().output_params.quiet || context().output_params.json))
+        if (force_print or not(context().output_params.quiet or context().output_params.json))
         {
             auto synched_data = p_data->m_synched_data.synchronize();
 
@@ -592,72 +597,102 @@ namespace mamba
         return *(p_data->m_synched_data->progress_bar_manager);
     }
 
-    void Console::json_print()
+    void Console::print_json_output()
     {
         if (context().output_params.json and log_history_handler)
         {
             auto log_history = capture_log_history_as_json();
-            json_write({ { "log_history", std::move(log_history) } });
+            set_json_output({
+                .to_assign{
+                    {"/log_history"_json_pointer, std::move(log_history) }
+                }
+            });
         }
 
-        print(p_data->json_log.unflatten().dump(4), true);
+        print(p_data->json_output.dump(4), true);
     }
 
-    // write all the key/value pairs of a JSON object into the current entry, which
-    // is then a JSON object
-    void Console::json_write(const nlohmann::json& j)
+    template <std::invocable<nlohmann::json&> F>
+    void ConsoleData::edit_json_output(F&& edit_func)
     {
-        if (context().output_params.json)
+        bool already_editing = is_editing_json_output.exchange(true);
+        if (already_editing)
         {
-            nlohmann::json tmp = j.flatten();  // FIXME: flattening makes empty arrays 'null'
-            for (auto it = tmp.begin(); it != tmp.end(); ++it)
+            // TODO: print/report a stacktrace
+            LOG_ERROR << "json output concurrently edited by more than one thread - call ignored";
+            return;
+        }
+
+        auto _ = on_scope_exit([&] { is_editing_json_output = false; });
+
+        auto result = safe_invoke(std::move(edit_func), json_output);
+        if (not result)
+        {
+            LOG_ERROR << "json output edit failed: " << result.error().what();
+        }
+    }
+
+    void Console::edit_json_output(std::function<void(nlohmann::json&)> edit_func)
+    {
+        if (not context().output_params.json)
+        {
+            return;
+        }
+
+        p_data->edit_json_output(std::move(edit_func));
+    }
+
+    void Console::set_json_output_success(bool is_success)
+    {
+        if (not context().output_params.json)
+        {
+            return;
+        }
+
+        p_data->edit_json_output([=](auto& json_output) { json_output["success"] = is_success; });
+    }
+
+    void Console::set_json_output(JSONEdit edit)
+    {
+        if (not context().output_params.json)
+        {
+            return;
+        }
+
+        p_data->edit_json_output(
+            [&](auto& json_output)
             {
-                p_data->json_log[p_data->json_hier + it.key()] = it.value();
+                for (auto& [json_path, value] : edit.to_assign)
+                {
+                    json_output[json_path] = std::move(value);
+                }
             }
+        );
+        if (edit.set_success)
+        {
+            set_json_output_success(edit.set_success.value());
         }
     }
 
-    // append a value to the current entry, which is then a list
-    void Console::json_append(const std::string& value)
+    auto JSONEdit::from_json_object_members(nlohmann::json object) -> JSONEdit
     {
-        if (context().output_params.json)
+        if (not object.is_object())
         {
-            p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index)] = value;
-            p_data->json_index += 1;
+            throw mamba_error(
+                "from_json_object_members(json) json value is not an object, object is required",
+                mamba_error_code::incorrect_usage
+            );
         }
+
+        JSONEdit edit;
+        edit.to_assign.reserve(object.size());
+        for (auto&& [member_path, value] : object.items())
+        {
+            edit.to_assign.emplace_back(nlohmann::json::json_pointer{ member_path }, std::move(value));
+        }
+
+        return edit;
     }
 
-    // append a JSON object to the current entry, which is then a list
-    void Console::json_append(const nlohmann::json& j)
-    {
-        if (context().output_params.json)
-        {
-            nlohmann::json tmp = j.flatten();  // FIXME: flattening makes empty arrays 'null'
-            for (auto it = tmp.begin(); it != tmp.end(); ++it)
-            {
-                p_data->json_log[p_data->json_hier + '/' + std::to_string(p_data->json_index) + it.key()] = it.value();
-            }
-            p_data->json_index += 1;
-        }
-    }
-
-    // go down in the hierarchy in the "key" entry, create it if it doesn't exist
-    void Console::json_down(const std::string& key)
-    {
-        if (context().output_params.json)
-        {
-            p_data->json_hier += '/' + key;
-            p_data->json_index = 0;
-        }
-    }
-
-    // go up in the hierarchy
-    void Console::json_up()
-    {
-        if (context().output_params.json && !p_data->json_hier.empty())
-        {
-            p_data->json_hier.erase(p_data->json_hier.rfind('/'));
-        }
-    }
 
 }  // namespace mamba

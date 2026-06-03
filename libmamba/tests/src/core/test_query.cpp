@@ -285,3 +285,54 @@ TEST_CASE("QueryResult version sorting", "[mamba::core][mamba::core::query]")
         REQUIRE(versions[0] == expected_latest.value());
     }
 }
+
+// Regression: https://github.com/mamba-org/mamba/issues/4286
+TEST_CASE(
+    "Query::find python_site_packages_path respects package platform #4286",
+    "[mamba::core][mamba::core::query][regression][4286]"
+)
+{
+    auto& ctx = mambatests::context();
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    auto linux_python = mkpkg("python", "3.14.1", "h4724d56_1_cp313t", 1);
+    linux_python.python_site_packages_path = "lib/python3.13t/site-packages";
+
+    auto win_python = mkpkg("python", "3.14.1", "h7c1dbca_0_cp314t", 0);
+    win_python.platform = "win-64";
+    win_python.python_site_packages_path = "Lib/site-packages";
+    win_python.filename = "python-3.14.1-h7c1dbca_0_cp314t.conda";
+    win_python.package_url = fmt::format(
+        "https://conda.anaconda.org/{}/{}/{}",
+        win_python.channel,
+        win_python.platform,
+        win_python.filename
+    );
+
+    const std::vector<specs::PackageInfo> packages{ linux_python, win_python };
+    auto db = solver::libsolv::Database(channel_context.params());
+    db.add_repo_from_packages(packages, "test-repo");
+
+    SECTION("linux-64 search keeps unix repodata path on any host")
+    {
+        auto result = Query::find(db, { "python=3.14.1=h4724d56_1_cp313t" });
+        REQUIRE_FALSE(result.empty());
+
+        const auto json_output = result.json();
+        REQUIRE(json_output["result"]["pkgs"].size() == 1);
+        REQUIRE(
+            json_output["result"]["pkgs"][0]["python_site_packages_path"]
+            == "lib/python3.13t/site-packages"
+        );
+    }
+
+    SECTION("win-64 search keeps windows repodata path on any host")
+    {
+        auto result = Query::find(db, { "python=3.14.1=h7c1dbca_0_cp314t" });
+        REQUIRE_FALSE(result.empty());
+
+        const auto json_output = result.json();
+        REQUIRE(json_output["result"]["pkgs"].size() == 1);
+        REQUIRE(json_output["result"]["pkgs"][0]["python_site_packages_path"] == "Lib/site-packages");
+    }
+}

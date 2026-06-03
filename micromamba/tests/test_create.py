@@ -938,7 +938,7 @@ def test_clone_environment_with_many_packages(tmp_home, tmp_root_prefix, tmp_pat
 
 # Only run this test on Linux, as it is the only platform where xeus-cling
 # (which is part of the environment) is available.
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(20)
 @pytest.mark.skipif(platform.system() != "Linux", reason="Test only available on Linux")
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
@@ -1924,7 +1924,8 @@ def test_set_platform(tmp_home, tmp_root_prefix):
     "version,build,cache_tag",
     [
         ["3.10", "*_cpython", "cpython-310"],
-        # Free-threaded layout is lib/python3.13t/...; bytecode still uses cpython-313 (cache_tag).
+        # Free-threaded layout on Unix is lib/python3.13t/...; on Windows use Lib/site-packages.
+        # Bytecode still uses cpython-313 (cache_tag).
         ["3.13", "*_cp313t", "cpython-313"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],
@@ -1936,10 +1937,8 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     cmd = ["-n", env_name, f"python={version}.*={build}", "six"]
 
     if platform.system() == "Windows":
-        if build.endswith("t"):
-            site_packages = env_prefix / "lib" / f"python{version}t" / "site-packages"
-        else:
-            site_packages = env_prefix / "Lib" / "site-packages"
+        # Free-threaded Windows CPython uses Lib/site-packages (same as the GIL build).
+        site_packages = env_prefix / "Lib" / "site-packages"
         if version == "2.7":
             cmd += ["-c", "defaults"]  # for vc=9.*
     else:
@@ -2007,8 +2006,8 @@ def test_create_python_site_packages_path(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
 
     if platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
         assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory

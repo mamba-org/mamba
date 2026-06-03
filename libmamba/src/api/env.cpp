@@ -50,7 +50,6 @@ namespace mamba
 
             if (ctx.output_params.json)
             {
-                nlohmann::json res;
                 const auto pfxs = env_manager.list_all_known_prefixes();
                 std::vector<std::string> envs(pfxs.size());
                 std::transform(
@@ -59,8 +58,8 @@ namespace mamba
                     envs.begin(),
                     [](const mamba::fs::u8path& path) { return path.string(); }
                 );
-                res["envs"] = envs;
-                Console::instance().json_write(res);
+
+                Console::instance().set_json_output("/envs"_json_pointer, std::move(envs));
                 return;
             }
 
@@ -180,9 +179,7 @@ namespace mamba
 
         if (console.context().output_params.json)
         {
-            nlohmann::ordered_json j;
-            j["env_vars"] = env_vars;
-            Console::instance().json_write(j);
+            Console::instance().set_json_output("/env_vars"_json_pointer, env_vars);
             return;
         }
 

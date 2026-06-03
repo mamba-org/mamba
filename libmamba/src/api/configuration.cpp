@@ -1508,6 +1508,7 @@ namespace mamba
         insert(Configurable("use_sharded_repodata", &m_context.use_sharded_repodata)
                    .group("Repodata")
                    .set_rc_configurable()
+                   .set_env_var_names()
                    .description(
                        "Use sharded repodata when available for faster dependency resolution (default: true)"
                    ));
@@ -2793,7 +2794,7 @@ namespace mamba
         {
             // merge the output with existing json output
             auto dump_json = nlohmann::json::parse(dump_text);
-            Console::instance().json_write(dump_json);
+            Console::instance().set_json_output(JSONEdit::from_json_object_members(dump_json));
         }
         else
         {

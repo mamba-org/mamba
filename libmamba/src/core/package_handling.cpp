@@ -203,20 +203,9 @@ namespace mamba
         return r;
     }
 
-    bool path_has_prefix(const fs::u8path& path, const fs::u8path& prefix)
-    {
-        auto pair = std::mismatch(
-            path.std_path().begin(),
-            path.std_path().end(),
-            prefix.std_path().begin(),
-            prefix.std_path().end()
-        );
-        return pair.second == prefix.std_path().end();
-    }
-
     int order(const fs::u8path& path)
     {
-        int is_info = path_has_prefix(path, "info");
+        int is_info = fs::path_has_prefix(path, "info");
         return !is_info;
     }
 

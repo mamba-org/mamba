@@ -27,25 +27,15 @@
 #include "core/shard_python_minor_prefilter.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 #include "test_shard_utils.hpp"
 
 using namespace mamba;
 using namespace mambatests::shard_test_utils;
+using mambatests::make_simple_channel;
 
 namespace
 {
-    auto make_simple_channel(std::string_view chan) -> specs::Channel
-    {
-        const auto resolve_params = ChannelContext::ChannelResolveParams{
-            { "linux-64", "noarch" },
-            specs::CondaURL::parse("https://conda.anaconda.org").value()
-        };
-
-        return specs::Channel::resolve(specs::UnresolvedChannel::parse(chan).value(), resolve_params)
-            .value()
-            .front();
-    }
-
     auto create_shard_with_checksum(
         const std::string& package_name,
         const std::string& version,

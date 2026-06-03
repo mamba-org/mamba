@@ -205,7 +205,7 @@ namespace mamba
                         }
                     }
                 }
-                Console::instance().json_write({ { "packages", jout } });
+                Console::instance().set_json_output("/packages"_json_pointer, std::move(jout));
             }
             else
             {

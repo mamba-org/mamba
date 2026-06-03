@@ -14,6 +14,7 @@
 #include "mamba/core/util.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/environment.hpp"
 
 #include "mambatests.hpp"
@@ -133,6 +134,53 @@ namespace mamba
             // but we can verify the no_pip flag is respected)
             REQUIRE((prefix_data.records().empty() || prefix_data.pip_records().empty()));
         }
+    }
+
+    TEST_CASE("PrefixData: uv fallback works without python executable", "[core][prefix-interop]")
+    {
+        auto tmp_dir = TemporaryDirectory();
+        auto prefix_path = tmp_dir.path() / "prefix";
+        fs::create_directories(prefix_path / "conda-meta");
+#ifdef _WIN32
+        const auto uv_exe = prefix_path / "Scripts" / "uv.exe";
+        fs::create_directories(uv_exe.parent_path());
+#else
+        const auto uv_exe = prefix_path / "bin" / "uv";
+        fs::create_directories(uv_exe.parent_path());
+#endif
+
+        auto& ctx = mambatests::context();
+        auto channel_context = ChannelContext::make_simple(ctx);
+
+        // Mark uv as installed in the prefix, but do not install python.
+        auto uv_pkg_json = prefix_path / "conda-meta" / "uv-0.0.0-0.json";
+        {
+            auto out = open_ofstream(uv_pkg_json);
+            out << R"({
+                "name": "uv",
+                "version": "0.0.0",
+                "build_string": "0",
+                "channel": "conda-forge",
+                "platform": "linux-64"
+            })";
+        }
+
+        // Fake `uv`: copy the lock test helper (it recognizes `pip list --format json` and prints
+        // fixed JSON). On Windows this must be a real PE (see util::get_path_dirs /
+        // util::which_in).
+        fs::copy_file(mambatests::testing_libmamba_lock_exe, uv_exe, fs::copy_options::overwrite_existing);
+#ifndef _WIN32
+        fs::permissions(
+            uv_exe,
+            fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
+            fs::perm_options::add
+        );
+#endif
+
+        const auto prefix_data = PrefixData::create(prefix_path, channel_context, false).value();
+        const auto pip_it = prefix_data.pip_records().find("demo-pkg");
+        REQUIRE(pip_it != prefix_data.pip_records().end());
+        REQUIRE(pip_it->second.platform == specs::build_platform_name());
     }
 
     TEST_CASE("Package database loader: pip packages in solver", "[core][prefix-interop]")

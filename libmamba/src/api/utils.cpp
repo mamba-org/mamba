@@ -711,9 +711,14 @@ namespace mamba
     {
         if (json_output)
         {
-            Console::instance().json_write(
-                { { "success", false }, { "solver_problems", unsolvable.problems(db) } }
-            );
+            // clang-format off
+            Console::instance().set_json_output({
+                .to_assign{
+                    { "/solver_problems"_json_pointer, unsolvable.problems(db) }
+                },
+                .set_success = false
+            });
+            // clang-format on
         }
     }
 
@@ -826,6 +831,19 @@ namespace mamba
             }
         }
         return std::nullopt;
+    }
+
+    std::vector<std::string> read_explicit_urls(const fs::u8path& path)
+    {
+        std::vector<std::string> urls;
+        for (const auto& line : read_lines(path))
+        {
+            if (line.starts_with("http://") || line.starts_with("https://"))
+            {
+                urls.push_back(line);
+            }
+        }
+        return urls;
     }
 
 }

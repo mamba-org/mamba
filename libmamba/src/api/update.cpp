@@ -213,7 +213,7 @@ namespace mamba
                 locks.push_back(LockFile(c));
             }
 
-            Console::instance().json_write({ { "success", true } });
+            Console::instance().set_json_output_success(true);
 
             auto trans = make_transaction_from_solution(ctx, std::move(db), request, outcome, package_caches);
 

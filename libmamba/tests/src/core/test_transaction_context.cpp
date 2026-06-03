@@ -7,6 +7,12 @@
 #include <catch2/catch_all.hpp>
 
 // Private libmamba header
+#include "core/link.hpp"
+// Private libmamba header
+#include "mamba/core/context_params.hpp"
+#include "mamba/core/util.hpp"
+#include "mamba/specs/package_info.hpp"
+
 #include "core/transaction_context.hpp"
 
 namespace mamba
@@ -55,8 +61,9 @@ namespace mamba
             python_pkg.version = "3.13.1";
             python_pkg.build_string = "h9a34b6e_5_cp313t";
 
-            SECTION("preserves explicit freethreaded path")
+            SECTION("linux package keeps repodata path on any host")
             {
+                python_pkg.platform = "linux-64";
                 python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
 
                 REQUIRE(
@@ -64,18 +71,179 @@ namespace mamba
                 );
             }
 
-            SECTION("rewrites standard path for freethreaded builds")
+            SECTION("freethreaded site-packages path on Windows")
             {
-                python_pkg.python_site_packages_path =
-#ifdef _WIN32
-                    "Lib/site-packages";
-#else
-                    "lib/python3.13/site-packages";
-#endif
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("freethreaded site-packages path on Unix")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
 
                 REQUIRE(
                     effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
                 );
+            }
+
+            SECTION("rewrites standard path for freethreaded Windows builds")
+            {
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("rewrites standard path for freethreaded Unix builds")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+        }
+
+        // Regression: https://github.com/mamba-org/mamba/issues/4267
+        // `micromamba create ... "python=3.14" pip python-freethreading` — noarch :python (pip)
+        // must target a directory on sys.path; Windows uses Lib/site-packages for free-threaded
+        // CPython, not lib/python3.14t/site-packages.
+        TEST_CASE("effective_python_site_packages_path python 3.14 freethreading")
+        {
+            auto python_pkg = specs::PackageInfo("python");
+            python_pkg.version = "3.14.0";
+            python_pkg.build_string = "habcdef_0_cp314t";
+
+            SECTION("rewrites std site-packages from repodata for free-threaded 3.14 on Windows")
+            {
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("rewrites std site-packages from repodata for free-threaded 3.14 on Unix")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.14/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
+            }
+
+            SECTION("normalizes unix-style free-threaded path on Windows")
+            {
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "lib/python3.14t/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("infers site-packages when repodata omits python_site_packages_path on Windows")
+            {
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path.clear();
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("infers site-packages when repodata omits python_site_packages_path on Unix")
+            {
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path.clear();
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
+            }
+        }
+
+        // Regression: https://github.com/mamba-org/mamba/issues/4286
+        // `mamba repoquery search ... --platform linux-64` on a Windows host must not rewrite
+        // linux repodata `python_site_packages_path` to `Lib/site-packages`.
+        TEST_CASE("effective_python_site_packages_path repoquery cross-platform #4286", "[regression][4286]")
+        {
+            SECTION("linux-64 free-threaded python from issue report")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.1";
+                python_pkg.build_string = "h4724d56_1_cp313t";
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+
+            SECTION("win-64 free-threaded python from issue report")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.1";
+                python_pkg.build_string = "h7c1dbca_0_cp314t";
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("linux repodata path is not normalized to Windows layout")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.13.1";
+                python_pkg.build_string = "h9a34b6e_5_cp313t";
+                python_pkg.platform = "linux-64";
+                python_pkg.python_site_packages_path = "lib/python3.13t/site-packages";
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.13t/site-packages"
+                );
+            }
+
+            SECTION("win-64 repodata path is not rewritten to unix free-threaded layout")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.13.1";
+                python_pkg.build_string = "h9a34b6e_5_cp313t";
+                python_pkg.platform = "win-64";
+                python_pkg.python_site_packages_path = "Lib/site-packages";
+
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+            }
+
+            SECTION("non-Windows subdirs never use Lib/site-packages inference")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.0";
+                python_pkg.build_string = "habcdef_0_cp314t";
+                python_pkg.platform = "osx-arm64";
+                python_pkg.python_site_packages_path.clear();
+
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
+            }
+
+            SECTION("empty platform falls back to build platform for local installs")
+            {
+                auto python_pkg = specs::PackageInfo("python");
+                python_pkg.version = "3.14.0";
+                python_pkg.build_string = "habcdef_0_cp314t";
+                python_pkg.platform.clear();
+                python_pkg.python_site_packages_path.clear();
+
+#ifdef _WIN32
+                REQUIRE(effective_python_site_packages_path(python_pkg) == "Lib/site-packages");
+#else
+                REQUIRE(
+                    effective_python_site_packages_path(python_pkg) == "lib/python3.14t/site-packages"
+                );
+#endif
             }
         }
 
@@ -122,6 +290,106 @@ namespace mamba
             REQUIRE(ps_path_str == "bin/some_random_file");
             REQUIRE(ps_path_gen_str == "bin/some_random_file");
 #endif
+        }
+
+        TEST_CASE("unlink noarch metadata paths")
+        {
+            const auto tmp_dir = TemporaryDirectory();
+            const fs::u8path prefix = tmp_dir.path() / "prefix";
+            const fs::u8path conda_meta_dir = prefix / "conda-meta";
+            fs::create_directories(conda_meta_dir);
+
+            const fs::u8path site_packages = prefix / "lib" / "python3.14" / "site-packages";
+            fs::create_directories(site_packages / "httpx");
+            fs::create_directories(site_packages / "httpx-0.27.2.dist-info");
+
+            {
+                auto out = open_ofstream(site_packages / "httpx" / "__init__.py");
+                out << "print('old')\n";
+            }
+            {
+                auto out = open_ofstream(site_packages / "httpx-0.27.2.dist-info" / "METADATA");
+                out << "metadata\n";
+            }
+
+            const auto mk_tx_context = [&]
+            {
+                TransactionParams tx_params{
+                    .is_mamba_exe = false,
+                    .json_output = false,
+                    .verbosity = 0,
+                    .shortcuts = false,
+                    .envs_dirs = {},
+                    .platform = "linux-64",
+                    .prefix_params =
+                        PrefixParams{
+                            .target_prefix = prefix,
+                            .root_prefix = prefix,
+                            .conda_prefix = prefix,
+                            .relocate_prefix = prefix,
+                        },
+                    .link_params = {},
+                    .threads_params = {},
+                };
+
+                return TransactionContext(
+                    tx_params,
+                    { "3.14.4", "3.14.4" },
+                    "lib/python3.14/site-packages",
+                    {}
+                );
+            };
+
+            specs::PackageInfo pkg("httpx");
+            pkg.version = "0.27.2";
+            pkg.build_string = "pyhd8ed1ab_0";
+
+            SECTION("paths_data with short noarch paths is resolved")
+            {
+                {
+                    auto out = open_ofstream(conda_meta_dir / "httpx-0.27.2-pyhd8ed1ab_0.json");
+                    out << R"({
+  "name": "httpx",
+  "version": "0.27.2",
+  "build_string": "pyhd8ed1ab_0",
+  "paths_data": {
+    "paths": [
+      { "_path": "site-packages/httpx/__init__.py" },
+      { "_path": "site-packages/httpx-0.27.2.dist-info/METADATA" }
+    ],
+    "paths_version": 1
+  }
+})";
+                }
+
+                auto tx_context = mk_tx_context();
+                UnlinkPackage unlink_pkg(pkg, prefix, &tx_context);
+                REQUIRE(unlink_pkg.execute());
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx" / "__init__.py"));
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx-0.27.2.dist-info" / "METADATA"));
+            }
+
+            SECTION("legacy files list with noarch short paths is resolved")
+            {
+                {
+                    auto out = open_ofstream(conda_meta_dir / "httpx-0.27.2-pyhd8ed1ab_0.json");
+                    out << R"({
+  "name": "httpx",
+  "version": "0.27.2",
+  "build_string": "pyhd8ed1ab_0",
+  "files": [
+    "site-packages/httpx/__init__.py",
+    "site-packages/httpx-0.27.2.dist-info/METADATA"
+  ]
+})";
+                }
+
+                auto tx_context = mk_tx_context();
+                UnlinkPackage unlink_pkg(pkg, prefix, &tx_context);
+                REQUIRE(unlink_pkg.execute());
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx" / "__init__.py"));
+                REQUIRE_FALSE(fs::exists(site_packages / "httpx-0.27.2.dist-info" / "METADATA"));
+            }
         }
     }
 }  // namespace mamba

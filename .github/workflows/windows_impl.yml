@@ -130,7 +130,8 @@ jobs:
         run: |
           # Only rerun flaky tests on the `main` branch
           python -m pytest libmambapy/tests/ ^
-            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} ^
+            -vv --durations=50 ^
+            ${{ runner.debug == 'true' && '--capture=tee-sys' || '--exitfirst' }} ^
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   mamba_integration_tests_win:
@@ -166,5 +167,6 @@ jobs:
           Remove-Item -Path "env:CONDARC"
           # Only rerun flaky tests on the `main` branch
           python -m pytest micromamba/tests/ `
-            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '' }} `
+            -vv --durations=50 `
+            ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} `
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

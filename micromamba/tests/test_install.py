@@ -673,8 +673,8 @@ def test_install_python_site_packages_path(tmp_home, tmp_root_prefix):
     helpers.install("-n", env_name, "imagesize")
 
     if helpers.platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
         assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory
@@ -698,6 +698,7 @@ def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix
     assert res_install["success"]
     if is_windows:
         python_site_packages_path_313 = env_prefix / "Lib" / "site-packages"
+        # Spurious Unix-style free-threaded layout must not be used on Windows.
         python_site_packages_path_313t = env_prefix / "lib" / "python3.13t" / "site-packages"
     else:
         python_site_packages_path_313 = env_prefix / "lib" / "python3.13" / "site-packages"
@@ -721,6 +722,10 @@ def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix
         expected_packages.append("boltons")
     for package in expected_packages:
         assert package in linked_packages
+
+    if is_windows:
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "numpy")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages")
 
 
 def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):

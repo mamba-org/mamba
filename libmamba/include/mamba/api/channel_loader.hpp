@@ -7,7 +7,6 @@
 #ifndef MAMBA_API_CHANNEL_LOADER_HPP
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
-#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -53,19 +52,6 @@ namespace mamba
     void expand_shard_root_packages_from_full_repodata_repos(
         const solver::libsolv::Database& database,
         const std::vector<solver::libsolv::RepoInfo>& full_repos,
-        std::vector<std::string>& root_packages
-    );
-
-    /**
-     * Extend \p root_packages with dependency names from shard-loaded package records.
-     *
-     * Only walks packages already fetched for the current shard subset (typically tens to
-     * hundreds of records), not full repodata. Used for cross-channel / cross-subdir shard
-     * closure (#4245). Skipped when flat channels were loaded first (e.g. bioconda) or when only
-     * one channel has shards (conda-forge alone already closes over subdirs in one BFS).
-     */
-    void expand_shard_root_packages_from_shard_loaded_packages(
-        const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
         std::vector<std::string>& root_packages
     );
 

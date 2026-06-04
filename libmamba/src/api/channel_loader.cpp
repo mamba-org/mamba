@@ -336,6 +336,46 @@ namespace mamba
         }
 
         /**
+         * Extend \p root_packages with dependency names from shard-loaded package records.
+         *
+         * Only walks packages already fetched for the current shard subset (typically tens to
+         * hundreds of records), not full repodata. Used for cross-channel / cross-subdir shard
+         * closure (#4245). Skipped when flat channels were loaded first (e.g. bioconda) or when
+         * only one channel has shards (conda-forge alone already closes over subdirs in one BFS).
+         */
+        void expand_shard_root_packages_from_shard_loaded_packages(
+            const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
+            std::vector<std::string>& root_packages
+        )
+        {
+            std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+            auto add_from_spec = [&](const std::string& dep_str)
+            {
+                if (auto name = specs::MatchSpec::extract_name(dep_str))
+                {
+                    if (!name->empty() && *name != "*" && seen.insert(*name).second)
+                    {
+                        root_packages.push_back(*name);
+                    }
+                }
+            };
+            for (const auto& [url, packages] : packages_by_url)
+            {
+                for (const auto& pkg : packages)
+                {
+                    for (const auto& dep : pkg.dependencies)
+                    {
+                        add_from_spec(dep);
+                    }
+                    for (const auto& constrain : pkg.constrains)
+                    {
+                        add_from_spec(constrain);
+                    }
+                }
+            }
+        }
+
+        /**
          * Load a single subdir using sharded repodata (only reachable packages).
          *
          * Uses the shard index and per-package shards to load just the packages reachable from
@@ -1169,38 +1209,6 @@ namespace mamba
             for (const specs::Channel& channel : channel_context.make_channel(pkg_info.channel))
             {
                 create_mirrors(channel, context.mirrors);
-            }
-        }
-    }
-
-    void expand_shard_root_packages_from_shard_loaded_packages(
-        const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
-        std::vector<std::string>& root_packages
-    )
-    {
-        std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
-        auto add_from_spec = [&](const std::string& dep_str)
-        {
-            if (auto name = specs::MatchSpec::extract_name(dep_str))
-            {
-                if (!name->empty() && *name != "*" && seen.insert(*name).second)
-                {
-                    root_packages.push_back(*name);
-                }
-            }
-        };
-        for (const auto& [url, packages] : packages_by_url)
-        {
-            for (const auto& pkg : packages)
-            {
-                for (const auto& dep : pkg.dependencies)
-                {
-                    add_from_spec(dep);
-                }
-                for (const auto& constrain : pkg.constrains)
-                {
-                    add_from_spec(constrain);
-                }
             }
         }
     }

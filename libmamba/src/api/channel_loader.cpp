@@ -37,6 +37,22 @@ namespace mamba
 {
     namespace
     {
+        [[nodiscard]] auto count_distinct_sharded_channel_urls(
+            const std::vector<SubdirIndexLoader>& subdirs,
+            std::size_t repodata_shards_ttl
+        ) -> std::size_t
+        {
+            std::set<std::string> urls;
+            for (const auto& subdir : subdirs)
+            {
+                if (subdir.metadata().has_up_to_date_shards(repodata_shards_ttl))
+                {
+                    urls.insert(subdir.channel().url().str());
+                }
+            }
+            return urls.size();
+        }
+
         auto shorten_status_label(std::string label) -> std::string
         {
             if (label.length() > 85)
@@ -660,10 +676,16 @@ namespace mamba
                               << " name(s) from full-repodata subdirs (cross-channel closure seeds).";
                 }
                 roots_after_full_repodata_pass = root_packages.size();
-                // Shard-metadata closure (#4245) is only for all-sharded channel sets (e.g.
-                // emscripten-forge + conda-forge). Flat channels (e.g. bioconda) already seed
-                // roots via expand_shard_root_packages_from_full_repodata_repos above.
-                expand_shard_roots_from_loaded_shards = full_repos_for_shard_roots.empty();
+                // Shard-metadata closure (#4245) is for multiple sharded channels (e.g.
+                // emscripten-forge + conda-forge). Skip when flat channels were loaded (bioconda
+                // seeds roots via expand_shard_root_packages_from_full_repodata_repos) or when only
+                // one sharded channel exists (conda-forge alone: shard BFS already crosses
+                // subdirs).
+                expand_shard_roots_from_loaded_shards = full_repos_for_shard_roots.empty()
+                                                        && count_distinct_sharded_channel_urls(
+                                                               subdirs,
+                                                               ctx.repodata_shards_ttl
+                                                           ) > 1;
             }
 
             for (std::size_t i = 0; i < subdirs.size(); ++i)

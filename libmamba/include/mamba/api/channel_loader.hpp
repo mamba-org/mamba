@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/specs/version.hpp"
 
@@ -23,7 +24,6 @@ namespace mamba
     {
         class Database;
         struct Priorities;
-        class RepoInfo;
     }
     class Context;
     class SubdirIndexLoader;
@@ -44,7 +44,8 @@ namespace mamba
      *                      extended with dependency names discovered in loaded shard packages.
      * @param subdirs All subdir loaders; \p subdir_idx is the one to load.
      * @param subdir_idx Index of the subdir to load in \p subdirs.
-     * @param loaded_subdirs_with_shards Set of subdir names already loaded via shards (updated).
+     * @param loaded_subdirs_with_shards Subdir names already loaded via shards → their libsolv
+     *        repos (updated; repos are removed before a follow-up shard pass).
      * @param priorities Repo priorities aligned with \p subdirs.
      * @param python_minor_version_for_prefilter Optional python minor for shard record prefiltering
      * (from \c prepare_solver_context).
@@ -58,7 +59,7 @@ namespace mamba
         std::vector<std::string>& root_packages,
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
-        std::set<std::string>& loaded_subdirs_with_shards,
+        std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards,
         const std::vector<solver::libsolv::Priorities>& priorities,
         std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt,
         bool expand_shard_roots_from_loaded_shards = false

@@ -315,7 +315,7 @@ namespace mamba
             std::vector<std::string>& root_packages,
             std::vector<SubdirIndexLoader>& subdirs,
             std::size_t subdir_idx,
-            std::set<std::string>& loaded_subdirs_with_shards,
+            std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards,
             const SubdirDownloadParams& subdir_params,
             const std::vector<solver::libsolv::Priorities>& priorities,
             std::optional<specs::Version> python_minor_version_for_prefilter,
@@ -557,7 +557,7 @@ namespace mamba
             std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
-            std::set<std::string> loaded_subdirs_with_shards;
+            std::map<std::string, solver::libsolv::RepoInfo> loaded_subdirs_with_shards;
             bool loading_failed = false;
             const bool shard_then_expand = should_shard_then_expand_roots(
                 ctx.use_sharded_repodata,
@@ -702,6 +702,11 @@ namespace mamba
                 LOG_DEBUG << "Shard root packages expanded by "
                           << (root_packages.size() - roots_after_full_repodata_pass)
                           << " additional name(s) during shard pass; re-running shard pass once.";
+                for (auto& [subdir_name, repo] : loaded_subdirs_with_shards)
+                {
+                    static_cast<void>(subdir_name);
+                    database.remove_repo(std::move(repo));
+                }
                 loaded_subdirs_with_shards.clear();
                 for (std::size_t i = 0; i < subdirs.size(); ++i)
                 {
@@ -798,7 +803,7 @@ namespace mamba
             const std::map<std::string, std::size_t>& url_to_subdir_idx,
             const std::vector<solver::libsolv::Priorities>& priorities,
             const std::string& current_repodata_url,
-            std::set<std::string>& loaded_subdirs_with_shards
+            std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards
         )
         {
             std::optional<solver::libsolv::RepoInfo> result_repo;
@@ -809,7 +814,6 @@ namespace mamba
                 {
                     continue;
                 }
-                loaded_subdirs_with_shards.insert(repo_name);
 
                 auto sorted_pkgs = pkgs;
                 specs::sort_packages_by_version_and_build_desc(sorted_pkgs);
@@ -818,6 +822,7 @@ namespace mamba
                     repo_name,
                     solver::libsolv::PipAsPythonDependency(ctx.add_pip_as_python_dependency)
                 );
+                loaded_subdirs_with_shards.emplace(repo_name, repo);
                 std::size_t idx = url_to_subdir_idx.at(channel_url);
                 database.set_repo_priority(repo, priorities[idx]);
                 if (!result_repo.has_value() || channel_url == current_repodata_url)
@@ -850,7 +855,7 @@ namespace mamba
         std::vector<std::string>& root_packages,
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
-        std::set<std::string>& loaded_subdirs_with_shards,
+        std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards,
         const std::vector<solver::libsolv::Priorities>& priorities,
         std::optional<specs::Version> python_minor_version_for_prefilter,
         bool expand_shard_roots_from_loaded_shards

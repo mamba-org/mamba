@@ -726,6 +726,57 @@ TEST_CASE("Sharded repodata - solve xeus-python-dev specs on emscripten", "[mamb
     }
 }
 
+TEST_CASE(
+    "Sharded repodata - solve xeus-python on emscripten-forge-dev and conda-forge",
+    "[mamba::core][sharded][.integration][issue_4245]"
+)
+{
+    // Regression: cross-channel shard root expansion (noarch deps on conda-forge).
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const std::string saved_platform = ctx.platform;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.platform = saved_platform;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = {
+        "https://prefix.dev/emscripten-forge-dev",
+        "conda-forge",
+    };
+    ctx.platform = "emscripten-wasm32";
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const std::vector<std::string> specs = { "python=3.13", "xeus-python" };
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+
+    std::unordered_set<std::string> solved_names;
+    for (const auto& pkg : sharded_solution->packages())
+    {
+        solved_names.insert(pkg.name);
+    }
+
+    REQUIRE(solved_names.count("python") == 1);
+    REQUIRE(solved_names.count("xeus-python") == 1);
+    REQUIRE(solved_names.count("xeus-python-shell-lite") == 1);
+    REQUIRE(solved_names.count("ipython") == 1);
+}
+
 TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();

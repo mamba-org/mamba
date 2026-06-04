@@ -296,7 +296,7 @@ namespace mamba
         expected_t<solver::libsolv::RepoInfo> load_single_subdir(
             Context& ctx,
             solver::libsolv::Database& database,
-            const std::vector<std::string>& root_packages,
+            std::vector<std::string>& root_packages,
             std::vector<SubdirIndexLoader>& subdirs,
             std::size_t subdir_idx,
             std::set<std::string>& loaded_subdirs_with_shards,
@@ -547,6 +547,7 @@ namespace mamba
                 subdirs,
                 ctx.repodata_shards_ttl
             );
+            std::size_t roots_after_full_repodata_pass = root_packages.size();
             std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
             bool used_flat_repodata = false;
             std::optional<std::chrono::steady_clock::time_point> flat_repodata_started_at;
@@ -654,11 +655,26 @@ namespace mamba
                               << (root_packages.size() - roots_before)
                               << " name(s) from full-repodata subdirs (cross-channel closure seeds).";
                 }
+                roots_after_full_repodata_pass = root_packages.size();
             }
 
             for (std::size_t i = 0; i < subdirs.size(); ++i)
             {
                 try_load(i, /*full_repodata_only_pass=*/false);
+            }
+
+            // One extra shard pass when shard loads discovered new root names (cross-channel
+            // closure). Skipped on pure-flat channel sets (#4277) and when nothing new appeared.
+            if (shard_then_expand && root_packages.size() > roots_after_full_repodata_pass)
+            {
+                LOG_DEBUG << "Shard root packages expanded by "
+                          << (root_packages.size() - roots_after_full_repodata_pass)
+                          << " additional name(s) during shard pass; re-running shard pass once.";
+                loaded_subdirs_with_shards.clear();
+                for (std::size_t i = 0; i < subdirs.size(); ++i)
+                {
+                    try_load(i, /*full_repodata_only_pass=*/false);
+                }
             }
 
             if (used_flat_repodata)
@@ -793,7 +809,7 @@ namespace mamba
     auto load_subdir_with_shards(
         Context& ctx,
         solver::libsolv::Database& database,
-        const std::vector<std::string>& root_packages,
+        std::vector<std::string>& root_packages,
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
@@ -893,6 +909,14 @@ namespace mamba
                 "Failed to build package list from shards for " + subdir.name(),
                 mamba_error_code::subdirdata_not_loaded
             ));
+        }
+
+        const std::size_t roots_before = root_packages.size();
+        expand_shard_root_packages_from_shard_loaded_packages(packages_by_url.value(), root_packages);
+        if (root_packages.size() > roots_before)
+        {
+            LOG_DEBUG << "Shard root packages expanded by " << (root_packages.size() - roots_before)
+                      << " name(s) from shard-loaded package metadata.";
         }
 
         // For each channel URL with packages, add a repo to database (unless already in
@@ -1069,6 +1093,38 @@ namespace mamba
             for (const specs::Channel& channel : channel_context.make_channel(pkg_info.channel))
             {
                 create_mirrors(channel, context.mirrors);
+            }
+        }
+    }
+
+    void expand_shard_root_packages_from_shard_loaded_packages(
+        const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
+        std::vector<std::string>& root_packages
+    )
+    {
+        std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+        auto add_from_spec = [&](const std::string& dep_str)
+        {
+            if (auto name = specs::MatchSpec::extract_name(dep_str))
+            {
+                if (!name->empty() && *name != "*" && seen.insert(*name).second)
+                {
+                    root_packages.push_back(*name);
+                }
+            }
+        };
+        for (const auto& [url, packages] : packages_by_url)
+        {
+            for (const auto& pkg : packages)
+            {
+                for (const auto& dep : pkg.dependencies)
+                {
+                    add_from_spec(dep);
+                }
+                for (const auto& constrain : pkg.constrains)
+                {
+                    add_from_spec(constrain);
+                }
             }
         }
     }

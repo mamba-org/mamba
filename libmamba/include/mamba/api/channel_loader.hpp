@@ -7,12 +7,14 @@
 #ifndef MAMBA_API_CHANNEL_LOADER_HPP
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/version.hpp"
 
 namespace mamba
@@ -38,7 +40,8 @@ namespace mamba
      *
      * @param ctx Context (use_sharded_repodata, shard TTL, download params, etc.).
      * @param database Libsolv database to add repos into.
-     * @param root_packages Root package names for reachability (e.g. install specs).
+     * @param root_packages Root package names for reachability (e.g. install specs); may be
+     *                      extended with dependency names discovered in loaded shard packages.
      * @param subdirs All subdir loaders; \p subdir_idx is the one to load.
      * @param subdir_idx Index of the subdir to load in \p subdirs.
      * @param loaded_subdirs_with_shards Set of subdir names already loaded via shards (updated).
@@ -50,7 +53,7 @@ namespace mamba
     auto load_subdir_with_shards(
         Context& ctx,
         solver::libsolv::Database& database,
-        const std::vector<std::string>& root_packages,
+        std::vector<std::string>& root_packages,
         std::vector<SubdirIndexLoader>& subdirs,
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
@@ -84,6 +87,18 @@ namespace mamba
     void expand_shard_root_packages_from_full_repodata_repos(
         const solver::libsolv::Database& database,
         const std::vector<solver::libsolv::RepoInfo>& full_repos,
+        std::vector<std::string>& root_packages
+    );
+
+    /**
+     * Extend \p root_packages with dependency names from shard-loaded package records.
+     *
+     * Only walks packages already fetched for the current shard subset (typically tens to
+     * hundreds of records), not full repodata. Used for cross-channel / cross-subdir shard
+     * closure (#4245).
+     */
+    void expand_shard_root_packages_from_shard_loaded_packages(
+        const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
         std::vector<std::string>& root_packages
     );
 

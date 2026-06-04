@@ -1,3 +1,12 @@
+## 2026.06.04
+
+Release: 2.8.0 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [libmamba] fix: Restore cross-channel expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4304>
+- [libmamba, micromamba] JSON output api rewritten to avoid JSON flattening by @Klaim in <https://github.com/mamba-org/mamba/pull/4284>
+
 ## 2026.06.02
 
 Release: 2.7.0 (libmamba, mamba, micromamba, libmambapy)

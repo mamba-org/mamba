@@ -9,7 +9,6 @@
 
 #include <map>
 #include <optional>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -24,47 +23,10 @@ namespace mamba
     {
         class Database;
         struct Priorities;
+        class RepoInfo;
     }
     class Context;
     class SubdirIndexLoader;
-
-    /**
-     * Load a single subdir using sharded repodata (only reachable packages).
-     *
-     * Uses the shard index and per-package shards to load just the packages reachable from
-     * \p root_packages via dependencies, instead of the full repodata.
-     *
-     * Precondition: the caller must only invoke this when shards are applicable for the
-     * targeted subdir (e.g. sharded repodata is enabled, metadata is up to date, and
-     * \p root_packages is non-empty).
-     *
-     * @param ctx Context (use_sharded_repodata, shard TTL, download params, etc.).
-     * @param database Libsolv database to add repos into.
-     * @param root_packages Root package names for reachability (e.g. install specs); may be
-     *                      extended with dependency names discovered in loaded shard packages.
-     * @param subdirs All subdir loaders; \p subdir_idx is the one to load.
-     * @param subdir_idx Index of the subdir to load in \p subdirs.
-     * @param loaded_subdirs_with_shards Subdir names already loaded via shards → their libsolv
-     *        repos (updated; repos are removed before a follow-up shard pass).
-     * @param priorities Repo priorities aligned with \p subdirs.
-     * @param python_minor_version_for_prefilter Optional python minor for shard record prefiltering
-     * (from \c prepare_solver_context).
-     * @param expand_shard_roots_from_loaded_shards When true, extend \p root_packages from
-     *        dependency names in loaded shard records (all-sharded channel sets only).
-     * @return The repo for the requested subdir, or unexpected mamba_error on failure.
-     */
-    auto load_subdir_with_shards(
-        Context& ctx,
-        solver::libsolv::Database& database,
-        std::vector<std::string>& root_packages,
-        std::vector<SubdirIndexLoader>& subdirs,
-        std::size_t subdir_idx,
-        std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities,
-        std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt,
-        bool expand_shard_roots_from_loaded_shards = false
-    ) -> expected_t<solver::libsolv::RepoInfo>;
-
     class ChannelContext;
     class MultiPackageCache;
 

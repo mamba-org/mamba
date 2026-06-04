@@ -48,6 +48,8 @@ namespace mamba
      * @param priorities Repo priorities aligned with \p subdirs.
      * @param python_minor_version_for_prefilter Optional python minor for shard record prefiltering
      * (from \c prepare_solver_context).
+     * @param expand_shard_roots_from_loaded_shards When true, extend \p root_packages from
+     *        dependency names in loaded shard records (all-sharded channel sets only).
      * @return The repo for the requested subdir, or unexpected mamba_error on failure.
      */
     auto load_subdir_with_shards(
@@ -58,7 +60,8 @@ namespace mamba
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
         const std::vector<solver::libsolv::Priorities>& priorities,
-        std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt
+        std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt,
+        bool expand_shard_roots_from_loaded_shards = false
     ) -> expected_t<solver::libsolv::RepoInfo>;
 
     class ChannelContext;
@@ -95,7 +98,7 @@ namespace mamba
      *
      * Only walks packages already fetched for the current shard subset (typically tens to
      * hundreds of records), not full repodata. Used for cross-channel / cross-subdir shard
-     * closure (#4245).
+     * closure (#4245). Skipped when flat (non-sharded) channels were loaded first (e.g. bioconda).
      */
     void expand_shard_root_packages_from_shard_loaded_packages(
         const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,

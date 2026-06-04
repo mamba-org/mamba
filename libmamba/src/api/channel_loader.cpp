@@ -303,6 +303,7 @@ namespace mamba
             const SubdirDownloadParams& subdir_params,
             const std::vector<solver::libsolv::Priorities>& priorities,
             std::optional<specs::Version> python_minor_version_for_prefilter,
+            bool expand_shard_roots_from_loaded_shards,
             bool* used_flat_repodata,
             std::optional<std::chrono::steady_clock::time_point>* flat_repodata_started_at
         )
@@ -350,7 +351,8 @@ namespace mamba
                     subdir_idx,
                     loaded_subdirs_with_shards,
                     priorities,
-                    python_minor_version_for_prefilter
+                    python_minor_version_for_prefilter,
+                    expand_shard_roots_from_loaded_shards
                 );
 
                 if (!res)
@@ -549,6 +551,7 @@ namespace mamba
             );
             std::size_t roots_after_full_repodata_pass = root_packages.size();
             std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
+            bool expand_shard_roots_from_loaded_shards = false;
             bool used_flat_repodata = false;
             std::optional<std::chrono::steady_clock::time_point> flat_repodata_started_at;
 
@@ -598,6 +601,7 @@ namespace mamba
                     subdir_params,
                     priorities,
                     python_minor_version_for_prefilter,
+                    expand_shard_roots_from_loaded_shards,
                     &used_flat_repodata,
                     &flat_repodata_started_at
                 );
@@ -656,6 +660,10 @@ namespace mamba
                               << " name(s) from full-repodata subdirs (cross-channel closure seeds).";
                 }
                 roots_after_full_repodata_pass = root_packages.size();
+                // Shard-metadata closure (#4245) is only for all-sharded channel sets (e.g.
+                // emscripten-forge + conda-forge). Flat channels (e.g. bioconda) already seed
+                // roots via expand_shard_root_packages_from_full_repodata_repos above.
+                expand_shard_roots_from_loaded_shards = full_repos_for_shard_roots.empty();
             }
 
             for (std::size_t i = 0; i < subdirs.size(); ++i)
@@ -664,8 +672,10 @@ namespace mamba
             }
 
             // One extra shard pass when shard loads discovered new root names (cross-channel
-            // closure). Skipped on pure-flat channel sets (#4277) and when nothing new appeared.
-            if (shard_then_expand && root_packages.size() > roots_after_full_repodata_pass)
+            // closure). Skipped on pure-flat channel sets (#4277), when flat channels were
+            // loaded in the first pass (e.g. bioconda), and when nothing new appeared.
+            if (expand_shard_roots_from_loaded_shards
+                && root_packages.size() > roots_after_full_repodata_pass)
             {
                 LOG_DEBUG << "Shard root packages expanded by "
                           << (root_packages.size() - roots_after_full_repodata_pass)
@@ -675,6 +685,12 @@ namespace mamba
                 {
                     try_load(i, /*full_repodata_only_pass=*/false);
                 }
+            }
+            else if (shard_then_expand && !expand_shard_roots_from_loaded_shards
+                     && root_packages.size() > roots_after_full_repodata_pass)
+            {
+                LOG_DEBUG << "Skipping follow-up shard pass: flat (non-sharded) channel(s) "
+                             "already loaded; shard-metadata closure not needed.";
             }
 
             if (used_flat_repodata)
@@ -814,7 +830,8 @@ namespace mamba
         std::size_t subdir_idx,
         std::set<std::string>& loaded_subdirs_with_shards,
         const std::vector<solver::libsolv::Priorities>& priorities,
-        std::optional<specs::Version> python_minor_version_for_prefilter
+        std::optional<specs::Version> python_minor_version_for_prefilter,
+        bool expand_shard_roots_from_loaded_shards
     ) -> expected_t<solver::libsolv::RepoInfo>
     {
         auto& subdir = subdirs[subdir_idx];
@@ -911,12 +928,16 @@ namespace mamba
             ));
         }
 
-        const std::size_t roots_before = root_packages.size();
-        expand_shard_root_packages_from_shard_loaded_packages(packages_by_url.value(), root_packages);
-        if (root_packages.size() > roots_before)
+        if (expand_shard_roots_from_loaded_shards)
         {
-            LOG_DEBUG << "Shard root packages expanded by " << (root_packages.size() - roots_before)
-                      << " name(s) from shard-loaded package metadata.";
+            const std::size_t roots_before = root_packages.size();
+            expand_shard_root_packages_from_shard_loaded_packages(packages_by_url.value(), root_packages);
+            if (root_packages.size() > roots_before)
+            {
+                LOG_DEBUG << "Shard root packages expanded by "
+                          << (root_packages.size() - roots_before)
+                          << " name(s) from shard-loaded package metadata.";
+            }
         }
 
         // For each channel URL with packages, add a repo to database (unless already in

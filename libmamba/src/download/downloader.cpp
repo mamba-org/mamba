@@ -1385,7 +1385,11 @@ namespace mamba::download
     {
         std::size_t still_running = m_curl_handle.perform();
 
-        if (still_running == m_waiting_count)
+        // Wait whenever transfers are active, not only when all pending downloads
+        // have been started. libcurl may perform DNS and other work on background
+        // threads; without yielding here the main thread can starve them (e.g. under
+        // SCHED_FIFO), leaving still_running unchanged indefinitely.
+        if (still_running > 0)
         {
             m_curl_handle.wait(m_curl_handle.get_timeout());
         }

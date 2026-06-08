@@ -31,11 +31,18 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     context.command_params.caller_version = umamba::version();
 
-    auto print_version = [](int /*count*/)
+    auto print_version = [&](int /*count*/)
     {
-        // TODO: if `--json` is used, output there instead
-        std::cout << umamba::version() << std::endl;
-        exit(0);
+        if (config.context().output_params.json)
+        {
+            Console::instance().set_json_output("/version"_json_pointer, umamba::version());
+        }
+        else
+        {
+            std::cout << umamba::version() << std::endl;
+            exit(0);
+        }
+
     };
 
     com->add_flag_function("--version", print_version);

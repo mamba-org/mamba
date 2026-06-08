@@ -1177,14 +1177,7 @@ namespace mamba
 
             void erase_channel(std::vector<std::string>& channels, std::string_view name)
             {
-                channels.erase(
-                    remove_if(
-                        channels.begin(),
-                        channels.end(),
-                        [&](const std::string& channel) { return channel == name; }
-                    ),
-                    channels.end()
-                );
+                std::erase_if(channels, [&](const std::string& channel) { return channel == name; });
             }
 
             bool contains_channel(const std::vector<std::string>& channels, std::string_view name)

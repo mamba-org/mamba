@@ -1173,7 +1173,7 @@ namespace mamba
 
         namespace
         {
-            constexpr std::string_view NODEEFAULTS = "nodefaults";
+            constexpr std::string_view NO_DEFAULTS_CHANNEL = "nodefaults";
 
             void erase_channel(std::vector<std::string>& channels, std::string_view name)
             {
@@ -1205,15 +1205,15 @@ namespace mamba
             if (config_channels.cli_configured())
             {
                 auto cli_channels = config_channels.cli_value<std::vector<std::string>>();
-                if (contains_channel(cli_channels, NODEEFAULTS))
+                if (contains_channel(cli_channels, NO_DEFAULTS_CHANNEL))
                 {
-                    erase_channel(cli_channels, NODEEFAULTS);
+                    erase_channel(cli_channels, NO_DEFAULTS_CHANNEL);
                     channels = std::move(cli_channels);
                     return;
                 }
             }
 
-            erase_channel(channels, NODEEFAULTS);
+            erase_channel(channels, NO_DEFAULTS_CHANNEL);
         }
 
         void

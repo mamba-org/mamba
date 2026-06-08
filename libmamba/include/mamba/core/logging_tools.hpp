@@ -94,14 +94,15 @@ namespace mamba::logging
             */
             auto push_if_enabled(LogRecord& record) -> bool
             {
-                if (not is_enabled())
+                if (is_enabled())
+                {
+                    queue_push(backtrace, backtrace_max, std::move(record));
+                    return true;
+                }
+                else
                 {
                     return false;
                 }
-
-                queue_push(backtrace, backtrace_max, std::move(record));
-
-                return true;
             }
 
             /** Changes the number of log records kept in the backtrace history.
@@ -249,7 +250,13 @@ namespace mamba::logging
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() -> void;
+
+        /** @see `AnyLogHandler::log_backtrace()`
+
+            @param filter_current_level If `true`, will filter out log records that would not
+                                        pass the log level filter if they were emitted right now.
+        */
+        auto log_backtrace(bool filter_current_level = false) -> void;
         auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
@@ -360,7 +367,13 @@ namespace mamba::logging
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() -> void;
+
+        /** @see `AnyLogHandler::log_backtrace()`
+
+            @param filter_current_level If `true`, will filter out log records that would not
+                                        pass the log level filter if they were emitted right now.
+        */
+        auto log_backtrace(bool filter_current_level = false) -> void;
         auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
@@ -472,12 +485,16 @@ namespace mamba::logging
         pimpl->data->backtrace.disable();
     }
 
-    inline auto LogHandler_History::log_backtrace() -> void
+    inline auto LogHandler_History::log_backtrace(bool filter_current_level) -> void
     {
         assert(pimpl);
         auto synched_data = pimpl->data.synchronize();
         for (auto& log : synched_data->backtrace)
         {
+            if (filter_current_level and details::should_be_ignored(log, pimpl->current_log_level))
+            {
+                continue;
+            }
             details::queue_push(synched_data->history, options.max_records_count, std::move(log));
         }
 
@@ -487,7 +504,8 @@ namespace mamba::logging
     inline auto LogHandler_History::log_backtrace_no_guards() -> void
     {
         assert(pimpl);
-        log_backtrace();  // Similar in this context
+        log_backtrace(true);  // Similar in this context but we want to filter out logs that would
+                              // not pass the level filter now
     }
 
     inline auto LogHandler_History::flush(std::optional<log_source>) -> void
@@ -655,7 +673,7 @@ namespace mamba::logging
     }
 
     template <OutputStream T>
-    inline auto LogHandler_Stream<T>::log_backtrace() -> void
+    inline auto LogHandler_Stream<T>::log_backtrace(bool filter_current_level) -> void
     {
         assert(out);
         assert(pimpl);
@@ -663,6 +681,11 @@ namespace mamba::logging
         auto synched_backtrace = pimpl->backtrace.synchronize();
         for (auto& log_record : *synched_backtrace)
         {
+            if (filter_current_level
+                and details::should_be_ignored(log_record, pimpl->current_log_level))
+            {
+                continue;
+            }
             details::log_to_stream(*out, log_record, { .with_location = pimpl->log_location });
         }
         synched_backtrace->clear();
@@ -674,7 +697,8 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        log_backtrace();  // Similar in this context
+        log_backtrace(true);  // Similar in this context but we want to filter out logs that would
+                              // not pass the level filter now
     }
 
     template <OutputStream T>

@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <string_view>
 
 #include <fmt/format.h>
 
@@ -1170,21 +1171,49 @@ namespace mamba
             }
         }
 
+        namespace
+        {
+            constexpr std::string_view NODEEFAULTS = "nodefaults";
+
+            void erase_channel(std::vector<std::string>& channels, std::string_view name)
+            {
+                channels.erase(
+                    remove_if(
+                        channels.begin(),
+                        channels.end(),
+                        [&](const std::string& channel) { return channel == name; }
+                    ),
+                    channels.end()
+                );
+            }
+
+            bool contains_channel(const std::vector<std::string>& channels, std::string_view name)
+            {
+                return find_if(
+                           channels.begin(),
+                           channels.end(),
+                           [&](const std::string& channel) { return channel == name; }
+                       )
+                       != channels.end();
+            }
+        }
+
         void channels_hook(Configuration& config, std::vector<std::string>& channels)
         {
             auto& config_channels = config.at("channels");
-            std::vector<std::string> cli_channels;
 
             if (config_channels.cli_configured())
             {
-                cli_channels = config_channels.cli_value<std::vector<std::string>>();
-                auto it = find(cli_channels.begin(), cli_channels.end(), "nodefaults");
-                if (it != cli_channels.end())
+                auto cli_channels = config_channels.cli_value<std::vector<std::string>>();
+                if (contains_channel(cli_channels, NODEEFAULTS))
                 {
-                    cli_channels.erase(it);
-                    channels = cli_channels;
+                    erase_channel(cli_channels, NODEEFAULTS);
+                    channels = std::move(cli_channels);
+                    return;
                 }
             }
+
+            erase_channel(channels, NODEEFAULTS);
         }
 
         void

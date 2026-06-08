@@ -694,6 +694,13 @@ namespace mamba
             auto unsafe_get() const -> const std::remove_pointer_t<P>*;
             ///@}
 
+            /** `true` if the log handler instance is the same for both.
+             */
+            ///@{
+            friend bool operator==(const AnyLogHandler&, const AnyLogHandler&) = default;
+            friend bool operator!=(const AnyLogHandler&, const AnyLogHandler&) = default;
+            ///@}
+
         private:
 
             struct Interface;

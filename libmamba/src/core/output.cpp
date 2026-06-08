@@ -602,11 +602,7 @@ namespace mamba
         if (context().output_params.json and log_history_handler)
         {
             auto log_history = capture_log_history_as_json();
-            set_json_output({
-                .to_assign{
-                    {"/log_history"_json_pointer, std::move(log_history) }
-                }
-            });
+            set_json_output("/log_history"_json_pointer, std::move(log_history));
         }
 
         print(p_data->json_output.dump(4), true);

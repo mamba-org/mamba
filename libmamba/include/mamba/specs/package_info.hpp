@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <nlohmann/json_fwd.hpp>
+#include <simdjson.h>
 
 #include "mamba/specs/error.hpp"
 #include "mamba/specs/platform.hpp"
@@ -19,6 +20,8 @@
 
 namespace mamba::specs
 {
+    class CondaURL;
+
     namespace defaulted_key
     {
         inline constexpr std::string_view initialized = "_initialized";
@@ -123,6 +126,12 @@ namespace mamba::specs
         PackageType package_type = PackageType::Unknown;
 
         [[nodiscard]] static auto from_url(std::string_view url) -> expected_parse_t<PackageInfo>;
+        [[nodiscard]] static auto from_json(
+            const std::string_view& filename,
+            simdjson::ondemand::object& pkg,
+            const CondaURL& repo_url,
+            const std::string& channel_id
+        ) -> expected_parse_t<PackageInfo>;
         [[nodiscard]] auto url_for_channel(std::string_view channel_mirror_url) const -> std::string;
         [[nodiscard]] auto
         url_for_channel_platform(std::string_view channel_mirror_platform_url) const -> std::string;

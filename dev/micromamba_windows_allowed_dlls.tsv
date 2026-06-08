@@ -28,3 +28,4 @@ api-ms-win-crt-utility-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: utility routines (
 MSVCP140.dll	MSVC runtime (vc14_runtime)	Microsoft C++ standard library runtime (/MD builds).
 VCRUNTIME140.dll	MSVC runtime (vc14_runtime)	Microsoft C runtime helpers (exceptions, EH scaffolding).
 VCRUNTIME140_1.dll	MSVC runtime (vc14_runtime)	Additional MSVC C++ exception-handling support on x64.
+resolvo_cpp.dll	resolvo-cpp (conda-forge)	Temporary: shared resolvo C++ bindings until resolvo-cpp static libraries are published on conda-forge.

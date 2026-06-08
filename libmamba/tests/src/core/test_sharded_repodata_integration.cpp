@@ -37,6 +37,7 @@
 #include "mamba/specs/version.hpp"
 
 #include "mambatests.hpp"
+#include "utils.hpp"
 
 // extract_package_names_from_specs is implemented in api/utils.cpp (header is not in public include
 // path)

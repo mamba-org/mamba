@@ -71,6 +71,7 @@ set(
     src/specs/test_version.cpp
     # Solver tests
     src/solver/test_helpers.cpp
+    src/solver/test_solver_backend_parity.cpp
     src/solver/test_problems_graph.cpp
     src/solver/test_request.cpp
     src/solver/test_solution.cpp
@@ -87,6 +88,8 @@ set(
     # Core tests
     ../longpath.manifest
     src/core/test_activation.cpp
+    src/core/utils.cpp
+    src/core/utils.hpp
     src/core/test_channel_context.cpp
     src/core/test_channel_loader.cpp
     src/core/test_clean.cpp
@@ -152,8 +155,16 @@ endif()
 target_link_libraries(
     test_libmamba
     PUBLIC mamba::libmamba reproc reproc++
-    PRIVATE Catch2::Catch2WithMain Threads::Threads
+    PRIVATE Catch2::Catch2WithMain Threads::Threads Resolvo::Resolvo
 )
+
+# Shared libmamba links simdjson and resolvo privately; tests that include those headers need them
+# too.
+if(TARGET simdjson::simdjson)
+    target_link_libraries(test_libmamba PRIVATE simdjson::simdjson)
+elseif(TARGET simdjson::simdjson_static)
+    target_link_libraries(test_libmamba PRIVATE simdjson::simdjson_static)
+endif()
 
 # Link zstd if test code uses it directly (e.g., test_shard_utils.cpp) The test code includes
 # <zstd.h> and calls ZSTD functions directly, so it needs to link against zstd

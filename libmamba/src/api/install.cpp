@@ -1182,12 +1182,7 @@ namespace mamba
 
             bool contains_channel(const std::vector<std::string>& channels, std::string_view name)
             {
-                return find_if(
-                           channels.begin(),
-                           channels.end(),
-                           [&](const std::string& channel) { return channel == name; }
-                       )
-                       != channels.end();
+                return std::find(channels.begin(), channels.end(), name) != channels.end();
             }
         }
 

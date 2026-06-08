@@ -225,23 +225,25 @@ def test_Database_exclude_newer_timestamp_repodata(tmp_path):
         json.dump(
             {
                 "packages": {
-                    "old-pkg-1.0-bld.tar.bz2": {
-                        "name": "old-pkg",
+                    "excluded-pkg-1.0-bld.tar.bz2": {
+                        "name": "excluded-pkg",
                         "version": "1.0",
                         "build": "bld",
                         "build_number": 0,
                         "subdir": "linux-64",
                         "depends": [],
                         "timestamp": 1000,
+                        "indexed_timestamp": 3000,
                     },
-                    "new-pkg-1.0-bld.tar.bz2": {
-                        "name": "new-pkg",
+                    "included-pkg-1.0-bld.tar.bz2": {
+                        "name": "included-pkg",
                         "version": "1.0",
                         "build": "bld",
                         "build_number": 0,
                         "subdir": "linux-64",
                         "depends": [],
                         "timestamp": 3000,
+                        "indexed_timestamp": 1000,
                     },
                 },
                 "packages.conda": {},
@@ -260,6 +262,8 @@ def test_Database_exclude_newer_timestamp_repodata(tmp_path):
     )
     assert repo is not None
     assert repo.package_count() == 1
+    pkgs = db.packages_in_repo(repo)
+    assert pkgs[0].name == "included-pkg"
 
 
 @pytest.fixture

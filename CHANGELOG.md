@@ -1,3 +1,16 @@
+## 2026.06.08
+
+Release: 2.8.1 (libmamba, mamba, micromamba, libmambapy)
+
+Bug fixes:
+
+- [libmamba] fix: Handle `nodefaults` sentinel consistently by @jjerphan in <https://github.com/mamba-org/mamba/pull/4308>
+- [libmamba] fix: Avoid download busy-spin with parallel transfers by @jjerphan in <https://github.com/mamba-org/mamba/pull/4307>
+
+Maintenance:
+
+- [all] build(deps): bump codecov/codecov-action from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4309>
+
 ## 2026.06.04
 
 Release: 2.8.0 (libmamba, mamba, micromamba, libmambapy)

@@ -1,3 +1,9 @@
+## libmambapy 2.8.1 (June 08, 2026)
+
+Maintenance:
+
+- build(deps): bump codecov/codecov-action from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4309>
+
 ## libmambapy 2.8.0 (June 04, 2026)
 
 ## libmambapy 2.7.0 (June 02, 2026)

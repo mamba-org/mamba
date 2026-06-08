@@ -684,7 +684,8 @@ namespace mamba
         edit.to_assign.reserve(object.size());
         for (auto&& [member_path, value] : object.items())
         {
-            edit.to_assign.emplace_back(nlohmann::json::json_pointer{ member_path }, std::move(value));
+            const nlohmann::json::json_pointer location{ fmt::format("/{}", member_path) };
+            edit.to_assign.emplace_back(location, std::move(value));
         }
 
         return edit;

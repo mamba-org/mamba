@@ -335,9 +335,8 @@ def umamba_list(*args, json_as_pkgs_list=True, **kwargs):
             # TODO: consider checking here that there is no errors
             # otherwise any log is lost beyond this point
             packages = pkgs_list_from_json_result(j)
-            # empty list are currently set to null because of json flattening
-            # in libmamba, so we need to translate null as empty list instead
-            return packages if packages is not None else list()
+            assert(type(packages) is list)
+            return packages
         else:
             return j
 

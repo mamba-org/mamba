@@ -8,11 +8,12 @@
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
 #include <optional>
-#include <set>
 #include <string>
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/version.hpp"
 
 namespace mamba
@@ -25,39 +26,6 @@ namespace mamba
     }
     class Context;
     class SubdirIndexLoader;
-
-    /**
-     * Load a single subdir using sharded repodata (only reachable packages).
-     *
-     * Uses the shard index and per-package shards to load just the packages reachable from
-     * \p root_packages via dependencies, instead of the full repodata.
-     *
-     * Precondition: the caller must only invoke this when shards are applicable for the
-     * targeted subdir (e.g. sharded repodata is enabled, metadata is up to date, and
-     * \p root_packages is non-empty).
-     *
-     * @param ctx Context (use_sharded_repodata, shard TTL, download params, etc.).
-     * @param database Libsolv database to add repos into.
-     * @param root_packages Root package names for reachability (e.g. install specs).
-     * @param subdirs All subdir loaders; \p subdir_idx is the one to load.
-     * @param subdir_idx Index of the subdir to load in \p subdirs.
-     * @param loaded_subdirs_with_shards Set of subdir names already loaded via shards (updated).
-     * @param priorities Repo priorities aligned with \p subdirs.
-     * @param python_minor_version_for_prefilter Optional python minor for shard record prefiltering
-     * (from \c prepare_solver_context).
-     * @return The repo for the requested subdir, or unexpected mamba_error on failure.
-     */
-    auto load_subdir_with_shards(
-        Context& ctx,
-        solver::libsolv::Database& database,
-        const std::vector<std::string>& root_packages,
-        std::vector<SubdirIndexLoader>& subdirs,
-        std::size_t subdir_idx,
-        std::set<std::string>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities,
-        std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt
-    ) -> expected_t<solver::libsolv::RepoInfo>;
-
     class ChannelContext;
     class MultiPackageCache;
 

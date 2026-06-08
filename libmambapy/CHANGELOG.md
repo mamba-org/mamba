@@ -1,3 +1,5 @@
+## libmambapy 2.8.0 (June 04, 2026)
+
 ## libmambapy 2.7.0 (June 02, 2026)
 
 CI fixes and doc:

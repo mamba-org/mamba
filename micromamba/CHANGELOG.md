@@ -1,3 +1,9 @@
+## micromamba 2.8.0 (June 04, 2026)
+
+Bug fixes:
+
+- JSON output api rewritten to avoid JSON flattening by @Klaim in <https://github.com/mamba-org/mamba/pull/4284>
+
 ## micromamba 2.7.0 (June 02, 2026)
 
 Bug fixes:

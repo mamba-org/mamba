@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdint>
+#include <fstream>
 #include <functional>
 
 #include <catch2/catch_all.hpp>
@@ -281,6 +282,67 @@ namespace
             REQUIRE(repo1.has_value());
             REQUIRE(repo1->package_count() < 33);
             REQUIRE(repo1->package_count() > 0);
+
+            auto db_unfiltered = libsolv::Database({}, { matchspec_parser });
+            auto unfiltered_repo = db_unfiltered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(unfiltered_repo.has_value());
+            REQUIRE(unfiltered_repo->package_count() > repo1->package_count());
+        }
+
+        SECTION("exclude_newer_timestamp prefers indexed_timestamp from repodata JSON")
+        {
+            auto tmp_dir = TemporaryDirectory();
+            const auto repodata = tmp_dir.path() / "repodata.json";
+            std::ofstream out_file(repodata.std_path());
+            out_file << R"({
+                "packages": {
+                    "excluded-pkg-1.0-bld.tar.bz2": {
+                        "name": "excluded-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1000,
+                        "indexed_timestamp": 3000
+                    },
+                    "included-pkg-1.0-bld.tar.bz2": {
+                        "name": "included-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000,
+                        "indexed_timestamp": 1000
+                    }
+                },
+                "packages.conda": {}
+            })";
+            out_file.close();
+
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, /* exclude_newer_timestamp= */ std::uint64_t(2000) }
+            );
+            auto repo1 = db_filtered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            db_filtered.for_each_package_in_repo(
+                *repo1,
+                [](const auto& p) { REQUIRE(p.name == "included-pkg"); }
+            );
         }
 
         SECTION("Add repo from repodata with extra pip")

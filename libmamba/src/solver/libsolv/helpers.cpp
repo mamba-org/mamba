@@ -68,9 +68,7 @@ namespace mamba::solver::libsolv
         // TODO conda timestamp are not Unix timestamp.
         // Libsolv normalize them this way, we need to do the same here otherwise the current
         // package may get arbitrary priority.
-        solv.set_timestamp(
-            (pkg.timestamp > MAX_CONDA_TIMESTAMP) ? (pkg.timestamp / 1000) : pkg.timestamp
-        );
+        solv.set_timestamp(normalize_conda_timestamp(pkg.timestamp));
         solv.set_md5(pkg.md5);
         solv.set_sha256(pkg.sha256);
         solv.set_python_site_packages_path(pkg.python_site_packages_path);
@@ -329,15 +327,26 @@ namespace mamba::solver::libsolv
             // TODO conda timestamp are not Unix timestamp.
             // Libsolv normalize them this way, we need to do the same here otherwise the current
             // package may get arbitrary priority.
+            std::optional<std::uint64_t> policy_timestamp;
+            if (auto indexed_timestamp = pkg["indexed_timestamp"]; !indexed_timestamp.error())
+            {
+                policy_timestamp = normalize_conda_timestamp(
+                    indexed_timestamp.get_uint64().value_unsafe()
+                );
+            }
+
             if (auto timestamp = pkg["timestamp"]; !timestamp.error())
             {
-                const auto time = timestamp.get_uint64().value_unsafe();
-                const auto normalized = (time > MAX_CONDA_TIMESTAMP) ? (time / 1000) : time;
+                const auto normalized = normalize_conda_timestamp(
+                    timestamp.get_uint64().value_unsafe()
+                );
                 solv.set_timestamp(normalized);
-                if (out_timestamp)
-                {
-                    *out_timestamp = normalized;
-                }
+                policy_timestamp = policy_timestamp.value_or(normalized);
+            }
+
+            if (out_timestamp && policy_timestamp)
+            {
+                *out_timestamp = *policy_timestamp;
             }
 
             if (auto depends = pkg["depends"].get_array(); !depends.error())
@@ -1518,7 +1527,8 @@ namespace mamba::solver::libsolv
                             return true;
                         }
                     }
-                    if constexpr (std::is_same_v<Action, Solution::Reinstall> || std::is_same_v<Action, Solution::Omit>)
+                    if constexpr (std::is_same_v<Action, Solution::Reinstall>
+                                  || std::is_same_v<Action, Solution::Omit>)
                     {
                         if (action.what.name == pkg_name)
                         {

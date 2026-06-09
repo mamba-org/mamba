@@ -78,7 +78,7 @@ namespace mamba
     {
         // Usernames on anaconda.org can have a underscore, which influences the
         // first two characters.
-        // The `+` is there to make sure we dont match `/t/*` with `*` being litteral or anything we
+        // The `+` is there to make sure we dont match `/t/*` with `*` being literal or anything we
         // dont capture here.
         static const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-_]+)" };
         return token_regex;

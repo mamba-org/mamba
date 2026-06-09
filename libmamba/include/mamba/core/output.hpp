@@ -134,7 +134,6 @@ namespace mamba
         /// each member as an assignation into the json object that will be edited
         /// by this resulgint json edit.
         static auto from_json_object_members(nlohmann::json object) -> JSONEdit;
-
     };
 
     class Console
@@ -193,7 +192,7 @@ namespace mamba
             This overload is a shorter version for the 1 location 1 value assignation case
             which is quite common.
         */
-        template< class T >
+        template <class T>
             requires requires(const T& value) { nlohmann::json{ value }; }
         void set_json_output(nlohmann::json::json_pointer location, T&& value)
         {

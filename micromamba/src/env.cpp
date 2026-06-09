@@ -195,8 +195,6 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 dependencies << (first_dependency_printed ? "\n" : "");
 
 
-
-
                 auto deps_json = nlohmann::json::parse(fmt::format("[ {} ]", dependencies.str()));
                 assert(deps_json.is_array());
 
@@ -211,7 +209,6 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 };
                 mamba::Console::instance().set_json_output(std::move(out_json));
                 // clang-format on
-
             }
             else
             {

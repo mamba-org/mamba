@@ -335,7 +335,7 @@ def umamba_list(*args, json_as_pkgs_list=True, **kwargs):
             # TODO: consider checking here that there is no errors
             # otherwise any log is lost beyond this point
             packages = pkgs_list_from_json_result(j)
-            assert(type(packages) is list)
+            assert type(packages) is list
             return packages
         else:
             return j

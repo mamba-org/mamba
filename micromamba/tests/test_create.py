@@ -2714,7 +2714,7 @@ def test_create_dry_run_json(tmp_path):
         "dry_run": True,
         "prefix": str(env_prefix),
         "success": True,
-        "log_history": []
+        "log_history": [],
     }
 
     assert res == expected_output

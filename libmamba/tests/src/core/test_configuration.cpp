@@ -798,6 +798,42 @@ namespace mamba
                 util::unset_env("MAMBA_SSL_VERIFY");
             }
 
+            TEST_CASE_METHOD(Configuration, "ssl_verify_truststore")
+            {
+                // Test basic truststore value
+                std::string rc = "ssl_verify: truststore";
+                load_test_config(rc);
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<truststore>");
+
+                // Test quoted truststore value
+                rc = "ssl_verify: 'truststore'";
+                load_test_config(rc);
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<truststore>");
+
+                // Test truststore with offline mode - offline should override to false
+                rc = "ssl_verify: truststore\noffline: true";
+                load_test_config(rc);
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<false>");
+
+                // Reset offline mode
+                load_test_config("offline: false");
+
+                // Test truststore with cacert_path - cacert_path should take precedence
+                rc = "ssl_verify: truststore\ncacert_path: /custom/cert.pem";
+                load_test_config(rc);
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "/custom/cert.pem");
+
+                // Reset cacert_path
+                load_test_config("cacert_path:");
+
+                // Test environment variable MAMBA_SSL_VERIFY=truststore
+                util::set_env("MAMBA_SSL_VERIFY", "truststore");
+                load_test_config("");
+                REQUIRE(ctx.remote_fetch_params.ssl_verify == "<truststore>");
+
+                util::unset_env("MAMBA_SSL_VERIFY");
+            }
+
 #undef EXPECT_CA_EQUAL
 
             TEST_CASE_METHOD(Configuration, "cacert_path")

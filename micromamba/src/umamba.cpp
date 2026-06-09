@@ -42,7 +42,6 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
             std::cout << umamba::version() << std::endl;
             exit(0);
         }
-
     };
 
     com->add_flag_function("--version", print_version);

@@ -317,8 +317,7 @@ namespace mamba::solver::libsolv
         pool().set_installed_repo(repo.id());
     }
 
-    auto Database::add_virtual_package(const RepoInfo& repo, const specs::PackageInfo& pkg)
-        -> SolvableId
+    void Database::add_virtual_package_impl(const RepoInfo& repo, const specs::PackageInfo& pkg)
     {
         if (!util::starts_with(pkg.name, "__"))
         {
@@ -334,7 +333,6 @@ namespace mamba::solver::libsolv
         // packages (e.g. ``cuda-version`` requiring ``__cuda >=13``) vacuous.
         m_data->virtual_package_lock_jobs.push_back(SOLVER_VERIFY | SOLVER_SOLVABLE, id);
         m_data->virtual_package_lock_jobs.push_back(SOLVER_LOCK | SOLVER_SOLVABLE, id);
-        return id;
     }
 
     void Database::internalize_repo(const RepoInfo& repo)

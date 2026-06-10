@@ -1764,42 +1764,23 @@ namespace mamba::solver::libsolv
         }
     }
 
-    namespace
-    {
-        /**
-         * Lock virtual packages in the installed repository.
-         *
-         * Virtual packages (e.g. ``__cuda``) have no channel counterparts and no dependents, so
-         * libsolv treats them as orphans and may remove them during solving. That makes run
-         * constraints on other packages (e.g. ``cuda-version`` requiring ``__cuda >=13``) vacuous.
-         */
-        void lock_installed_virtual_packages(solv::ObjQueue& jobs, solv::ObjPool& pool)
-        {
-            pool.for_each_installed_solvable(
-                [&](solv::ObjSolvableViewConst s)
-                {
-                    if (util::starts_with(s.name(), "__"))
-                    {
-                        // Force installed virtual packages to stay in the solution so that run
-                        // constraints referencing them are not vacuously satisfied.
-                        jobs.push_back(SOLVER_VERIFY | SOLVER_SOLVABLE, s.id());
-                        jobs.push_back(SOLVER_LOCK | SOLVER_SOLVABLE, s.id());
-                    }
-                    return solv::LoopControl::Continue;
-                }
-            );
-        }
-    }
-
     auto request_to_decision_queue(  //
         const Request& request,
         solv::ObjPool& pool,
+        const solv::ObjQueue& virtual_package_lock_jobs,
         bool force_reinstall,
         MatchSpecParser parser
     ) -> expected_t<solv::ObjQueue>
     {
         auto solv_jobs = solv::ObjQueue();
-        lock_installed_virtual_packages(solv_jobs, pool);
+        if (!virtual_package_lock_jobs.empty())
+        {
+            solv_jobs.insert(
+                solv_jobs.begin(),
+                virtual_package_lock_jobs.begin(),
+                virtual_package_lock_jobs.end()
+            );
+        }
 
         auto error = expected_t<void>();
         for (const auto& unknown_job : request.jobs)

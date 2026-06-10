@@ -13,6 +13,9 @@
 
 namespace mamba::solver::libsolv
 {
+    /** Opaque libsolv pool solvable identifier (``::Id``). */
+    using SolvableId = int;
+
     enum class RepodataParser
     {
         Mamba,

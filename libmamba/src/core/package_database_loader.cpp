@@ -191,11 +191,7 @@ namespace mamba
             std::ranges::copy(pip_packages_to_add, std::back_inserter(pkgs));
         }
 
-        // TODO(C++20): We only need a range that concatenate both
-        for (auto&& pkg : get_virtual_packages(ctx.platform))
-        {
-            pkgs.push_back(std::move(pkg));
-        }
+        database.clear_virtual_package_lock_jobs();
 
         // Not adding Pip dependency since it might needlessly make the installed/active environment
         // broken if pip is not already installed (debatable).
@@ -204,6 +200,11 @@ namespace mamba
             "installed",
             solver::libsolv::PipAsPythonDependency::No
         );
+        for (auto&& pkg : get_virtual_packages(ctx.platform))
+        {
+            database.add_virtual_package(repo, std::move(pkg));
+        }
+        database.internalize_repo(repo);
         database.set_installed_repo(repo);
         return repo;
     }

@@ -15,6 +15,9 @@
 #include "mamba/util/os_win.hpp"
 #endif
 
+#include <cstring>
+#include <vector>
+
 #include <CLI/CLI.hpp>
 
 #include "mamba/api/configuration.hpp"
@@ -30,6 +33,60 @@
 
 
 using namespace mamba;  // NOLINT(build/namespaces)
+
+namespace
+{
+    /// Remove a `--` separator after `micromamba run` before CLI11 parsing.
+    ///
+    /// Older CLI11 rejects arguments following `--` unless a vector positional is defined,
+    /// which breaks `prefix_command()` for the common case. Conda documents `conda run ... -- cmd`.
+    /// See https://github.com/mamba-org/mamba/issues/4216
+    void strip_run_command_separator(
+        int& argc,
+        char**& argv,
+        std::vector<std::string>& storage,
+        std::vector<char*>& pointers
+    )
+    {
+        if (argc < 3 || std::strcmp(argv[1], "run") != 0)
+        {
+            return;
+        }
+
+        int separator_index = -1;
+        for (int i = 2; i < argc; ++i)
+        {
+            if (std::strcmp(argv[i], "--") == 0)
+            {
+                separator_index = i;
+                break;
+            }
+        }
+
+        if (separator_index < 0)
+        {
+            return;
+        }
+
+        storage.clear();
+        pointers.clear();
+        storage.reserve(static_cast<std::size_t>(argc) - 1);
+        pointers.reserve(static_cast<std::size_t>(argc) - 1);
+
+        for (int i = 0; i < argc; ++i)
+        {
+            if (i == separator_index)
+            {
+                continue;
+            }
+            storage.push_back(argv[i]);
+            pointers.push_back(storage.back().data());
+        }
+
+        argc = static_cast<int>(pointers.size());
+        argv = pointers.data();
+    }
+}  // namespace
 
 int
 main(int argc, char** argv)
@@ -95,6 +152,10 @@ main(int argc, char** argv)
         error_to_report = e.what();
         set_sig_interrupted();
     };
+
+    std::vector<std::string> run_argv_storage;
+    std::vector<char*> run_argv_pointers;
+    strip_run_command_separator(argc, utf8argv, run_argv_storage, run_argv_pointers);
 
     try
     {

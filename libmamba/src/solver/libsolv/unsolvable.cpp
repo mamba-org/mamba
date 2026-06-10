@@ -98,13 +98,21 @@ namespace mamba::solver::libsolv
         auto pool_dependency_to_string(const solv::ObjPool& pool, solv::SolvableId id)
             -> std::optional<std::string>
         {
-            // Job rules (e.g. SOLVER_LOCK on virtual packages) may expose solvable ids here
-            // rather than dependency ids.
-            if (!id || !pool.view().get_dependency(id).has_value())
+            if (!id)
             {
                 return std::nullopt;
             }
-            return { pool.dependency_to_string(id) };
+            // Lock/verify jobs may expose solvable ids here rather than dependency ids.
+            if (pool.get_solvable(id).has_value())
+            {
+                return std::nullopt;
+            }
+            if (pool.view().get_dependency(id).has_value())
+            {
+                return { pool.dependency_to_string(id) };
+            }
+            // Plain package names are also valid dependency ids in libsolv.
+            return { std::string(pool.get_string(id)) };
         }
 
         struct SolverProblem

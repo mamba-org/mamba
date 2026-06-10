@@ -57,7 +57,11 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            auto db = make_solver_database(ctx, channel_context);
+            auto db = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer
+            );
             add_logger_to_database(db);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);

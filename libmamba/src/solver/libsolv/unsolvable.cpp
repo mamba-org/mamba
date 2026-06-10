@@ -460,10 +460,19 @@ namespace mamba::solver::libsolv
                     }
                     case SOLVER_RULE_JOB:
                     {
-                        // Lock/verify jobs (e.g. on virtual packages) may appear here without
-                        // a dependency string; the actual conflict is explained by other rules.
+                        // Lock/verify jobs on solvables expose the solvable id in dep_id rather
+                        // than a dependency id, so pool_dependency_to_string returns nullopt.
                         if (!dep)
                         {
+                            if (const auto locked = pool_id_to_package_info(m_pool, problem.dep_id))
+                            {
+                                auto locked_id = add_solvable(
+                                    problem.dep_id,
+                                    PackageNode{ fixup_pkg(locked.value()) }
+                                );
+                                auto edge = make_match_spec_str(locked->name);
+                                m_graph.add_edge(m_root_node, locked_id, std::move(edge));
+                            }
                             break;
                         }
                         [[fallthrough]];

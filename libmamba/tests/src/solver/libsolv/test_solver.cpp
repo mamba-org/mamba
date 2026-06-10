@@ -1417,4 +1417,56 @@ namespace
             REQUIRE(std::holds_alternative<Solution::Install>(cuda_actions.front()));
         }
     }
+
+    TEST_CASE(
+        "Explaining conflicts with locked virtual packages does not abort",
+        "[mamba::solver][mamba::solver::libsolv]"
+    )
+    {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
+        auto db = libsolv::Database({}, { matchspec_parser });
+
+        auto matplotlib = specs::PackageInfo("matplotlib", "3.10.0", "py314h0", 0);
+        matplotlib.dependencies = { "python_abi 3.14.* *_cp314" };
+
+        db.add_repo_from_packages(std::array{ matplotlib }, "repo", libsolv::PipAsPythonDependency::No);
+
+        const auto installed = db.add_repo_from_packages(
+            std::array{
+                specs::PackageInfo("python", "3.14.0", "h0", 0),
+                specs::PackageInfo("python-freethreading", "3.14.0", "h0", 0),
+                specs::PackageInfo("python_abi", "3.14", "8_cp314t", 0),
+            },
+            "installed",
+            libsolv::PipAsPythonDependency::No
+        );
+        db.add_virtual_packages(
+            installed,
+            std::array{
+                specs::PackageInfo("__unix", "0", "0", 0),
+                specs::PackageInfo("__linux", "6.0", "0", 0),
+                specs::PackageInfo("__glibc", "2.39", "0", 0),
+            }
+        );
+        db.internalize_repo(installed);
+        db.set_installed_repo(installed);
+
+        auto request = Request{
+            /* .flags= */ {},
+            /* .jobs= */ { Request::Install{ "matplotlib"_ms } },
+        };
+        const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+        REQUIRE(outcome.has_value());
+        REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+
+        const auto& unsolvable = std::get<libsolv::UnSolvable>(outcome.value());
+        const auto explanation = unsolvable.explain_problems(db, {});
+        REQUIRE(util::contains(explanation, "matplotlib"));
+    }
 }

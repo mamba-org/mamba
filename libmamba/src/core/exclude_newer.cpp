@@ -184,7 +184,7 @@ namespace mamba
             tm.tm_sec = std::stoi(std::string(match[6]));
             tm.tm_isdst = 0;
 
-            auto timestamp = static_cast<std::int64_t>(timegm_utc(tm));
+            auto timestamp = timegm_utc(tm);
 
             if (match[7].matched && match[7].str() != "Z")
             {

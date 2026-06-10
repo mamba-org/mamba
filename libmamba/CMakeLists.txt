@@ -226,6 +226,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_conda.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_mambajs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/exclude_newer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp

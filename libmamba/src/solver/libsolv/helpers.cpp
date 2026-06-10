@@ -447,7 +447,7 @@ namespace mamba::solver::libsolv
             Filter&& filter,
             OnParsed&& on_parsed,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
         )
         {
             auto packages_as_object = packages.get_object();
@@ -472,7 +472,7 @@ namespace mamba::solver::libsolv
                     );
                     if (parsed)
                     {
-                        if (exclude_newer_timestamp && pkg_timestamp > *exclude_newer_timestamp)
+                        if (exclude_newer_policy.excludes(solv.name(), pkg_timestamp))
                         {
                             repo.remove_solvable(id, /* reuse_id= */ true);
                         }
@@ -500,7 +500,7 @@ namespace mamba::solver::libsolv
             JSONObject& packages,
             const std::optional<nlohmann::json>& signatures,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
         )
         {
             return set_repo_solvables_impl(
@@ -514,7 +514,7 @@ namespace mamba::solver::libsolv
                 /* filter= */ [](const auto&) { return true; },
                 /* on_parsed= */ [](const auto&) {},
                 parser,
-                exclude_newer_timestamp
+                exclude_newer_policy
             );
         }
 
@@ -528,7 +528,7 @@ namespace mamba::solver::libsolv
             JSONObject& packages,
             const std::optional<nlohmann::json>& signatures,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
         ) -> util::flat_set<std::string>
         {
             auto filenames = util::flat_set<std::string>();
@@ -545,7 +545,7 @@ namespace mamba::solver::libsolv
                 [&](const auto& fn)
                 { filenames.insert(std::string(specs::strip_archive_extension(fn))); },
                 parser,
-                exclude_newer_timestamp
+                exclude_newer_policy
             );
             // Sort only once
             return filenames;
@@ -562,7 +562,7 @@ namespace mamba::solver::libsolv
             const std::optional<nlohmann::json>& signatures,
             const SortedStringRange& added,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
         )
         {
             return set_repo_solvables_impl(
@@ -577,7 +577,7 @@ namespace mamba::solver::libsolv
                 [&](const auto& fn) { return !added.contains(specs::strip_archive_extension(fn)); },
                 /* on_parsed= */ [&](const auto&) {},
                 parser,
-                exclude_newer_timestamp
+                exclude_newer_policy
             );
         }
     }
@@ -643,7 +643,7 @@ namespace mamba::solver::libsolv
         PackageTypes package_types,
         MatchSpecParser ms_parser,
         bool verify_artifacts,
-        std::optional<std::uint64_t> exclude_newer_timestamp
+        ExcludeNewerCutoffPolicy exclude_newer_policy
     ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
@@ -760,7 +760,7 @@ namespace mamba::solver::libsolv
                     pkgs,
                     json_signatures,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
             if (auto pkgs = repodata_doc["packages"]; !pkgs.error())
@@ -775,7 +775,7 @@ namespace mamba::solver::libsolv
                     json_signatures,
                     added,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
         }
@@ -793,7 +793,7 @@ namespace mamba::solver::libsolv
                     pkgs,
                     json_signatures,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
 
@@ -809,7 +809,7 @@ namespace mamba::solver::libsolv
                     pkgs,
                     json_signatures,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
         }

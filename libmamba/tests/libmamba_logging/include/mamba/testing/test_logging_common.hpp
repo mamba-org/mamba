@@ -15,6 +15,7 @@
 #include <fmt/std.h>
 
 #include <mamba/core/logging.hpp>
+#include <mamba/core/logging_tools.hpp>
 #include <mamba/core/util_scope.hpp>
 #include <mamba/util/synchronized_value.hpp>
 
@@ -101,7 +102,7 @@ namespace mamba::logging::testing
         auto log(LogRecord record) -> void
         {
             auto stats = pimpl->stats.synchronize();
-            if (stats->current_params.logging_level > record.level)
+            if (not details::should_be_emitted(record, stats->current_params.logging_level))
             {
                 // we ignore logs that should be filtered
                 ++stats->filtered_out_log_count;

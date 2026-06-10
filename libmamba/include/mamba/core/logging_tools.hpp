@@ -3,6 +3,8 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
+#ifndef MAMBA_CORE_LOGGING_TOOLS_HPP
+#define MAMBA_CORE_LOGGING_TOOLS_HPP
 
 #include <atomic>
 #include <concepts>
@@ -49,18 +51,18 @@ namespace mamba::logging
             }
         }
 
-        inline auto should_be_ignored(const LogRecord& record, log_level current_level) -> bool
+        inline auto should_be_emitted(const LogRecord& record, log_level current_level) -> bool
         {
             switch (current_level)
             {
                 case log_level::off:
-                    return true;
-
-                case log_level::all:
                     return false;
 
+                case log_level::all:
+                    return true;
+
                 default:
-                    return current_level > record.level;
+                    return record.level >= current_level;
             }
         }
 
@@ -461,7 +463,7 @@ namespace mamba::logging
     inline auto LogHandler_History::log(LogRecord record) -> void
     {
         assert(pimpl);
-        if (details::should_be_ignored(record, pimpl->current_log_level))
+        if (not details::should_be_emitted(record, pimpl->current_log_level))
         {
             return;
         }
@@ -491,7 +493,7 @@ namespace mamba::logging
         auto synched_data = pimpl->data.synchronize();
         for (auto& log : synched_data->backtrace)
         {
-            if (filter_current_level and details::should_be_ignored(log, pimpl->current_log_level))
+            if (filter_current_level and not details::should_be_emitted(log, pimpl->current_log_level))
             {
                 continue;
             }
@@ -636,7 +638,7 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        if (details::should_be_ignored(record, pimpl->current_log_level))
+        if (not details::should_be_emitted(record, pimpl->current_log_level))
         {
             return;
         }
@@ -682,7 +684,7 @@ namespace mamba::logging
         for (auto& log_record : *synched_backtrace)
         {
             if (filter_current_level
-                and details::should_be_ignored(log_record, pimpl->current_log_level))
+                and not details::should_be_emitted(log_record, pimpl->current_log_level))
             {
                 continue;
             }
@@ -726,3 +728,5 @@ namespace mamba::logging
     }
 
 }
+
+#endif

@@ -11,6 +11,7 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <vector>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
@@ -22,6 +23,7 @@
 namespace solv
 {
     class ObjPool;
+    class ObjQueue;
 }
 
 namespace mamba
@@ -118,6 +120,25 @@ namespace mamba::solver::libsolv
         [[nodiscard]] auto installed_repo() const -> std::optional<RepoInfo>;
 
         void set_installed_repo(RepoInfo repo);
+
+        /**
+         * Add a virtual package (name starting with ``__``) to a repository.
+         *
+         * Solver lock jobs are recorded immediately so virtual packages stay in the solution and
+         * run constraints on them remain enforceable.
+         */
+        auto add_virtual_package(const RepoInfo& repo, const specs::PackageInfo& pkg) -> SolvableId;
+
+        /** Finalize repository changes after adding solvables outside @ref add_repo_from_packages.
+         */
+        void internalize_repo(const RepoInfo& repo);
+
+        /** Forget solver jobs from @ref add_virtual_package, e.g. before reloading installed
+         * packages. */
+        void clear_virtual_package_lock_jobs();
+
+        /** Solver jobs recorded by @ref add_virtual_package. */
+        [[nodiscard]] auto virtual_package_lock_jobs() const -> const solv::ObjQueue&;
 
         void set_repo_priority(RepoInfo repo, Priorities priorities);
 

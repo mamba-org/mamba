@@ -463,7 +463,6 @@ namespace mamba::solver::libsolv
                     case SOLVER_RULE_PKG:
                     {
                         // A top level requirement.
-                        // The difference between JOB and PKG is unknown (possibly unused).
                         if (!dep)
                         {
                             warn_unexpected_problem(problem);

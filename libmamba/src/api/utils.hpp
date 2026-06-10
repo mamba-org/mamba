@@ -123,8 +123,11 @@ namespace mamba
     /**
      * Create a libsolv database configured for the current matching behavior.
      */
-    solver::libsolv::Database
-    make_solver_database(const Context& ctx, ChannelContext& channel_context);
+    solver::libsolv::Database make_solver_database(
+        ChannelContext& channel_context,
+        bool experimental_matchspec_parsing,
+        const std::string& exclude_newer
+    );
 
     /**
      * Apply shared prefix fallback defaults used by install/update entry points.

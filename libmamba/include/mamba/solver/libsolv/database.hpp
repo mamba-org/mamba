@@ -65,6 +65,20 @@ namespace mamba::solver::libsolv
         struct Settings
         {
             MatchSpecParser matchspec_parser = MatchSpecParser::Libsolv;
+            /**
+             * When set, packages with a policy timestamp newer than this Unix epoch cutoff
+             * (seconds) are excluded during repodata loading.
+             *
+             * For repodata JSON, `indexed_timestamp` is preferred over `timestamp` when both
+             * are present, matching conda's `--exclude-newer` semantics.
+             *
+             * This is a global cutoff for the whole `Database`. Callers that need
+             * channel- or package-specific policies (e.g. conda with overrides) should apply
+             * filtering before handing records to libmamba.
+             *
+             * The `.solv` cache path is not filtered; invalidate the cache when this value
+             * changes.
+             */
             std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt;
         };
 

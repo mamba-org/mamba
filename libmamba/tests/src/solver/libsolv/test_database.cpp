@@ -11,6 +11,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -292,6 +293,62 @@ namespace
             );
             REQUIRE(unfiltered_repo.has_value());
             REQUIRE(unfiltered_repo->package_count() > repo1->package_count());
+        }
+
+        SECTION("exclude_newer_package overrides the global cutoff")
+        {
+            auto tmp_dir = TemporaryDirectory();
+            const auto repodata = tmp_dir.path() / "repodata.json";
+            std::ofstream out_file(repodata.std_path());
+            out_file << R"({
+                "packages": {
+                    "exempt-pkg-1.0-bld.tar.bz2": {
+                        "name": "exempt-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000
+                    },
+                    "filtered-pkg-1.0-bld.tar.bz2": {
+                        "name": "filtered-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000
+                    }
+                },
+                "packages.conda": {}
+            })";
+            out_file.close();
+
+            auto db_filtered = libsolv::Database(
+                {},
+                {
+                    matchspec_parser,
+                    /* exclude_newer_timestamp= */ std::uint64_t(2000),
+                    /* exclude_newer_package= */
+                    ExcludeNewerPackageCutoffs{
+                        { "exempt-pkg", std::nullopt },
+                    },
+                }
+            );
+            auto repo1 = db_filtered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            db_filtered.for_each_package_in_repo(
+                *repo1,
+                [](const auto& p) { REQUIRE(p.name == "exempt-pkg"); }
+            );
         }
 
         SECTION("exclude_newer_timestamp prefers indexed_timestamp from repodata JSON")

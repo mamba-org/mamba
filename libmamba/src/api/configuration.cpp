@@ -1739,8 +1739,8 @@ namespace mamba
                    .description("Per-package overrides for the exclude_newer policy")
                    .long_description(unindent(R"(
                         Maps package names to durations, dates, timestamps, or false to exempt
-                        a package from the global exclude_newer policy. Only the global policy
-                        is applied natively by the libmamba solver backend today.)")));
+                        a package from the global exclude_newer policy. Package-specific values
+                        take precedence over the global cutoff.)")));
 
         insert(Configurable("order_solver_request", &m_context.solver_flags.order_request)
                    .group("Solver")

@@ -8,7 +8,6 @@
 #include <charconv>
 #include <ctime>
 #include <optional>
-#include <regex>
 #include <stdexcept>
 #include <string>
 
@@ -39,6 +38,33 @@ namespace mamba
             );
         }
 
+        [[nodiscard]] auto parse_uint_prefix(std::string_view& value) -> std::optional<std::uint64_t>
+        {
+            if (value.empty() || !std::isdigit(static_cast<unsigned char>(value.front())))
+            {
+                return std::nullopt;
+            }
+            std::uint64_t number = 0;
+            const auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), number);
+            if (ec != std::errc())
+            {
+                return std::nullopt;
+            }
+            value.remove_prefix(static_cast<std::size_t>(ptr - value.data()));
+            return number;
+        }
+
+        [[nodiscard]] auto parse_fixed_uint(std::string_view value) -> std::optional<int>
+        {
+            int number = 0;
+            const auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), number);
+            if (ec != std::errc() || ptr != value.data() + value.size())
+            {
+                return std::nullopt;
+            }
+            return number;
+        }
+
         [[nodiscard]] auto parse_plain_seconds(std::string_view value) -> std::optional<std::uint64_t>
         {
             std::uint64_t seconds = 0;
@@ -52,71 +78,110 @@ namespace mamba
             return seconds;
         }
 
+        [[nodiscard]] auto parse_compact_duration_seconds(std::string_view value)
+            -> std::optional<std::uint64_t>
+        {
+            auto remaining = value;
+            const auto amount = parse_uint_prefix(remaining);
+            if (!amount)
+            {
+                return std::nullopt;
+            }
+            while (!remaining.empty() && std::isspace(static_cast<unsigned char>(remaining.front())))
+            {
+                remaining.remove_prefix(1);
+            }
+            if (remaining.size() != 1)
+            {
+                return std::nullopt;
+            }
+            switch (std::tolower(static_cast<unsigned char>(remaining.front())))
+            {
+                case 'w':
+                    return *amount * 604800;
+                case 'd':
+                    return *amount * 86400;
+                case 'h':
+                    return *amount * 3600;
+                case 'm':
+                    return *amount * 60;
+                case 's':
+                    return *amount;
+                default:
+                    return std::nullopt;
+            }
+        }
+
         [[nodiscard]] auto parse_iso8601_duration_seconds(std::string_view value)
             -> std::optional<std::uint64_t>
         {
-            static const std::regex iso_duration_re(
-                R"re(^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$)re",
-                std::regex::icase
-            );
-            std::cmatch match;
-            if (!std::regex_match(value.begin(), value.end(), match, iso_duration_re))
+            if (value.empty() || std::tolower(static_cast<unsigned char>(value.front())) != 'p')
             {
                 return std::nullopt;
             }
 
-            bool has_component = false;
+            auto remaining = value.substr(1);
             std::uint64_t total = 0;
-            const auto add = [&](const std::csub_match& group, std::uint64_t unit)
+            bool has_component = false;
+
+            const auto consume_if_unit = [&](char unit, std::uint64_t multiplier) -> bool
             {
-                if (!group.matched)
+                std::size_t digits = 0;
+                while (digits < remaining.size()
+                       && std::isdigit(static_cast<unsigned char>(remaining[digits])))
                 {
-                    return;
+                    ++digits;
                 }
+                if (digits == 0)
+                {
+                    return true;
+                }
+                if (remaining.size() < digits + 1)
+                {
+                    return false;
+                }
+                if (std::tolower(static_cast<unsigned char>(remaining[digits]))
+                    != std::tolower(static_cast<unsigned char>(unit)))
+                {
+                    return true;
+                }
+
+                const auto amount = parse_fixed_uint(remaining.substr(0, digits));
+                if (!amount)
+                {
+                    return false;
+                }
+                remaining.remove_prefix(digits + 1);
                 has_component = true;
-                total += static_cast<std::uint64_t>(std::stoull(std::string(group))) * unit;
+                total += static_cast<std::uint64_t>(*amount) * multiplier;
+                return true;
             };
 
-            add(match[1], 604800);
-            add(match[2], 86400);
-            add(match[3], 3600);
-            add(match[4], 60);
-            add(match[5], 1);
+            if (!consume_if_unit('W', 604800) || !consume_if_unit('D', 86400))
+            {
+                return std::nullopt;
+            }
 
+            if (!remaining.empty()
+                && std::tolower(static_cast<unsigned char>(remaining.front())) == 't')
+            {
+                remaining.remove_prefix(1);
+                if (!consume_if_unit('H', 3600) || !consume_if_unit('M', 60)
+                    || !consume_if_unit('S', 1))
+                {
+                    return std::nullopt;
+                }
+            }
+
+            if (!remaining.empty())
+            {
+                return std::nullopt;
+            }
             if (!has_component)
             {
                 throw invalid_exclude_newer(value);
             }
             return total;
-        }
-
-        [[nodiscard]] auto parse_compact_duration_seconds(std::string_view value)
-            -> std::optional<std::uint64_t>
-        {
-            static const std::regex compact_duration_re(R"re(^(\d+)\s*([wdhms])$)re", std::regex::icase);
-            std::cmatch match;
-            if (!std::regex_match(value.begin(), value.end(), match, compact_duration_re))
-            {
-                return std::nullopt;
-            }
-
-            const auto amount = static_cast<std::uint64_t>(std::stoull(std::string(match[1])));
-            const auto unit = std::tolower(static_cast<unsigned char>(match[2].first[0]));
-            switch (unit)
-            {
-                case 'w':
-                    return amount * 604800;
-                case 'd':
-                    return amount * 86400;
-                case 'h':
-                    return amount * 3600;
-                case 'm':
-                    return amount * 60;
-                case 's':
-                    return amount;
-                default:
-                    return std::nullopt;
-            }
         }
 
         [[nodiscard]] auto parse_duration_seconds(std::string_view value)
@@ -145,17 +210,23 @@ namespace mamba
         [[nodiscard]] auto parse_date_only_next_utc_day(std::string_view value)
             -> std::optional<std::uint64_t>
         {
-            static const std::regex date_only_re(R"re(^(\d{4})-(\d{2})-(\d{2})$)re");
-            std::cmatch match;
-            if (!std::regex_match(value.begin(), value.end(), match, date_only_re))
+            if (value.size() != 10 || value[4] != '-' || value[7] != '-')
+            {
+                return std::nullopt;
+            }
+
+            const auto year = parse_fixed_uint(value.substr(0, 4));
+            const auto month = parse_fixed_uint(value.substr(5, 2));
+            const auto day = parse_fixed_uint(value.substr(8, 2));
+            if (!year || !month || !day)
             {
                 return std::nullopt;
             }
 
             std::tm tm = {};
-            tm.tm_year = std::stoi(std::string(match[1])) - 1900;
-            tm.tm_mon = std::stoi(std::string(match[2])) - 1;
-            tm.tm_mday = std::stoi(std::string(match[3])) + 1;
+            tm.tm_year = *year - 1900;
+            tm.tm_mon = *month - 1;
+            tm.tm_mday = *day + 1;
             tm.tm_hour = 0;
             tm.tm_min = 0;
             tm.tm_sec = 0;
@@ -166,33 +237,60 @@ namespace mamba
         [[nodiscard]] auto parse_datetime_timestamp(std::string_view value)
             -> std::optional<std::uint64_t>
         {
-            static const std::regex datetime_re(
-                R"re(^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|([+-])(\d{2}):(\d{2}))?$)re"
-            );
-            std::cmatch match;
-            if (!std::regex_match(value.begin(), value.end(), match, datetime_re))
+            if (value.size() < 19 || value[4] != '-' || value[7] != '-' || value[10] != 'T'
+                || value[13] != ':' || value[16] != ':')
+            {
+                return std::nullopt;
+            }
+
+            const auto year = parse_fixed_uint(value.substr(0, 4));
+            const auto month = parse_fixed_uint(value.substr(5, 2));
+            const auto day = parse_fixed_uint(value.substr(8, 2));
+            const auto hour = parse_fixed_uint(value.substr(11, 2));
+            const auto minute = parse_fixed_uint(value.substr(14, 2));
+            const auto second = parse_fixed_uint(value.substr(17, 2));
+            if (!year || !month || !day || !hour || !minute || !second)
             {
                 return std::nullopt;
             }
 
             std::tm tm = {};
-            tm.tm_year = std::stoi(std::string(match[1])) - 1900;
-            tm.tm_mon = std::stoi(std::string(match[2])) - 1;
-            tm.tm_mday = std::stoi(std::string(match[3]));
-            tm.tm_hour = std::stoi(std::string(match[4]));
-            tm.tm_min = std::stoi(std::string(match[5]));
-            tm.tm_sec = std::stoi(std::string(match[6]));
+            tm.tm_year = *year - 1900;
+            tm.tm_mon = *month - 1;
+            tm.tm_mday = *day;
+            tm.tm_hour = *hour;
+            tm.tm_min = *minute;
+            tm.tm_sec = *second;
             tm.tm_isdst = 0;
 
             auto timestamp = timegm_utc(tm);
+            auto suffix = value.substr(19);
 
-            if (match[7].matched && match[7].str() != "Z")
+            if (suffix.empty())
             {
-                const auto sign = match[8].str() == "+" ? 1 : -1;
-                const auto offset_hours = std::stoi(std::string(match[9]));
-                const auto offset_minutes = std::stoi(std::string(match[10]));
-                const auto offset_seconds = sign * (offset_hours * 3600 + offset_minutes * 60);
+                // Naive datetimes are interpreted as UTC.
+            }
+            else if (suffix.size() == 1
+                     && std::tolower(static_cast<unsigned char>(suffix.front())) == 'z')
+            {
+                // Explicit UTC.
+            }
+            else if (suffix.size() == 6 && (suffix.front() == '+' || suffix.front() == '-')
+                     && suffix[3] == ':')
+            {
+                const auto offset_hours = parse_fixed_uint(suffix.substr(1, 2));
+                const auto offset_minutes = parse_fixed_uint(suffix.substr(4, 2));
+                if (!offset_hours || !offset_minutes)
+                {
+                    return std::nullopt;
+                }
+                const auto sign = suffix.front() == '+' ? 1 : -1;
+                const auto offset_seconds = sign * (*offset_hours * 3600 + *offset_minutes * 60);
                 timestamp -= offset_seconds;
+            }
+            else
+            {
+                return std::nullopt;
             }
 
             if (timestamp < 0)

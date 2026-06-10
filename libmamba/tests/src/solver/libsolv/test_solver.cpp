@@ -1330,4 +1330,86 @@ namespace
             );
         }
     }
+
+    namespace
+    {
+        auto make_cuda_version_solver_db(
+            libsolv::MatchSpecParser matchspec_parser,
+            const std::string& cuda_virtual_version
+        )
+        {
+            auto db = libsolv::Database({}, { matchspec_parser });
+
+            auto cuda_version = specs::PackageInfo("cuda-version", "13.3", "hcbadf70_3", 3);
+            cuda_version.constrains = { "__cuda >=13" };
+
+            db.add_repo_from_packages(
+                std::array{ cuda_version },
+                "repo",
+                libsolv::PipAsPythonDependency::No
+            );
+
+            // Mirror a real prefix: all distribution virtual packages plus __cuda.
+            const auto installed = db.add_repo_from_packages(
+                std::array{
+                    specs::PackageInfo("__unix", "0", "0", 0),
+                    specs::PackageInfo("__linux", "6.0", "0", 0),
+                    specs::PackageInfo("__glibc", "2.39", "0", 0),
+                    specs::PackageInfo("__archspec", "1", "x86_64_v3", 0),
+                    specs::PackageInfo("__cuda", cuda_virtual_version, "0", 0),
+                },
+                "installed",
+                libsolv::PipAsPythonDependency::No
+            );
+            db.set_installed_repo(installed);
+            return db;
+        }
+    }
+
+    TEST_CASE("Run constraints on virtual packages are enforced", "[mamba::solver][mamba::solver::libsolv]")
+    {
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed,
+            libsolv::MatchSpecParser::Mamba
+        );
+
+        SECTION("cuda-version incompatible with installed __cuda is unsolvable")
+        {
+            CAPTURE(matchspec_parser);
+            auto db = make_cuda_version_solver_db(matchspec_parser, "12.0");
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "cuda-version=13.3"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+
+            // Regression test for segfault when explaining constraint conflicts (issue #4311).
+            const auto& unsolvable = std::get<libsolv::UnSolvable>(outcome.value());
+            REQUIRE_NOTHROW(unsolvable.explain_problems(db, {}));
+        }
+
+        SECTION("cuda-version compatible with installed __cuda is installable")
+        {
+            auto db = make_cuda_version_solver_db(matchspec_parser, "13.0");
+
+            auto request = Request{
+                /* .flags= */ {},
+                /* .jobs= */ { Request::Install{ "cuda-version=13.3"_ms } },
+            };
+            const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+            REQUIRE(outcome.has_value());
+            REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+            const auto& solution = std::get<Solution>(outcome.value());
+
+            const auto cuda_actions = find_actions_with_name(solution, "cuda-version");
+            REQUIRE(cuda_actions.size() == 1);
+            REQUIRE(std::holds_alternative<Solution::Install>(cuda_actions.front()));
+        }
+    }
 }

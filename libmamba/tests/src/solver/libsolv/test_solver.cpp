@@ -1355,13 +1355,15 @@ namespace
                 "installed",
                 libsolv::PipAsPythonDependency::No
             );
-            db.add_virtual_package(installed, specs::PackageInfo("__unix", "0", "0", 0));
-            db.add_virtual_package(installed, specs::PackageInfo("__linux", "6.0", "0", 0));
-            db.add_virtual_package(installed, specs::PackageInfo("__glibc", "2.39", "0", 0));
-            db.add_virtual_package(installed, specs::PackageInfo("__archspec", "1", "x86_64_v3", 0));
-            db.add_virtual_package(
+            db.add_virtual_packages(
                 installed,
-                specs::PackageInfo("__cuda", cuda_virtual_version, "0", 0)
+                std::array{
+                    specs::PackageInfo("__unix", "0", "0", 0),
+                    specs::PackageInfo("__linux", "6.0", "0", 0),
+                    specs::PackageInfo("__glibc", "2.39", "0", 0),
+                    specs::PackageInfo("__archspec", "1", "x86_64_v3", 0),
+                    specs::PackageInfo("__cuda", cuda_virtual_version, "0", 0),
+                }
             );
             db.internalize_repo(installed);
             db.set_installed_repo(installed);

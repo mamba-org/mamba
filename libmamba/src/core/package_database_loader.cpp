@@ -200,10 +200,7 @@ namespace mamba
             "installed",
             solver::libsolv::PipAsPythonDependency::No
         );
-        for (auto&& pkg : get_virtual_packages(ctx.platform))
-        {
-            database.add_virtual_package(repo, std::move(pkg));
-        }
+        database.add_virtual_packages(repo, get_virtual_packages(ctx.platform));
         database.internalize_repo(repo);
         database.set_installed_repo(repo);
         return repo;

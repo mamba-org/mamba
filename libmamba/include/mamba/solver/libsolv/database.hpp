@@ -121,23 +121,21 @@ namespace mamba::solver::libsolv
 
         void set_installed_repo(RepoInfo repo);
 
-        /**
-         * Add a virtual package (name starting with ``__``) to a repository.
-         *
-         * Solver lock jobs are recorded immediately so virtual packages stay in the solution and
-         * run constraints on them remain enforceable.
-         */
-        auto add_virtual_package(const RepoInfo& repo, const specs::PackageInfo& pkg) -> SolvableId;
+        template <typename Iter>
+        void add_virtual_packages(const RepoInfo& repo, Iter first_package, Iter last_package);
+
+        template <typename Range>
+        void add_virtual_packages(const RepoInfo& repo, const Range& packages);
 
         /** Finalize repository changes after adding solvables outside @ref add_repo_from_packages.
          */
         void internalize_repo(const RepoInfo& repo);
 
-        /** Forget solver jobs from @ref add_virtual_package, e.g. before reloading installed
+        /** Forget solver jobs from @ref add_virtual_packages, e.g. before reloading installed
          * packages. */
         void clear_virtual_package_lock_jobs();
 
-        /** Solver jobs recorded by @ref add_virtual_package. */
+        /** Solver jobs recorded by @ref add_virtual_packages. */
         [[nodiscard]] auto virtual_package_lock_jobs() const -> const solv::ObjQueue&;
 
         void set_repo_priority(RepoInfo repo, Priorities priorities);
@@ -185,6 +183,7 @@ namespace mamba::solver::libsolv
         auto add_repo_from_packages_impl_pre(std::string_view name) -> RepoInfo;
         void add_repo_from_packages_impl_loop(const RepoInfo& repo, const specs::PackageInfo& pkg);
         void add_repo_from_packages_impl_post(const RepoInfo& repo, PipAsPythonDependency add);
+        void add_virtual_package_impl(const RepoInfo& repo, const specs::PackageInfo& pkg);
 
         enum class PackageId : int;
 
@@ -226,6 +225,21 @@ namespace mamba::solver::libsolv
         -> RepoInfo
     {
         return add_repo_from_packages(packages.begin(), packages.end(), name, add);
+    }
+
+    template <typename Iter>
+    void Database::add_virtual_packages(const RepoInfo& repo, Iter first_package, Iter last_package)
+    {
+        for (; first_package != last_package; ++first_package)
+        {
+            add_virtual_package_impl(repo, *first_package);
+        }
+    }
+
+    template <typename Range>
+    void Database::add_virtual_packages(const RepoInfo& repo, const Range& packages)
+    {
+        add_virtual_packages(repo, packages.begin(), packages.end());
     }
 
     // TODO(C++20): Use ranges::transform

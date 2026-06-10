@@ -248,4 +248,50 @@ namespace mamba
         return resolve_exclude_newer_cutoff_impl(value, now_seconds);
     }
 
+    auto ExcludeNewerCutoffPolicy::cutoff_for(std::string_view package_name) const
+        -> std::optional<std::uint64_t>
+    {
+        if (const auto it = per_package.find(package_name); it != per_package.end())
+        {
+            return it->second;
+        }
+        return global;
+    }
+
+    auto
+    ExcludeNewerCutoffPolicy::excludes(std::string_view package_name, std::uint64_t pkg_timestamp) const
+        -> bool
+    {
+        if (const auto cutoff = cutoff_for(package_name))
+        {
+            return pkg_timestamp > *cutoff;
+        }
+        return false;
+    }
+
+    auto resolve_exclude_newer_package_cutoffs(
+        const std::map<std::string, std::string>& exclude_newer_package,
+        std::uint64_t now_seconds
+    ) -> ExcludeNewerPackageCutoffs
+    {
+        auto out = ExcludeNewerPackageCutoffs{};
+        for (const auto& [name, value] : exclude_newer_package)
+        {
+            const auto trimmed = trim(value);
+            if (trimmed.size() == 5 && (trimmed[0] == 'f' || trimmed[0] == 'F')
+                && (trimmed[1] == 'a' || trimmed[1] == 'A')
+                && (trimmed[2] == 'l' || trimmed[2] == 'L')
+                && (trimmed[3] == 's' || trimmed[3] == 'S')
+                && (trimmed[4] == 'e' || trimmed[4] == 'E'))
+            {
+                out.emplace(name, std::nullopt);
+            }
+            else
+            {
+                out.emplace(name, resolve_exclude_newer_cutoff(trimmed, now_seconds));
+            }
+        }
+        return out;
+    }
+
 }  // namespace mamba

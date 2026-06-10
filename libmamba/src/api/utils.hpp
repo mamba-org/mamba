@@ -8,6 +8,7 @@
 #define MAMBA_UTILS_HPP
 
 #include <functional>
+#include <map>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -126,7 +127,8 @@ namespace mamba
     solver::libsolv::Database make_solver_database(
         ChannelContext& channel_context,
         bool experimental_matchspec_parsing,
-        const std::string& exclude_newer
+        const std::string& exclude_newer,
+        const std::map<std::string, std::string>& exclude_newer_package
     );
 
     /**

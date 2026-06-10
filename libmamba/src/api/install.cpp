@@ -743,7 +743,8 @@ namespace mamba
             auto database = make_solver_database(
                 channel_context,
                 ctx.experimental_matchspec_parsing,
-                ctx.exclude_newer
+                ctx.exclude_newer,
+                ctx.exclude_newer_package
             );
 
             init_channels(ctx, channel_context);
@@ -1239,7 +1240,8 @@ namespace mamba
             auto db = make_solver_database(
                 channel_context,
                 ctx.experimental_matchspec_parsing,
-                ctx.exclude_newer
+                ctx.exclude_newer,
+                ctx.exclude_newer_package
             );
             add_logger_to_database(db);
 

@@ -13,6 +13,7 @@
 #include <string_view>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
@@ -73,7 +74,7 @@ namespace mamba::solver::libsolv
         PackageTypes types,
         MatchSpecParser parser,
         bool verify_artifacts,
-        std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+        ExcludeNewerCutoffPolicy exclude_newer_policy = {}
     ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto read_solv(

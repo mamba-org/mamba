@@ -390,6 +390,13 @@ init_install_options(CLI::App* subcom, Configuration& config)
         allow_downgrade.description()
     );
 
+    auto& exclude_newer = config.at("exclude_newer");
+    subcom->add_option(
+        "--exclude-newer",
+        exclude_newer.get_cli_config<std::string>(),
+        exclude_newer.description()
+    );
+
     auto& allow_softlinks = config.at("allow_softlinks");
     subcom->add_flag(
         "--allow-softlinks,!--no-allow-softlinks",

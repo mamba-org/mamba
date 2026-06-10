@@ -128,6 +128,8 @@ namespace mamba
 
         // solver options
         solver::Request::Flags solver_flags = {};
+        std::string exclude_newer;
+        std::map<std::string, std::string> exclude_newer_package;
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;

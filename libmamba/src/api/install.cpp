@@ -740,7 +740,12 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            auto database = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
+            auto database = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer,
+                ctx.exclude_newer_package
+            );
 
             init_channels(ctx, channel_context);
             // Some use cases provide a list of explicit specs, but an empty
@@ -1232,7 +1237,12 @@ namespace mamba
 
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
-            solver::libsolv::Database db{ channel_context.params() };
+            auto db = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer,
+                ctx.exclude_newer_package
+            );
             add_logger_to_database(db);
 
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches);

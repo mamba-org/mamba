@@ -8,6 +8,7 @@
 #define MAMBA_UTILS_HPP
 
 #include <functional>
+#include <map>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -123,8 +124,12 @@ namespace mamba
     /**
      * Create a libsolv database configured for the current matching behavior.
      */
-    solver::libsolv::Database
-    make_solver_database(bool experimental_matchspec_parsing, ChannelContext& channel_context);
+    solver::libsolv::Database make_solver_database(
+        ChannelContext& channel_context,
+        bool experimental_matchspec_parsing,
+        const std::string& exclude_newer,
+        const std::map<std::string, std::string>& exclude_newer_package
+    );
 
     /**
      * Apply shared prefix fallback defaults used by install/update entry points.

@@ -1742,6 +1742,29 @@ namespace mamba
                    .set_env_var_names()
                    .description("Allow downgrade when installing packages. Default is false."));
 
+        insert(Configurable("exclude_newer", &m_context.exclude_newer)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "CONDA_EXCLUDE_NEWER", "MAMBA_EXCLUDE_NEWER" })
+                   .description("Exclude packages published more recently than the given duration or date")
+                   .long_description(unindent(R"(
+                        Exclude packages with a policy timestamp newer than the cutoff.
+                        Accepts durations (e.g. 7d, 3d12h, 1w, P7D), ISO datetimes
+                        (e.g. 2026-04-01T12:00:00Z), or date-only values (e.g. 2026-04-01,
+                        interpreted as the start of the next UTC day). Plain integers are
+                        treated as durations in seconds. Supply 0 for no delay, using the
+                        current time as the cutoff.)")));
+
+        insert(Configurable("exclude_newer_package", &m_context.exclude_newer_package)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "CONDA_EXCLUDE_NEWER_PACKAGE", "MAMBA_EXCLUDE_NEWER_PACKAGE" })
+                   .description("Per-package overrides for the exclude_newer policy")
+                   .long_description(unindent(R"(
+                        Maps package names to durations, dates, timestamps, or false to exempt
+                        a package from the global exclude_newer policy. Package-specific values
+                        take precedence over the global cutoff.)")));
+
         insert(Configurable("order_solver_request", &m_context.solver_flags.order_request)
                    .group("Solver")
                    .set_rc_configurable()

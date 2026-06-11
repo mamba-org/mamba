@@ -91,8 +91,10 @@ namespace mamba::solver::libsolv
 
         for (const auto& cons : pkg.constrains)
         {
+            // Conda repodata constrains are always conda-style matchspecs; parse them with
+            // Libsolv so they become reldeps usable by add_conda_constrains_rule.
             const solv::DependencyId dep_id =  //
-                pool_add_matchspec(pool, cons.c_str(), parser)
+                pool_add_matchspec(pool, cons.c_str(), MatchSpecParser::Libsolv)
                     .or_else([](mamba_error&& err) { throw std::move(err); })
                     .value();
             assert(dep_id);
@@ -372,7 +374,11 @@ namespace mamba::solver::libsolv
                     if (!elem.error() && elem.is_string())
                     {
                         const auto ms = std::string(elem.get_string().value_unsafe());
-                        const auto maybe_dep_id = pool_add_matchspec(pool, ms.c_str(), parser);
+                        const auto maybe_dep_id = pool_add_matchspec(
+                            pool,
+                            ms.c_str(),
+                            MatchSpecParser::Libsolv
+                        );
                         if (maybe_dep_id)
                         {
                             solv.add_constraint(*maybe_dep_id);
@@ -1761,11 +1767,20 @@ namespace mamba::solver::libsolv
     auto request_to_decision_queue(  //
         const Request& request,
         solv::ObjPool& pool,
+        const solv::ObjQueue& virtual_package_lock_jobs,
         bool force_reinstall,
         MatchSpecParser parser
     ) -> expected_t<solv::ObjQueue>
     {
         auto solv_jobs = solv::ObjQueue();
+        if (!virtual_package_lock_jobs.empty())
+        {
+            solv_jobs.insert(
+                solv_jobs.begin(),
+                virtual_package_lock_jobs.begin(),
+                virtual_package_lock_jobs.end()
+            );
+        }
 
         auto error = expected_t<void>();
         for (const auto& unknown_job : request.jobs)

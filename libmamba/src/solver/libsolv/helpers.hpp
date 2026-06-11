@@ -19,6 +19,7 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
+#include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
 #include "solv-cpp/transaction.hpp"
@@ -171,9 +172,9 @@ namespace mamba::solver::libsolv
     [[nodiscard]] auto request_to_decision_queue(
         const Request& request,
         solv::ObjPool& pool,
+        const solv::ObjQueue& virtual_package_lock_jobs,
         bool force_reinstall,
         MatchSpecParser parser
-
     ) -> expected_t<solv::ObjQueue>;
 }
 #endif

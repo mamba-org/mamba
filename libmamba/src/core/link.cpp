@@ -569,8 +569,9 @@ namespace mamba
 
         if (action == "pre-link")
         {
-            LOG_WARNING << "Special Note: Pre-link scripts are particularly high-risk as they can "
-                        << "modify the package cache, potentially affecting all environments on this system.";
+            LOG_WARNING
+                << "Special Note: Pre-link scripts are particularly high-risk as they can "
+                << "modify the package cache, potentially affecting all environments on this system.";
         }
 
         if (action == "post-unlink")

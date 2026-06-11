@@ -75,7 +75,8 @@ namespace mamba
             std::string pre_unlink_name = ".test_pkg-pre-unlink" + script_ext;
             std::string post_unlink_name = ".test_pkg-post-unlink" + script_ext;
 
-            auto create_script = [](const fs::u8path& p, const fs::u8path& marker_path) {
+            auto create_script = [](const fs::u8path& p, const fs::u8path& marker_path)
+            {
                 std::ofstream out = open_ofstream(p);
                 if (util::on_win)
                 {

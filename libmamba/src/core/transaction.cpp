@@ -1172,8 +1172,9 @@ namespace mamba
             return true;
         }
 
-        LOG_WARNING << "Security Warning: This transaction includes executing package scripts (pre/post-link/unlink) if present. "
-                    << "These scripts can contain arbitrary code. Please ensure you trust the package sources.";
+        LOG_WARNING
+            << "Security Warning: This transaction includes executing package scripts (pre/post-link/unlink) if present. "
+            << "These scripts can contain arbitrary code. Please ensure you trust the package sources.";
 
         return Console::prompt("Confirm changes", 'y');
     }

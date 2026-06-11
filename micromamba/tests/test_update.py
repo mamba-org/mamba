@@ -25,15 +25,13 @@ class TestUpdate:
     medium_old_version = "0.22"
 
     @staticmethod
-    @pytest.fixture(scope="class")
-    def root(existing_cache):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.root_prefix
-        os.environ["CONDA_PREFIX"] = TestUpdate.prefix
+    @pytest.fixture
+    def root(existing_cache, monkeypatch):
+        monkeypatch.setenv("MAMBA_ROOT_PREFIX", TestUpdate.root_prefix)
+        monkeypatch.setenv("CONDA_PREFIX", TestUpdate.prefix)
 
         yield
 
-        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdate.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestUpdate.current_prefix
         shutil.rmtree(TestUpdate.root_prefix)
 
     @staticmethod
@@ -239,30 +237,25 @@ class TestUpdateConfig:
     prefix = os.path.join(root_prefix, "envs", env_name)
 
     @staticmethod
-    @pytest.fixture(scope="class")
-    def root(existing_cache):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.root_prefix
-        os.environ["CONDA_PREFIX"] = TestUpdateConfig.prefix
+    @pytest.fixture
+    def root(existing_cache, monkeypatch):
+        monkeypatch.setenv("MAMBA_ROOT_PREFIX", TestUpdateConfig.root_prefix)
+        monkeypatch.setenv("CONDA_PREFIX", TestUpdateConfig.prefix)
+
         helpers.create("-n", "base", no_dry_run=True)
         helpers.create("-n", TestUpdateConfig.env_name, "--offline", no_dry_run=True)
 
         yield
 
-        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.current_root_prefix
-        os.environ["CONDA_PREFIX"] = TestUpdateConfig.current_prefix
         shutil.rmtree(TestUpdateConfig.root_prefix)
 
     @staticmethod
     @pytest.fixture
-    def env_created(root):
-        os.environ["MAMBA_ROOT_PREFIX"] = TestUpdateConfig.root_prefix
-        os.environ["CONDA_PREFIX"] = TestUpdateConfig.prefix
+    def env_created(root, monkeypatch):
+        monkeypatch.setenv("MAMBA_ROOT_PREFIX", TestUpdateConfig.root_prefix)
+        monkeypatch.setenv("CONDA_PREFIX", TestUpdateConfig.prefix)
 
         yield
-
-        for v in ("CONDA_CHANNELS", "MAMBA_TARGET_PREFIX"):
-            if v in os.environ:
-                os.environ.pop(v)
 
     @classmethod
     def config_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
@@ -346,11 +339,13 @@ class TestUpdateConfig:
         env_var,
         current_target_prefix_fallback,
         env_created,
+        monkeypatch,
     ):
         cmd = []
 
         if root_prefix in (None, "cli"):
-            os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+            monkeypatch.setenv("MAMBA_DEFAULT_ROOT_PREFIX", os.environ["MAMBA_ROOT_PREFIX"])
+            monkeypatch.delenv("MAMBA_ROOT_PREFIX")
 
         if root_prefix == "cli":
             cmd += ["-r", TestUpdateConfig.root_prefix]
@@ -393,13 +388,13 @@ class TestUpdateConfig:
             cmd += ["-f", spec_file]
 
         if env_var:
-            os.environ["MAMBA_TARGET_PREFIX"] = p
+            monkeypatch.setenv("MAMBA_TARGET_PREFIX", p)
 
         if not current_target_prefix_fallback:
-            os.environ.pop("CONDA_PREFIX")
-            os.environ.pop("CONDA_DEFAULT_ENV")
+            monkeypatch.delenv("CONDA_PREFIX")
+            monkeypatch.delenv("CONDA_DEFAULT_ENV")
         else:
-            os.environ["CONDA_PREFIX"] = p
+            monkeypatch.setenv("CONDA_PREFIX", p)
 
         if (cli_prefix and cli_env_name) or (yaml_name == "prefix"):
             with pytest.raises(helpers.subprocess.CalledProcessError):
@@ -417,21 +412,22 @@ class TestUpdateConfig:
     def test_target_prefix_with_no_settings(
         self,
         existing_cache,
+        monkeypatch,
     ):
         # Specify no arg
         cmd = []
 
         # Get the actual set MAMBA_ROOT_PREFIX when setting up `TestUpdateConfig` class
-        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
-        os.environ.pop("CONDA_PREFIX")
-        os.environ.pop("CONDA_DEFAULT_ENV")
+        monkeypatch.setenv("MAMBA_DEFAULT_ROOT_PREFIX", os.environ["MAMBA_ROOT_PREFIX"])
+        for env_var in ("MAMBA_ROOT_PREFIX", "CONDA_PREFIX", "CONDA_DEFAULT_ENV"):
+            monkeypatch.delenv(env_var)
 
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")
         TestUpdateConfig.config_tests(
             res,
-            root_prefix=TestUpdateConfig.root_prefix,
-            target_prefix=TestUpdateConfig.root_prefix,
+            root_prefix=TestUpdateConfig.current_root_prefix,
+            target_prefix=TestUpdateConfig.current_root_prefix,
         )
 
     @pytest.mark.skipif(
@@ -441,13 +437,13 @@ class TestUpdateConfig:
     def test_target_prefix_with_no_settings_and_no_env_var(
         self,
         existing_cache,
+        monkeypatch,
     ):
         # Specify no arg
         cmd = []
 
-        os.environ.pop("MAMBA_ROOT_PREFIX")
-        os.environ.pop("CONDA_PREFIX")
-        os.environ.pop("CONDA_DEFAULT_ENV")
+        for env_var in ("MAMBA_ROOT_PREFIX", "CONDA_PREFIX", "CONDA_DEFAULT_ENV"):
+            monkeypatch.delenv(env_var)
 
         # Fallback on root prefix
         res = helpers.install(*cmd, "--print-config-only")
@@ -462,7 +458,7 @@ class TestUpdateConfig:
     @pytest.mark.parametrize("yaml", (False, True))
     @pytest.mark.parametrize("env_var", (False, True))
     @pytest.mark.parametrize("rc_file", (False, True))
-    def test_channels(self, cli, yaml, env_var, rc_file, env_created):
+    def test_channels(self, cli, yaml, env_var, rc_file, env_created, monkeypatch):
         cmd = []
         expected_channels = []
 
@@ -485,7 +481,7 @@ class TestUpdateConfig:
             expected_channels += ["yaml"]
 
         if env_var:
-            os.environ["CONDA_CHANNELS"] = "env_var"
+            monkeypatch.setenv("CONDA_CHANNELS", "env_var")
             expected_channels += ["env_var"]
 
         if rc_file:

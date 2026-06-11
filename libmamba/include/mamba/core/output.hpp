@@ -129,6 +129,11 @@ namespace mamba
                                                          ///< object to mark it as a success will be
                                                          ///< done once the other changes are
                                                          ///< applied.
+
+        /// Construct a json edit based on the members of a json object by using
+        /// each member as an assignation into the json object that will be edited
+        /// by this resulgint json edit.
+        static auto from_json_object_members(nlohmann::json object) -> JSONEdit;
     };
 
     class Console
@@ -183,10 +188,30 @@ namespace mamba
         */
         void set_json_output(JSONEdit edit);
 
+        /** Assigns the provided json value to the associated location in the json output object.
+            This overload is a shorter version for the 1 location 1 value assignation case
+            which is quite common.
+        */
+        template <class T>
+            requires requires(const T& value) { nlohmann::json{ value }; }
+        void set_json_output(nlohmann::json::json_pointer location, T&& value)
+        {
+            // clang-format off
+            set_json_output({
+                .to_assign{
+                    { std::move(location), std::forward<T>(value) }
+                }
+            });
+            // clang-format on
+        }
+
         /** If json output was requested, calling this before destroying a `Console` instance will
             not lead to a json output.
         */
         void cancel_json_print();
+
+        // FIXME: documentation
+        static void setup_log_handling_for_json();
 
         static void print_buffer(std::ostream& ostream);
 

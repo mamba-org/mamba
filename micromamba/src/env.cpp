@@ -13,6 +13,7 @@
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
@@ -78,6 +79,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
             // Raise a warning if `--json` and `--explicit` are used together.
             if (json_format && explicit_format)
             {
+                // FIXME?
                 std::cerr << "Warning: `--json` and `--explicit` are used together but are incompatible. The `--json` flag will be ignored."
                           << std::endl;
             }
@@ -192,26 +194,21 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
 
                 dependencies << (first_dependency_printed ? "\n" : "");
 
-                std::cout << "{\n";
 
-                std::cout << "  \"channels\": [\n";
-                for (auto channel_it = channels.begin(); channel_it != channels.end(); ++channel_it)
-                {
-                    auto last_channel = std::next(channel_it) == channels.end();
-                    std::cout << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",") << "\n";
-                }
-                std::cout << "  ],\n";
+                auto deps_json = nlohmann::json::parse(fmt::format("[ {} ]", dependencies.str()));
+                assert(deps_json.is_array());
 
-                std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
-
-                std::cout << "  \"name\": \""
-                          << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
-                          << "\",\n";
-                std::cout << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
-
-                std::cout << "}\n";
-
-                std::cout.flush();
+                // clang-format off
+                mamba::JSONEdit out_json{
+                    .to_assign = {
+                        { "/channels"_json_pointer , channels },
+                        { "/dependencies"_json_pointer , std::move(deps_json) },
+                        { "/name"_json_pointer, mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix) },
+                        { "/prefix"_json_pointer , ctx.prefix_params.target_prefix }
+                    }
+                };
+                mamba::Console::instance().set_json_output(std::move(out_json));
+                // clang-format on
             }
             else
             {

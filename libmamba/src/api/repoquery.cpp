@@ -129,7 +129,9 @@ namespace mamba
             switch (format)
             {
                 case QueryResultFormat::Json:
-                    out << res.groupby("name").json().dump(4);
+                    Console::instance().set_json_output(
+                        JSONEdit::from_json_object_members(res.groupby("name").json())
+                    );
                     break;
                 case QueryResultFormat::Pretty:
                     res.pretty(out, show_all_builds);
@@ -158,7 +160,7 @@ namespace mamba
                     res.tree(out, graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    out << res.json().dump(4);
+                    Console::instance().set_json_output(JSONEdit::from_json_object_members(res.json()));
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:
@@ -185,7 +187,7 @@ namespace mamba
                     res.tree(out, graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    out << res.json().dump(4);
+                    Console::instance().set_json_output(JSONEdit::from_json_object_members(res.json()));
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:

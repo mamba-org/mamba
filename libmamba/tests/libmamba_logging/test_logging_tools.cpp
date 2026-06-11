@@ -175,7 +175,7 @@ namespace mamba::logging
     {
         std::stringstream out;
         const auto location = std::source_location::current();
-        const auto location_str = fmt::format(" ({})", details::as_log(location));
+        const auto location_str = fmt::format(" ({})", as_log(location));
 
         details::log_to_stream(
             out,

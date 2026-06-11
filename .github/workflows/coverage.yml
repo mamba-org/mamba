@@ -49,6 +49,14 @@ jobs:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
           cache-environment: true
+          cache-environment-key: >-
+            coverage-${{
+              hashFiles(
+                'dev/environment-dev.yml',
+                'dev/environment-dev-extra.yml',
+                'dev/environment-micromamba-static.yml'
+              )
+            }}-${{ github.event.pull_request.number || github.ref }}
       - name: Install dev-extra environment
         run: micromamba install -n build_env -y -f ./dev/environment-dev-extra.yml
       - name: Install micromamba-static environment

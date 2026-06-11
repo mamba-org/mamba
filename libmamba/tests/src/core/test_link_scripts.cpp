@@ -44,7 +44,7 @@ namespace mamba
             const auto make_tx_context = [&]
             {
                 TransactionParams tx_params{
-                    .is_mamba_exe = false,
+                    .is_mamba_exe = true, // To enable activation for post-link script
                     .json_output = false,
                     .verbosity = 0,
                     .shortcuts = false,
@@ -130,7 +130,7 @@ namespace mamba
                 REQUIRE(link_pkg.execute());
 
                 REQUIRE(fs::exists(pre_link_marker));
-                // REQUIRE(fs::exists(post_link_marker));
+                REQUIRE(fs::exists(post_link_marker));
             }
 
             SECTION("unlinking executes pre-unlink and post-unlink")

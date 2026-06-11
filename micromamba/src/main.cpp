@@ -143,7 +143,7 @@ main(int argc, char** argv)
 
     try
     {
-        // Note: do not use CLI11_PARSE macro as it's error handling
+        // Note: do not use CLI11_PARSE macro as its error handling
         // would bypass ours.
         app.parse(argc, utf8argv);
         if (app.get_subcommands().size() == 0)

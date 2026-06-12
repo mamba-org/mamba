@@ -10,6 +10,7 @@
 
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/specs/package_info.hpp"
 
 #include "core/link.hpp"
@@ -40,11 +41,19 @@ namespace mamba
             fs::create_directories(prefix / "conda-meta");
             fs::create_directories(pkg_source / bin_dir_relative);
             fs::create_directories(prefix / bin_dir_relative);
+            if (util::on_win)
+            {
+                fs::create_directories(prefix / "condabin");
+                auto conda_bat_path = prefix / "condabin"
+                                      / (get_self_exe_path().stem().string() + ".bat");
+                auto out = open_ofstream(conda_bat_path);
+                out << "@exit /b 0\n";
+            }
 
             const auto make_tx_context = [&]
             {
                 TransactionParams tx_params{
-                    .is_mamba_exe = true, // To enable activation for post-link script
+                    .is_mamba_exe = false,
                     .json_output = false,
                     .verbosity = 0,
                     .shortcuts = false,

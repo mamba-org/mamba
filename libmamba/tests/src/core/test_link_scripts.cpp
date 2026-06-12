@@ -41,6 +41,9 @@ namespace mamba
             fs::create_directories(prefix / "conda-meta");
             fs::create_directories(pkg_source / bin_dir_relative);
             fs::create_directories(prefix / bin_dir_relative);
+
+            // Provide a dummy conda binary so wrap_call activation wrapper
+            // succeeds in the test environment
             if (util::on_win)
             {
                 fs::create_directories(prefix / "condabin");
@@ -48,6 +51,17 @@ namespace mamba
                                       / (get_self_exe_path().stem().string() + ".bat");
                 auto out = open_ofstream(conda_bat_path);
                 out << "@exit /b 0\n";
+            }
+            else
+            {
+                fs::create_directories(prefix / "bin");
+                auto conda_path = prefix / "bin" / "conda";
+                auto out = open_ofstream(conda_path);
+                out << "#!/bin/sh\n";
+                out << "if [ \"$1\" = \"shell.posix\" ] && [ \"$2\" = \"hook\" ]; then\n";
+                out << "  echo 'conda() { :; }'\n";  // Define conda as a no-op function
+                out << "fi\n";
+                make_executable(conda_path);
             }
 
             const auto make_tx_context = [&]

@@ -196,6 +196,9 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/repo_info.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
+    # Solver resolvo implementation
+    ${LIBMAMBA_SOURCE_DIR}/solver/resolvo/database.cpp
+    ${LIBMAMBA_SOURCE_DIR}/solver/resolvo/solver.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/keys.cpp
@@ -354,12 +357,18 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/problems_graph.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/request.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solution.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/database.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/database_utils.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/solver_factory.hpp
     # Solver libsolv implementation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/database.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/parameters.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/repo_info.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
+    # Solver resolvo implementation
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/resolvo/database.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/resolvo/solver.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/keys.hpp
@@ -445,6 +454,9 @@ find_package(yaml-cpp CONFIG REQUIRED)
 find_package(reproc CONFIG REQUIRED)
 find_package(reproc++ CONFIG REQUIRED)
 find_package(Libsolv MODULE REQUIRED)
+find_package(Resolvo CONFIG REQUIRED)
+include(FixResolvoWindows)
+include(CheckResolvoConditions)
 find_package(msgpack-c CONFIG REQUIRED)
 add_subdirectory(ext/solv-cpp)
 
@@ -494,14 +506,15 @@ macro(libmamba_create_target target_name linkage output_name)
 
         target_link_libraries(
             ${target_name}
-            PUBLIC fmt::fmt-header-only yaml-cpp::yaml-cpp ${MSGPACK_TARGET}
+            PUBLIC
+                fmt::fmt-header-only yaml-cpp::yaml-cpp ${MSGPACK_TARGET} simdjson::simdjson_static
             PRIVATE
                 reproc
                 reproc++
-                simdjson::simdjson_static
                 solv::libsolv_static
                 solv::libsolvext_static
                 solv::cpp
+                Resolvo::Resolvo
         )
 
         if(UNIX)
@@ -659,7 +672,12 @@ macro(libmamba_create_target target_name linkage output_name)
         target_link_libraries(
             ${target_name}
             PUBLIC
-                ${LIBSOLV_LIBRARIES} ${LIBSOLVEXT_LIBRARIES} yaml-cpp::yaml-cpp fmt::fmt msgpack-c
+                ${LIBSOLV_LIBRARIES}
+                ${LIBSOLVEXT_LIBRARIES}
+                yaml-cpp::yaml-cpp
+                fmt::fmt
+                msgpack-c
+                simdjson::simdjson
             PRIVATE
                 ${LibArchive_LIBRARIES}
                 ${CURL_LIBRARIES}
@@ -667,11 +685,11 @@ macro(libmamba_create_target target_name linkage output_name)
                 BZip2::BZip2
                 reproc
                 reproc++
-                simdjson::simdjson
                 zstd::libzstd_shared
                 solv::libsolv
                 solv::libsolvext
                 solv::cpp
+                Resolvo::Resolvo
         )
         # CMake 3.17 provides a LibArchive::LibArchive target that could be used instead of
         # LIBRARIES/INCLUDE_DIRS
@@ -718,6 +736,10 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(Threads REQUIRED)
 
         target_link_libraries(${target_name} PUBLIC Threads::Threads)
+    endif()
+
+    if(LIBMAMBA_RESOLVO_HAS_CONDITIONS)
+        target_compile_definitions(${target_name} PUBLIC LIBMAMBA_RESOLVO_HAS_CONDITIONS)
     endif()
 
     list(APPEND libmamba_targets ${target_name})

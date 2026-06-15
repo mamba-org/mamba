@@ -65,6 +65,62 @@ jobs:
           repository: conda-forge/micromamba-feedstock
           ref: dev
           path: micromamba-feedstock
+      # Temporary: use shared resolvo-cpp until static builds are on conda-forge.
+      - name: Add resolvo-cpp host dependency to feedstock recipe
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("micromamba-feedstock/recipe/meta.yaml")
+          text = path.read_text()
+          dep = "    - resolvo-cpp 0.3.0\n"
+          if "resolvo-cpp" not in text:
+              needle = "    - simdjson-static >=3.3.0\n"
+              if needle not in text:
+                  raise SystemExit(f"Could not find anchor {needle!r} in {path}")
+              path.write_text(text.replace(needle, needle + dep, 1))
+          PY
+      # Temporary: ship libresolvo_cpp in the micromamba package until resolvo-cpp is static on conda-forge.
+      - name: Patch feedstock build.sh for resolvo DSO
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("micromamba-feedstock/recipe/build.sh")
+          text = path.read_text()
+          if "libresolvo_cpp" in text:
+              print(f"{path} already copies libresolvo_cpp")
+          else:
+              needle = "cmake --install build/\n\n# remove everything related to"
+              block = """cmake --install build/
+
+          # Temporary: resolvo-cpp is only available as a shared library until static builds are
+          # published on conda-forge. Ship the DSO in $PREFIX/lib so @rpath/../lib resolves when
+          # micromamba is used outside a full conda env (e.g. CI artifact tests).
+          install -d "${PREFIX}/lib"
+          _resolvo_copied=0
+          for _resolvo_lib in \\
+              "${BUILD_PREFIX}/lib/libresolvo_cpp.dylib" \\
+              "${BUILD_PREFIX}/lib/libresolvo_cpp.so" \\
+              "${PREFIX}/lib/libresolvo_cpp.dylib" \\
+              "${PREFIX}/lib/libresolvo_cpp.so"; do
+            if [[ -f "${_resolvo_lib}" ]]; then
+              cp -f "${_resolvo_lib}" "${PREFIX}/lib/"
+              _resolvo_copied=1
+              break
+            fi
+          done
+          if [[ "${_resolvo_copied}" -eq 0 ]]; then
+            echo "libresolvo_cpp not found in BUILD_PREFIX or PREFIX" >&2
+            exit 1
+          fi
+
+          # remove everything related to"""
+              if needle not in text:
+                  raise SystemExit(f"Could not find anchor in {path}")
+              path.write_text(text.replace(needle, block, 1))
+              print(f"Patched {path} to copy libresolvo_cpp into the package")
+          PY
       - name: Disable output validation
         if: ${{ matrix.platform == 'osx' }}
         run: |
@@ -126,6 +182,25 @@ jobs:
             "micromamba-feedstock/build_artifacts/${{ matrix.platform }}-${{ matrix.arch }}/"micromamba-*.tar.bz2 "pkg/"
           mkdir -p "${{ github.workspace }}/artifacts"
           cp pkg/bin/micromamba "${{ github.workspace }}/artifacts"
+          # Temporary: static micromamba links shared resolvo-cpp (@rpath/../lib) until
+          # resolvo-cpp static libraries are published on conda-forge. Copy the DSO for
+          # artifact tests (the conda package only declares it as a run dependency).
+          mkdir -p "${{ github.workspace }}/lib"
+          shopt -s nullglob
+          _resolvo_copied=0
+          for _resolvo_lib in \
+            pkg/lib/libresolvo_cpp.* \
+            "${MAMBA_ROOT_PREFIX}/envs/mambabuild/lib/libresolvo_cpp."* \
+            "${MAMBA_ROOT_PREFIX}"/pkgs/resolvo-cpp-*/lib/libresolvo_cpp.* \
+            micromamba-feedstock/build_artifacts/*/_h_env*/lib/libresolvo_cpp.*; do
+            cp "${_resolvo_lib}" "${{ github.workspace }}/lib/"
+            _resolvo_copied=1
+            break
+          done
+          if [[ "${_resolvo_copied}" -eq 0 ]]; then
+            echo "libresolvo_cpp shared library not found for artifact tests" >&2
+            exit 1
+          fi
 
       - name: Test basic commands
         if: ${{ matrix.arch != 'aarch64' && matrix.arch != 'ppc64le' }}
@@ -171,6 +246,7 @@ jobs:
             cpp-expected
             nlohmann_json
             simdjson-static>=3.3.0
+            resolvo-cpp==0.3.0
             spdlog
             fmt>=11.1.0
             yaml-cpp-static>=0.8.0

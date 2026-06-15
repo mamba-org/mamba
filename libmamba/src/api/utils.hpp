@@ -117,7 +117,8 @@ namespace mamba
     solver::libsolv::Solver::Outcome solve_request_with_status(
         bool experimental_matchspec_parsing,
         solver::libsolv::Database& db,
-        const solver::Request& request
+        const solver::Request& request,
+        bool use_resolvo = false
     );
 
     /**

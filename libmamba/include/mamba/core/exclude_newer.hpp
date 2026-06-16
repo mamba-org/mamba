@@ -56,10 +56,31 @@ namespace mamba
         detail::ExcludeNewerPackageHash,
         detail::ExcludeNewerPackageEqual>;
 
-    struct ExcludeNewerCutoffPolicy
+    struct ExcludeNewerPolicy
     {
+        /**
+         * Raw ``exclude_newer`` configuration values from CLI or configuration file.
+         *
+         * Background and cross-ecosystem tracking:
+         * https://github.com/conda/conda/issues/15759
+         */
+        std::string exclude_newer;
+        std::map<std::string, std::string> exclude_newer_package;
+
+        /**
+         * Resolved global cutoff timestamp in seconds.
+         */
         std::optional<std::uint64_t> global = std::nullopt;
+
+        /**
+         * Resolved per-package timestamp cutoffs.
+         */
         ExcludeNewerPackageCutoffs per_package = {};
+
+        [[nodiscard]] auto empty() const -> bool
+        {
+            return exclude_newer.empty() && exclude_newer_package.empty();
+        }
 
         [[nodiscard]] auto cutoff_for(std::string_view package_name) const
             -> std::optional<std::uint64_t>;

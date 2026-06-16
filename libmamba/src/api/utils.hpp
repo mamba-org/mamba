@@ -26,6 +26,7 @@ namespace mamba
     class ChannelContext;
     class Configuration;
     class Context;
+    struct ExcludeNewerPolicy;
     class MTransaction;
     class PrefixData;
     class MultiPackageCache;
@@ -127,8 +128,7 @@ namespace mamba
     solver::libsolv::Database make_solver_database(
         ChannelContext& channel_context,
         bool experimental_matchspec_parsing,
-        const std::string& exclude_newer,
-        const std::map<std::string, std::string>& exclude_newer_package
+        const ExcludeNewerPolicy& exclude_newer_policy
     );
 
     /**

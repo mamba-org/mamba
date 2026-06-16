@@ -346,7 +346,7 @@ namespace mamba
         return resolve_exclude_newer_cutoff_impl(value, now_seconds);
     }
 
-    auto ExcludeNewerCutoffPolicy::cutoff_for(std::string_view package_name) const
+    auto ExcludeNewerPolicy::cutoff_for(std::string_view package_name) const
         -> std::optional<std::uint64_t>
     {
         if (const auto it = per_package.find(package_name); it != per_package.end())
@@ -356,8 +356,7 @@ namespace mamba
         return global;
     }
 
-    auto
-    ExcludeNewerCutoffPolicy::excludes(std::string_view package_name, std::uint64_t pkg_timestamp) const
+    auto ExcludeNewerPolicy::excludes(std::string_view package_name, std::uint64_t pkg_timestamp) const
         -> bool
     {
         if (const auto cutoff = cutoff_for(package_name))

@@ -67,11 +67,13 @@ namespace
         }
     }
 
-    TEST_CASE("ExcludeNewerCutoffPolicy")
+    TEST_CASE("ExcludeNewerPolicy cutoff behavior")
     {
         constexpr std::uint64_t global_cutoff = 2000;
 
-        const ExcludeNewerCutoffPolicy policy{
+        const ExcludeNewerPolicy policy{
+            /* .exclude_newer= */ "",
+            /* .exclude_newer_package= */ {},
             /* .global= */ global_cutoff,
             /* .per_package= */
             {

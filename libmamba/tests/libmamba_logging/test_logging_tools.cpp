@@ -82,9 +82,7 @@ namespace mamba::logging
         LogRecord log_g{ .message = "G", .source = log_source::tests };
 
         std::vector<LogRecord> emitted;
-        auto emit = [&](LogRecord&& record) {
-            emitted.push_back(std::move(record));
-        };
+        auto emit = [&](LogRecord&& record) { emitted.push_back(std::move(record)); };
 
         details::BasicBacktrace b;
         REQUIRE(not b.is_enabled());

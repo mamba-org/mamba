@@ -402,6 +402,146 @@ namespace
             );
         }
 
+        SECTION("exclude_newer date policies with package overrides")
+        {
+            auto tmp_dir = TemporaryDirectory();
+            const auto repodata = tmp_dir.path() / "repodata.json";
+            std::ofstream out_file(repodata.std_path());
+            out_file << R"({
+                "packages": {
+                    "mamba-2.0-0.tar.bz2": {
+                        "name": "mamba",
+                        "version": "2.0",
+                        "build": "0",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1764547200
+                    },
+                    "mamba-2.8-0.tar.bz2": {
+                        "name": "mamba",
+                        "version": "2.8",
+                        "build": "0",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1768435200
+                    },
+                    "numpy-2.0-0.tar.bz2": {
+                        "name": "numpy",
+                        "version": "2.0",
+                        "build": "0",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1730000000
+                    }
+                },
+                "packages.conda": {}
+            })";
+            out_file.close();
+
+            const auto cutoff_2019 = resolve_exclude_newer_cutoff("2019-01-01", 0).value();
+            const auto cutoff_2026_jan = resolve_exclude_newer_cutoff("2026-01-01", 0).value();
+
+            SECTION("global 2019 cutoff excludes mamba 2.0 and numpy 2.0")
+            {
+                auto db_filtered = libsolv::Database(
+                    {},
+                    { matchspec_parser, /* exclude_newer_timestamp= */ cutoff_2019 }
+                );
+                auto repo1 = db_filtered.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No
+                );
+                REQUIRE(repo1.has_value());
+
+                std::size_t mamba_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("mamba").value(),
+                    [&](const auto&) { ++mamba_count; }
+                );
+                std::size_t numpy_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("numpy").value(),
+                    [&](const auto&) { ++numpy_count; }
+                );
+                REQUIRE(mamba_count == 0);
+                REQUIRE(numpy_count == 0);
+            }
+
+            SECTION("numpy opt-out allows numpy 2.0 with same global 2019 cutoff")
+            {
+                auto db_filtered = libsolv::Database(
+                    {},
+                    {
+                        matchspec_parser,
+                        /* exclude_newer_timestamp= */ cutoff_2019,
+                        /* exclude_newer_package= */
+                        ExcludeNewerPackageCutoffs{
+                            { "numpy", std::nullopt },
+                        },
+                    }
+                );
+                auto repo1 = db_filtered.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No
+                );
+                REQUIRE(repo1.has_value());
+
+                std::size_t mamba_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("mamba").value(),
+                    [&](const auto&) { ++mamba_count; }
+                );
+                std::size_t numpy_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("numpy").value(),
+                    [&](const auto& p)
+                    {
+                        ++numpy_count;
+                        REQUIRE(p.version == "2.0");
+                    }
+                );
+                REQUIRE(mamba_count == 0);
+                REQUIRE(numpy_count == 1);
+            }
+
+            SECTION("mamba January 2026 package policy keeps 2.0 and excludes 2.8")
+            {
+                auto db_filtered = libsolv::Database(
+                    {},
+                    {
+                        matchspec_parser,
+                        /* exclude_newer_timestamp= */ cutoff_2019,
+                        /* exclude_newer_package= */
+                        ExcludeNewerPackageCutoffs{
+                            { "mamba", cutoff_2026_jan },
+                        },
+                    }
+                );
+                auto repo1 = db_filtered.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No
+                );
+                REQUIRE(repo1.has_value());
+
+                std::vector<std::string> mamba_versions;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("mamba").value(),
+                    [&](const auto& p) { mamba_versions.push_back(p.version); }
+                );
+                REQUIRE(mamba_versions.size() == 1);
+                REQUIRE(mamba_versions[0] == "2.0");
+            }
+        }
+
         SECTION("Add repo from repodata with extra pip")
         {
             const auto repodata = mambatests::test_data_dir

@@ -43,6 +43,20 @@ namespace mamba
     ) -> bool;
 
     /**
+     * Whether shard loads should extend roots from loaded shard metadata and allow a follow-up
+     * shard pass for cross-channel closure (#4245).
+     *
+     * Returns true when at least two distinct channel URLs have up-to-date shard indices (e.g.
+     * emscripten-forge plus conda-forge). A single sharded channel (e.g. conda-forge with a flat
+     * bioconda label) already closes over its subdirs in one BFS; flat-first expansion seeds roots
+     * for that case.
+     */
+    [[nodiscard]] auto should_expand_shard_roots_from_loaded_shards(
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool;
+
+    /**
      * Extend \p root_packages with dependency names reachable from current roots in \p full_repos.
      *
      * Builds a name → records index once, then walks dependencies by package name. Used to seed

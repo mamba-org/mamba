@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <map>
 #include <set>
 #include <string>
@@ -775,6 +776,95 @@ TEST_CASE(
     REQUIRE(solved_names.count("xeus-python") == 1);
     REQUIRE(solved_names.count("xeus-python-shell-lite") == 1);
     REQUIRE(solved_names.count("ipython") == 1);
+}
+
+TEST_CASE(
+    "Sharded repodata - flat local channel with contourpy and xeus-python on emscripten",
+    "[mamba::core][sharded][.integration][issue_4304]"
+)
+{
+    // Regression: flat local label channel + multiple sharded remotes must still run cross-channel
+    // shard-metadata closure (e.g. xeus-python-shell-lite on conda-forge).
+    const TemporaryDirectory flat_channel_dir;
+    const auto emscripten_subdir = flat_channel_dir.path() / "emscripten-wasm32";
+    const auto noarch_subdir = flat_channel_dir.path() / "noarch";
+    fs::create_directories(emscripten_subdir);
+    fs::create_directories(noarch_subdir);
+
+    {
+        std::ofstream out((emscripten_subdir / "repodata.json").string());
+        out << R"({
+  "info": { "subdir": "emscripten-wasm32" },
+  "packages": {},
+  "packages.conda": {
+    "contourpy-1.3.3-py313hffb8c6e_5.conda": {
+      "name": "contourpy",
+      "version": "1.3.3",
+      "build": "py313hffb8c6e_5",
+      "build_number": 5,
+      "subdir": "emscripten-wasm32",
+      "depends": [
+        "numpy",
+        "emscripten-abi >=4,<5.0a0",
+        "python_abi 3.13.* *_cp313"
+      ],
+      "license": "BSD-3-Clause"
+    }
+  }
+})";
+    }
+    {
+        std::ofstream out((noarch_subdir / "repodata.json").string());
+        out << R"({
+  "info": { "subdir": "noarch" },
+  "packages": {},
+  "packages.conda": {}
+})";
+    }
+
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const std::string saved_platform = ctx.platform;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.platform = saved_platform;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = {
+        "file://" + flat_channel_dir.path().string(),
+        "https://prefix.dev/emscripten-forge-4x",
+        "conda-forge",
+    };
+    ctx.platform = "emscripten-wasm32";
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const std::vector<std::string> specs = { "xeus-python", "contourpy" };
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+
+    std::unordered_set<std::string> solved_names;
+    for (const auto& pkg : sharded_solution->packages())
+    {
+        solved_names.insert(pkg.name);
+    }
+
+    REQUIRE(solved_names.count("xeus-python") == 1);
+    REQUIRE(solved_names.count("contourpy") == 1);
+    REQUIRE(solved_names.count("xeus-python-shell-lite") == 1);
 }
 
 TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba::core][sharded][.integration]")

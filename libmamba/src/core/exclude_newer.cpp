@@ -18,6 +18,17 @@ namespace mamba
 {
     namespace
     {
+        [[nodiscard]] auto equals_ci(std::string_view value, std::string_view expected) -> bool
+        {
+            return value.size() == expected.size()
+                   && std::equal(
+                       value.begin(),
+                       value.end(),
+                       expected.begin(),
+                       [](char lhs, char rhs) { return util::to_lower(lhs) == util::to_lower(rhs); }
+                   );
+        }
+
         [[nodiscard]] auto invalid_exclude_newer(std::string_view value) -> std::invalid_argument
         {
             return std::invalid_argument(
@@ -75,7 +86,7 @@ namespace mamba
             {
                 return std::nullopt;
             }
-            while (!remaining.empty() && std::isspace(static_cast<unsigned char>(remaining.front())))
+            while (!remaining.empty() && util::is_space(remaining.front()))
             {
                 remaining.remove_prefix(1);
             }
@@ -302,7 +313,7 @@ namespace mamba
         resolve_exclude_newer_cutoff_impl(std::string_view value, std::uint64_t now_seconds)
             -> std::optional<std::uint64_t>
         {
-            value = util::strip_if(value, [](unsigned char c) { return std::isspace(c); });
+            value = util::strip_if(value, [](char c) { return util::is_space(c); });
             if (value.empty())
             {
                 return std::nullopt;
@@ -364,13 +375,9 @@ namespace mamba
         {
             const auto trimmed = util::strip_if(
                 std::string_view{ value },
-                [](unsigned char c) { return std::isspace(c); }
+                [](char c) { return util::is_space(c); }
             );
-            if (trimmed.size() == 5 && (trimmed[0] == 'f' || trimmed[0] == 'F')
-                && (trimmed[1] == 'a' || trimmed[1] == 'A')
-                && (trimmed[2] == 'l' || trimmed[2] == 'L')
-                && (trimmed[3] == 's' || trimmed[3] == 'S')
-                && (trimmed[4] == 'e' || trimmed[4] == 'E'))
+            if (equals_ci(trimmed, "false"))
             {
                 out.emplace(name, std::nullopt);
             }

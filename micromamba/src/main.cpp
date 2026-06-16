@@ -43,22 +43,30 @@ decide_preconfig_context_options(int argc, char** argv) -> mamba::ContextOptions
         .enable_signal_handling = true,
     };
 
-    mamba::OutputParams output_params;
+    // We want to initialize options.output_params (which is an `std::optional`)
+    // only if `--json` or `--quiet` appears in the program parameters.
+    // Otherwise it must stay `std::nullopt`.
+
+    const auto ready_output_params = [&]
+    {
+        if (not options.output_params.has_value())
+        {
+            options.output_params.emplace();
+        }
+    };
+
     for (const char* arg : std::ranges::subrange(argv, argv + argc))
     {
         if (arg == "--json"sv)
         {
-            output_params.json = true;
+            ready_output_params();
+            options.output_params->json = true;
         }
         else if (arg == "--quiet"sv)
         {
-            output_params.quiet = true;
+            ready_output_params();
+            options.output_params->quiet = true;
         }
-    }
-
-    if (output_params.json or output_params.quiet)
-    {
-        options.output_params = output_params;
     }
 
     return options;

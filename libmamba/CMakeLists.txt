@@ -382,6 +382,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/exclude_newer.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/execution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp

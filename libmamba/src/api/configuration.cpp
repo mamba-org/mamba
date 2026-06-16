@@ -2300,7 +2300,6 @@ namespace mamba
 
         if (this->at("print_config_only").value<bool>())
         {
-            // TODO: fix this for the case where `--json` is used
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
             print_dump(*this, dump_opts);

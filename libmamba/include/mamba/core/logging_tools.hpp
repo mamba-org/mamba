@@ -88,22 +88,18 @@ namespace mamba::logging
             }
 
             /** If the backtrace feature is enabled, moves the log record into the backtrace
-                history and returns `true`. Otherwise do nothing and returns `false`.
-
-                The log record is taken by reference to allow taking ownership of it through
-                a move, but also not taking ownership and not forcing a copy if we actually
-                don't need it.
+                history, otherwise calls the provided invocable with the log record as argument.
             */
-            auto push_if_enabled(LogRecord& record) -> bool
+            template <std::invocable<LogRecord&&> Func>
+            auto push_if_enabled(LogRecord&& record, Func&& otherwise_func) -> void
             {
                 if (is_enabled())
                 {
                     queue_push(backtrace, backtrace_max, std::move(record));
-                    return true;
                 }
                 else
                 {
-                    return false;
+                    std::invoke(std::forward<Func>(otherwise_func), std::move(record));
                 }
             }
 
@@ -469,10 +465,13 @@ namespace mamba::logging
         }
 
         auto synched_data = pimpl->data.synchronize();
-        if (not synched_data->backtrace.push_if_enabled(record))
-        {
-            details::queue_push(synched_data->history, options.max_records_count, std::move(record));
-        }
+        synched_data->backtrace.push_if_enabled(
+            std::move(record),
+            [&](LogRecord&& record)
+            {
+                details::queue_push(synched_data->history, options.max_records_count, std::move(record));
+            }
+        );
     }
 
     inline auto LogHandler_History::enable_backtrace(size_t record_buffer_size) -> void
@@ -645,10 +644,11 @@ namespace mamba::logging
 
         auto level = record.level;
 
-        if (not pimpl->backtrace->push_if_enabled(record))
-        {
-            details::log_to_stream(*out, record, { .with_location = pimpl->log_location });
-        }
+        pimpl->backtrace->push_if_enabled(
+            std::move(record),
+            [this](LogRecord&& record)
+            { details::log_to_stream(*out, record, { .with_location = pimpl->log_location }); }
+        );
 
         if (level <= pimpl->flush_threshold)
         {

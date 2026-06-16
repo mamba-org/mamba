@@ -269,6 +269,21 @@ class TestConfigList:
         )
         os.environ.pop("MAMBA_OFFLINE")
 
+    @pytest.mark.parametrize("env_name", ["CONDA_EXCLUDE_NEWER", "MAMBA_EXCLUDE_NEWER"])
+    def test_exclude_newer_env_var(self, monkeypatch, env_name):
+        monkeypatch.setenv(env_name, "7d")
+        values = config("list", "exclude_newer", "--no-rc", "--json")
+        assert values["exclude_newer"] == "7d"
+
+    @pytest.mark.parametrize(
+        "env_name",
+        ["CONDA_EXCLUDE_NEWER_PACKAGE", "MAMBA_EXCLUDE_NEWER_PACKAGE"],
+    )
+    def test_exclude_newer_package_env_var(self, monkeypatch, env_name):
+        monkeypatch.setenv(env_name, "{numpy: 'false', pandas: '7d'}")
+        values = config("list", "exclude_newer_package", "--no-rc", "--json")
+        assert values["exclude_newer_package"] == {"numpy": "false", "pandas": "7d"}
+
     def test_no_env(self):
         os.environ["MAMBA_OFFLINE"] = "false"
 

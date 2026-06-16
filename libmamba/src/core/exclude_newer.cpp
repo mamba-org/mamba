@@ -12,24 +12,12 @@
 #include <string>
 
 #include "mamba/core/exclude_newer.hpp"
+#include "mamba/util/string.hpp"
 
 namespace mamba
 {
     namespace
     {
-        [[nodiscard]] auto trim(std::string_view value) -> std::string_view
-        {
-            while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
-            {
-                value.remove_prefix(1);
-            }
-            while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
-            {
-                value.remove_suffix(1);
-            }
-            return value;
-        }
-
         [[nodiscard]] auto invalid_exclude_newer(std::string_view value) -> std::invalid_argument
         {
             return std::invalid_argument(
@@ -314,7 +302,7 @@ namespace mamba
         resolve_exclude_newer_cutoff_impl(std::string_view value, std::uint64_t now_seconds)
             -> std::optional<std::uint64_t>
         {
-            value = trim(value);
+            value = util::strip_if(value, [](unsigned char c) { return std::isspace(c); });
             if (value.empty())
             {
                 return std::nullopt;
@@ -374,7 +362,10 @@ namespace mamba
         auto out = ExcludeNewerPackageCutoffs{};
         for (const auto& [name, value] : exclude_newer_package)
         {
-            const auto trimmed = trim(value);
+            const auto trimmed = util::strip_if(
+                std::string_view{ value },
+                [](unsigned char c) { return std::isspace(c); }
+            );
             if (trimmed.size() == 5 && (trimmed[0] == 'f' || trimmed[0] == 'F')
                 && (trimmed[1] == 'a' || trimmed[1] == 'A')
                 && (trimmed[2] == 'l' || trimmed[2] == 'L')

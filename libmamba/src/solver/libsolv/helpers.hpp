@@ -73,7 +73,7 @@ namespace mamba::solver::libsolv
         PackageTypes types,
         MatchSpecParser parser,
         bool verify_artifacts,
-        ExcludeNewerCutoffPolicy exclude_newer_policy = {}
+        ExcludeNewerPolicy exclude_newer_policy = {}
     ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto read_solv(

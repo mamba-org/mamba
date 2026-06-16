@@ -453,7 +453,7 @@ namespace mamba::solver::libsolv
             Filter&& filter,
             OnParsed&& on_parsed,
             MatchSpecParser parser,
-            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
+            ExcludeNewerPolicy exclude_newer_policy = {}
         )
         {
             auto packages_as_object = packages.get_object();
@@ -506,7 +506,7 @@ namespace mamba::solver::libsolv
             JSONObject& packages,
             const std::optional<nlohmann::json>& signatures,
             MatchSpecParser parser,
-            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
+            ExcludeNewerPolicy exclude_newer_policy = {}
         )
         {
             return set_repo_solvables_impl(
@@ -534,7 +534,7 @@ namespace mamba::solver::libsolv
             JSONObject& packages,
             const std::optional<nlohmann::json>& signatures,
             MatchSpecParser parser,
-            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
+            ExcludeNewerPolicy exclude_newer_policy = {}
         ) -> util::flat_set<std::string>
         {
             auto filenames = util::flat_set<std::string>();
@@ -568,7 +568,7 @@ namespace mamba::solver::libsolv
             const std::optional<nlohmann::json>& signatures,
             const SortedStringRange& added,
             MatchSpecParser parser,
-            ExcludeNewerCutoffPolicy exclude_newer_policy = {}
+            ExcludeNewerPolicy exclude_newer_policy = {}
         )
         {
             return set_repo_solvables_impl(
@@ -649,7 +649,7 @@ namespace mamba::solver::libsolv
         PackageTypes package_types,
         MatchSpecParser ms_parser,
         bool verify_artifacts,
-        ExcludeNewerCutoffPolicy exclude_newer_policy
+        ExcludeNewerPolicy exclude_newer_policy
     ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()

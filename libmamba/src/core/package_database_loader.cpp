@@ -90,7 +90,7 @@ namespace mamba
                                      : solver::libsolv::RepodataParser::Libsolv;
 
         // Solv files are too slow on Windows. They also bypass exclude_newer filtering.
-        if (!util::on_win && ctx.exclude_newer.empty() && ctx.exclude_newer_package.empty())
+        if (!util::on_win && ctx.exclude_newer_policy.empty())
         {
             auto maybe_repo = subdir.valid_libsolv_cache_path().and_then(
                 [&](fs::u8path&& solv_file)

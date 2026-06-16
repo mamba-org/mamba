@@ -82,7 +82,7 @@ namespace mamba::solver::libsolv
             std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt;
             ExcludeNewerPackageCutoffs exclude_newer_package = {};
 
-            [[nodiscard]] auto exclude_newer_policy() const -> ExcludeNewerCutoffPolicy;
+            [[nodiscard]] auto exclude_newer_policy() const -> ExcludeNewerPolicy;
         };
 
         using logger_type = std::function<void(LogLevel, std::string_view)>;

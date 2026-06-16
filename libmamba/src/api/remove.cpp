@@ -129,8 +129,7 @@ namespace mamba
             auto database = make_solver_database(
                 channel_context,
                 ctx.experimental_matchspec_parsing,
-                ctx.exclude_newer,
-                ctx.exclude_newer_package
+                ctx.exclude_newer_policy
             );
             auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, database);
 

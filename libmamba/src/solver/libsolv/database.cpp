@@ -99,9 +99,14 @@ namespace mamba::solver::libsolv
         return m_data->settings;
     }
 
-    auto Database::Settings::exclude_newer_policy() const -> ExcludeNewerCutoffPolicy
+    auto Database::Settings::exclude_newer_policy() const -> ExcludeNewerPolicy
     {
-        return { exclude_newer_timestamp, exclude_newer_package };
+        return {
+            /* .exclude_newer= */ "",
+            /* .exclude_newer_package= */ {},
+            /* .global= */ exclude_newer_timestamp,
+            /* .per_package= */ exclude_newer_package,
+        };
     }
 
     namespace

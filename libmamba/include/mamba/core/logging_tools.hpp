@@ -467,9 +467,9 @@ namespace mamba::logging
         auto synched_data = pimpl->data.synchronize();
         synched_data->backtrace.push_if_enabled(
             std::move(record),
-            [&](LogRecord&& record)
+            [&](LogRecord&& record_)
             {
-                details::queue_push(synched_data->history, options.max_records_count, std::move(record));
+                details::queue_push(synched_data->history, options.max_records_count, std::move(record_));
             }
         );
     }
@@ -646,8 +646,8 @@ namespace mamba::logging
 
         pimpl->backtrace->push_if_enabled(
             std::move(record),
-            [this](LogRecord&& record)
-            { details::log_to_stream(*out, record, { .with_location = pimpl->log_location }); }
+            [this](LogRecord&& record_)
+            { details::log_to_stream(*out, record_, { .with_location = pimpl->log_location }); }
         );
 
         if (level <= pimpl->flush_threshold)

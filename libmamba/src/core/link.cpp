@@ -567,11 +567,13 @@ namespace mamba
             return true;
         }
 
+        std::map<std::string, std::string> envmap;
         if (action == "pre-link")
         {
             LOG_WARNING
                 << "Special Note: Pre-link scripts are particularly high-risk as they can "
                 << "modify the package cache, potentially affecting all environments on this system.";
+            envmap["SOURCE_DIR"] = script_prefix.string();
         }
 
         if (action == "post-unlink")
@@ -581,9 +583,6 @@ namespace mamba
         }
 
         LOG_WARNING << "Executing " << action << " script for package '" << pkg_info.name << "'.";
-
-        // TODO impl.
-        std::map<std::string, std::string> envmap;  // = env::copy();
 
         // script_caller = None
         std::vector<std::string> command_args;

@@ -340,8 +340,8 @@ namespace mamba
          *
          * Only walks packages already fetched for the current shard subset (typically tens to
          * hundreds of records), not full repodata. Used for cross-channel / cross-subdir shard
-         * closure (#4245). Skipped when flat channels were loaded first (e.g. bioconda) or when
-         * only one channel has shards (conda-forge alone already closes over subdirs in one BFS).
+         * closure (#4245). Skipped when only one channel has shards (conda-forge alone already
+         * closes over subdirs in one BFS).
          */
         void expand_shard_root_packages_from_shard_loaded_packages(
             const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
@@ -926,16 +926,10 @@ namespace mamba
                               << " name(s) from full-repodata subdirs (cross-channel closure seeds).";
                 }
                 roots_after_full_repodata_pass = root_packages.size();
-                // Shard-metadata closure (#4245) is for multiple sharded channels (e.g.
-                // emscripten-forge + conda-forge). Skip when flat channels were loaded (bioconda
-                // seeds roots via expand_shard_root_packages_from_full_repodata_repos) or when only
-                // one sharded channel exists (conda-forge alone: shard BFS already crosses
-                // subdirs).
-                expand_shard_roots_from_loaded_shards = full_repos_for_shard_roots.empty()
-                                                        && count_distinct_sharded_channel_urls(
-                                                               subdirs,
-                                                               ctx.repodata_shards_ttl
-                                                           ) > 1;
+                expand_shard_roots_from_loaded_shards = should_expand_shard_roots_from_loaded_shards(
+                    subdirs,
+                    ctx.repodata_shards_ttl
+                );
             }
 
             for (std::size_t i = 0; i < subdirs.size(); ++i)
@@ -944,8 +938,7 @@ namespace mamba
             }
 
             // One extra shard pass when shard loads discovered new root names (cross-channel
-            // closure). Skipped on pure-flat channel sets (#4277), when flat channels were
-            // loaded in the first pass (e.g. bioconda), and when nothing new appeared.
+            // closure). Skipped on pure-flat channel sets (#4277) and when nothing new appeared.
             if (expand_shard_roots_from_loaded_shards
                 && root_packages.size() > roots_after_full_repodata_pass)
             {
@@ -965,8 +958,8 @@ namespace mamba
             else if (shard_then_expand && !expand_shard_roots_from_loaded_shards
                      && root_packages.size() > roots_after_full_repodata_pass)
             {
-                LOG_DEBUG << "Skipping follow-up shard pass: flat (non-sharded) channel(s) "
-                             "already loaded; shard-metadata closure not needed.";
+                LOG_DEBUG << "Skipping follow-up shard pass: only one sharded channel; "
+                             "flat-first expansion already seeded shard roots.";
             }
 
             if (used_flat_repodata)
@@ -1230,6 +1223,14 @@ namespace mamba
             [&](const SubdirIndexLoader& s)
             { return s.metadata().has_up_to_date_shards(repodata_shards_ttl); }
         );
+    }
+
+    auto should_expand_shard_roots_from_loaded_shards(
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool
+    {
+        return count_distinct_sharded_channel_urls(subdirs, repodata_shards_ttl) > 1;
     }
 
     void expand_shard_root_packages_from_full_repodata_repos(

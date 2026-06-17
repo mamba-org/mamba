@@ -277,6 +277,45 @@ TEST_CASE("should_shard_then_expand_roots", "[mamba::api][channel_loader][issue_
     }
 }
 
+TEST_CASE("should_expand_shard_roots_from_loaded_shards", "[mamba::api][channel_loader][issue_4304]")
+{
+    const auto tmp_dir = TemporaryDirectory();
+    const auto channel = make_simple_channel("conda-forge");
+    auto subdir = make_subdir_loader(channel, tmp_dir.path());
+
+    SECTION("false when no subdir has shards")
+    {
+        REQUIRE_FALSE(should_expand_shard_roots_from_loaded_shards({ subdir }, 86400));
+    }
+
+    SECTION("false when only one channel has shards")
+    {
+        subdir.set_shards_availability(true);
+        REQUIRE_FALSE(should_expand_shard_roots_from_loaded_shards({ subdir }, 86400));
+    }
+
+    SECTION("true when two channels have shards")
+    {
+        subdir.set_shards_availability(true);
+        auto other_channel = make_simple_channel("https://prefix.dev/emscripten-forge-4x");
+        auto other_subdir = make_subdir_loader(other_channel, tmp_dir.path());
+        other_subdir.set_shards_availability(true);
+        REQUIRE(should_expand_shard_roots_from_loaded_shards({ subdir, other_subdir }, 86400));
+    }
+
+    SECTION("true when flat and sharded channels are mixed")
+    {
+        auto flat_subdir = make_subdir_loader(channel, tmp_dir.path(), "noarch");
+        subdir.set_shards_availability(true);
+        auto other_channel = make_simple_channel("https://prefix.dev/emscripten-forge-4x");
+        auto other_subdir = make_subdir_loader(other_channel, tmp_dir.path());
+        other_subdir.set_shards_availability(true);
+        REQUIRE(
+            should_expand_shard_roots_from_loaded_shards({ flat_subdir, subdir, other_subdir }, 86400)
+        );
+    }
+}
+
 TEST_CASE("expand_shard_root_packages_from_full_repodata_repos", "[mamba::api][channel_loader][issue_4277]")
 {
     const auto resolve_params = ChannelContext::ChannelResolveParams{

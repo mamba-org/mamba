@@ -121,6 +121,7 @@ namespace mamba
             std::vector<std::string> dependencies, channels;
             std::map<std::string, std::string> variables;
             std::vector<other_pkg_mgr_spec> others_pkg_mgrs_specs;
+            std::string prefix;
         };
 
         bool eval_selector(const std::string& selector, const std::string& platform);

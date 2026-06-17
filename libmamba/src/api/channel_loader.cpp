@@ -5,9 +5,12 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <chrono>
 #include <optional>
 #include <set>
 #include <sstream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
@@ -23,12 +26,88 @@
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/error.hpp"
+#include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/specs/version.hpp"
+#include "mamba/util/string.hpp"
+
+#include "utils.hpp"
 
 namespace mamba
 {
     namespace
     {
+        [[nodiscard]] auto count_distinct_sharded_channel_urls(
+            const std::vector<SubdirIndexLoader>& subdirs,
+            std::size_t repodata_shards_ttl
+        ) -> std::size_t
+        {
+            std::set<std::string> urls;
+            for (const auto& subdir : subdirs)
+            {
+                if (subdir.metadata().has_up_to_date_shards(repodata_shards_ttl))
+                {
+                    urls.insert(subdir.channel().url().str());
+                }
+            }
+            return urls.size();
+        }
+
+        auto shorten_status_label(std::string label) -> std::string
+        {
+            if (label.length() > 85)
+            {
+                label = label.substr(0, 82) + "...";
+            }
+            return label;
+        }
+
+        auto done_with_duration(std::chrono::steady_clock::duration elapsed) -> std::string
+        {
+            const double seconds = std::chrono::duration<double>(elapsed).count();
+            return fmt::format("✔ Done ({:.1f} sec)", seconds);
+        }
+
+        void print_status_line(std::string label, const std::string& status, bool finalize = false)
+        {
+            if (!Console::can_report_status())
+            {
+                return;
+            }
+            Console::instance().print_in_place(
+                fmt::format("{:<85} {:>20}", shorten_status_label(std::move(label)), status),
+                finalize
+            );
+        }
+
+        void print_done_status_line(
+            std::string label,
+            std::optional<std::chrono::steady_clock::duration> elapsed = std::nullopt
+        )
+        {
+            print_status_line(
+                std::move(label),
+                elapsed.has_value() ? done_with_duration(*elapsed) : std::string("✔ Done"),
+                true
+            );
+        }
+
+        void
+        print_flat_repodata_done(const SubdirIndexLoader& subdir, std::chrono::steady_clock::duration elapsed)
+        {
+            print_done_status_line("Using Flat Repodata for " + subdir.name(), elapsed);
+        }
+
+        void print_flat_repodata_start(const SubdirIndexLoader& subdir)
+        {
+            print_status_line("Using Flat Repodata for " + subdir.name(), "✔ Starting");
+        }
+
+        void print_parsing_records_done(std::chrono::steady_clock::duration elapsed)
+        {
+            print_done_status_line("Parsing Packages' Records", elapsed);
+        }
+
         auto create_repo_from_pkgs_dir(
             const Context& ctx,
             ChannelContext& channel_context,
@@ -60,13 +139,14 @@ namespace mamba
             return load_installed_packages_in_database(ctx, database, prefix_data);
         }
 
-        std::map<std::string, std::vector<specs::PackageInfo>> build_packages_by_url_from_subset(
+        auto build_packages_by_url_from_subset(
             const RepodataSubset& subset,
             const std::vector<SubdirIndexLoader>& subdirs,
             const std::map<std::string, std::size_t>& url_to_subdir_idx
-        )
+        ) -> expected_t<std::map<std::string, std::vector<specs::PackageInfo>>>
         {
             std::map<std::string, std::vector<specs::PackageInfo>> packages_by_url;
+            bool had_shard_error = false;
             for (const auto& [node_id, node] : subset.nodes())
             {
                 if (!node.visited)
@@ -105,11 +185,19 @@ namespace mamba
                 }
                 catch (const std::exception& e)
                 {
+                    had_shard_error = true;
                     LOG_WARNING << "Failed to load package " << node_id.package << " from "
                                 << node_id.channel << ": " << e.what();
                 }
             }
-            return packages_by_url;
+            if (had_shard_error)
+            {
+                return make_unexpected(
+                    "At least one shard failed to load from the reachable subset",
+                    mamba_error_code::subdirdata_not_loaded
+                );
+            }
+            return { std::move(packages_by_url) };
         }
 
         // Forward declarations for helpers defined later in this namespace.
@@ -209,29 +297,313 @@ namespace mamba
             }
         }
 
+        std::optional<solver::libsolv::RepoInfo> add_repos_from_packages_by_url(
+            Context& ctx,
+            solver::libsolv::Database& database,
+            const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
+            std::vector<SubdirIndexLoader>& subdirs,
+            const std::map<std::string, std::size_t>& url_to_subdir_idx,
+            const std::vector<solver::libsolv::Priorities>& priorities,
+            const std::string& current_repodata_url,
+            std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards
+        )
+        {
+            std::optional<solver::libsolv::RepoInfo> result_repo;
+            for (const auto& [channel_url, pkgs] : packages_by_url)
+            {
+                std::string repo_name = subdirs.at(url_to_subdir_idx.at(channel_url)).name();
+                if (loaded_subdirs_with_shards.contains(repo_name))
+                {
+                    continue;
+                }
+
+                auto sorted_pkgs = pkgs;
+                specs::sort_packages_by_version_and_build_desc(sorted_pkgs);
+                auto repo = database.add_repo_from_packages(
+                    sorted_pkgs,
+                    repo_name,
+                    solver::libsolv::PipAsPythonDependency(ctx.add_pip_as_python_dependency)
+                );
+                loaded_subdirs_with_shards.emplace(repo_name, repo);
+                std::size_t idx = url_to_subdir_idx.at(channel_url);
+                database.set_repo_priority(repo, priorities[idx]);
+                if (!result_repo.has_value() || channel_url == current_repodata_url)
+                {
+                    result_repo = std::move(repo);
+                }
+            }
+            return result_repo;
+        }
+
+        /**
+         * Extend \p root_packages with dependency names from shard-loaded package records.
+         *
+         * Only walks packages already fetched for the current shard subset (typically tens to
+         * hundreds of records), not full repodata. Used for cross-channel / cross-subdir shard
+         * closure (#4245). Skipped when only one channel has shards (conda-forge alone already
+         * closes over subdirs in one BFS).
+         */
+        void expand_shard_root_packages_from_shard_loaded_packages(
+            const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
+            std::vector<std::string>& root_packages
+        )
+        {
+            std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+            auto add_from_spec = [&](const std::string& dep_str)
+            {
+                if (auto name = specs::MatchSpec::extract_name(dep_str))
+                {
+                    if (!name->empty() && *name != "*" && seen.insert(*name).second)
+                    {
+                        root_packages.push_back(*name);
+                    }
+                }
+            };
+            for (const auto& [url, packages] : packages_by_url)
+            {
+                for (const auto& pkg : packages)
+                {
+                    for (const auto& dep : pkg.dependencies)
+                    {
+                        add_from_spec(dep);
+                    }
+                    for (const auto& constrain : pkg.constrains)
+                    {
+                        add_from_spec(constrain);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Load a single subdir using sharded repodata (only reachable packages).
+         *
+         * Uses the shard index and per-package shards to load just the packages reachable from
+         * ``root_packages`` via dependencies, instead of the full repodata.
+         *
+         * Precondition: the caller must only invoke this when shards are applicable for the
+         * targeted subdir (e.g. sharded repodata is enabled, metadata is up to date, and
+         * ``root_packages`` is non-empty).
+         *
+         * @param ctx Context (use_sharded_repodata, shard TTL, download params, etc.).
+         * @param database Libsolv database to add repos into.
+         * @param root_packages Root package names for reachability (e.g. install specs); may be
+         *                      extended with dependency names discovered in loaded shard packages.
+         * @param subdirs All subdir loaders; ``subdir_idx`` is the one to load.
+         * @param subdir_idx Index of the subdir to load in ``subdirs``.
+         * @param loaded_subdirs_with_shards Subdir names already loaded via shards → their libsolv
+         *        repos (updated; repos are removed before a follow-up shard pass).
+         * @param priorities Repo priorities aligned with ``subdirs``.
+         * @param python_minor_version_for_prefilter Optional python minor for shard record
+         *        prefiltering (from ``prepare_solver_context``).
+         * @param expand_shard_roots_from_loaded_shards When true, extend ``root_packages`` from
+         *        dependency names in loaded shard records (multi-sharded channel sets only).
+         * @return The repo for the requested subdir, or unexpected mamba_error on failure.
+         */
+        auto load_subdir_with_shards(
+            Context& ctx,
+            solver::libsolv::Database& database,
+            std::vector<std::string>& root_packages,
+            std::vector<SubdirIndexLoader>& subdirs,
+            std::size_t subdir_idx,
+            std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards,
+            const std::vector<solver::libsolv::Priorities>& priorities,
+            std::optional<specs::Version> python_minor_version_for_prefilter,
+            bool expand_shard_roots_from_loaded_shards
+        ) -> expected_t<solver::libsolv::RepoInfo>
+        {
+            auto& subdir = subdirs[subdir_idx];
+            LOG_DEBUG << "Attempting to load subdir with shards: " << subdir.name();
+
+            // Fetch and parse the shard index for the requested subdir (subdir_idx).
+            auto subdir_params = ctx.subdir_download_params();
+            auto shard_index_result = ShardIndexLoader::fetch_and_parse_shard_index(
+                subdir,
+                subdir_params,
+                ctx.authentication_info(),
+                ctx.mirrors,
+                ctx.download_options(),
+                ctx.remote_fetch_params,
+                ctx.repodata_shards_ttl
+            );
+            if (!shard_index_result || !shard_index_result.value().has_value())
+            {
+                LOG_WARNING << "Failed to fetch shard index for " << subdir.name();
+                return tl::unexpected(mamba_error(
+                    "Failed to fetch shard index for " + subdir.name(),
+                    mamba_error_code::subdirdata_not_loaded
+                ));
+            }
+
+            LOG_DEBUG << "Shard index fetched for " << subdir.name();
+            const auto& channel = subdir.channel();
+            std::string current_repodata_url = subdir.repodata_url().str();
+            if (python_minor_version_for_prefilter.has_value())
+            {
+                LOG_DEBUG << "Shard prefilter on python minor version enabled with "
+                          << python_minor_version_for_prefilter.value().to_string();
+            }
+            else
+            {
+                LOG_DEBUG << "Shard prefilter on python minor version disabled.";
+            }
+
+            // For all subdirs sharing the same channel URL, fetch their shard indices and build
+            //    a Shards instance per subdir; collect them into a RepodataSubset.
+            std::vector<Shards> all_shards;
+            std::map<std::string, std::size_t> url_to_subdir_idx;
+            for (std::size_t j = 0; j < subdirs.size(); ++j)
+            {
+                if (subdirs[j].channel().url() == channel.url())
+                {
+                    auto sidx_result = (j == subdir_idx)
+                                           ? std::move(shard_index_result)
+                                           : ShardIndexLoader::fetch_and_parse_shard_index(
+                                                 subdirs[j],
+                                                 subdir_params,
+                                                 ctx.authentication_info(),
+                                                 ctx.mirrors,
+                                                 ctx.download_options(),
+                                                 ctx.remote_fetch_params,
+                                                 ctx.repodata_shards_ttl
+                                             );
+                    if (!sidx_result || !sidx_result.value().has_value())
+                    {
+                        continue;
+                    }
+                    auto si = std::move(sidx_result.value().value());
+                    std::string sdir_url = subdirs[j].repodata_url().str();
+                    all_shards.emplace_back(
+                        std::move(si),
+                        sdir_url,
+                        subdirs[j].channel(),
+                        ctx.authentication_info(),
+                        ctx.remote_fetch_params,
+                        normalize_to_affinity_concurrency(static_cast<int>(ctx.repodata_shards_threads)),
+                        std::cref(ctx.mirrors),
+                        python_minor_version_for_prefilter,
+                        ctx.repodata_shards_ttl
+                    );
+                    url_to_subdir_idx[sdir_url] = j;
+                }
+            }
+
+            // Compute the reachable subset from root_packages (BFS) so only needed shards
+            //    are considered.
+            RepodataSubset subset(std::move(all_shards));
+            subset.reachable(root_packages, "bfs", std::nullopt);
+            LOG_DEBUG << "Reachable subset computed for " << subdir.name() << " ("
+                      << subset.shards().size() << " shards, " << subset.nodes().size() << " nodes)";
+
+            // For each visited node in the subset, visit the corresponding package shard and
+            //    convert records to PackageInfo; collect packages by channel URL. Exceptions
+            //    from individual packages are logged and skipped.
+            auto packages_by_url = build_packages_by_url_from_subset(subset, subdirs, url_to_subdir_idx);
+            if (!packages_by_url)
+            {
+                return tl::unexpected(mamba_error(
+                    "Failed to build package list from shards for " + subdir.name(),
+                    mamba_error_code::subdirdata_not_loaded
+                ));
+            }
+
+            if (expand_shard_roots_from_loaded_shards)
+            {
+                const std::size_t roots_before = root_packages.size();
+                expand_shard_root_packages_from_shard_loaded_packages(
+                    packages_by_url.value(),
+                    root_packages
+                );
+                if (root_packages.size() > roots_before)
+                {
+                    LOG_DEBUG << "Shard root packages expanded by "
+                              << (root_packages.size() - roots_before)
+                              << " name(s) from shard-loaded package metadata.";
+                }
+            }
+
+            // For each channel URL with packages, add a repo to database (unless already in
+            //    loaded_subdirs_with_shards), sort packages by version/build, and set repo
+            //    priority. The repo for the requested subdir's repodata URL is returned on success.
+            std::optional<solver::libsolv::RepoInfo> result_repo = add_repos_from_packages_by_url(
+                ctx,
+                database,
+                packages_by_url.value(),
+                subdirs,
+                url_to_subdir_idx,
+                priorities,
+                current_repodata_url,
+                loaded_subdirs_with_shards
+            );
+            // If no packages were loaded for the requested subdir, return an error.
+            if (result_repo)
+            {
+                LOG_INFO << "Loaded subdir with shards: " << subdir.name();
+                return std::move(*result_repo);
+            }
+            LOG_DEBUG << "No packages loaded from shards for " << subdir.name();
+            return tl::unexpected(
+                mamba_error("No packages for " + subdir.name(), mamba_error_code::subdirdata_not_loaded)
+            );
+        }
+
         /**
          * Load a single subdir into the database, using shards when available.
          *
          * When shards are enabled and up to date, this:
-         *   - attempts `load_subdir_with_shards`,
+         *   - attempts ``load_subdir_with_shards``,
          *   - falls back to cached full repodata when shard loading fails,
-         *   - optionally fetches fresh full repodata and loads it if there is no cache.
-         * Otherwise, it calls `load_subdir_in_database` directly.
+         *   - optionally fetches fresh full ``repodata.json`` and loads it if there is no cache.
+         * Subdirs without a shard index load full ``repodata.json`` directly.
+         *
+         * When ``use_sharded_repodata`` is false, or ``root_packages`` is empty, loads full
+         * repodata (or native solv cache) as usual.
          */
         expected_t<solver::libsolv::RepoInfo> load_single_subdir(
             Context& ctx,
             solver::libsolv::Database& database,
-            const std::vector<std::string>& root_packages,
+            std::vector<std::string>& root_packages,
             std::vector<SubdirIndexLoader>& subdirs,
             std::size_t subdir_idx,
-            std::set<std::string>& loaded_subdirs_with_shards,
+            std::map<std::string, solver::libsolv::RepoInfo>& loaded_subdirs_with_shards,
             const SubdirDownloadParams& subdir_params,
-            const std::vector<solver::libsolv::Priorities>& priorities
+            const std::vector<solver::libsolv::Priorities>& priorities,
+            std::optional<specs::Version> python_minor_version_for_prefilter,
+            bool expand_shard_roots_from_loaded_shards,
+            bool* used_flat_repodata,
+            std::optional<std::chrono::steady_clock::time_point>* flat_repodata_started_at
         )
         {
             auto& subdir = subdirs[subdir_idx];
+            const bool shards_requested = ctx.use_sharded_repodata && !root_packages.empty();
+            const auto load_flat_repodata_with_status = [&]() -> expected_t<solver::libsolv::RepoInfo>
+            {
+                if (shards_requested && !subdir.metadata().has_shards())
+                {
+                    Console::instance().print(
+                        "⚠ Shard Index for " + subdir.name()
+                        + " not available, falling back to flat repodata"
+                    );
+                }
+                const auto started_at = std::chrono::steady_clock::now();
+                if (flat_repodata_started_at != nullptr && !flat_repodata_started_at->has_value())
+                {
+                    *flat_repodata_started_at = started_at;
+                }
+                print_flat_repodata_start(subdir);
+                auto flat_res = load_subdir_in_database(ctx, database, subdir);
+                if (flat_res)
+                {
+                    if (used_flat_repodata != nullptr)
+                    {
+                        *used_flat_repodata = true;
+                    }
+                    print_flat_repodata_done(subdir, std::chrono::steady_clock::now() - started_at);
+                }
+                return flat_res;
+            };
 
-            bool use_shards = ctx.repodata_use_shards
+            bool use_shards = ctx.use_sharded_repodata
                               && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                               && !root_packages.empty();
 
@@ -244,14 +616,16 @@ namespace mamba
                     subdirs,
                     subdir_idx,
                     loaded_subdirs_with_shards,
-                    priorities
+                    priorities,
+                    python_minor_version_for_prefilter,
+                    expand_shard_roots_from_loaded_shards
                 );
 
                 if (!res)
                 {
                     if (subdir.valid_cache_found())
                     {
-                        return load_subdir_in_database(ctx, database, subdir);
+                        return load_flat_repodata_with_status();
                     }
                     // Shards failed and no cache - try to fetch and load flat repodata.
                     if (!ctx.offline)
@@ -273,14 +647,14 @@ namespace mamba
                         );
                         if (fetch_res)
                         {
-                            return load_subdir_in_database(ctx, database, subdir);
+                            return load_flat_repodata_with_status();
                         }
                     }
                 }
                 return res;
             }
 
-            return load_subdir_in_database(ctx, database, subdir);
+            return load_flat_repodata_with_status();
         }
 
         /**
@@ -327,11 +701,19 @@ namespace mamba
                 }
             }
 
+            // Ensure shards availability is set from cache for all subdirs. This complements
+            // network shard checks and still avoids full repodata downloads when shard index cache
+            // is within TTL.
+            for (auto& s : subdirs)
+            {
+                s.maybe_set_shards_from_cache(subdir_params);
+            }
+
             // Collect only subdirs that still need full repodata indexes.
             std::vector<SubdirIndexLoader*> subdirs_needing_index;
             for (auto& s : subdirs)
             {
-                bool use_shards = ctx.repodata_use_shards
+                bool use_shards = ctx.use_sharded_repodata
                                   && s.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                                   && !root_packages.empty();
                 if (!use_shards)
@@ -343,7 +725,6 @@ namespace mamba
             expected_t<void> download_res = expected_t<void>();
             if (!subdirs_needing_index.empty())
             {
-                SubdirIndexMonitor index_monitor;
                 download_res = SubdirIndexLoader::download_requests(
                     SubdirIndexLoader::build_all_index_requests(
                         subdirs_needing_index.begin(),
@@ -354,7 +735,7 @@ namespace mamba
                     ctx.mirrors,
                     ctx.download_options(),
                     ctx.remote_fetch_params,
-                    SubdirIndexMonitor::can_monitor(ctx) ? &index_monitor : nullptr
+                    nullptr
                 );
             }
 
@@ -399,6 +780,11 @@ namespace mamba
         /**
          * Load all subdirs into the database, with a single retry on cache corruption.
          *
+         * When sharded repodata is enabled with non-empty ``root_packages`` and at least one
+         * subdir has a shard index, subdirs that load from full repodata (no shard index) run
+         * first; roots are expanded from those repos so shard loads on other channels stay
+         * complete. Otherwise a single pass is used.
+         *
          * For each `SubdirIndexLoader`, this:
          *   - skips subdirs already loaded via shards,
          *   - verifies cache or skips when cache is missing and shards are not used,
@@ -412,28 +798,49 @@ namespace mamba
         bool load_all_subdirs(
             Context& ctx,
             solver::libsolv::Database& database,
-            const std::vector<std::string>& root_packages,
+            std::vector<std::string>& root_packages,
             std::vector<SubdirIndexLoader>& subdirs,
             const std::vector<solver::libsolv::Priorities>& priorities,
             const SubdirDownloadParams& subdir_params,
             bool is_retry,
-            std::vector<mamba_error>& error_list
+            std::vector<mamba_error>& error_list,
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
-            std::set<std::string> loaded_subdirs_with_shards;
+            std::map<std::string, solver::libsolv::RepoInfo> loaded_subdirs_with_shards;
             bool loading_failed = false;
+            const bool shard_then_expand = should_shard_then_expand_roots(
+                ctx.use_sharded_repodata,
+                root_packages,
+                subdirs,
+                ctx.repodata_shards_ttl
+            );
+            std::size_t roots_after_full_repodata_pass = root_packages.size();
+            std::vector<solver::libsolv::RepoInfo> full_repos_for_shard_roots;
+            bool expand_shard_roots_from_loaded_shards = false;
+            bool used_flat_repodata = false;
+            std::optional<std::chrono::steady_clock::time_point> flat_repodata_started_at;
 
-            for (std::size_t i = 0; i < subdirs.size(); ++i)
+            auto try_load = [&](std::size_t i, bool full_repodata_only_pass) -> void
             {
                 auto& subdir = subdirs[i];
-                bool use_shards = ctx.repodata_use_shards
+                bool use_shards = ctx.use_sharded_repodata
                                   && subdir.metadata().has_up_to_date_shards(ctx.repodata_shards_ttl)
                                   && !root_packages.empty();
+
+                if (full_repodata_only_pass && use_shards)
+                {
+                    return;
+                }
+                if (!full_repodata_only_pass && shard_then_expand && !use_shards)
+                {
+                    return;
+                }
 
                 // Skip if this subdir was already loaded as part of a sharded same-channel load.
                 if (loaded_subdirs_with_shards.contains(subdir.name()))
                 {
-                    continue;
+                    return;
                 }
 
                 // When using shards we don't require valid cache here; the shard path may load
@@ -447,7 +854,7 @@ namespace mamba
                             mamba_error_code::subdirdata_not_loaded
                         ));
                     }
-                    continue;
+                    return;
                 }
 
                 auto result = load_single_subdir(
@@ -458,12 +865,26 @@ namespace mamba
                     i,
                     loaded_subdirs_with_shards,
                     subdir_params,
-                    priorities
+                    priorities,
+                    python_minor_version_for_prefilter,
+                    expand_shard_roots_from_loaded_shards,
+                    &used_flat_repodata,
+                    &flat_repodata_started_at
                 );
 
                 if (result)
                 {
-                    database.set_repo_priority(std::move(result).value(), priorities[i]);
+                    auto repo = std::move(result).value();
+                    // `load_subdir_with_shards` already sets priorities for all repos it adds.
+                    // Avoid overriding another repo when this subdir has no direct match.
+                    if (!use_shards)
+                    {
+                        database.set_repo_priority(repo, priorities[i]);
+                    }
+                    if (shard_then_expand && full_repodata_only_pass && !use_shards)
+                    {
+                        full_repos_for_shard_roots.push_back(repo);
+                    }
                 }
                 else if (is_retry)
                 {
@@ -484,6 +905,69 @@ namespace mamba
                     subdir.clear_valid_cache_files();
                     loading_failed = true;
                 }
+            };
+
+            if (shard_then_expand)
+            {
+                const std::size_t roots_before = root_packages.size();
+                for (std::size_t i = 0; i < subdirs.size(); ++i)
+                {
+                    try_load(i, /*full_repodata_only_pass=*/true);
+                }
+                expand_shard_root_packages_from_full_repodata_repos(
+                    database,
+                    full_repos_for_shard_roots,
+                    root_packages
+                );
+                if (root_packages.size() > roots_before)
+                {
+                    LOG_DEBUG << "Shard root packages expanded by "
+                              << (root_packages.size() - roots_before)
+                              << " name(s) from full-repodata subdirs (cross-channel closure seeds).";
+                }
+                roots_after_full_repodata_pass = root_packages.size();
+                expand_shard_roots_from_loaded_shards = should_expand_shard_roots_from_loaded_shards(
+                    subdirs,
+                    ctx.repodata_shards_ttl
+                );
+            }
+
+            for (std::size_t i = 0; i < subdirs.size(); ++i)
+            {
+                try_load(i, /*full_repodata_only_pass=*/false);
+            }
+
+            // One extra shard pass when shard loads discovered new root names (cross-channel
+            // closure). Skipped on pure-flat channel sets (#4277) and when nothing new appeared.
+            if (expand_shard_roots_from_loaded_shards
+                && root_packages.size() > roots_after_full_repodata_pass)
+            {
+                LOG_DEBUG << "Shard root packages expanded by "
+                          << (root_packages.size() - roots_after_full_repodata_pass)
+                          << " additional name(s) during shard pass; re-running shard pass once.";
+                for (auto& [_, repo] : loaded_subdirs_with_shards)
+                {
+                    database.remove_repo(std::move(repo));
+                }
+                loaded_subdirs_with_shards.clear();
+                for (std::size_t i = 0; i < subdirs.size(); ++i)
+                {
+                    try_load(i, /*full_repodata_only_pass=*/false);
+                }
+            }
+            else if (shard_then_expand && !expand_shard_roots_from_loaded_shards
+                     && root_packages.size() > roots_after_full_repodata_pass)
+            {
+                LOG_DEBUG << "Skipping follow-up shard pass: only one sharded channel; "
+                             "flat-first expansion already seeded shard roots.";
+            }
+
+            if (used_flat_repodata)
+            {
+                const auto started_at = flat_repodata_started_at.value_or(
+                    std::chrono::steady_clock::now()
+                );
+                print_parsing_records_done(std::chrono::steady_clock::now() - started_at);
             }
 
             return loading_failed;
@@ -534,11 +1018,6 @@ namespace mamba
                     continue;
                 }
                 SubdirIndexLoader subdir_index_loader = std::move(subdir_index_loader_result).value();
-                if (subdir_index_loader.valid_cache_found() && Console::can_report_status())
-                {
-                    Console::stream()
-                        << fmt::format("{:<50} {:>20}", subdir_index_loader.name(), "Using cache");
-                }
 
                 subdir_index_loaders.push_back(std::move(subdir_index_loader));
                 if (ctx.channel_priority == ChannelPriority::Disabled)
@@ -558,52 +1037,6 @@ namespace mamba
             }
         }
 
-        std::optional<solver::libsolv::RepoInfo> add_repos_from_packages_by_url(
-            Context& ctx,
-            solver::libsolv::Database& database,
-            const std::map<std::string, std::vector<specs::PackageInfo>>& packages_by_url,
-            std::vector<SubdirIndexLoader>& subdirs,
-            const std::map<std::string, std::size_t>& url_to_subdir_idx,
-            const std::vector<solver::libsolv::Priorities>& priorities,
-            const std::string& current_repodata_url,
-            std::set<std::string>& loaded_subdirs_with_shards
-        )
-        {
-            std::optional<solver::libsolv::RepoInfo> result_repo;
-            for (const auto& [channel_url, pkgs] : packages_by_url)
-            {
-                std::string repo_name = subdirs.at(url_to_subdir_idx.at(channel_url)).name();
-                if (loaded_subdirs_with_shards.contains(repo_name))
-                {
-                    continue;
-                }
-                loaded_subdirs_with_shards.insert(repo_name);
-
-                auto sorted_pkgs = pkgs;
-                std::sort(
-                    sorted_pkgs.begin(),
-                    sorted_pkgs.end(),
-                    [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                    {
-                        // Compare in reverse order for descending sort (newer versions first)
-                        return specs::compare_packages_by_version_and_build(rhs, lhs);
-                    }
-                );
-                auto repo = database.add_repo_from_packages(
-                    sorted_pkgs,
-                    repo_name,
-                    solver::libsolv::PipAsPythonDependency(ctx.add_pip_as_python_dependency)
-                );
-                std::size_t idx = url_to_subdir_idx.at(channel_url);
-                database.set_repo_priority(repo, priorities[idx]);
-                if (channel_url == current_repodata_url)
-                {
-                    result_repo = std::move(repo);
-                }
-            }
-            return result_repo;
-        }
-
         void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors)
         {
             if (!mirrors.has_mirrors(channel.id()))
@@ -620,117 +1053,6 @@ namespace mamba
 
     }  // anonymous namespace
 
-    auto load_subdir_with_shards(
-        Context& ctx,
-        solver::libsolv::Database& database,
-        const std::vector<std::string>& root_packages,
-        std::vector<SubdirIndexLoader>& subdirs,
-        std::size_t subdir_idx,
-        std::set<std::string>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities
-    ) -> expected_t<solver::libsolv::RepoInfo>
-    {
-        auto& subdir = subdirs[subdir_idx];
-        LOG_DEBUG << "Attempting to load subdir with shards: " << subdir.name();
-
-        // Fetch and parse the shard index for the requested subdir (subdir_idx).
-        auto subdir_params = ctx.subdir_download_params();
-        auto shard_index_result = ShardIndexLoader::fetch_and_parse_shard_index(
-            subdir,
-            subdir_params,
-            ctx.authentication_info(),
-            ctx.mirrors,
-            ctx.download_options(),
-            ctx.remote_fetch_params,
-            ctx.repodata_shards_ttl
-        );
-        if (!shard_index_result || !shard_index_result.value().has_value())
-        {
-            LOG_WARNING << "Failed to fetch shard index for " << subdir.name();
-            return tl::unexpected(mamba_error(
-                "Failed to fetch shard index for " + subdir.name(),
-                mamba_error_code::subdirdata_not_loaded
-            ));
-        }
-
-        LOG_DEBUG << "Shard index fetched for " << subdir.name();
-        const auto& channel = subdir.channel();
-        std::string current_repodata_url = subdir.repodata_url().str();
-
-        // For all subdirs sharing the same channel URL, fetch their shard indices and build
-        //    a Shards instance per subdir; collect them into a RepodataSubset.
-        std::vector<Shards> all_shards;
-        std::map<std::string, std::size_t> url_to_subdir_idx;
-        for (std::size_t j = 0; j < subdirs.size(); ++j)
-        {
-            if (subdirs[j].channel().url() == channel.url())
-            {
-                auto sidx_result = (j == subdir_idx) ? std::move(shard_index_result)
-                                                     : ShardIndexLoader::fetch_and_parse_shard_index(
-                                                           subdirs[j],
-                                                           subdir_params,
-                                                           ctx.authentication_info(),
-                                                           ctx.mirrors,
-                                                           ctx.download_options(),
-                                                           ctx.remote_fetch_params,
-                                                           ctx.repodata_shards_ttl
-                                                       );
-                if (!sidx_result || !sidx_result.value().has_value())
-                {
-                    continue;
-                }
-                auto si = std::move(sidx_result.value().value());
-                std::string sdir_url = subdirs[j].repodata_url().str();
-                all_shards.emplace_back(
-                    std::move(si),
-                    sdir_url,
-                    subdirs[j].channel(),
-                    ctx.authentication_info(),
-                    ctx.remote_fetch_params,
-                    ctx.repodata_shards_threads,
-                    std::cref(ctx.mirrors)
-                );
-                url_to_subdir_idx[sdir_url] = j;
-            }
-        }
-
-        // Compute the reachable subset from root_packages (BFS) so only needed shards
-        //    are considered.
-        RepodataSubset subset(std::move(all_shards));
-        subset.reachable(root_packages, "bfs", std::nullopt);
-        LOG_DEBUG << "Reachable subset computed for " << subdir.name() << " ("
-                  << subset.shards().size() << " shards, " << subset.nodes().size() << " nodes)";
-
-        // For each visited node in the subset, visit the corresponding package shard and
-        //    convert records to PackageInfo; collect packages by channel URL. Exceptions
-        //    from individual packages are logged and skipped.
-        auto packages_by_url = build_packages_by_url_from_subset(subset, subdirs, url_to_subdir_idx);
-
-        // For each channel URL with packages, add a repo to database (unless already in
-        //    loaded_subdirs_with_shards), sort packages by version/build, and set repo
-        //    priority. The repo for the requested subdir's repodata URL is returned on success.
-        std::optional<solver::libsolv::RepoInfo> result_repo = add_repos_from_packages_by_url(
-            ctx,
-            database,
-            packages_by_url,
-            subdirs,
-            url_to_subdir_idx,
-            priorities,
-            current_repodata_url,
-            loaded_subdirs_with_shards
-        );
-        // If no packages were loaded for the requested subdir, return an error.
-        if (result_repo)
-        {
-            LOG_INFO << "Loaded subdir with shards: " << subdir.name();
-            return std::move(*result_repo);
-        }
-        LOG_DEBUG << "No packages loaded from shards for " << subdir.name();
-        return tl::unexpected(
-            mamba_error("No packages for " + subdir.name(), mamba_error_code::subdirdata_not_loaded)
-        );
-    }
-
     namespace
     {
 
@@ -740,7 +1062,8 @@ namespace mamba
             solver::libsolv::Database& database,
             MultiPackageCache& package_caches,
             const std::vector<std::string>& root_packages,
-            bool is_retry
+            bool is_retry,
+            std::optional<specs::Version> python_minor_version_for_prefilter
         )
         {
             std::vector<SubdirIndexLoader> subdirs;
@@ -779,15 +1102,17 @@ namespace mamba
 
             add_repos_from_pks_dir(ctx, channel_context, database);
 
+            std::vector<std::string> effective_shard_root_packages(root_packages);
             bool loading_failed = load_all_subdirs(
                 ctx,
                 database,
-                root_packages,
+                effective_shard_root_packages,
                 subdirs,
                 priorities,
                 subdir_params,
                 is_retry,
-                error_list
+                error_list,
+                python_minor_version_for_prefilter
             );
 
             if (loading_failed)
@@ -803,7 +1128,8 @@ namespace mamba
                         database,
                         package_caches,
                         root_packages,
-                        retry
+                        retry,
+                        python_minor_version_for_prefilter
                     );
                 }
                 error_list.emplace_back(
@@ -822,11 +1148,20 @@ namespace mamba
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         MultiPackageCache& package_caches,
-        const std::vector<std::string>& root_packages
+        const std::vector<std::string>& root_packages,
+        std::optional<specs::Version> python_minor_version_for_prefilter
     ) -> expected_t<void, mamba_aggregated_error>
     {
         bool retry = false;
-        return load_channels_impl(ctx, channel_context, database, package_caches, root_packages, retry);
+        return load_channels_impl(
+            ctx,
+            channel_context,
+            database,
+            package_caches,
+            root_packages,
+            retry,
+            std::move(python_minor_version_for_prefilter)
+        );
     }
 
     void init_channels(Context& context, ChannelContext& channel_context)
@@ -867,6 +1202,90 @@ namespace mamba
             for (const specs::Channel& channel : channel_context.make_channel(pkg_info.channel))
             {
                 create_mirrors(channel, context.mirrors);
+            }
+        }
+    }
+
+    auto should_shard_then_expand_roots(
+        bool use_sharded_repodata,
+        const std::vector<std::string>& root_packages,
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool
+    {
+        if (!use_sharded_repodata || root_packages.empty())
+        {
+            return false;
+        }
+        return std::any_of(
+            subdirs.begin(),
+            subdirs.end(),
+            [&](const SubdirIndexLoader& s)
+            { return s.metadata().has_up_to_date_shards(repodata_shards_ttl); }
+        );
+    }
+
+    auto should_expand_shard_roots_from_loaded_shards(
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool
+    {
+        return count_distinct_sharded_channel_urls(subdirs, repodata_shards_ttl) > 1;
+    }
+
+    void expand_shard_root_packages_from_full_repodata_repos(
+        const solver::libsolv::Database& database,
+        const std::vector<solver::libsolv::RepoInfo>& full_repos,
+        std::vector<std::string>& root_packages
+    )
+    {
+        std::unordered_map<std::string, std::vector<specs::PackageInfo>> packages_by_name;
+        for (const auto& repo : full_repos)
+        {
+            database.for_each_package_in_repo(
+                repo,
+                [&](const specs::PackageInfo& pkg) { packages_by_name[pkg.name].push_back(pkg); }
+            );
+        }
+
+        std::unordered_set<std::string> seen(root_packages.begin(), root_packages.end());
+        std::vector<std::string> frontier(root_packages.begin(), root_packages.end());
+        auto add_from_spec = [&](const std::string& dep_str)
+        {
+            if (auto name = specs::MatchSpec::extract_name(dep_str))
+            {
+                if (!name->empty() && *name != "*")
+                {
+                    if (seen.insert(*name).second)
+                    {
+                        frontier.push_back(*name);
+                        root_packages.push_back(*name);
+                    }
+                }
+            }
+        };
+
+        while (!frontier.empty())
+        {
+            const std::string pkg_name = std::move(frontier.back());
+            frontier.pop_back();
+
+            const auto records_it = packages_by_name.find(pkg_name);
+            if (records_it == packages_by_name.end())
+            {
+                continue;
+            }
+
+            for (const auto& pkg : records_it->second)
+            {
+                for (const auto& dep : pkg.dependencies)
+                {
+                    add_from_spec(dep);
+                }
+                for (const auto& c : pkg.constrains)
+                {
+                    add_from_spec(c);
+                }
             }
         }
     }

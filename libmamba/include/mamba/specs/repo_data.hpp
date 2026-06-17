@@ -44,6 +44,14 @@ namespace mamba::specs
         /** The version of the package. */
         Version version = Version(0, { { { 0 } } });
 
+        /**
+         * Optional original version string as found in repodata/shards.
+         *
+         * This is used for user-facing representations to preserve formatting details
+         * (e.g. leading zeros) while keeping ``version`` as the canonical parsed form.
+         */
+        std::optional<std::string> raw_version = {};
+
         /** The build string of the package. */
         std::string build_string = {};
 

@@ -22,9 +22,18 @@ namespace mamba::solver
         return std::nullopt;
     }
 
-    auto python_binary_compatible(const specs::Version& older, const specs::Version& newer) -> bool
+    auto python_binary_compatible(const specs::Version& a, const specs::Version& b) -> bool
     {
-        // Python binary compatibility is defined at the same MINOR level.
-        return older.compatible_with(newer, /* level= */ 2);
+        // Python binary compatibility is defined at the same major + minor
+        // level. This matches conda's noarch:python relink gate in
+        // conda/core/solve.py, which compares
+        //   get_major_minor_version(prev) != get_major_minor_version(curr)
+        // and is symmetric across upgrade/downgrade.
+        const auto& a_ver = a.version();
+        const auto& b_ver = b.version();
+        return a.epoch() == b.epoch()                     //
+               && a_ver.size() >= 2 && b_ver.size() >= 2  //
+               && a_ver[0] == b_ver[0]                    //
+               && a_ver[1] == b_ver[1];
     }
 }

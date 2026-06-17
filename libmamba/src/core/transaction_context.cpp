@@ -10,6 +10,7 @@
 #include <reproc++/drain.hpp>
 
 #include "mamba/core/output.hpp"
+#include "mamba/specs/platform.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
 
@@ -33,6 +34,82 @@ namespace mamba
             return long_version;
         }
         return util::concat(sv[0], '.', sv[1]);
+    }
+
+    auto effective_python_site_packages_path(const specs::PackageInfo& python_pkg) -> std::string
+    {
+        const std::string short_ver = compute_short_python_version(python_pkg.version);
+        std::string compact = short_ver;
+        util::replace_all(compact, ".", "");
+        const bool freethreaded_build = !python_pkg.build_string.empty() && !compact.empty()
+                                        && util::contains(
+                                            python_pkg.build_string,
+                                            util::concat("cp", compact, "t")
+                                        );
+
+        // Unix free-threaded installs use lib/pythonX.Yt/site-packages. Windows CPython (conda
+        // layout) keeps third-party packages under Lib/site-packages for both GIL and free-threaded
+        // builds — see https://github.com/mamba-org/mamba/issues/4267
+        const bool missing_version_info = short_ver.empty() || python_pkg.build_string.empty();
+
+        // Use the package subdir, not the host OS (repoquery --platform must not rewrite linux
+        // repodata when mamba runs on Windows). See https://github.com/mamba-org/mamba/issues/4286
+        const bool use_windows_layout = !python_pkg.platform.empty()
+                                            ? specs::platform_is_win(python_pkg.platform)
+                                            : specs::platform_is_win(specs::build_platform());
+
+        const std::string free_threaded_site_packages_unix = missing_version_info
+                                                                 ? std::string{}
+                                                                 : (fs::u8path("lib")
+                                                                    / util::concat("python", short_ver, "t")
+                                                                    / "site-packages")
+                                                                       .generic_string();
+
+        const std::string std_site_packages_win = missing_version_info
+                                                      ? std::string{}
+                                                      : (fs::u8path("Lib") / "site-packages")
+                                                            .generic_string();
+
+        const std::string free_threaded_site_packages = use_windows_layout
+                                                            ? std_site_packages_win
+                                                            : free_threaded_site_packages_unix;
+
+        const std::string std_site_packages_gil_unix = missing_version_info
+                                                           ? std::string{}
+                                                           : (fs::u8path("lib")
+                                                              / util::concat("python", short_ver)
+                                                              / "site-packages")
+                                                                 .generic_string();
+
+        const std::string std_site_packages = use_windows_layout ? std_site_packages_win
+                                                                 : std_site_packages_gil_unix;
+
+        if (!python_pkg.python_site_packages_path.empty())
+        {
+            if (freethreaded_build && !free_threaded_site_packages.empty())
+            {
+                if (python_pkg.python_site_packages_path == std_site_packages)
+                {
+                    return free_threaded_site_packages;
+                }
+                if (use_windows_layout
+                    && python_pkg.python_site_packages_path == free_threaded_site_packages_unix)
+                {
+                    return free_threaded_site_packages;
+                }
+            }
+            return python_pkg.python_site_packages_path;
+        }
+
+        if (short_ver.empty() || python_pkg.build_string.empty())
+        {
+            return {};
+        }
+        if (!freethreaded_build)
+        {
+            return {};
+        }
+        return free_threaded_site_packages;
     }
 
     // supply short python version, e.g. 2.7, 3.5...
@@ -109,6 +186,18 @@ namespace mamba
         if (!python_site_packages_path.empty())
         {
             res.site_packages_path = python_site_packages_path;
+#ifndef _WIN32
+            // Free-threaded CPython installs use bin/pythonX.Yt alongside
+            // lib/pythonX.Yt/site-packages.
+            if (util::contains(
+                    python_site_packages_path,
+                    util::concat("python", res.short_python_version, "t")
+                ))
+            {
+                res.python_path = fs::u8path("bin")
+                                  / util::concat("python", res.short_python_version, "t");
+            }
+#endif
         }
         else
         {

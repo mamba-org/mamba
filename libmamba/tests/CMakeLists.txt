@@ -70,6 +70,7 @@ set(
     src/specs/test_version_spec.cpp
     src/specs/test_version.cpp
     # Solver tests
+    src/solver/test_helpers.cpp
     src/solver/test_problems_graph.cpp
     src/solver/test_request.cpp
     src/solver/test_solution.cpp
@@ -88,6 +89,8 @@ set(
     src/core/test_activation.cpp
     src/core/test_channel_context.cpp
     src/core/test_channel_loader.cpp
+    src/core/test_channels_hook.cpp
+    src/core/test_clean.cpp
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
     src/core/test_env_file_reading.cpp
@@ -97,14 +100,18 @@ set(
     src/core/test_filesystem.cpp
     src/core/test_history.cpp
     src/core/test_invoke.cpp
+    src/core/test_link_entry_points.cpp
     src/core/test_lockfile.cpp
     src/core/test_output.cpp
+    src/core/test_package_cache.cpp
     src/core/test_package_fetcher.cpp
     src/core/test_prefix_interoperability.cpp
     src/core/test_pinning.cpp
     src/core/test_progress_bar.cpp
     src/core/test_query.cpp
+    src/core/test_repoquery.cpp
     src/core/test_shell_init.cpp
+    src/core/test_shard_python_minor_prefilter.cpp
     src/core/test_shards.cpp
     src/core/test_shard_index_loader.cpp
     src/core/test_shard_traversal.cpp
@@ -122,6 +129,7 @@ set(
 message(STATUS "Building libmamba C++ tests")
 
 add_executable(test_libmamba ${LIBMAMBA_TEST_SRCS})
+add_dependencies(test_libmamba testing_libmamba_lock)
 mamba_target_add_compile_warnings(test_libmamba WARNING_AS_ERROR ${MAMBA_WARNING_AS_ERROR})
 
 target_include_directories(

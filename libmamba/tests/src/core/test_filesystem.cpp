@@ -450,6 +450,14 @@ namespace mamba
             }
         }
 
+        TEST_CASE("path_has_prefix")
+        {
+            REQUIRE(fs::path_has_prefix("info/about.json", "info"));
+            REQUIRE(fs::path_has_prefix("info/recipe/meta.yaml", "info"));
+            REQUIRE_FALSE(fs::path_has_prefix("bin/hello", "info"));
+            REQUIRE_FALSE(fs::path_has_prefix("info", "info/about.json"));
+        }
+
     }
 
 }

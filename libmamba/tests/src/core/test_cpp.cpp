@@ -478,6 +478,33 @@ namespace mamba
             REQUIRE(res == "#!/bin/sh\n'''exec' \"/usr/bin/pyth on with spaces\" \"$0\" \"$@\" #'''");
         }
 
+        TEST_CASE("pyc_path")
+        {
+            SECTION("Python 2 uses .pyc adjacent to the source")
+            {
+                auto p = pyc_path(fs::u8path("lib/site-packages/six.py"), "2.7");
+                REQUIRE(p.generic_string() == "lib/site-packages/six.pyc");
+            }
+
+            SECTION("Python 3 standard install uses cpython-VV tag")
+            {
+                auto p = pyc_path(fs::u8path("env/lib/python3.10/site-packages/six.py"), "3.10");
+                REQUIRE(
+                    p.generic_string()
+                    == "env/lib/python3.10/site-packages/__pycache__/six.cpython-310.pyc"
+                );
+            }
+
+            SECTION("Python 3 free-threaded site dir still uses cpython-VV tag for .pyc names")
+            {
+                auto p = pyc_path(fs::u8path("env/lib/python3.13t/site-packages/six.py"), "3.13");
+                REQUIRE(
+                    p.generic_string()
+                    == "env/lib/python3.13t/site-packages/__pycache__/six.cpython-313.pyc"
+                );
+            }
+        }
+
         TEST_CASE("shebang_regex_matches")
         {
             std::string shebang = "#!/simple/shebang";

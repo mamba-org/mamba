@@ -23,7 +23,7 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v6
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
@@ -77,7 +77,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -116,7 +116,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -130,7 +130,8 @@ jobs:
         run: |
           # Only rerun flaky tests on the `main` branch
           python -m pytest libmambapy/tests/ ^
-            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} ^
+            -vv --durations=50 ^
+            ${{ runner.debug == 'true' && '--capture=tee-sys' || '--exitfirst' }} ^
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
 
   mamba_integration_tests_win:
@@ -147,7 +148,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -166,5 +167,6 @@ jobs:
           Remove-Item -Path "env:CONDARC"
           # Only rerun flaky tests on the `main` branch
           python -m pytest micromamba/tests/ `
-            ${{ runner.debug == 'true' && '-v --capture=tee-sys' || '--exitfirst' }} `
+            -vv --durations=50 `
+            ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} `
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

@@ -455,6 +455,9 @@ namespace mamba::specs
             -> Channel
         {
             auto url = params.channel_alias;
+            // Normalize trailing slashes so aliases like "https://repo.mamba.pm"
+            // and "https://repo.mamba.pm/" resolve identically.
+            url.set_path(std::string(util::rstrip(url.path(), '/')), CondaURL::Encode::no);
             url.append_path(uc.location());
             set_fallback_credential_from_db(url, params.authentication_db);
             return {

@@ -214,6 +214,15 @@ namespace
             REQUIRE(ms.is_only_package_name());
         }
 
+        SECTION("MatchSpec names are case insensitive")
+        {
+            // Non-regression test for: https://github.com/mamba-org/mamba/issues/4064
+            auto ms = MatchSpec::parse("GDAL!=3.6.*,!=3.7.*").value();
+            REQUIRE(ms.name().to_string() == "gdal");
+            REQUIRE(ms.version().to_string() == "!=3.6.*,!=3.7.*");
+            REQUIRE(ms.to_string() == R"ms(gdal[version="!=3.6.*,!=3.7.*"])ms");
+        }
+
         SECTION("disperse=v0.9.24")
         {
             auto ms = MatchSpec::parse("disperse=v0.9.24").value();
@@ -755,6 +764,64 @@ namespace
                 REQUIRE(ms.build_string().to_string() == "0");
                 REQUIRE(ms.filename() == "cph_test_data-0.0.1-0.tar.bz2");
             }
+        }
+    }
+
+    TEST_CASE("MatchSpec::extract_name", "[mamba::specs][mamba::specs::MatchSpec]")
+    {
+        SECTION("extract plain name")
+        {
+            auto name = MatchSpec::extract_name("python");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+        }
+
+        SECTION("extract name before whitespace")
+        {
+            auto name = MatchSpec::extract_name("python >=3.11");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+        }
+
+        SECTION("extract name before binary operator")
+        {
+            auto name = MatchSpec::extract_name("numpy>=2");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "numpy");
+            name = MatchSpec::extract_name("python=3.12");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+            name = MatchSpec::extract_name("libzstd!=1.5");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "libzstd");
+            name = MatchSpec::extract_name("openssl~=3.0");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "openssl");
+        }
+
+        SECTION("skip leading whitespace")
+        {
+            auto name = MatchSpec::extract_name("   scipy >=1.11");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "scipy");
+        }
+
+        SECTION("normalize extracted name to lowercase")
+        {
+            auto name = MatchSpec::extract_name("CppInterOp>=1.9");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "cppinterop");
+
+            name = MatchSpec::extract_name("   PyThOn >=3.11");
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "python");
+        }
+
+        SECTION("empty and operator-only specs return empty")
+        {
+            REQUIRE_FALSE(MatchSpec::extract_name("").has_value());
+            REQUIRE_FALSE(MatchSpec::extract_name("   ").has_value());
+            REQUIRE_FALSE(MatchSpec::extract_name(">=1.0").has_value());
         }
     }
 

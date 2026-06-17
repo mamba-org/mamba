@@ -345,8 +345,15 @@ namespace mambapy
             .def("__copy__", &copy<UnresolvedChannel>)
             .def("__deepcopy__", &deepcopy<UnresolvedChannel>, py::arg("memo"))
             .def_property_readonly("type", &UnresolvedChannel::type)
-            .def_property_readonly("location", &UnresolvedChannel::location)
-            .def_property_readonly("platform_filters", &UnresolvedChannel::platform_filters);
+            .def_property_readonly(
+                "location",
+                [](const UnresolvedChannel& self) -> std::string { return self.location(); }
+            )
+            .def_property_readonly(
+                "platform_filters",
+                [](const UnresolvedChannel& self) -> const UnresolvedChannel::platform_set&
+                { return self.platform_filters(); }
+            );
 
         py::class_<BasicHTTPAuthentication>(m, "BasicHTTPAuthentication")
             .def(
@@ -726,7 +733,9 @@ namespace mambapy
                 py::arg("track_features") = decltype(PackageInfo::track_features)(),
                 py::arg("depends") = decltype(PackageInfo::dependencies)(),
                 py::arg("constrains") = decltype(PackageInfo::constrains)(),
-                py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys)(),
+                // Default `["_initialized"]` = trust all fields.
+                // See `PackageInfo::defaulted_keys`.
+                py::arg("defaulted_keys") = decltype(PackageInfo::defaulted_keys){ "_initialized" },
                 py::arg("noarch") = decltype(PackageInfo::noarch)(),
                 py::arg("size") = decltype(PackageInfo::size)(),
                 py::arg("timestamp") = decltype(PackageInfo::timestamp)()

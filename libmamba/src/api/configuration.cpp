@@ -1052,12 +1052,8 @@ namespace mamba
 
         void download_threads_hook(std::size_t& value)
         {
-            if (!value)
-            {
-                throw std::runtime_error(
-                    fmt::format("Number of download threads as to be positive (currently set to {})", value)
-                );
-            }
+            // Normalize and cap download threads to the process affinity.
+            value = normalize_to_affinity_concurrency(static_cast<int>(value));
         }
 
         void extract_threads_hook(const Context& context)
@@ -1514,11 +1510,12 @@ namespace mamba
                    .set_rc_configurable()
                    .description("Channels that have zstd encoded repodata (saves a HEAD request)"));
 
-        insert(Configurable("repodata_use_shards", &m_context.repodata_use_shards)
+        insert(Configurable("use_sharded_repodata", &m_context.use_sharded_repodata)
                    .group("Repodata")
                    .set_rc_configurable()
+                   .set_env_var_names()
                    .description(
-                       "Use sharded repodata when available for faster dependency resolution (default: false)"
+                       "Use sharded repodata when available for faster dependency resolution (default: true)"
                    ));
 
         insert(Configurable("repodata_shards_ttl", &m_context.repodata_shards_ttl)
@@ -1529,7 +1526,11 @@ namespace mamba
         insert(Configurable("repodata_shards_threads", &m_context.repodata_shards_threads)
                    .group("Repodata")
                    .set_rc_configurable()
-                   .description("Number of threads for parallel shard fetching (default: 10)"));
+                   .description(
+                       "Number of threads for parallel shard fetching (default: 0 (auto)). "
+                       "If set to 0, the number of threads is chosen automatically as the "
+                       "minimum between 10 and the number of CPUs available to the process"
+                   ));
 
         // Network
         insert(Configurable("cacert_path", std::string(""))
@@ -1765,7 +1766,8 @@ namespace mamba
                    .description("Defines the number of threads for package download")
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
-                        It has to be strictly positive.)")));
+                        If set to 0, the number of threads is chosen automatically as the
+                        minimum between 10 and the number of CPUs available to the process.")));
 
         insert(Configurable("extract_threads", &m_context.threads_params.extract_threads)
                    .group("Extract, Link & Install")
@@ -1775,9 +1777,11 @@ namespace mamba
                    .description("Defines the number of threads for package extraction")
                    .long_description(unindent(R"(
                         Defines the number of threads for package extraction.
-                        Positive number gives the number of threads, negative number gives
-                        host max concurrency minus the value, zero (default) is the host max
-                        concurrency value.)")));
+                        Positive values give the exact number of threads.
+                        Negative values are interpreted as (available CPUs for this process
+                        minus the absolute value).
+                        If set to 0, the number of threads is chosen automatically as the
+                        minimum between 10 and the number of CPUs available to the process)")));
 
         insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")
@@ -2285,7 +2289,7 @@ namespace mamba
         {
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
-            std::cout << this->dump(dump_opts) << std::endl;
+            print_dump(*this, dump_opts);
             exit(0);
         }
 
@@ -2767,5 +2771,13 @@ namespace mamba
         {
             return dump_yaml(opts, names, get_grouped_config());
         }
+    }
+
+    void print_dump(const Configuration& config, int dump_opts, std::vector<std::string> dump_names)
+    {
+        // Note: this function is intended to get more complex with incoming changes and need to be
+        // isolated in preparation for these changes.
+        const std::string dump_text = hide_secrets(config.dump(dump_opts, std::move(dump_names)));
+        std::cout << dump_text << std::endl;
     }
 }

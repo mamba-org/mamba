@@ -306,6 +306,11 @@ def repodata_solv(cache: Path) -> set[Path]:
     return set((cache / "cache").glob("*.solv"))
 
 
+def index_cache_files(cache: Path) -> set[Path]:
+    cache_dir = cache / "cache"
+    return repodata_json(cache) | set(cache_dir.glob("*.msgpack.zst"))
+
+
 def same_repodata_json_solv(cache: Path):
     return {p.stem for p in repodata_json(cache)} == {p.stem for p in repodata_solv(cache)}
 
@@ -393,16 +398,15 @@ class TestMultiplePkgCaches:
                 f"**{file_to_find_in_package}", recursive=True, root_dir=old_cache_dir
             )
             for file in files:
-                (old_cache_dir / file).unlink()
+                file.unlink()
         helpers.recursive_chmod(tmp_cache, 0o500)
 
         os.environ["CONDA_PKGS_DIRS"] = f"{tmp_cache}"
 
-        # Mamba now handles corrupted extracted directories in read-only caches gracefully
-        # by extracting to a temporary location, so the operation should succeed
-        helpers.create(
-            "-n", "myenv", package_to_check_requirements(), "-vv", "--json", no_dry_run=True
-        )
+        with pytest.raises(subprocess.CalledProcessError):
+            helpers.create(
+                "-n", "myenv", package_to_check_requirements(), "-vv", "--json", no_dry_run=True
+            )
 
     def test_first_writable_extracted_dir_corrupted(
         self, tmp_home, tmp_root_prefix, tmp_cache, tmp_cache_alt
@@ -432,10 +436,11 @@ class TestMultiplePkgCaches:
         assert linked_file.exists()
 
         # check repodata files
-        assert repodata_json(tmp_cache) == set()
-        assert repodata_json(tmp_cache_alt) != set()
+        assert index_cache_files(tmp_cache) == set()
+        assert index_cache_files(tmp_cache_alt) != set()
         if platform.system() != "Windows":  # No .solv on Windows
-            assert same_repodata_json_solv(tmp_cache_alt)
+            if repodata_json(tmp_cache_alt):
+                assert same_repodata_json_solv(tmp_cache_alt)
 
         # check tarballs
         assert find_cache_archive(tmp_cache, test_pkg_bld) is None
@@ -477,8 +482,8 @@ class TestMultiplePkgCaches:
         assert linked_file.exists()
 
         # check repodata files
-        assert repodata_json(tmp_cache) != set()
-        if platform.system() != "Windows":  # No .solv on Windows
+        assert index_cache_files(tmp_cache) != set()
+        if platform.system() != "Windows" and repodata_json(tmp_cache):  # No .solv on Windows
             assert same_repodata_json_solv(tmp_cache)
         assert repodata_json(tmp_cache_alt) == set()
 
@@ -521,8 +526,8 @@ class TestMultiplePkgCaches:
         writable_cache_file = tmp_cache_alt / test_pkg_bld / linked_file_rel_path
 
         # check repodata files
-        assert repodata_json(tmp_cache) != set()
-        if platform.system() != "Windows":  # No .solv on Windows
+        assert index_cache_files(tmp_cache) != set()
+        if platform.system() != "Windows" and repodata_json(tmp_cache):  # No .solv on Windows
             assert same_repodata_json_solv(tmp_cache)
         assert repodata_json(tmp_cache_alt) == set()
 
@@ -565,8 +570,8 @@ class TestMultiplePkgCaches:
         assert linked_file.exists()
 
         # check repodata files
-        assert repodata_json(tmp_cache) != set()
-        if platform.system() != "Windows":  # No .solv on Windows
+        assert index_cache_files(tmp_cache) != set()
+        if platform.system() != "Windows" and repodata_json(tmp_cache):  # No .solv on Windows
             assert same_repodata_json_solv(tmp_cache)
         assert repodata_json(tmp_cache_alt) == set()
 
@@ -616,11 +621,11 @@ class TestMultiplePkgCaches:
         assert linked_file.exists()
 
         # check repodata files
-        assert repodata_json(tmp_cache) != set()
-        if platform.system() != "Windows":  # No .solv on Windows
+        assert index_cache_files(tmp_cache) != set()
+        if platform.system() != "Windows" and repodata_json(tmp_cache):  # No .solv on Windows
             assert same_repodata_json_solv(tmp_cache)
-        assert repodata_json(tmp_cache_alt) != set()
-        if platform.system() != "Windows":  # No .solv on Windows
+        assert index_cache_files(tmp_cache_alt) != set()
+        if platform.system() != "Windows" and repodata_json(tmp_cache_alt):  # No .solv on Windows
             assert same_repodata_json_solv(tmp_cache_alt)
 
         # check tarballs

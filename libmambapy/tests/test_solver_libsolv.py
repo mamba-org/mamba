@@ -150,7 +150,10 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec
     assert db.package_count() == 0
 
     repo = db.add_repo_from_packages(
-        [libmambapy.specs.PackageInfo(name="python")],
+        [
+            libmambapy.specs.PackageInfo(name="python", version="3.0"),
+            libmambapy.specs.PackageInfo(name="pip", version="24.0"),
+        ],
         name="duck",
         add_pip_as_python_dependency=add_pip_as_python_dependency,
     )
@@ -159,9 +162,9 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec
     assert repo.id > 0
     assert repo.name == "duck"
     assert repo.priority == libsolv.Priorities()
-    assert repo.package_count() == 1
+    assert repo.package_count() == 2
     assert db.repo_count() == 1
-    assert db.package_count() == 1
+    assert db.package_count() == 2
     assert db.installed_repo() == repo
 
     new_priority = libsolv.Priorities(2, 3)
@@ -169,9 +172,9 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec
     assert repo.priority == new_priority
 
     pkgs = db.packages_in_repo(repo)
-    assert len(pkgs) == 1
-    assert pkgs[0].name == "python"
-    assert pkgs[0].dependencies == [] if add_pip_as_python_dependency else ["pip"]
+    assert len(pkgs) == 2
+    python_pkg = next(p for p in pkgs if p.name == "python")
+    assert python_pkg.dependencies == (["pip"] if add_pip_as_python_dependency else [])
 
     db.remove_repo(repo)
     assert db.repo_count() == 0
@@ -186,10 +189,16 @@ def tmp_repodata_json(tmp_path):
         json.dump(
             {
                 "packages": {
-                    "python-1.0-bld": {
+                    "python-3.0-bld": {
                         "name": "python",
-                        "version": "1.0",
+                        "version": "3.0",
                         "build": "bld",
+                        "build_number": 0,
+                    },
+                    "pip-24.0-py_0": {
+                        "name": "pip",
+                        "version": "24.0",
+                        "build": "py_0",
                         "build_number": 0,
                     },
                 },
@@ -246,13 +255,13 @@ def test_Database_RepoInfo_from_repodata(
     repo = add_repo_json()
     db.set_installed_repo(repo)
 
-    assert repo.package_count() == 1 if package_types in ["TarBz2Only", "CondaOnly"] else 2
+    assert repo.package_count() == (2 if package_types in ["TarBz2Only", "CondaOnly"] else 3)
     assert db.package_count() == repo.package_count()
 
     pkgs = db.packages_in_repo(repo)
     assert len(pkgs) == repo.package_count()
     python_pkg = next(p for p in pkgs if p.name == "python")
-    assert python_pkg.dependencies == [] if add_pip_as_python_dependency else ["pip"]
+    assert python_pkg.dependencies == (["pip"] if add_pip_as_python_dependency else [])
 
     # Native serialize repo
     solv_file = tmp_path / "repodata.solv"
@@ -271,7 +280,7 @@ def test_Database_RepoInfo_from_repodata(
         channel_id=channel_id,
         add_pip_as_python_dependency=add_pip_as_python_dependency,
     )
-    assert repo_loaded.package_count() == 1 if package_types in ["TarBz2Only", "CondaOnly"] else 2
+    assert repo_loaded.package_count() == (2 if package_types in ["TarBz2Only", "CondaOnly"] else 3)
 
 
 def test_Database_RepoInfo_from_repodata_missing():

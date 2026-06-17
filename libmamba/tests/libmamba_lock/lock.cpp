@@ -1,3 +1,6 @@
+#include <iostream>
+#include <string_view>
+
 #include <CLI/CLI.hpp>
 
 #include "mamba/core/context.hpp"
@@ -26,9 +29,32 @@ is_locked(const mamba::fs::u8path& path)
 #endif
 }
 
+// Prefix interoperability tests copy this binary to `uv` / `uv.exe` and expect `pip list --format
+// json` to emit fixed JSON (real `uv` is not required in that test environment).
+static bool
+try_answer_as_uv_pip_list_json(int argc, char** argv)
+{
+    if (argc != 5)
+    {
+        return false;
+    }
+    if (std::string_view(argv[1]) != "pip" || std::string_view(argv[2]) != "list"
+        || std::string_view(argv[3]) != "--format" || std::string_view(argv[4]) != "json")
+    {
+        return false;
+    }
+    std::cout << R"([{"name":"demo-pkg","version":"1.2.3"}])" << '\n';
+    return true;
+}
+
 int
 main(int argc, char** argv)
 {
+    if (try_answer_as_uv_pip_list_json(argc, argv))
+    {
+        return 0;
+    }
+
     mamba::Context context{ {
         /* .enable_logging_and_signal_handling = */ true,
     } };

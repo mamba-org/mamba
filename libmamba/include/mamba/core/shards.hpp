@@ -8,6 +8,7 @@
 #define MAMBA_CORE_SHARDS_HPP
 
 #include <functional>
+#include <limits>
 #include <map>
 #include <optional>
 #include <string>
@@ -16,11 +17,13 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/shard_types.hpp"
 #include "mamba/core/subdir_index.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/download/downloader.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/authentication_info.hpp"
 #include "mamba/specs/channel.hpp"
+#include "mamba/specs/version.hpp"
 
 namespace mamba
 {
@@ -29,6 +32,12 @@ namespace mamba
      *
      * This class manages fetching and caching of individual shards from
      * a sharded repodata index.
+     *
+     * **Python minor prefilter:** When constructed with ``python_minor_version_for_prefilter``
+     * (e.g. 3.12), parsing a shard msgpack drops package records whose ``depends`` list constrains
+     * ``python`` to a range that does not contain that minor, reducing work for the solver.
+     * When that optional is unset, no such filtering is applied and all records in the shard
+     * are parsed (python compatibility is left to the solver).
      */
     class Shards
     {
@@ -46,6 +55,9 @@ namespace mamba
          * @param mirrors Optional base mirrors for channel-based downloads. When provided,
          *        extend_mirrors in fetch_shards will be initialized from these before adding
          *        absolute-URL mirrors.
+         * @param python_minor_version_for_prefilter If set, shard parsing filters out records whose
+         *        ``depends`` python constraints are incompatible with this minor; if unset,
+         *        no python-minor-based record filtering is performed.
          */
         Shards(
             ShardsIndexDict shards_index,
@@ -53,8 +65,11 @@ namespace mamba
             specs::Channel channel,
             specs::AuthenticationDataBase auth_info,
             download::RemoteFetchParams remote_fetch_params,
-            std::size_t download_threads = 10,
-            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt
+            // 0 means: auto; value is normalized with normalize_to_affinity_concurrency().
+            std::size_t download_threads = 0,
+            std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt,
+            std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt,
+            std::size_t shards_ttl_seconds = std::numeric_limits<std::size_t>::max()
         );
 
         /** Return the names of all packages available in this shard collection. */
@@ -114,8 +129,18 @@ namespace mamba
         /** Number of threads to use for parallel shard fetching. */
         std::size_t m_download_threads;
 
+        /** TTL in seconds for shard cache files (0 means always refresh). */
+        std::size_t m_shards_ttl_seconds;
+
         /** Optional base mirrors for channel-based downloads. */
         std::optional<std::reference_wrapper<const download::mirror_map>> m_mirrors;
+
+        /**
+         * Environment python minor used when parsing shards to prefilter package records
+         * (see ``record_depends_on_python_minor_version_for_prefilter`` in shards.cpp).
+         * Empty means the prefilter is disabled.
+         */
+        std::optional<specs::Version> m_python_minor_version_for_prefilter;
 
         /** Visited shards, keyed by package name. */
         std::map<std::string, ShardDict> m_visited;
@@ -206,10 +231,8 @@ namespace mamba
         /**
          * Parse msgpack data into ShardDict.
          */
-        auto parse_shard_msgpack(
-            const std::vector<std::uint8_t>& decompressed_data,
-            const std::string& package
-        ) const -> expected_t<ShardDict>;
+        auto parse_shard_msgpack(const std::vector<std::uint8_t>& decompressed_data) const
+            -> expected_t<ShardDict>;
 
         /**
          * Get the cache path for a shard file.

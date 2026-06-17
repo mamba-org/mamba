@@ -12,6 +12,7 @@
 #include <tuple>
 #include <vector>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/package_info.hpp"
@@ -23,6 +24,13 @@ namespace mamba
 {
     std::string replace_long_shebang(const std::string& shebang);
     std::string python_shebang(const std::string& python_exe);
+
+    /**
+     * Resolved path for bytecode when mirroring CPython's PEP 3147 layout.
+     * Free-threaded installs may use `python{py_ver}t` in site-packages paths, but cache tags
+     * still follow `sys.implementation.cache_tag` (e.g. `cpython-314`, without a trailing `t`).
+     */
+    fs::u8path pyc_path(const fs::u8path& py_path, const std::string& py_ver);
 
     inline const std::regex shebang_regex(
         "^(#!"                      // pretty much the whole match string
@@ -42,6 +50,9 @@ namespace mamba
     {
         std::string command, module, func;
     };
+
+    /** Parse and validate a noarch:python entry point (``command = module:func``). */
+    auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>;
 
     class UnlinkPackage
     {

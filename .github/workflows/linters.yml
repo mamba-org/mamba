@@ -36,7 +36,7 @@ jobs:
           df -h
       - uses: actions/checkout@v6
       - name: Install pre-commit and identify
-        uses: mamba-org/setup-micromamba@v2
+        uses: mamba-org/setup-micromamba@v3
         with:
           environment-name: linters
           create-args: pre-commit identify

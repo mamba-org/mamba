@@ -101,6 +101,11 @@ namespace mamba::solver::libsolv
 
         solv.add_track_features(pkg.track_features);
 
+        // Store defaulted_keys so it survives the round-trip through libsolv.
+        // This is critical for issue #4095 where URL-derived packages lose their
+        // defaulted_keys when going through the solver.
+        solv.set_defaulted_keys(pkg.defaulted_keys);
+
         solv.add_self_provide();
     }
 
@@ -144,6 +149,15 @@ namespace mamba::solver::libsolv
             auto feats = s.track_features();
             out.track_features.reserve(feats.size());
             std::transform(feats.begin(), feats.end(), std::back_inserter(out.track_features), id_to_str);
+        }
+
+        // Backward-compat fallback: old `.solv` cache files lack `defaulted_keys`; treat
+        // them as `{"_initialized"}` since they came from authoritative channel repodata.
+        // See `PackageInfo::defaulted_keys`.
+        out.defaulted_keys = s.defaulted_keys();
+        if (out.defaulted_keys.empty())
+        {
+            out.defaulted_keys = { std::string(specs::defaulted_key::initialized) };
         }
 
         return out;
@@ -403,6 +417,10 @@ namespace mamba::solver::libsolv
             // Setting signatures in solvable if they are available and `verify-artifacts` flag is
             // enabled
             set_solv_signatures(solv, filename, signatures);
+
+            // Channel repodata is authoritative — only `_initialized` needed.
+            // See `PackageInfo::defaulted_keys`.
+            solv.set_defaulted_keys({ std::string(specs::defaulted_key::initialized) });
 
             solv.add_self_provide();
             return true;
@@ -939,6 +957,29 @@ namespace mamba::solver::libsolv
 
     void add_pip_as_python_dependency(solv::ObjPool& pool, solv::ObjRepoView repo)
     {
+        // If the repository does not contain any ``pip`` solvable, injecting a mandatory
+        // dependency on ``pip`` for every ``python`` package would make any environment
+        // with Python unsatisfiable (as seen when working with incomplete shard indexes).
+        // In that situation, we simply skip the injection and leave the original metadata
+        // untouched, allowing environments to be solved without ``pip``.
+        bool has_pip = false;
+        repo.for_each_solvable(
+            [&](solv::ObjSolvableView s) -> solv::LoopControl
+            {
+                if (s.name() == "pip")
+                {
+                    has_pip = true;
+                    return solv::LoopControl::Break;
+                }
+                return solv::LoopControl::Continue;
+            }
+        );
+
+        if (!has_pip)
+        {
+            return;
+        }
+
         // These matchspecs are so simple that there should be no surprises in using
         // the libsolv parser, or in getting back an error.
         const solv::DependencyId python_id =  //

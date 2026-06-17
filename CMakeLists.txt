@@ -35,6 +35,9 @@ include("cmake/Checks.cmake")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 if(MSVC)
+    # Match CMake's default for imported SYSTEM includes (otherwise /external:W0) so we do not
+    # override it later with /external:W1 from mamba_target_add_compile_warnings (D9025).
+    set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX_WARNING "-external:W1 ")
     # NOMINMAX : prevent tons of code to be included when having to `#include <windows.h>` /EHsc :
     # enable C++ exceptions (otherwise exceptions do not work) /Zc:__cplusplus : makes sure
     # `__cplusplus` is set to the current C++ version language. Otherwise it is always set to an
@@ -44,7 +47,7 @@ if(MSVC)
     # project.
     set(
         CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /DNOMINMAX /EHsc /Zc:__cplusplus /utf-8 /MP /experimental:external /external:I $ENV{CONDA_PREFIX}"
+        "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /DNOMINMAX /EHsc /Zc:__cplusplus /utf-8 /MP /experimental:external /external:W1 /external:I $ENV{CONDA_PREFIX}"
     )
     # Force release mode to avoid debug libraries to be linked
     set(

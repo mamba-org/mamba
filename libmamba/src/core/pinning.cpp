@@ -15,7 +15,7 @@
 namespace mamba
 {
     std::vector<std::string>
-    python_pin(PrefixData& prefix_data, const std::vector<std::string>& specs)
+    python_pin(const PrefixData& prefix_data, const std::vector<std::string>& specs)
     {
         std::vector<std::string> pins;
         std::string py_version;

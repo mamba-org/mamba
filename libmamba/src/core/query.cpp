@@ -25,6 +25,8 @@
 #include "mamba/specs/version.hpp"
 #include "mamba/util/string.hpp"
 
+#include "transaction_context.hpp"
+
 namespace mamba
 {
     /******************************
@@ -230,7 +232,18 @@ namespace mamba
                                 .value();
             database.for_each_package_matching(
                 ms,
-                [&](specs::PackageInfo&& pkg) { g.add_node(std::move(pkg)); }
+                [&](specs::PackageInfo&& pkg)
+                {
+                    if (pkg.name == "python")
+                    {
+                        if (auto effective = effective_python_site_packages_path(pkg);
+                            !effective.empty())
+                        {
+                            pkg.python_site_packages_path = std::move(effective);
+                        }
+                    }
+                    g.add_node(std::move(pkg));
+                }
             );
         }
 
@@ -926,15 +939,7 @@ namespace mamba
                 }
             }
             // Sort by version (descending), then by build number (descending)
-            std::sort(
-                sorted_packages.begin(),
-                sorted_packages.end(),
-                [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                {
-                    // Compare in reverse order for descending sort
-                    return specs::compare_packages_by_version_and_build(rhs, lhs);
-                }
-            );
+            sort_packages_by_version_and_build_desc(sorted_packages);
 
             for (const auto& package : sorted_packages)
             {
@@ -1004,15 +1009,7 @@ namespace mamba
             {
                 // Sort packages by version (descending) and build number (descending)
                 // so that the latest version is first
-                std::sort(
-                    entry.second.begin(),
-                    entry.second.end(),
-                    [](const specs::PackageInfo& lhs, const specs::PackageInfo& rhs)
-                    {
-                        // Compare in reverse order for descending sort (newest first)
-                        return specs::compare_packages_by_version_and_build(rhs, lhs);
-                    }
-                );
+                sort_packages_by_version_and_build_desc(entry.second);
 
                 print_solvable(
                     out,

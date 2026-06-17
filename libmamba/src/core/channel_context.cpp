@@ -163,6 +163,8 @@ namespace mamba
             {
                 auto channels = specs::ChannelResolveParams::channel_list();
                 channels.reserve(3);
+                auto seen_paths = std::vector<fs::u8path>();
+                seen_paths.reserve(3);
                 for (auto path : {
                          ctx.prefix_params.target_prefix / "conda-bld",
                          ctx.prefix_params.root_prefix / "conda-bld",
@@ -171,6 +173,18 @@ namespace mamba
                 {
                     if (fs::exists(path))
                     {
+                        auto canon = fs::weakly_canonical(path);
+                        const bool already_present = std::any_of(
+                            seen_paths.begin(),
+                            seen_paths.end(),
+                            [&](const auto& existing) { return existing == canon; }
+                        );
+                        if (already_present)
+                        {
+                            continue;
+                        }
+
+                        seen_paths.push_back(std::move(canon));
                         channels.push_back(make_unique_chan(path.string(), params));
                     }
                 }

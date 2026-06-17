@@ -168,8 +168,11 @@ namespace mamba::specs
         {
             type = has_archive_extension(location) ? Type::PackageURL : Type::URL;
         }
-        else if (util::is_explicit_path(location))
+        else if (util::is_explicit_path(location) || has_archive_extension(location))
         {
+            // Bare filenames like `pkg-1.0-habc_0.conda` are relative paths but not
+            // "explicit" per is_explicit_path (which requires ./, /, ~, or a drive letter).
+            // Treat known package archive suffixes as paths so local installs work without `./`.
             location = parse_path(location);
             type = has_archive_extension(location) ? Type::PackagePath : Type::Path;
         }

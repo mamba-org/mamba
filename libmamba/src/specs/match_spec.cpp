@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <cctype>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -19,6 +20,38 @@
 
 namespace mamba::specs
 {
+    auto MatchSpec::extract_name(std::string_view spec) -> expected_parse_t<std::string>
+    {
+        std::size_t i = 0;
+        while (i < spec.size() && std::isspace(static_cast<unsigned char>(spec[i])))
+        {
+            ++i;
+        }
+        if (i == spec.size())
+        {
+            return make_unexpected_parse("Empty package name.");
+        }
+
+        const std::size_t name_start = i;
+        constexpr std::string_view binary_ops = "<>=!~";
+        while (i < spec.size())
+        {
+            const char c = spec[i];
+            if (std::isspace(static_cast<unsigned char>(c))
+                || (binary_ops.find(c) != std::string_view::npos))
+            {
+                break;
+            }
+            ++i;
+        }
+
+        if (i == name_start)
+        {
+            return make_unexpected_parse("Empty package name.");
+        }
+        return { util::to_lower(std::string(spec.substr(name_start, i - name_start))) };
+    }
+
     auto MatchSpec::parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>
     {
         auto out = MatchSpec();
@@ -72,8 +105,8 @@ namespace mamba::specs
             return make_unexpected_parse(fmt::format(R"(Missing name in filename "{}".)", pkg));
         }
 
-        // Name
-        out.m_name = NameSpec(std::string(head.value()));  // There may be '-' in the name
+        // There may be '-' in the name
+        out.m_name = NameSpec(util::to_lower(head.value()));
 
         return { std::move(out) };
     }
@@ -645,7 +678,7 @@ namespace mamba::specs
         {
             return parse_error("Empty package name.");
         }
-        out.m_name = NameSpec(std::string(name_str));
+        out.m_name = NameSpec(util::to_lower(name_str));
 
         // Set the version and build string, but avoid overriding in case nothing is specified
         // as it may already be set in attribute as in ``numpy[version=1.12]``.

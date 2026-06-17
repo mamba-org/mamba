@@ -7,11 +7,14 @@
 #ifndef MAMBA_API_CHANNEL_LOADER_HPP
 #define MAMBA_API_CHANNEL_LOADER_HPP
 
-#include <set>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
+#include "mamba/specs/package_info.hpp"
+#include "mamba/specs/version.hpp"
 
 namespace mamba
 {
@@ -23,38 +26,48 @@ namespace mamba
     }
     class Context;
     class SubdirIndexLoader;
-
-    /**
-     * Load a single subdir using sharded repodata (only reachable packages).
-     *
-     * Uses the shard index and per-package shards to load just the packages reachable from
-     * \p root_packages via dependencies, instead of the full repodata.
-     *
-     * Precondition: the caller must only invoke this when shards are applicable for the
-     * targeted subdir (e.g. sharded repodata is enabled, metadata is up to date, and
-     * \p root_packages is non-empty).
-     *
-     * @param ctx Context (repodata_use_shards, shard TTL, download params, etc.).
-     * @param database Libsolv database to add repos into.
-     * @param root_packages Root package names for reachability (e.g. install specs).
-     * @param subdirs All subdir loaders; \p subdir_idx is the one to load.
-     * @param subdir_idx Index of the subdir to load in \p subdirs.
-     * @param loaded_subdirs_with_shards Set of subdir names already loaded via shards (updated).
-     * @param priorities Repo priorities aligned with \p subdirs.
-     * @return The repo for the requested subdir, or unexpected mamba_error on failure.
-     */
-    auto load_subdir_with_shards(
-        Context& ctx,
-        solver::libsolv::Database& database,
-        const std::vector<std::string>& root_packages,
-        std::vector<SubdirIndexLoader>& subdirs,
-        std::size_t subdir_idx,
-        std::set<std::string>& loaded_subdirs_with_shards,
-        const std::vector<solver::libsolv::Priorities>& priorities
-    ) -> expected_t<solver::libsolv::RepoInfo>;
-
     class ChannelContext;
     class MultiPackageCache;
+
+    /**
+     * Whether to run the flat-first root expansion pass before loading shard subdirs.
+     *
+     * Returns true only when sharded repodata is enabled, \p root_packages is non-empty, and at
+     * least one subdir has an up-to-date shard index (issue #4277: skip on pure-flat channel sets).
+     */
+    [[nodiscard]] auto should_shard_then_expand_roots(
+        bool use_sharded_repodata,
+        const std::vector<std::string>& root_packages,
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool;
+
+    /**
+     * Whether shard loads should extend roots from loaded shard metadata and allow a follow-up
+     * shard pass for cross-channel closure (#4245).
+     *
+     * Returns true when at least two distinct channel URLs have up-to-date shard indices (e.g.
+     * emscripten-forge plus conda-forge). A single sharded channel (e.g. conda-forge with a flat
+     * bioconda label) already closes over its subdirs in one BFS; flat-first expansion seeds roots
+     * for that case.
+     */
+    [[nodiscard]] auto should_expand_shard_roots_from_loaded_shards(
+        const std::vector<SubdirIndexLoader>& subdirs,
+        std::size_t repodata_shards_ttl
+    ) -> bool;
+
+    /**
+     * Extend \p root_packages with dependency names reachable from current roots in \p full_repos.
+     *
+     * Builds a name → records index once, then walks dependencies by package name. Used to seed
+     * shard BFS when mixing flat and sharded channels (e.g. a flat label channel plus sharded
+     * conda-forge).
+     */
+    void expand_shard_root_packages_from_full_repodata_repos(
+        const solver::libsolv::Database& database,
+        const std::vector<solver::libsolv::RepoInfo>& full_repos,
+        std::vector<std::string>& root_packages
+    );
 
     /**
      * Creates channels and mirrors objects and loads channels into the libsolv database.
@@ -67,9 +80,13 @@ namespace mamba
      *      for subdirs that will not use shards.
      *   4. Optionally, when offline, add repos from local `pkgs_dir`.
      *   5. For each subdir, load it into the database:
-     *        - when sharded repodata is enabled and up to date (and `root_packages` non-empty),
-     *          prefer `load_subdir_with_shards` and fall back to full repodata on failure;
-     *        - otherwise, load from full repodata (cached or freshly downloaded).
+     *        - when sharded repodata is enabled with non-empty `root_packages` and at least one
+     *          subdir has shards, full-repodata subdirs (no shard index) load first; dependency
+     *          names from those repos extend `root_packages` so shard-based loads stay complete
+     *          across channels; then shard subdirs load, with fallback to full `repodata.json` if
+     *          shard loading fails.
+     *        - otherwise, prefer shards when applicable with the same fallback, or load full
+     *          repodata when shards are disabled or `root_packages` is empty.
      *      Recoverable errors are aggregated and, when cache corruption is detected, a single
      *      retry with cache invalidation is performed before reporting failure.
      *
@@ -77,7 +94,7 @@ namespace mamba
      * @param channel_context The channel context where channels are created and stored.
      * @param database The libsolv database where channel data is loaded.
      * @param package_caches The package caches used for downloading and caching packages.
-     * @param root_packages When non-empty and repodata_use_shards is true, use sharded
+     * @param root_packages When non-empty and use_sharded_repodata is true, use sharded
      *                      repodata to load only reachable packages from these roots (faster for
      *                      install/update).
      */
@@ -86,7 +103,8 @@ namespace mamba
         ChannelContext& channel_context,
         solver::libsolv::Database& database,
         MultiPackageCache& package_caches,
-        const std::vector<std::string>& root_packages = {}
+        const std::vector<std::string>& root_packages = {},
+        std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt
     ) -> expected_t<void, mamba_aggregated_error>;
 
     /* Brief Creates channels and mirrors objects,

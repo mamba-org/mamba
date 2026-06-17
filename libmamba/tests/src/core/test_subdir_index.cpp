@@ -18,8 +18,10 @@
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 
 using namespace mamba;
+using mambatests::make_simple_channel;
 
 namespace
 {
@@ -38,26 +40,10 @@ namespace
         return ss.str();
     }
 
-    [[nodiscard]] auto make_simple_channel(std::string_view chan) -> specs::Channel
-    {
-        const auto resolve_params = ChannelContext::ChannelResolveParams{
-            { "linux-64", "osx-64", "noarch" },
-            specs::CondaURL::parse("https://conda.anaconda.org").value()
-        };
-
-        return specs::Channel::resolve(specs::UnresolvedChannel::parse(chan).value(), resolve_params)
-            .value()
-            .front();
-    }
 }
 
 TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
 {
-    const auto resolve_params = ChannelContext::ChannelResolveParams{
-        { "linux-64", "osx-64", "noarch" },
-        specs::CondaURL::parse("https://conda.anaconda.org").value()
-    };
-
     const auto qs_channel = make_simple_channel("quantstack");
     const auto local_repo_path = mambatests::repo_dir / "micromamba/test-server/repo/";
     const auto local_channel = make_simple_channel(local_repo_path.string());

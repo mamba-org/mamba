@@ -164,6 +164,16 @@ namespace
             REQUIRE(starts_with_any("áäáœ©gþhëb®hüghœ©®xb", StrVec{ "áäáœ©gþhëb", "®hüghœ©®xb" }));
         }
 
+        TEST_CASE("contains_any")
+        {
+            using StrVec = std::vector<std::string_view>;
+            REQUIRE(contains_any("hello/world", StrVec{ "/", "\\" }));
+            REQUIRE(contains_any("has-xyz-here", StrVec{ "xyz", "abc" }));
+            REQUIRE_FALSE(contains_any("no-match", StrVec{}));
+            REQUIRE_FALSE(contains_any("no-match", StrVec{ "xyz", "abc" }));
+            REQUIRE(contains_any("áäáœ©gþhëb®hüghœ©®xb", StrVec{ "®hüghœ©®xb" }));
+        }
+
         TEST_CASE("lstrip")
         {
             REQUIRE(lstrip("\n \thello \t\n") == "hello \t\n");

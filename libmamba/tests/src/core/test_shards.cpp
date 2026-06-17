@@ -2824,7 +2824,9 @@ TEST_CASE("Shards - process_downloaded_shard")
     }
 }
 
-// Regression for CEP-34-invalid boolean noarch still present in repodata shards.
+// Regression for boolean noarch values invalid per CEP 34 (`noarch: Literal['generic', 'python']`;
+// cep-0034.md § `./info/index.json`) still present in repodata shards.
+// https://github.com/conda/ceps/blob/15879bf84d640fbad6dd80b028f47b04b2620291/cep-0034.md?plain=1#L57
 // https://github.com/conda-forge/tensorboard-feedstock/issues/93
 TEST_CASE("Shards - parse legacy boolean noarch field")
 {

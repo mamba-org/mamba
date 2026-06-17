@@ -3,6 +3,8 @@
 // Distributed under the terms of the BSD 3-Clause License.
 //
 // The full license is in the file LICENSE, distributed with this software.
+#ifndef MAMBA_CORE_LOGGING_TOOLS_HPP
+#define MAMBA_CORE_LOGGING_TOOLS_HPP
 
 #include <atomic>
 #include <concepts>
@@ -25,6 +27,18 @@ namespace mamba::logging
         { out.flush() };
     };
 
+    /** Transforms a source location into a human-readable string ready for logging purpose. */
+    inline auto as_log(const std::source_location& location) -> std::string
+    {
+        return fmt::format(
+            "{}:{}:{} {}",
+            location.file_name(),
+            location.line(),
+            location.column(),
+            location.function_name()
+        );
+    }
+
     namespace details
     {
         inline auto queue_push(std::deque<LogRecord>& queue, size_t max_elements, LogRecord record)
@@ -34,6 +48,21 @@ namespace mamba::logging
             if (max_elements > 0 and queue.size() > max_elements)
             {
                 queue.pop_front();
+            }
+        }
+
+        inline auto should_be_emitted(const LogRecord& record, log_level current_level) -> bool
+        {
+            switch (current_level)
+            {
+                case log_level::off:
+                    return false;
+
+                case log_level::all:
+                    return true;
+
+                default:
+                    return record.level >= current_level;
             }
         }
 
@@ -59,22 +88,19 @@ namespace mamba::logging
             }
 
             /** If the backtrace feature is enabled, moves the log record into the backtrace
-                history and returns `true`. Otherwise do nothing and returns `false`.
-
-                The log record is taken by reference to allow taking ownership of it through
-                a move, but also not taking ownership and not forcing a copy if we actually
-                don't need it.
+                history, otherwise calls the provided invocable with the log record as argument.
             */
-            auto push_if_enabled(LogRecord& record) -> bool
+            template <std::invocable<LogRecord&&> Func>
+            auto push_if_enabled(LogRecord&& record, Func&& otherwise_func) -> void
             {
-                if (not is_enabled())
+                if (is_enabled())
                 {
-                    return false;
+                    queue_push(backtrace, backtrace_max, std::move(record));
                 }
-
-                queue_push(backtrace, backtrace_max, std::move(record));
-
-                return true;
+                else
+                {
+                    std::invoke(std::forward<Func>(otherwise_func), std::move(record));
+                }
             }
 
             /** Changes the number of log records kept in the backtrace history.
@@ -138,17 +164,6 @@ namespace mamba::logging
             }
         };
 
-        inline auto as_log(const std::source_location& location) -> std::string
-        {
-            return fmt::format(
-                "{}:{}:{} {}",
-                location.file_name(),
-                location.line(),
-                location.column(),
-                location.function_name()
-            );
-        }
-
         struct log_to_stream_options
         {
             bool with_location = false;
@@ -158,9 +173,8 @@ namespace mamba::logging
         log_to_stream(OutputStream auto& out, const LogRecord& record, log_to_stream_options options = {})
             -> OutputStream auto&
         {
-            auto location_str = options.with_location
-                                    ? fmt::format(" ({})", details::as_log(record.location))
-                                    : std::string{};
+            auto location_str = options.with_location ? fmt::format(" ({})", as_log(record.location))
+                                                      : std::string{};
 
             out << fmt::format(
                 "\n{} {}{} : {}",
@@ -234,7 +248,13 @@ namespace mamba::logging
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() -> void;
+
+        /** @see `AnyLogHandler::log_backtrace()`
+
+            @param filter_current_level If `true`, will filter out log records that would not
+                                        pass the log level filter if they were emitted right now.
+        */
+        auto log_backtrace(bool filter_current_level = false) -> void;
         auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
@@ -245,12 +265,14 @@ namespace mamba::logging
         ////////////////////////////////////////////
         // History api - thread-safe
 
-        /** @returns A copy of the current log record history.
+        /** Captures the currently stored sequence of `LogRecord`.
+            @param   `and_clear` Will also clear the existing history if `true`.
+            @returns A copy of the current log record history.
                      The value should be considered immediately obsolete
                      as new log records could be pushed concurrently.
                      The returned history will be empty if `is_started()` == false.
         */
-        auto capture_history() const -> std::vector<LogRecord>;
+        auto capture_history(bool and_clear = false) const -> std::vector<LogRecord>;
 
         /** Clears the internal history.
 
@@ -343,7 +365,13 @@ namespace mamba::logging
 
         auto enable_backtrace(size_t record_buffer_size) -> void;
         auto disable_backtrace() -> void;
-        auto log_backtrace() -> void;
+
+        /** @see `AnyLogHandler::log_backtrace()`
+
+            @param filter_current_level If `true`, will filter out log records that would not
+                                        pass the log level filter if they were emitted right now.
+        */
+        auto log_backtrace(bool filter_current_level = false) -> void;
         auto log_backtrace_no_guards() -> void;
 
         auto flush(std::optional<log_source> source = {}) -> void;
@@ -431,16 +459,19 @@ namespace mamba::logging
     inline auto LogHandler_History::log(LogRecord record) -> void
     {
         assert(pimpl);
-        if (pimpl->current_log_level < record.level)
+        if (not details::should_be_emitted(record, pimpl->current_log_level))
         {
             return;
         }
 
         auto synched_data = pimpl->data.synchronize();
-        if (not synched_data->backtrace.push_if_enabled(record))
-        {
-            details::queue_push(synched_data->history, options.max_records_count, std::move(record));
-        }
+        synched_data->backtrace.push_if_enabled(
+            std::move(record),
+            [&](LogRecord&& record_)
+            {
+                details::queue_push(synched_data->history, options.max_records_count, std::move(record_));
+            }
+        );
     }
 
     inline auto LogHandler_History::enable_backtrace(size_t record_buffer_size) -> void
@@ -455,12 +486,16 @@ namespace mamba::logging
         pimpl->data->backtrace.disable();
     }
 
-    inline auto LogHandler_History::log_backtrace() -> void
+    inline auto LogHandler_History::log_backtrace(bool filter_current_level) -> void
     {
         assert(pimpl);
         auto synched_data = pimpl->data.synchronize();
         for (auto& log : synched_data->backtrace)
         {
+            if (filter_current_level and not details::should_be_emitted(log, pimpl->current_log_level))
+            {
+                continue;
+            }
             details::queue_push(synched_data->history, options.max_records_count, std::move(log));
         }
 
@@ -470,7 +505,8 @@ namespace mamba::logging
     inline auto LogHandler_History::log_backtrace_no_guards() -> void
     {
         assert(pimpl);
-        log_backtrace();  // Similar in this context
+        log_backtrace(true);  // Similar in this context but we want to filter out logs that would
+                              // not pass the level filter now
     }
 
     inline auto LogHandler_History::flush(std::optional<log_source>) -> void
@@ -485,12 +521,25 @@ namespace mamba::logging
         // nothing to do, we keep history, there is no flush
     }
 
-    inline auto LogHandler_History::capture_history() const -> std::vector<LogRecord>
+    inline auto LogHandler_History::capture_history(bool and_clear) const -> std::vector<LogRecord>
     {
         if (pimpl)
         {
             auto synched_data = pimpl->data.synchronize();
-            return std::vector<LogRecord>(synched_data->history.begin(), synched_data->history.end());
+            if (and_clear)
+            {
+                std::vector<LogRecord> result(synched_data->history.size());
+                std::ranges::move(synched_data->history, result.begin());
+                synched_data->history.clear();
+                return result;
+            }
+            else
+            {
+                return std::vector<LogRecord>(
+                    synched_data->history.begin(),
+                    synched_data->history.end()
+                );
+            }
         }
 
         return {};
@@ -504,7 +553,7 @@ namespace mamba::logging
         }
     }
 
-    auto LogHandler_History::is_started() const -> bool
+    inline auto LogHandler_History::is_started() const -> bool
     {
         return pimpl != nullptr;
     }
@@ -588,17 +637,18 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        if (pimpl->current_log_level > record.level)
+        if (not details::should_be_emitted(record, pimpl->current_log_level))
         {
             return;
         }
 
         auto level = record.level;
 
-        if (not pimpl->backtrace->push_if_enabled(record))
-        {
-            details::log_to_stream(*out, record, { .with_location = pimpl->log_location });
-        }
+        pimpl->backtrace->push_if_enabled(
+            std::move(record),
+            [this](LogRecord&& record_)
+            { details::log_to_stream(*out, record_, { .with_location = pimpl->log_location }); }
+        );
 
         if (level <= pimpl->flush_threshold)
         {
@@ -625,7 +675,7 @@ namespace mamba::logging
     }
 
     template <OutputStream T>
-    inline auto LogHandler_Stream<T>::log_backtrace() -> void
+    inline auto LogHandler_Stream<T>::log_backtrace(bool filter_current_level) -> void
     {
         assert(out);
         assert(pimpl);
@@ -633,6 +683,11 @@ namespace mamba::logging
         auto synched_backtrace = pimpl->backtrace.synchronize();
         for (auto& log_record : *synched_backtrace)
         {
+            if (filter_current_level
+                and not details::should_be_emitted(log_record, pimpl->current_log_level))
+            {
+                continue;
+            }
             details::log_to_stream(*out, log_record, { .with_location = pimpl->log_location });
         }
         synched_backtrace->clear();
@@ -644,7 +699,8 @@ namespace mamba::logging
         assert(out);
         assert(pimpl);
 
-        log_backtrace();  // Similar in this context
+        log_backtrace(true);  // Similar in this context but we want to filter out logs that would
+                              // not pass the level filter now
     }
 
     template <OutputStream T>
@@ -672,3 +728,5 @@ namespace mamba::logging
     }
 
 }
+
+#endif

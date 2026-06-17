@@ -116,6 +116,11 @@ namespace mamba::logging
 
     auto stop_logging(stop_reason reason) -> AnyLogHandler
     {
+        if (not details::current_log_handler)
+        {
+            // No installed log-handler: do nothing.
+            return {};
+        }
         return change_log_handler({}, {}, reason, {});
     }
 
@@ -160,12 +165,12 @@ namespace mamba::logging
         return details::logging_params.value();
     }
 
-    auto set_logging_params(LoggingParams new_params) -> LoggingParams
+    auto set_logging_params(LoggingParams new_params, bool update_log_handler) -> LoggingParams
     {
         auto synched_params = details::logging_params.synchronize();
         LoggingParams previous_params = *synched_params;
         *synched_params = std::move(new_params);
-        if (details::current_log_handler)
+        if (update_log_handler and details::current_log_handler)
         {
             details::current_log_handler.set_params(*synched_params);
         }

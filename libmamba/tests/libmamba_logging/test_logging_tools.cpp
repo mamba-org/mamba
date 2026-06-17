@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <deque>
+#include <string>
 
 #include <catch2/catch_all.hpp>
 #include <fmt/core.h>
@@ -68,7 +69,10 @@ namespace mamba::logging
 
     TEST_CASE("details::BasicBacktrace")
     {
-        LogRecord log_not_pushed{ .message = "must not be pushed", .source = log_source::tests };
+        using namespace std::string_view_literals;
+
+        const std::string must_not_be_published = "must not be pushed";
+        LogRecord log_not_pushed{ .message{ must_not_be_published }, .source = log_source::tests };
         LogRecord log_a{ .message = "A", .source = log_source::tests };
         LogRecord log_b{ .message = "B", .source = log_source::tests };
         LogRecord log_c{ .message = "C", .source = log_source::tests };
@@ -77,26 +81,34 @@ namespace mamba::logging
         LogRecord log_f{ .message = "F", .source = log_source::tests };
         LogRecord log_g{ .message = "G", .source = log_source::tests };
 
+        std::vector<LogRecord> emitted;
+        auto emit = [&](LogRecord&& record) { emitted.push_back(std::move(record)); };
+
         details::BasicBacktrace b;
         REQUIRE(not b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 0);
         REQUIRE(b.size() == 0);
         REQUIRE(b.empty());
 
-        b.push_if_enabled(log_a);
+        b.push_if_enabled(std::move(log_not_pushed), emit);
         REQUIRE(not b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 0);
         REQUIRE(b.size() == 0);
         REQUIRE(b.empty());
-        REQUIRE(not log_a.message.empty());
+        REQUIRE(log_not_pushed.message.empty());
+        REQUIRE(not emitted.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
         b.set_max_trace(2);
         REQUIRE(b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 0);
         REQUIRE(b.size() == 0);
         REQUIRE(b.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
-        b.push_if_enabled(log_a);
+        b.push_if_enabled(std::move(log_a), emit);
         REQUIRE(b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 1);
         REQUIRE(b.size() == 1);
@@ -104,8 +116,10 @@ namespace mamba::logging
         REQUIRE(b.begin()->message == "A");
         REQUIRE(std::next(b.end(), -1)->message == "A");
         REQUIRE(log_a.message.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
-        b.push_if_enabled(log_b);
+        b.push_if_enabled(std::move(log_b), emit);
         REQUIRE(b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 2);
         REQUIRE(b.size() == 2);
@@ -113,8 +127,10 @@ namespace mamba::logging
         REQUIRE(b.begin()->message == "A");
         REQUIRE(std::next(b.end(), -1)->message == "B");
         REQUIRE(log_b.message.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
-        b.push_if_enabled(log_c);
+        b.push_if_enabled(std::move(log_c), emit);
         REQUIRE(b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 2);
         REQUIRE(b.size() == 2);
@@ -122,6 +138,8 @@ namespace mamba::logging
         REQUIRE(b.begin()->message == "B");
         REQUIRE(std::next(b.end(), -1)->message == "C");
         REQUIRE(log_b.message.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
         b.clear();
         REQUIRE(b.is_enabled());
@@ -129,7 +147,7 @@ namespace mamba::logging
         REQUIRE(b.size() == 0);
         REQUIRE(b.empty());
 
-        b.push_if_enabled(log_d);
+        b.push_if_enabled(std::move(log_d), emit);
         REQUIRE(b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 1);
         REQUIRE(b.size() == 1);
@@ -137,8 +155,10 @@ namespace mamba::logging
         REQUIRE(b.begin()->message == "D");
         REQUIRE(std::next(b.end(), -1)->message == "D");
         REQUIRE(log_d.message.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
-        b.push_if_enabled(log_e);
+        b.push_if_enabled(std::move(log_e), emit);
         REQUIRE(b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 2);
         REQUIRE(b.size() == 2);
@@ -146,9 +166,11 @@ namespace mamba::logging
         REQUIRE(b.begin()->message == "D");
         REQUIRE(std::next(b.end(), -1)->message == "E");
         REQUIRE(log_e.message.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
 
-        b.push_if_enabled(log_f);
+        b.push_if_enabled(std::move(log_f), emit);
         REQUIRE(b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 2);
         REQUIRE(b.size() == 2);
@@ -156,26 +178,32 @@ namespace mamba::logging
         REQUIRE(b.begin()->message == "E");
         REQUIRE(std::next(b.end(), -1)->message == "F");
         REQUIRE(log_f.message.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
         b.disable();
         REQUIRE(not b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 0);
         REQUIRE(b.size() == 0);
         REQUIRE(b.empty());
+        REQUIRE(emitted.size() == 1);
+        REQUIRE(emitted.back().message == must_not_be_published);
 
-        b.push_if_enabled(log_g);
+        b.push_if_enabled(std::move(log_g), emit);
         REQUIRE(not b.is_enabled());
         REQUIRE(std::distance(b.begin(), b.end()) == 0);
         REQUIRE(b.size() == 0);
         REQUIRE(b.empty());
-        REQUIRE(not log_g.message.empty());
+        REQUIRE(log_g.message.empty());
+        REQUIRE(emitted.size() == 2);
+        REQUIRE(emitted.back().message == "G");
     }
 
     TEST_CASE("details::log_to_stream")
     {
         std::stringstream out;
         const auto location = std::source_location::current();
-        const auto location_str = fmt::format(" ({})", details::as_log(location));
+        const auto location_str = fmt::format(" ({})", as_log(location));
 
         details::log_to_stream(
             out,

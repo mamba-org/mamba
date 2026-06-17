@@ -321,8 +321,9 @@ namespace mamba::solver::libsolv
     {
         if (!util::starts_with(pkg.name, "__"))
         {
-            throw std::invalid_argument(
-                fmt::format(R"(Package "{}" is not a virtual package)", pkg.name)
+            throw mamba_error(
+                fmt::format(R"(Package "{}" is not a virtual package)", pkg.name),
+                mamba_error_code::internal_failure
             );
         }
         auto s_repo = solv::ObjRepoView(*repo.m_ptr);

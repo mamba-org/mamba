@@ -530,11 +530,30 @@ namespace mamba
     ) -> expected_t<std::optional<ShardsIndexDict>>
     {
         const bool force_refresh = (shards_ttl == 0);
+        fs::u8path cache_path = shard_index_cache_path(subdir);
+        const auto remove_cached_index_file = [&](std::string_view reason)
+        {
+            if (!fs::exists(cache_path))
+            {
+                return;
+            }
+            std::error_code ec;
+            fs::remove(cache_path, ec);
+            if (ec)
+            {
+                LOG_WARNING << "Failed to delete shard index cache for " << subdir.name() << " ("
+                            << reason << "): " << ec.message();
+            }
+            else
+            {
+                LOG_DEBUG << "Deleted shard index cache for " << subdir.name() << " (" << reason
+                          << "): " << cache_path.string();
+            }
+        };
 
         // Check cache first: if we have a cached index within TTL, use it directly
         // without HEAD check or download. This skips network when metadata state
         // was lost (e.g. fresh shell) but cache file is still valid.
-        fs::u8path cache_path = shard_index_cache_path(subdir);
         if (!force_refresh && fs::exists(cache_path) && shards_ttl > 0)
         {
             if (auto age_sec = shard_index_cache_age_seconds(cache_path, subdir.name()))
@@ -558,7 +577,15 @@ namespace mamba
                         return std::optional<ShardsIndexDict>(std::move(cached_index.value()));
                     }
                 }
+                else
+                {
+                    remove_cached_index_file("expired (older than TTL)");
+                }
             }
+        }
+        else if (force_refresh && fs::exists(cache_path))
+        {
+            remove_cached_index_file("forced refresh (TTL=0)");
         }
 
         // Refresh shards availability (HEAD check) if metadata is stale for TTL, then re-check.
@@ -617,6 +644,7 @@ namespace mamba
                 }
                 return std::optional<ShardsIndexDict>(std::move(cached_index.value()));
             }
+            remove_cached_index_file("unparsable cache entry");
         }
 
         if (Console::can_report_status())

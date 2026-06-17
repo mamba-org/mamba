@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <string_view>
 
 #include <fmt/format.h>
 
@@ -653,7 +654,7 @@ namespace mamba
                 locks.push_back(LockFile(c));
             }
 
-            Console::instance().json_write({ { "success", true } });
+            Console::instance().set_json_output_success(true);
 
             auto trans = make_transaction_from_solution(ctx, std::move(db), request, outcome, package_caches);
 
@@ -894,7 +895,7 @@ namespace mamba
                                                prefix.string() })
                 )
             );
-            Console::instance().json_write({ { "success", true } });
+            Console::instance().set_json_output_success(true);
         }
 
         void populate_state_file(
@@ -1171,21 +1172,37 @@ namespace mamba
             }
         }
 
+        namespace
+        {
+            constexpr std::string_view NO_DEFAULTS_CHANNEL = "nodefaults";
+
+            void erase_channel(std::vector<std::string>& channels, std::string_view name)
+            {
+                std::erase_if(channels, [&](const std::string& channel) { return channel == name; });
+            }
+
+            bool contains_channel(const std::vector<std::string>& channels, std::string_view name)
+            {
+                return std::find(channels.begin(), channels.end(), name) != channels.end();
+            }
+        }
+
         void channels_hook(Configuration& config, std::vector<std::string>& channels)
         {
             auto& config_channels = config.at("channels");
-            std::vector<std::string> cli_channels;
 
             if (config_channels.cli_configured())
             {
-                cli_channels = config_channels.cli_value<std::vector<std::string>>();
-                auto it = find(cli_channels.begin(), cli_channels.end(), "nodefaults");
-                if (it != cli_channels.end())
+                auto cli_channels = config_channels.cli_value<std::vector<std::string>>();
+                if (contains_channel(cli_channels, NO_DEFAULTS_CHANNEL))
                 {
-                    cli_channels.erase(it);
-                    channels = cli_channels;
+                    erase_channel(cli_channels, NO_DEFAULTS_CHANNEL);
+                    channels = std::move(cli_channels);
+                    return;
                 }
             }
+
+            erase_channel(channels, NO_DEFAULTS_CHANNEL);
         }
 
         void

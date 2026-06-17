@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <optional>
+#include <system_error>
 #include <thread>
 
 #include <fmt/format.h>
@@ -460,7 +461,8 @@ namespace mamba
         download::RemoteFetchParams remote_fetch_params,
         std::size_t download_threads,
         std::optional<std::reference_wrapper<const download::mirror_map>> mirrors,
-        std::optional<specs::Version> python_minor_version_for_prefilter
+        std::optional<specs::Version> python_minor_version_for_prefilter,
+        std::size_t shards_ttl_seconds
     )
         : m_shards_index(std::move(shards_index))
         , m_url(std::move(url))
@@ -468,6 +470,7 @@ namespace mamba
         , m_auth_info(std::move(auth_info))
         , m_remote_fetch_params(std::move(remote_fetch_params))
         , m_download_threads(normalize_to_affinity_concurrency(static_cast<int>(download_threads)))
+        , m_shards_ttl_seconds(shards_ttl_seconds)
         , m_mirrors(std::move(mirrors))
         , m_python_minor_version_for_prefilter(std::move(python_minor_version_for_prefilter))
         , m_pkgs_cache_root(
@@ -1482,7 +1485,42 @@ namespace mamba
             LOG_DEBUG << "Shard cache file for package '" << package << "' found at "
                       << cache_path.string();
         }
-        return exists;
+        if (!exists)
+        {
+            return false;
+        }
+
+        std::error_code ec;
+        const fs::file_time_type last_write = fs::last_write_time(cache_path, ec);
+        if (ec)
+        {
+            LOG_WARNING << "Failed to inspect shard cache age for package '" << package << "' at "
+                        << cache_path.string() << ": " << ec.message()
+                        << ". Deleting stale/unknown cache file.";
+            fs::remove(cache_path, ec);
+            return false;
+        }
+
+        const fs::file_time_type now = fs::file_time_type::clock::now();
+        const auto age_sec = std::chrono::duration_cast<std::chrono::seconds>(now - last_write).count();
+        const bool expired = (m_shards_ttl_seconds == 0) || (age_sec < 0)
+                             || (static_cast<std::size_t>(age_sec) > m_shards_ttl_seconds);
+        if (expired)
+        {
+            const std::string ttl_str = (m_shards_ttl_seconds == 0)
+                                            ? "0 (force refresh)"
+                                            : std::to_string(m_shards_ttl_seconds);
+            LOG_DEBUG << "Shard cache file for package '" << package << "' expired (age=" << age_sec
+                      << "s, ttl=" << ttl_str << "), deleting " << cache_path.string();
+            fs::remove(cache_path, ec);
+            if (ec)
+            {
+                LOG_WARNING << "Failed to delete expired shard cache file at "
+                            << cache_path.string() << ": " << ec.message();
+            }
+            return false;
+        }
+        return true;
     }
 
     auto Shards::load_shard_from_cache(const std::string& package) const -> expected_t<ShardDict>

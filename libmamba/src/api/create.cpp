@@ -223,14 +223,17 @@ namespace mamba
         {
             if (!is_clone && create_specs.empty() && json_format)
             {
-                // Just print the JSON
-                nlohmann::json output;
-                output["actions"]["FETCH"] = nlohmann::json::array();
-                output["actions"]["PREFIX"] = ctx.prefix_params.target_prefix;
-                output["dry_run"] = true;
-                output["prefix"] = ctx.prefix_params.target_prefix;
-                output["success"] = true;
-                std::cout << output.dump(2) << std::endl;
+                // clang-format off
+                Console::instance().set_json_output({
+                    .to_assign = {
+                        { "/actions/FETCH"_json_pointer, nlohmann::json::array() },
+                        { "/actions/PREFIX"_json_pointer, ctx.prefix_params.target_prefix },
+                        { "/dry_run"_json_pointer, true },
+                        { "/prefix"_json_pointer, ctx.prefix_params.target_prefix }
+                    },
+                    .set_success = true
+                });
+                // clang-format on
                 return;
             }
         }

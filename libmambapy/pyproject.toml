@@ -25,6 +25,13 @@ dynamic = ["version"]
 Documentation = "https://mamba.readthedocs.io"
 Repository = "https://github.com/mamba-org/mamba/"
 
+[tool.scikit-build]
+# Match the main mamba build (Ninja).
+# This allows avoiding selecting Visual Studio 2022 on
+# `windows-2025-vs2026` runners where only VS 2026 is installed.
+ninja.make-fallback = false
+cmake.args = ["-GNinja"]
+
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"
 # Which file to read the version information from

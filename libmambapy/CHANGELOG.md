@@ -1,3 +1,49 @@
+## libmambapy 2.8.1 (June 08, 2026)
+
+Maintenance:
+
+- build(deps): bump codecov/codecov-action from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4309>
+
+## libmambapy 2.8.0 (June 04, 2026)
+
+## libmambapy 2.7.0 (June 02, 2026)
+
+CI fixes and doc:
+
+- ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
+## libmambapy 2.7.0.alpha0 (May 29, 2026)
+
+CI fixes and doc:
+
+- ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
+## libmambapy 2.6.2 (May 19, 2026)
+
+CI fixes and doc:
+
+- ci: Use micromamba 2.6.0 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4280>
+
+## libmambapy 2.6.1 (May 13, 2026)
+
+Bug fixes:
+
+- fix: Adapt `add_pip_as_python_dependency` python tests by @danyeaw in <https://github.com/mamba-org/mamba/pull/4252>
+
+CI fixes and doc:
+
+- ci: Remove `sed`atives by @jjerphan in <https://github.com/mamba-org/mamba/pull/4271>
+
 ## libmambapy 2.6.0 (April 29, 2026)
 
 Enhancements:

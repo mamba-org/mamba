@@ -8,6 +8,7 @@
 #define MAMBA_CORE_SHARDS_HPP
 
 #include <functional>
+#include <limits>
 #include <map>
 #include <optional>
 #include <string>
@@ -67,7 +68,8 @@ namespace mamba
             // 0 means: auto; value is normalized with normalize_to_affinity_concurrency().
             std::size_t download_threads = 0,
             std::optional<std::reference_wrapper<const download::mirror_map>> mirrors = std::nullopt,
-            std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt
+            std::optional<specs::Version> python_minor_version_for_prefilter = std::nullopt,
+            std::size_t shards_ttl_seconds = std::numeric_limits<std::size_t>::max()
         );
 
         /** Return the names of all packages available in this shard collection. */
@@ -126,6 +128,9 @@ namespace mamba
 
         /** Number of threads to use for parallel shard fetching. */
         std::size_t m_download_threads;
+
+        /** TTL in seconds for shard cache files (0 means always refresh). */
+        std::size_t m_shards_ttl_seconds;
 
         /** Optional base mirrors for channel-based downloads. */
         std::optional<std::reference_wrapper<const download::mirror_map>> m_mirrors;

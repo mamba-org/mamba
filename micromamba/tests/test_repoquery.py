@@ -261,6 +261,7 @@ def test_remote_search_python_site_packages_path(yaml_env: Path):
     assert package_info["name"] == "python"
     assert package_info["version"] == "3.13.1"
     assert package_info["track_features"] == "py_freethreading"
+    # Must follow queried subdir, not the host OS (see mamba-org/mamba#4286).
     assert package_info["python_site_packages_path"] == "lib/python3.13t/site-packages"
 
 

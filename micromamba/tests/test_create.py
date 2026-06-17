@@ -369,6 +369,7 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "clone-conflict-specs"
     helpers.create("-n", "src-env-for-conflict", "xtensor", "--json", no_dry_run=True)
 
+    # We expect this run to fail
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create(
             "--clone",
@@ -379,8 +380,14 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
             "--json",
             no_dry_run=True,
         )
-    stderr = info.value.stderr.decode()
-    assert "Cannot use --clone together with package specs." in stderr
+    json_output = json.loads(info.value.stdout.decode())
+
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Cannot use --clone together with package specs."
+        )
+        is not None
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -402,9 +409,14 @@ def test_clone_conflicts_with_file(tmp_home, tmp_root_prefix, tmp_path):
             "--json",
             no_dry_run=True,
         )
-    stderr = info.value.stderr.decode()
+    json_output = json.loads(info.value.stdout.decode())
 
-    assert "Cannot use --clone together with package specs." in stderr
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Cannot use --clone together with package specs."
+        )
+        is not None
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -416,15 +428,23 @@ def test_clone_non_existing_source(tmp_home, tmp_root_prefix, tmp_path):
         helpers.create(
             "--clone", "this-env-does-not-exist", "-n", env_name, "--json", no_dry_run=True
         )
-    stderr = info.value.stderr.decode()
-    assert "Could not find environment to clone: this-env-does-not-exist" in stderr
+    json_output = json.loads(info.value.stdout.decode())
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Could not find environment to clone: this-env-does-not-exist"
+        )
+        is not None
+    )
 
     # Non-existing prefix path
     non_existing_prefix = tmp_path / "does-not-exist"
     with pytest.raises(subprocess.CalledProcessError) as info2:
         helpers.create("--clone", non_existing_prefix, "-n", env_name, "--json", no_dry_run=True)
-    stderr2 = info2.value.stderr.decode()
-    assert f"Source prefix '{non_existing_prefix}" in stderr2
+    json_output2 = json.loads(info2.value.stdout.decode())
+    assert (
+        helpers.find_message_in_json_logs(json_output2, f"Source prefix '{non_existing_prefix}")
+        is not None
+    )
 
 
 @pytest.mark.skipif(
@@ -922,7 +942,7 @@ def test_clone_environment_with_many_packages(tmp_home, tmp_root_prefix, tmp_pat
 
 # Only run this test on Linux, as it is the only platform where xeus-cling
 # (which is part of the environment) is available.
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(20)
 @pytest.mark.skipif(platform.system() != "Linux", reason="Test only available on Linux")
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_env_logging_overhead_regression(tmp_home, tmp_root_prefix, tmp_path):
@@ -1908,7 +1928,8 @@ def test_set_platform(tmp_home, tmp_root_prefix):
     "version,build,cache_tag",
     [
         ["3.10", "*_cpython", "cpython-310"],
-        # Free-threaded layout is lib/python3.13t/...; bytecode still uses cpython-313 (cache_tag).
+        # Free-threaded layout on Unix is lib/python3.13t/...; on Windows use Lib/site-packages.
+        # Bytecode still uses cpython-313 (cache_tag).
         ["3.13", "*_cp313t", "cpython-313"],
         # FIXME: https://github.com/mamba-org/mamba/issues/1432
         # [ "3.7", "*_pypy","pypy37"],
@@ -1920,10 +1941,8 @@ def test_pyc_compilation(tmp_home, tmp_root_prefix, version, build, cache_tag):
     cmd = ["-n", env_name, f"python={version}.*={build}", "six"]
 
     if platform.system() == "Windows":
-        if build.endswith("t"):
-            site_packages = env_prefix / "lib" / f"python{version}t" / "site-packages"
-        else:
-            site_packages = env_prefix / "Lib" / "site-packages"
+        # Free-threaded Windows CPython uses Lib/site-packages (same as the GIL build).
+        site_packages = env_prefix / "Lib" / "site-packages"
         if version == "2.7":
             cmd += ["-c", "defaults"]  # for vc=9.*
     else:
@@ -1991,8 +2010,8 @@ def test_create_python_site_packages_path(tmp_home, tmp_root_prefix):
     assert os.path.isdir(env_prefix)
 
     if platform.system() == "Windows":
-        assert os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
-        assert not os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert os.path.isdir(env_prefix / "Lib" / "site-packages" / "imagesize")
+        assert not os.path.isdir(env_prefix / "lib" / "python3.13t" / "site-packages" / "imagesize")
         assert not os.path.isdir(env_prefix / "lib" / "python3.13" / "site-packages" / "imagesize")
     else:
         # check that the noarch: python package installs into the python_site_packages_path directory
@@ -2674,15 +2693,11 @@ def test_create_package_with_non_url_char(tmp_home, tmp_root_prefix):
     assert any(pkg["name"] == "x264" for pkg in res["actions"]["LINK"])
 
 
-@pytest.mark.timeout(30)
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
-@pytest.mark.skipif(
-    platform.system() == "Windows", reason="This test fails on Windows for unknown reasons"
-)
 def test_parsable_env_history_with_metadata(tmp_home, tmp_root_prefix, tmp_path):
     env_prefix = tmp_path / "env-micromamba-list"
 
-    res = helpers.create("-p", env_prefix, 'pandas[version=">=0.25.2,<3"]', "--json")
+    res = helpers.create("-p", env_prefix, 'pandas[version=">=0.25.2,<3"]', "--json", "--yes")
     assert res["success"]
 
     # Must not hang
@@ -2699,6 +2714,7 @@ def test_create_dry_run_json(tmp_path):
         "dry_run": True,
         "prefix": str(env_prefix),
         "success": True,
+        "log_history": [],
     }
 
     assert res == expected_output

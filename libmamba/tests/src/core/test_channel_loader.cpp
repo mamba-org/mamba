@@ -4,20 +4,79 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <chrono>
+#include <fstream>
 #include <map>
+#include <sstream>
 
 #include <catch2/catch_all.hpp>
+#include <nlohmann/json.hpp>
 
 #include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/package_cache.hpp"
+#include "mamba/core/subdir_index.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/solver/libsolv/database.hpp"
+#include "mamba/solver/libsolv/repo_info.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 
 using namespace mamba;
+using mambatests::make_simple_channel;
+
+namespace
+{
+    [[nodiscard]] auto make_subdir_loader(
+        const specs::Channel& channel,
+        const fs::u8path& cache_root,
+        const std::string& platform = "linux-64"
+    ) -> SubdirIndexLoader
+    {
+        auto caches = MultiPackageCache({ cache_root }, ValidationParams{});
+        return SubdirIndexLoader::create({}, channel, platform, caches).value();
+    }
+
+    void write_chain_repodata(const fs::u8path& repodata_path, std::size_t package_count)
+    {
+        nlohmann::json repodata;
+        repodata["info"]["subdir"] = "linux-64";
+        repodata["repodata_version"] = 1;
+        repodata["packages"] = nlohmann::json::object();
+
+        for (std::size_t i = 0; i < package_count; ++i)
+        {
+            nlohmann::json record;
+            record["name"] = "pkg-" + std::to_string(i);
+            record["version"] = "1.0";
+            record["build"] = "0";
+            record["build_number"] = 0;
+            record["subdir"] = "linux-64";
+            record["depends"] = nlohmann::json::array();
+            if (i > 0)
+            {
+                record["depends"].push_back("pkg-" + std::to_string(i - 1) + " >=1.0");
+            }
+            repodata["packages"]["pkg-" + std::to_string(i) + "-1.0-0.tar.bz2"] = std::move(record);
+        }
+
+        nlohmann::json python;
+        python["name"] = "python";
+        python["version"] = "3.11";
+        python["build"] = "0";
+        python["build_number"] = 0;
+        python["subdir"] = "linux-64";
+        python["depends"] = nlohmann::json::array(
+            { "pkg-" + std::to_string(package_count - 1) + " >=1.0" }
+        );
+        repodata["packages"]["python-3.11-0.tar.bz2"] = std::move(python);
+
+        std::ofstream out(repodata_path.string());
+        out << repodata.dump();
+    }
+}
 
 TEST_CASE("init_channels", "[mamba::api][channel_loader]")
 {
@@ -180,4 +239,193 @@ TEST_CASE("load_channels with root_packages", "[mamba::core][mamba::api::channel
         auto result = load_channels(ctx, channel_context, db, package_caches, root_packages);
         REQUIRE(result.has_value());
     }
+}
+
+TEST_CASE("should_shard_then_expand_roots", "[mamba::api][channel_loader][issue_4277]")
+{
+    const auto tmp_dir = TemporaryDirectory();
+    const auto channel = make_simple_channel("conda-forge");
+    auto subdir = make_subdir_loader(channel, tmp_dir.path());
+
+    SECTION("false when sharded repodata is disabled")
+    {
+        REQUIRE_FALSE(should_shard_then_expand_roots(false, { "python" }, { subdir }, 0));
+    }
+
+    SECTION("false when root_packages is empty")
+    {
+        subdir.set_shards_availability(true);
+        REQUIRE_FALSE(should_shard_then_expand_roots(true, {}, { subdir }, 86400));
+    }
+
+    SECTION("false when no subdir has shards (pure-flat channel set)")
+    {
+        REQUIRE_FALSE(should_shard_then_expand_roots(true, { "python" }, { subdir }, 86400));
+    }
+
+    SECTION("true when at least one subdir has up-to-date shards")
+    {
+        subdir.set_shards_availability(true);
+        REQUIRE(should_shard_then_expand_roots(true, { "python" }, { subdir }, 86400));
+    }
+
+    SECTION("true when only one of several subdirs has shards")
+    {
+        auto flat_subdir = make_subdir_loader(channel, tmp_dir.path(), "noarch");
+        subdir.set_shards_availability(true);
+        REQUIRE(should_shard_then_expand_roots(true, { "python" }, { flat_subdir, subdir }, 86400));
+    }
+}
+
+TEST_CASE("should_expand_shard_roots_from_loaded_shards", "[mamba::api][channel_loader][issue_4304]")
+{
+    const auto tmp_dir = TemporaryDirectory();
+    const auto channel = make_simple_channel("conda-forge");
+    auto subdir = make_subdir_loader(channel, tmp_dir.path());
+
+    SECTION("false when no subdir has shards")
+    {
+        REQUIRE_FALSE(should_expand_shard_roots_from_loaded_shards({ subdir }, 86400));
+    }
+
+    SECTION("false when only one channel has shards")
+    {
+        subdir.set_shards_availability(true);
+        REQUIRE_FALSE(should_expand_shard_roots_from_loaded_shards({ subdir }, 86400));
+    }
+
+    SECTION("true when two channels have shards")
+    {
+        subdir.set_shards_availability(true);
+        auto other_channel = make_simple_channel("https://prefix.dev/emscripten-forge-4x");
+        auto other_subdir = make_subdir_loader(other_channel, tmp_dir.path());
+        other_subdir.set_shards_availability(true);
+        REQUIRE(should_expand_shard_roots_from_loaded_shards({ subdir, other_subdir }, 86400));
+    }
+
+    SECTION("true when flat and sharded channels are mixed")
+    {
+        auto flat_subdir = make_subdir_loader(channel, tmp_dir.path(), "noarch");
+        subdir.set_shards_availability(true);
+        auto other_channel = make_simple_channel("https://prefix.dev/emscripten-forge-4x");
+        auto other_subdir = make_subdir_loader(other_channel, tmp_dir.path());
+        other_subdir.set_shards_availability(true);
+        REQUIRE(
+            should_expand_shard_roots_from_loaded_shards({ flat_subdir, subdir, other_subdir }, 86400)
+        );
+    }
+}
+
+TEST_CASE("expand_shard_root_packages_from_full_repodata_repos", "[mamba::api][channel_loader][issue_4277]")
+{
+    const auto resolve_params = ChannelContext::ChannelResolveParams{
+        { "linux-64" },
+        specs::CondaURL::parse("https://conda.anaconda.org").value()
+    };
+    solver::libsolv::Database db{ resolve_params };
+    std::vector<specs::PackageInfo> packages;
+    packages.reserve(5);
+
+    auto python = specs::PackageInfo("python", "3.11", "test", 0);
+    python.dependencies = { "libzlib >=1.0" };
+    packages.push_back(std::move(python));
+
+    auto libzlib = specs::PackageInfo("libzlib", "1.0", "test", 0);
+    packages.push_back(std::move(libzlib));
+
+    const auto repo = db.add_repo_from_packages(
+        packages,
+        "flat",
+        solver::libsolv::PipAsPythonDependency::No
+    );
+
+    std::vector<std::string> roots = { "python" };
+    expand_shard_root_packages_from_full_repodata_repos(db, { repo }, roots);
+
+    REQUIRE(std::find(roots.begin(), roots.end(), "python") != roots.end());
+    REQUIRE(std::find(roots.begin(), roots.end(), "libzlib") != roots.end());
+}
+
+TEST_CASE(
+    "expand_shard_root_packages merges deps from all records with the same name",
+    "[mamba::api][channel_loader][issue_4277]"
+)
+{
+    const auto resolve_params = ChannelContext::ChannelResolveParams{
+        { "linux-64" },
+        specs::CondaURL::parse("https://conda.anaconda.org").value()
+    };
+    solver::libsolv::Database db{ resolve_params };
+
+    auto root = specs::PackageInfo("root", "1.0", "test", 0);
+    auto root_other_build = specs::PackageInfo("root", "2.0", "test", 0);
+    root_other_build.dependencies = { "only-in-2.0 >=1.0" };
+
+    std::vector<specs::PackageInfo> packages;
+    packages.push_back(std::move(root));
+    packages.push_back(std::move(root_other_build));
+    const auto repo = db.add_repo_from_packages(
+        packages,
+        "flat",
+        solver::libsolv::PipAsPythonDependency::No
+    );
+
+    std::vector<std::string> roots = { "root" };
+    expand_shard_root_packages_from_full_repodata_repos(db, { repo }, roots);
+
+    REQUIRE(std::find(roots.begin(), roots.end(), "only-in-2.0") != roots.end());
+}
+
+TEST_CASE(
+    "flat file channel subdirs do not request shard_then_expand",
+    "[mamba::api][channel_loader][issue_4277]"
+)
+{
+    const auto tmp_dir = TemporaryDirectory();
+    const auto channel_root = tmp_dir.path() / "flat-channel";
+    const auto subdir_path = channel_root / "linux-64";
+    fs::create_directories(subdir_path);
+    write_chain_repodata(subdir_path / "repodata.json", 8);
+
+    const auto channel = make_simple_channel("file://" + channel_root.string() + "[linux-64]");
+    auto subdir = make_subdir_loader(channel, tmp_dir.path());
+
+    REQUIRE_FALSE(subdir.metadata().has_shards());
+    REQUIRE_FALSE(should_shard_then_expand_roots(true, { "python" }, { subdir }, 86400));
+}
+
+TEST_CASE(
+    "expand_shard_root_packages_from_full_repodata_repos chain repodata",
+    "[mamba::api][channel_loader][issue_4277]"
+)
+{
+    const auto resolve_params = ChannelContext::ChannelResolveParams{
+        { "linux-64" },
+        specs::CondaURL::parse("https://conda.anaconda.org").value()
+    };
+    solver::libsolv::Database db{ resolve_params };
+
+    const auto tmp_dir = TemporaryDirectory();
+    const auto repodata_path = tmp_dir.path() / "repodata.json";
+    write_chain_repodata(repodata_path, 1500);
+
+    const auto repo = db.add_repo_from_repodata_json(
+        repodata_path,
+        "file://flat/linux-64",
+        "flat",
+        solver::libsolv::PipAsPythonDependency::No,
+        solver::libsolv::PackageTypes::CondaOrElseTarBz2,
+        solver::libsolv::VerifyPackages::No,
+        solver::libsolv::RepodataParser::Mamba
+    );
+    REQUIRE(repo.has_value());
+
+    std::vector<std::string> roots = { "python" };
+    const auto started = std::chrono::steady_clock::now();
+    expand_shard_root_packages_from_full_repodata_repos(db, { repo.value() }, roots);
+    const auto elapsed = std::chrono::steady_clock::now() - started;
+
+    // Regression guard: indexed BFS over ~1500 records must stay well under multi-minute wall time.
+    REQUIRE(roots.size() >= 1500);
+    REQUIRE(elapsed < std::chrono::seconds(2));
 }

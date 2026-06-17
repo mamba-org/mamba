@@ -167,6 +167,22 @@ namespace
             REQUIRE(uc.platform_filters() == PlatformSet{});
         }
 
+        SECTION("pkg-0.0-bld.conda")
+        {
+            const auto uc = UnresolvedChannel::parse("pkg-0.0-bld.conda").value();
+            REQUIRE(uc.type() == Type::PackagePath);
+            REQUIRE(uc.location() == "pkg-0.0-bld.conda");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
+        }
+
+        SECTION("nested/pkg-0.0-bld.tar.bz2")
+        {
+            const auto uc = UnresolvedChannel::parse("nested/pkg-0.0-bld.tar.bz2").value();
+            REQUIRE(uc.type() == Type::PackagePath);
+            REQUIRE(uc.location() == "nested/pkg-0.0-bld.tar.bz2");
+            REQUIRE(uc.platform_filters() == PlatformSet{});
+        }
+
         SECTION("C:/tmp//pkg-0.0-bld.tar.bz2")
         {
             const auto uc = UnresolvedChannel::parse("C:/tmp//pkg-0.0-bld.tar.bz2").value();

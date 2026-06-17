@@ -113,6 +113,29 @@ namespace mamba
     class ProgressBarManager;
     class ConsoleData;
 
+    /** Assignation of a JSON value at a specific address in a JSON object. */
+    struct JSONAssign
+    {
+        nlohmann::json::json_pointer location;
+        nlohmann::json value;
+    };
+
+    /** Changes to apply on a JSON object. */
+    struct JSONEdit
+    {
+        std::vector<JSONAssign> to_assign;  ///< A sequence of assignations to apply.
+
+        std::optional<bool> set_success = std::nullopt;  ///< If set, an assignation in the edited
+                                                         ///< object to mark it as a success will be
+                                                         ///< done once the other changes are
+                                                         ///< applied.
+
+        /// Construct a json edit based on the members of a json object by using
+        /// each member as an assignation into the json object that will be edited
+        /// by this resulgint json edit.
+        static auto from_json_object_members(nlohmann::json object) -> JSONEdit;
+    };
+
     class Console
     {
     public:
@@ -125,8 +148,7 @@ namespace mamba
 
         static Console& instance();
         static bool is_available();
-        /**
-         * Check if status messages can be reported to stdout.
+        /** Checks if status messages can be reported to stdout.
          *
          * Returns true when Console is available, `libmamba` is running from an
          * end-user executable (`mamba`/`micromamba`), and JSON output is disabled.
@@ -148,19 +170,58 @@ namespace mamba
 
         void print(std::string_view str, bool force_print = false);
         void print_in_place(std::string_view str, bool finalize = false, bool force_print = false);
-        void json_write(const nlohmann::json& j);
-        void json_append(const std::string& value);
-        void json_append(const nlohmann::json& j);
-        void json_down(const std::string& key);
-        void json_up();
+
+        /** Provides access to the json output object for arbitrary editing by passing it to a
+            callable.
+        */
+        void edit_json_output(std::function<void(nlohmann::json&)> edit_func);
+
+        /** Setup the json output object to value to express the current operations as
+            a success or a failure.
+        */
+        void set_json_output_success(bool is_success);
+
+        /** Assigns the provided json value to the associated location in the json output object.
+            If the location already has a value, it will be overwritten.
+            If `set_success` is specified, also calls `set_json_output_success` with the specified
+            value.
+        */
+        void set_json_output(JSONEdit edit);
+
+        /** Assigns the provided json value to the associated location in the json output object.
+            This overload is a shorter version for the 1 location 1 value assignation case
+            which is quite common.
+        */
+        template <class T>
+            requires requires(const T& value) { nlohmann::json{ value }; }
+        void set_json_output(nlohmann::json::json_pointer location, T&& value)
+        {
+            // clang-format off
+            set_json_output({
+                .to_assign{
+                    { std::move(location), std::forward<T>(value) }
+                }
+            });
+            // clang-format on
+        }
+
+        /** If json output was requested, calling this before destroying a `Console` instance will
+            not lead to a json output.
+        */
+        void cancel_json_print();
+
+        // FIXME: documentation
+        static void setup_log_handling_for_json();
 
         static void print_buffer(std::ostream& ostream);
-
-        void cancel_json_print();
 
         const Context& context() const;
 
         Console(const Context& context);
+
+        /** Prints in standard output the output json object's value if json output
+            was requested in the context's options. @see Context::OutputParams
+        */
         ~Console();
 
         /** Utility to set `"success": false` on destruction of this object
@@ -177,15 +238,14 @@ namespace mamba
             {
                 if (std::uncaught_exceptions() > 0)
                 {
-                    Console::instance().json_write({ { "success", false } });
+                    Console::instance().set_json_output_success(false);
                 }
             }
         };
 
     private:
 
-        void json_print();
-        void deactivate_progress_bar(std::size_t idx, std::string_view msg = "");
+        void print_json_output();
 
         std::unique_ptr<ConsoleData> p_data;
 

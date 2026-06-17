@@ -694,6 +694,13 @@ namespace mamba
             auto unsafe_get() const -> const std::remove_pointer_t<P>*;
             ///@}
 
+            /** `true` if the log handler instance is the same for both.
+             */
+            ///@{
+            friend bool operator==(const AnyLogHandler&, const AnyLogHandler&) = default;
+            friend bool operator!=(const AnyLogHandler&, const AnyLogHandler&) = default;
+            ///@}
+
         private:
 
             struct Interface;
@@ -792,16 +799,21 @@ namespace mamba
 
         /** Changes the logging system configuration.
 
-            If a log handler is registered, this function calls `AnyLogHandler::set_params` with the
-            same arguments.
+            If a log handler is registered and `update_log_handler` is `true`,
+            this function calls `AnyLogHandler::set_params` with the same arguments.
             @see `mamba::logging:LogHandler` and @see `mamba::logging::AnyLogHandler` for details.
 
             This call is thread safe as long as the log handler implementation fulfills the
             thread-safety requirements, @see `mamba::logging::LogHandler`.
 
+            Warning: `update_log_handler = false` should only be used when implementing
+            other operations that need to update the params and then update the log handler
+            themselves, separately.
+
             @returns The previous configuration of the logging system.
         */
-        auto set_logging_params(LoggingParams new_params) -> LoggingParams;
+        auto set_logging_params(LoggingParams new_params, bool update_log_handler = true)
+            -> LoggingParams;
 
         // TODO: potential performance improvement: log(record_generator, log_level) where
         // record_generator is a callable which generates the log record but is only called AFTER we
@@ -882,7 +894,7 @@ namespace mamba
         auto log_backtrace() -> void;
 
         /** Sends the log records in the backtrace history to the implementation's logging sinks,
-            but without filtering the logging level of the log records.
+            but with filtering the logging level of the log records as if they were logged now.
 
             If a log handler is registered, this function calls
            `AnyLogHandler::log_backtrace_no_guards`, otherwise this function will do nothing.
@@ -1024,6 +1036,9 @@ namespace mamba::logging
 
     inline auto enable_backtrace(size_t records_buffer_size) -> void
     {
+        auto params = get_logging_params();
+        params.log_backtrace = records_buffer_size;
+        set_logging_params(params, false);
         call_log_handler_if_existing(&AnyLogHandler::enable_backtrace, records_buffer_size);
     }
 

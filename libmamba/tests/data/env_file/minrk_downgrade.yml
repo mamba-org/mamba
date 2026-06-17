@@ -1,0 +1,11 @@
+# originally xeus-cling@0.6.0
+# added python=3.9 pin because implicit downgrade of Python from 3.10 to 3.9 isn't allowed
+name: xeus-cling
+channels:
+  - conda-forge
+dependencies:
+  - python=3.9
+  - xeus-cling=0.6.0
+  - xtensor=0.20.8
+  - xtensor-blas=0.16.1
+  - notebook

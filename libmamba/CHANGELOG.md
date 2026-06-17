@@ -1,3 +1,95 @@
+## libmamba 2.8.1 (June 08, 2026)
+
+Bug fixes:
+
+- fix: Handle `nodefaults` sentinel consistently by @jjerphan in <https://github.com/mamba-org/mamba/pull/4308>
+- fix: Avoid download busy-spin with parallel transfers by @jjerphan in <https://github.com/mamba-org/mamba/pull/4307>
+
+Maintenance:
+
+- build(deps): bump codecov/codecov-action from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4309>
+
+## libmamba 2.8.0 (June 04, 2026)
+
+Bug fixes:
+
+- fix: Restore cross-channel expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4304>
+- JSON output api rewritten to avoid JSON flattening by @Klaim in <https://github.com/mamba-org/mamba/pull/4284>
+
+## libmamba 2.7.0 (June 02, 2026)
+
+Bug fixes:
+
+- fix: Harden `noarch:python` entry point linking by @jjerphan in <https://github.com/mamba-org/mamba/pull/4282>
+- fix: Guard Root Packages' Expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4283>
+- fix: Adapt root packages expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4298>
+- fix: Populate `python_site_packages_path` independently from host by @jjerphan in <https://github.com/mamba-org/mamba/pull/4288>
+- Fallback to flat cache dir if missing hierarchical by @Hind-M in <https://github.com/mamba-org/mamba/pull/4290>
+- fix: Adapt `noarch` unlink path normalization for conda interoperability by @jjerphan in <https://github.com/mamba-org/mamba/pull/4259>
+
+CI fixes and doc:
+
+- ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- maint: Use dependencies from conda-forge for Windows micromamba build by @jjerphan in <https://github.com/mamba-org/mamba/pull/4293>
+- maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
+## libmamba 2.7.0.alpha0 (May 29, 2026)
+
+Bug fixes:
+
+- fix: Harden `noarch:python` entry point linking by @jjerphan in <https://github.com/mamba-org/mamba/pull/4282>
+- fix: Guard Root Packages' Expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4283>
+- fix: Adapt root packages expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4298>
+- fix: Populate `python_site_packages_path` independently from host by @jjerphan in <https://github.com/mamba-org/mamba/pull/4288>
+- Fallback to flat cache dir if missing hierarchical by @Hind-M in <https://github.com/mamba-org/mamba/pull/4290>
+- fix: Adapt `noarch` unlink path normalization for conda interoperability by @jjerphan in <https://github.com/mamba-org/mamba/pull/4259>
+
+CI fixes and doc:
+
+- ci: Use latest version of micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4296>
+- ci: Remove `linuxbrew` workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4295>
+
+Maintenance:
+
+- maint: Use dependencies from conda-forge for Windows micromamba build by @jjerphan in <https://github.com/mamba-org/mamba/pull/4293>
+- maint: Uniformly use `W1` for external warnings on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4292>
+
+## libmamba 2.6.2 (May 19, 2026)
+
+Bug fixes:
+
+- fix: Use `zlib<1.3.2` for static builds by @jjerphan in <https://github.com/mamba-org/mamba/pull/4281>
+- fix: Set environment variables for `use_sharded_repodata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4279>
+
+CI fixes and doc:
+
+- ci: Use micromamba 2.6.0 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4280>
+
+## libmamba 2.6.1 (May 13, 2026)
+
+Bug fixes:
+
+- fix: Support local install without explicit path by @jjerphan in <https://github.com/mamba-org/mamba/pull/4273>
+- fix: Free-threaded builds location on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4268>
+- fix: Do not use python for platform detection by @jjerphan in <https://github.com/mamba-org/mamba/pull/4257>
+- fix: Adapt Sharded Repodata TTL update logic by @jjerphan in <https://github.com/mamba-org/mamba/pull/4269>
+- fix: Adaptations for vcpkg's distribution of zlib 1.3.2 on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4260>
+- fix: Normalize `MatchSpec` package names to lowercase by @jjerphan in <https://github.com/mamba-org/mamba/pull/4258>
+- fix: Entirely clean cache on `clean --all` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4249>
+- fix: Normalize MatchSpec's name to lowercase internally by @jjerphan in <https://github.com/mamba-org/mamba/pull/4248>
+
+CI fixes and doc:
+
+- ci: Remove `sed`atives by @jjerphan in <https://github.com/mamba-org/mamba/pull/4271>
+
+Maintenance:
+
+- maint: Remove `libxml2` as a dependency by @jjerphan in <https://github.com/mamba-org/mamba/pull/4261>
+
 ## libmamba 2.6.0 (April 29, 2026)
 
 Enhancements:

@@ -5,8 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <map>
 #include <set>
 #include <string>
+#include <string_view>
+#include <thread>
 #include <tuple>
 #include <unordered_set>
 #include <variant>
@@ -15,6 +20,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "mamba/api/channel_loader.hpp"
+#include "mamba/api/install.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/history.hpp"
@@ -38,6 +44,7 @@
 namespace mamba
 {
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
+    std::vector<std::string> read_explicit_urls(const fs::u8path& path);
     void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
@@ -46,7 +53,7 @@ namespace mamba
         bool is_retry,
         bool no_py_pin
     );
-    PrefixData load_prefix_data_and_installed(
+    [[nodiscard]] PrefixData load_prefix_data_and_installed(
         Context& ctx,
         ChannelContext& channel_context,
         solver::libsolv::Database& db
@@ -390,6 +397,62 @@ namespace
 
         return true;
     }
+
+    auto list_msgpack_zst_files(const fs::u8path& dir) -> std::vector<fs::u8path>
+    {
+        std::vector<fs::u8path> paths;
+        if (!fs::exists(dir))
+        {
+            return paths;
+        }
+        for (const auto& entry : fs::directory_iterator(dir))
+        {
+            if (!entry.is_regular_file())
+            {
+                continue;
+            }
+            const auto filename = entry.path().filename().string();
+            if (util::ends_with(filename, ".msgpack.zst"))
+            {
+                paths.push_back(entry.path());
+            }
+        }
+        std::sort(paths.begin(), paths.end());
+        return paths;
+    }
+
+    auto file_mtimes(const std::vector<fs::u8path>& paths) -> std::map<fs::u8path, fs::file_time_type>
+    {
+        std::map<fs::u8path, fs::file_time_type> mtimes;
+        for (const auto& path : paths)
+        {
+            mtimes[path] = fs::last_write_time(path);
+        }
+        return mtimes;
+    }
+
+    /**
+     * Assert each path exists and was written strictly after `before`.
+     *
+     * Do not pass `fs::last_write_time(...) > before` directly to Catch2 `REQUIRE` on Apple
+     * platforms: libc++ may use a `time_point` whose `duration` rep is `__int128`, and Catch's
+     * stringification of the expression hits an ambiguous `operator<<` for `__int128` (CI
+     * macOS/arm64 with `-Werror`).
+     */
+    void require_each_path_newer_than(
+        std::string_view label,
+        const std::map<fs::u8path, fs::file_time_type>& before_mtimes
+    )
+    {
+        for (const auto& [path, mtime_before] : before_mtimes)
+        {
+            INFO(label << " " << path.string());
+            REQUIRE(fs::exists(path));
+            const bool is_newer = fs::last_write_time(path) > mtime_before;
+            REQUIRE(is_newer);
+        }
+    }
+
 }
 
 TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::core][sharded][.integration]")
@@ -444,7 +507,7 @@ TEST_CASE(
                                    ctx.offline = saved_offline;
                                } };
 
-    ctx.channels = { "conda-forge" };
+    ctx.channels = { "https://prefix.dev/conda-forge" };
     ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
@@ -527,7 +590,7 @@ TEST_CASE(
                                    ctx.offline = saved_offline;
                                } };
 
-    ctx.channels = { "conda-forge" };
+    ctx.channels = { "https://prefix.dev/conda-forge" };
     ctx.use_sharded_repodata = true;
     ctx.offline = false;
 
@@ -664,6 +727,146 @@ TEST_CASE("Sharded repodata - solve xeus-python-dev specs on emscripten", "[mamb
     }
 }
 
+TEST_CASE(
+    "Sharded repodata - solve xeus-python on emscripten-forge-dev and conda-forge",
+    "[mamba::core][sharded][.integration][issue_4245]"
+)
+{
+    // Regression: cross-channel shard root expansion (noarch deps on conda-forge).
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const std::string saved_platform = ctx.platform;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.platform = saved_platform;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = {
+        "https://prefix.dev/emscripten-forge-dev",
+        "conda-forge",
+    };
+    ctx.platform = "emscripten-wasm32";
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const std::vector<std::string> specs = { "python=3.13", "xeus-python" };
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+
+    std::unordered_set<std::string> solved_names;
+    for (const auto& pkg : sharded_solution->packages())
+    {
+        solved_names.insert(pkg.name);
+    }
+
+    REQUIRE(solved_names.count("python") == 1);
+    REQUIRE(solved_names.count("xeus-python") == 1);
+    REQUIRE(solved_names.count("xeus-python-shell-lite") == 1);
+    REQUIRE(solved_names.count("ipython") == 1);
+}
+
+TEST_CASE(
+    "Sharded repodata - flat local channel with contourpy and xeus-python on emscripten",
+    "[mamba::core][sharded][.integration][issue_4304]"
+)
+{
+    // Regression: flat local label channel + multiple sharded remotes must still run cross-channel
+    // shard-metadata closure (e.g. xeus-python-shell-lite on conda-forge).
+    const TemporaryDirectory flat_channel_dir;
+    const auto emscripten_subdir = flat_channel_dir.path() / "emscripten-wasm32";
+    const auto noarch_subdir = flat_channel_dir.path() / "noarch";
+    fs::create_directories(emscripten_subdir);
+    fs::create_directories(noarch_subdir);
+
+    {
+        std::ofstream out((emscripten_subdir / "repodata.json").string());
+        out << R"({
+  "info": { "subdir": "emscripten-wasm32" },
+  "packages": {},
+  "packages.conda": {
+    "contourpy-1.3.3-py313hffb8c6e_5.conda": {
+      "name": "contourpy",
+      "version": "1.3.3",
+      "build": "py313hffb8c6e_5",
+      "build_number": 5,
+      "subdir": "emscripten-wasm32",
+      "depends": [
+        "numpy",
+        "emscripten-abi >=4,<5.0a0",
+        "python_abi 3.13.* *_cp313"
+      ],
+      "license": "BSD-3-Clause"
+    }
+  }
+})";
+    }
+    {
+        std::ofstream out((noarch_subdir / "repodata.json").string());
+        out << R"({
+  "info": { "subdir": "noarch" },
+  "packages": {},
+  "packages.conda": {}
+})";
+    }
+
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const std::string saved_platform = ctx.platform;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.platform = saved_platform;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = {
+        "file://" + flat_channel_dir.path().string(),
+        "https://prefix.dev/emscripten-forge-4x",
+        "conda-forge",
+    };
+    ctx.platform = "emscripten-wasm32";
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const std::vector<std::string> specs = { "xeus-python", "contourpy" };
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+
+    std::unordered_set<std::string> solved_names;
+    for (const auto& pkg : sharded_solution->packages())
+    {
+        solved_names.insert(pkg.name);
+    }
+
+    REQUIRE(solved_names.count("xeus-python") == 1);
+    REQUIRE(solved_names.count("contourpy") == 1);
+    REQUIRE(solved_names.count("xeus-python-shell-lite") == 1);
+}
+
 TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
@@ -720,6 +923,261 @@ TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba
     REQUIRE(solved_names.count("cycler") == 1);
     REQUIRE(solved_names.count("decorator") == 1);
     REQUIRE(solved_names.count("brotli-python") == 1);
+}
+
+TEST_CASE("Sharded repodata - solve omni env specs", "[mamba::core][sharded][.integration]")
+{
+    // Non-regression for https://github.com/mamba-org/mamba/issues/4277
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge", "bioconda" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto specs = read_lines(mambatests::test_data_dir / "env_file/omni.env.txt");
+    REQUIRE(specs.size() >= 80);
+
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(sharded_solution.has_value());
+
+    std::unordered_set<std::string> solved_names;
+    for (const auto& pkg : sharded_solution->packages())
+    {
+        solved_names.insert(pkg.name);
+    }
+
+    for (const auto& name : extract_package_names_from_specs(specs))
+    {
+        INFO("missing requested package: " << name);
+        REQUIRE(solved_names.count(name) == 1);
+    }
+
+    // Spot-check a few packages that previously exercised cross-channel closure.
+    REQUIRE(solved_names.count("python") == 1);
+    REQUIRE(solved_names.count("pytorch") == 1);
+    REQUIRE(solved_names.count("scanpy") == 1);
+    REQUIRE(solved_names.count("pysam") == 1);
+}
+
+TEST_CASE("Sharded repodata - solve Apache Arrow sphinx env specs", "[mamba::core][sharded][.integration]")
+{
+    // Non-regression for Apache Arrow docs environment:
+    // https://raw.githubusercontent.com/apache/arrow/eb375a5c38b46ce96725f2f7f6376eba0e516e4f/ci/conda_env_sphinx.txt
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto specs = read_lines(
+        mambatests::test_data_dir / "env_file/apache_arrow_conda_env_sphinx.txt"
+    );
+    REQUIRE(specs.size() >= 15);
+
+    // Warm cache (shard index + shard/repodata files), then assert timed solve.
+    auto warmup_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(warmup_solution.has_value());
+
+    const auto started_at = std::chrono::steady_clock::now();
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now() - started_at
+    );
+    REQUIRE(sharded_solution.has_value());
+    INFO("elapsed seconds: " << elapsed.count());
+    REQUIRE(elapsed < std::chrono::seconds(5));
+}
+
+TEST_CASE("Sharded repodata - solve issue 4274 env specs", "[mamba::core][sharded][.integration]")
+{
+    // Non-regression for https://github.com/mamba-org/mamba/issues/4274#issue-4437049295
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const auto specs = read_lines(mambatests::test_data_dir / "env_file/issue_4274.env.txt");
+    REQUIRE(specs.size() >= 50);
+
+    // Warm cache (shard index + shard/repodata files), then assert timed solve.
+    auto warmup_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    REQUIRE(warmup_solution.has_value());
+
+    const auto started_at = std::chrono::steady_clock::now();
+    auto sharded_solution = solve_environment(ctx, channel_context, specs, true, cache_dir);
+    const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now() - started_at
+    );
+    REQUIRE(sharded_solution.has_value());
+    INFO("elapsed seconds: " << elapsed.count());
+    REQUIRE(elapsed < std::chrono::seconds(5));
+}
+
+TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::core][sharded][.integration]")
+{
+    // Non-regression for https://gist.github.com/minrk/5fdabeb7ab8cd2c69cbc27588fed1903
+    // Flow: create from @EXPLICIT lock, then solve downgrade update specs.
+    auto& ctx = mambatests::context();
+    const std::vector<std::string> saved_channels = ctx.channels;
+    const bool saved_use_shards = ctx.use_sharded_repodata;
+    const bool saved_offline = ctx.offline;
+    const auto saved_target_prefix = ctx.prefix_params.target_prefix;
+    on_scope_exit restore_ctx{ [&]
+                               {
+                                   ctx.channels = saved_channels;
+                                   ctx.use_sharded_repodata = saved_use_shards;
+                                   ctx.offline = saved_offline;
+                                   ctx.prefix_params.target_prefix = saved_target_prefix;
+                               } };
+
+    ctx.channels = { "conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    const fs::u8path prefix_path = tmp_dir.path() / "minrk_env";
+    fs::create_directories(cache_dir);
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+    ctx.prefix_params.target_prefix = prefix_path;
+
+    const auto explicit_urls = read_explicit_urls(
+        mambatests::test_data_dir / "env_file/minrk_environment.py-3.9-linux-64.lock"
+    );
+    REQUIRE(explicit_urls.size() >= 150);
+    install_explicit_specs(
+        ctx,
+        channel_context,
+        explicit_urls,
+        /*create_env=*/true,
+        /*remove_prefix_on_failure=*/true
+    );
+
+    const auto parsed_downgrade_file = mamba::detail::read_yaml_file(
+        ctx,
+        (mambatests::test_data_dir / "env_file/minrk_downgrade.yml").string(),
+        ctx.platform,
+        /*use_uv=*/false
+    );
+    const auto& update_specs = parsed_downgrade_file.dependencies;
+    REQUIRE(update_specs.size() >= 5);
+
+    auto solve_update_from_existing_prefix =
+        [&](bool use_shards) -> std::pair<Solution, std::chrono::steady_clock::duration>
+    {
+        const bool saved_mode = ctx.use_sharded_repodata;
+        const auto saved_prefix = ctx.prefix_params.target_prefix;
+        on_scope_exit restore_mode{ [&]
+                                    {
+                                        ctx.use_sharded_repodata = saved_mode;
+                                        ctx.prefix_params.target_prefix = saved_prefix;
+                                    } };
+
+        ctx.use_sharded_repodata = use_shards;
+        ctx.prefix_params.target_prefix = prefix_path;
+
+        const auto started_at = std::chrono::steady_clock::now();
+        auto [db, package_caches] = prepare_solver_context(
+            ctx,
+            channel_context,
+            update_specs,
+            /*is_retry=*/false,
+            /*no_py_pin=*/false
+        );
+        REQUIRE(!package_caches.first_writable_path().empty());
+
+        auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
+        REQUIRE(!prefix_data.records().empty());
+
+        Request request;
+        for (const auto& spec : update_specs)
+        {
+            auto parsed = specs::MatchSpec::parse(spec);
+            REQUIRE(parsed.has_value());
+            request.jobs.push_back(Request::Update{ parsed.value() });
+        }
+        request.flags = ctx.solver_flags;
+
+        auto outcome = libsolv::Solver().solve(
+            db,
+            request,
+            ctx.experimental_matchspec_parsing ? libsolv::MatchSpecParser::Mamba
+                                               : libsolv::MatchSpecParser::Libsolv
+        );
+        REQUIRE(outcome.has_value());
+        REQUIRE(std::holds_alternative<Solution>(outcome.value()));
+        return {
+            std::get<Solution>(outcome.value()),
+            std::chrono::steady_clock::now() - started_at,
+        };
+    };
+
+    const auto [flat_solution, flat_elapsed] = solve_update_from_existing_prefix(/*use_shards=*/false);
+    const auto [sharded_solution, sharded_elapsed] = solve_update_from_existing_prefix(
+        /*use_shards=*/true
+    );
+
+    INFO(
+        "flat elapsed seconds: " << std::chrono::duration_cast<std::chrono::seconds>(flat_elapsed).count()
+    );
+    INFO(
+        "sharded elapsed seconds: "
+        << std::chrono::duration_cast<std::chrono::seconds>(sharded_elapsed).count()
+    );
+
+    REQUIRE(sharded_solution == flat_solution);
+    REQUIRE(sharded_elapsed < std::chrono::seconds(30));
 }
 
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration]")
@@ -1078,10 +1536,10 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
             /*is_retry=*/false,
             /*no_py_pin=*/false
         );
-        (void) package_caches;
+        REQUIRE(!package_caches.first_writable_path().empty());
 
         auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-        (void) prefix_data;
+        REQUIRE(!prefix_data.records().empty());
 
         Request request;
         request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
@@ -1185,10 +1643,10 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
             /*is_retry=*/false,
             /*no_py_pin=*/false
         );
-        (void) package_caches;
+        REQUIRE(!package_caches.first_writable_path().empty());
 
         auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-        (void) prefix_data;
+        REQUIRE(!prefix_data.records().empty());
 
         Request request;
         request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
@@ -1531,4 +1989,81 @@ TEST_CASE(
 
     // Verify both environments are equivalent (confirms offline used only cached data)
     REQUIRE(compare_environments(prefix_online, prefix_offline, channel_context));
+}
+
+TEST_CASE(
+    "Sharded repodata - expired TTL refreshes shard index and package shards",
+    "[mamba::core][sharded][.integration]"
+)
+{
+    Context ctx;
+    ctx.channels = { "https://prefix.dev/conda-forge" };
+    ctx.use_sharded_repodata = true;
+    ctx.repodata_shards_ttl = 1;
+    ctx.offline = false;
+
+    const TemporaryDirectory tmp_dir;
+    const fs::u8path cache_dir = tmp_dir.path() / "cache";
+    const fs::u8path xdg_cache_home = tmp_dir.path() / "xdg-cache";
+    fs::create_directories(cache_dir);
+    fs::create_directories(xdg_cache_home);
+
+    const auto previous_xdg_cache_home = util::get_env("XDG_CACHE_HOME");
+    util::set_env("XDG_CACHE_HOME", xdg_cache_home.string());
+    on_scope_exit restore_xdg_cache_home{
+        [&]
+        {
+            if (previous_xdg_cache_home.has_value())
+            {
+                util::set_env("XDG_CACHE_HOME", previous_xdg_cache_home.value());
+            }
+            else
+            {
+                util::unset_env("XDG_CACHE_HOME");
+            }
+        }
+    };
+
+    ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
+    init_channels(ctx, channel_context);
+
+    const std::vector<std::string> specs = { "xtensor" };
+    const fs::u8path prefix_first = tmp_dir.path() / "env_first";
+    const fs::u8path prefix_second = tmp_dir.path() / "env_second";
+
+    expected_t<void> install_first = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_first,
+        cache_dir
+    );
+    REQUIRE(install_first.has_value());
+
+    const fs::u8path shard_index_cache_dir = cache_dir / "cache";
+    const auto shard_index_paths = list_msgpack_zst_files(shard_index_cache_dir);
+    REQUIRE_FALSE(shard_index_paths.empty());
+    const auto shard_index_mtimes_before = file_mtimes(shard_index_paths);
+
+    const fs::u8path package_shards_dir = xdg_cache_home / "conda" / "pkgs" / "cache" / "shards";
+    const auto package_shard_paths = list_msgpack_zst_files(package_shards_dir);
+    REQUIRE_FALSE(package_shard_paths.empty());
+    const auto package_shard_mtimes_before = file_mtimes(package_shard_paths);
+
+    // Ensure all cached shard files are older than TTL before second installation.
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    expected_t<void> install_second = install_packages(
+        ctx,
+        channel_context,
+        specs,
+        /* use_shards */ true,
+        prefix_second,
+        cache_dir
+    );
+    REQUIRE(install_second.has_value());
+
+    require_each_path_newer_than("shard index", shard_index_mtimes_before);
+    require_each_path_newer_than("package shard", package_shard_mtimes_before);
 }

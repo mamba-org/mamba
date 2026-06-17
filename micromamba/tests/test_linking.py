@@ -1,6 +1,7 @@
+import json
 import os
-import sys
 import platform
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,63 @@ class TestLinking:
     env_name = helpers.random_string()
     root_prefix = os.path.expanduser(os.path.join("~", "tmproot" + helpers.random_string()))
     prefix = os.path.join(root_prefix, "envs", env_name)
+
+    # httpx unlink / conda-metadata interoperability tests
+    _HTTPX_UNLINK_OLD_VER = "0.27.0"
+    _HTTPX_UNLINK_NEW_VER = "0.28.1"
+
+    @staticmethod
+    def _httpx_dist_info_resolved(env_prefix: Path, httpx_version: str) -> set[Path]:
+        """Paths to httpx-*.dist-info, deduplicated by inode.
+
+        Conda Python may expose ``lib/python3.1`` as a symlink to ``lib/python3.10``;
+        ``python*/site-packages/`` then matches the same directory twice.
+        On Windows, site-packages live under ``Lib/site-packages/``.
+        On case-insensitive macOS, ``lib`` and ``Lib`` refer to the same tree; inode
+        deduplication avoids counting it twice when both names are probed.
+        """
+        marker = f"httpx-{httpx_version}.dist-info"
+        if sys.platform == "win32":
+            lib_dirs = ("Lib",)
+            patterns = (f"site-packages/{marker}",)
+        else:
+            lib_dirs = ("lib",)
+            patterns = (f"python*/site-packages/{marker}",)
+
+        found: dict[tuple[int, int], Path] = {}
+        for lib_dir in lib_dirs:
+            base = env_prefix / lib_dir
+            if not base.is_dir():
+                continue
+            for pattern in patterns:
+                for path in base.glob(pattern):
+                    resolved = path.resolve()
+                    try:
+                        st = resolved.stat()
+                    except OSError:
+                        continue
+                    found.setdefault((st.st_dev, st.st_ino), resolved)
+        return set(found.values())
+
+    @staticmethod
+    def _resolved_paths_from_conda_meta_record(env_prefix: Path, record: dict) -> set[Path]:
+        """Absolute resolved paths declared by a conda-meta package record."""
+        rels: list[str] = []
+        if "paths_data" in record:
+            rels = [entry["_path"] for entry in record["paths_data"]["paths"]]
+        elif "files" in record:
+            rels = list(record["files"])
+        return {(env_prefix / rel).resolve() for rel in rels}
+
+    @staticmethod
+    def _paths_under_httpx_dist_info(paths: set[Path], httpx_version: str) -> set[Path]:
+        marker = f"httpx-{httpx_version}.dist-info"
+        return {p for p in paths if marker in p.parts}
+
+    @staticmethod
+    def _assert_paths_removed(paths: set[Path], *, label: str) -> None:
+        stale = sorted(p for p in paths if p.exists())
+        assert not stale, f"{label} should be removed but still exist: {stale}"
 
     @classmethod
     def setup_class(cls):
@@ -157,6 +215,105 @@ class TestLinking:
 
         os.remove(linked_file_path)
         helpers.remove(package_to_test, "-n", TestLinking.env_name)
+
+    def test_unlink_legacy_files_metadata(self):
+        old_ver = self._HTTPX_UNLINK_OLD_VER
+        new_ver = self._HTTPX_UNLINK_NEW_VER
+
+        helpers.create(
+            "python=3.10",
+            f"httpx={old_ver}",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        env_prefix = Path(helpers.get_env(TestLinking.env_name))
+        old_meta = next((env_prefix / "conda-meta").glob(f"httpx-{old_ver}-*.json"))
+        with old_meta.open() as f:
+            old_record = json.load(f)
+
+        prev_dist_info_paths = self._paths_under_httpx_dist_info(
+            self._resolved_paths_from_conda_meta_record(env_prefix, old_record),
+            old_ver,
+        )
+        assert prev_dist_info_paths, "expected previous httpx dist-info files before upgrade"
+
+        # Simulate conda metadata that only stores the legacy `files` list.
+        old_record["files"] = [p["_path"] for p in old_record["paths_data"]["paths"]]
+        old_record.pop("paths_data", None)
+        with old_meta.open("w") as f:
+            json.dump(old_record, f)
+
+        helpers.install(
+            f"httpx={new_ver}",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        self._assert_paths_removed(
+            prev_dist_info_paths,
+            label=f"httpx {old_ver} dist-info",
+        )
+        assert len(self._httpx_dist_info_resolved(env_prefix, old_ver)) == 0
+        assert len(self._httpx_dist_info_resolved(env_prefix, new_ver)) == 1
+
+    def test_unlink_noarch_short_paths_metadata(self):
+        old_ver = self._HTTPX_UNLINK_OLD_VER
+        new_ver = self._HTTPX_UNLINK_NEW_VER
+
+        helpers.create(
+            "python=3.10",
+            f"httpx={old_ver}",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        env_prefix = Path(helpers.get_env(TestLinking.env_name))
+        old_meta = next((env_prefix / "conda-meta").glob(f"httpx-{old_ver}-*.json"))
+        with old_meta.open() as f:
+            old_record = json.load(f)
+
+        prev_dist_info_paths = self._paths_under_httpx_dist_info(
+            self._resolved_paths_from_conda_meta_record(env_prefix, old_record),
+            old_ver,
+        )
+        assert prev_dist_info_paths, "expected previous httpx dist-info files before upgrade"
+
+        # Simulate conda-generated noarch metadata where `paths_data.paths[*]._path`
+        # uses short paths like `site-packages/...` instead of full
+        # `lib/pythonX.Y/site-packages/...` or `Lib/site-packages/...` entries.
+        for path in old_record["paths_data"]["paths"]:
+            current_path = path.get("_path", "")
+            if current_path.startswith("lib/python") and "/site-packages/" in current_path:
+                path["_path"] = current_path.split("/site-packages/", 1)[1]
+                path["_path"] = f"site-packages/{path['_path']}"
+            elif current_path.startswith("Lib/site-packages/"):
+                path["_path"] = current_path.removeprefix("Lib/site-packages/")
+                path["_path"] = f"site-packages/{path['_path']}"
+
+        with old_meta.open("w") as f:
+            json.dump(old_record, f)
+
+        helpers.install(
+            f"httpx={new_ver}",
+            "-n",
+            TestLinking.env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        self._assert_paths_removed(
+            prev_dist_info_paths,
+            label=f"httpx {old_ver} dist-info",
+        )
+        assert len(self._httpx_dist_info_resolved(env_prefix, old_ver)) == 0
+        assert len(self._httpx_dist_info_resolved(env_prefix, new_ver)) == 1
 
     @pytest.mark.skipif(
         sys.platform == "darwin" and platform.machine() == "arm64",

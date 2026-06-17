@@ -19,23 +19,13 @@
 #include "mamba/specs/unresolved_channel.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 
 using namespace mamba;
+using mambatests::make_simple_channel;
 
 namespace
 {
-    auto make_simple_channel(std::string_view chan) -> specs::Channel
-    {
-        const auto resolve_params = ChannelContext::ChannelResolveParams{
-            { "linux-64", "noarch" },
-            specs::CondaURL::parse("https://conda.anaconda.org").value()
-        };
-
-        return specs::Channel::resolve(specs::UnresolvedChannel::parse(chan).value(), resolve_params)
-            .value()
-            .front();
-    }
-
     /** Create Shards with pre-loaded shard data for RepodataSubset testing. */
     auto create_shards_with_preloaded_deps(
         const std::string& channel_url,

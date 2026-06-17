@@ -315,6 +315,16 @@ namespace mamba
                         {
                             record.noarch = std::nullopt;
                         }
+                        else if (val_obj.type == MSGPACK_OBJECT_BOOLEAN)
+                        {
+                            // CEP 34 defines noarch as "python" or "generic", but legacy repodata
+                            // (and sharded repodata derived from it) may still encode noarch as a
+                            // boolean. Match flat repodata parsing: true -> Generic, false -> none.
+                            // https://github.com/conda-forge/tensorboard-feedstock/issues/93
+                            record.noarch = val_obj.via.boolean
+                                                ? std::optional(specs::NoArchType::Generic)
+                                                : std::nullopt;
+                        }
                         else
                         {
                             const auto noarch_str = msgpack_object_to_string(val_obj);

@@ -226,8 +226,8 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_conda.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_mambajs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/exclude_newer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/exclude_newer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
@@ -382,8 +382,8 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/exclude_newer.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/exclude_newer.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/execution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp

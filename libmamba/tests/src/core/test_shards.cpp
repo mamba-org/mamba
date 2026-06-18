@@ -103,6 +103,67 @@ namespace
         msgpack_sbuffer_destroy(&sbuf);
         return compress_zstd(shard_msgpack);
     }
+
+    auto create_shard_with_boolean_noarch(
+        const std::string& package_name,
+        const std::string& version,
+        const std::string& build,
+        bool noarch
+    ) -> std::vector<std::uint8_t>
+    {
+        msgpack_sbuffer sbuf;
+        msgpack_sbuffer_init(&sbuf);
+        msgpack_packer pk;
+        msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
+
+        msgpack_pack_map(&pk, 1);
+        msgpack_pack_str(&pk, 8);
+        msgpack_pack_str_body(&pk, "packages", 8);
+
+        const std::string filename = package_name + "-" + version + "-" + build + ".tar.bz2";
+        msgpack_pack_map(&pk, 1);
+        msgpack_pack_str(&pk, filename.size());
+        msgpack_pack_str_body(&pk, filename.c_str(), filename.size());
+
+        msgpack_pack_map(&pk, 5);
+        msgpack_pack_str(&pk, 4);
+        msgpack_pack_str_body(&pk, "name", 4);
+        msgpack_pack_str(&pk, package_name.size());
+        msgpack_pack_str_body(&pk, package_name.c_str(), package_name.size());
+        msgpack_pack_str(&pk, 7);
+        msgpack_pack_str_body(&pk, "version", 7);
+        msgpack_pack_str(&pk, version.size());
+        msgpack_pack_str_body(&pk, version.c_str(), version.size());
+        msgpack_pack_str(&pk, 5);
+        msgpack_pack_str_body(&pk, "build", 5);
+        msgpack_pack_str(&pk, build.size());
+        msgpack_pack_str_body(&pk, build.c_str(), build.size());
+        msgpack_pack_str(&pk, 6);
+        msgpack_pack_str_body(&pk, "sha256", 6);
+        msgpack_pack_str(&pk, 64);
+        msgpack_pack_str_body(
+            &pk,
+            "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            64
+        );
+        msgpack_pack_str(&pk, 6);
+        msgpack_pack_str_body(&pk, "noarch", 6);
+        if (noarch)
+        {
+            msgpack_pack_true(&pk);
+        }
+        else
+        {
+            msgpack_pack_false(&pk);
+        }
+
+        std::vector<std::uint8_t> shard_msgpack(
+            reinterpret_cast<const std::uint8_t*>(sbuf.data),
+            reinterpret_cast<const std::uint8_t*>(sbuf.data + sbuf.size)
+        );
+        msgpack_sbuffer_destroy(&sbuf);
+        return compress_zstd(shard_msgpack);
+    }
 }
 
 TEST_CASE("Shards URL construction")
@@ -2760,5 +2821,71 @@ TEST_CASE("Shards - process_downloaded_shard")
             (util::contains(err_msg, "msgpack") || util::contains(err_msg, "parse")
              || util::contains(err_msg, "MAP"))
         );
+    }
+}
+
+// Regression for boolean noarch values invalid per CEP 34 (`noarch: Literal['generic', 'python']`;
+// cep-0034.md § `./info/index.json`) still present in repodata shards.
+// https://github.com/conda/ceps/blob/15879bf84d640fbad6dd80b028f47b04b2620291/cep-0034.md?plain=1#L57
+// https://github.com/conda-forge/tensorboard-feedstock/issues/93
+TEST_CASE("Shards - parse legacy boolean noarch field")
+{
+    ShardsIndexDict index;
+    index.info.base_url = "https://example.com/packages";
+    index.info.shards_base_url = "shards";
+    index.info.subdir = "noarch";
+    index.version = 1;
+    index.shards["tensorboard"] = std::vector<std::uint8_t>(32, 0xAB);
+
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
+    specs::AuthenticationDataBase auth_info;
+    download::RemoteFetchParams remote_fetch_params;
+
+    Shards shards(
+        index,
+        "https://anaconda.org/conda-forge/noarch/repodata.json",
+        channel,
+        auth_info,
+        remote_fetch_params
+    );
+
+    SECTION("noarch true maps to Generic")
+    {
+        auto shard_data = create_shard_with_boolean_noarch("tensorboard", "2.1.1", "py38_0", true);
+
+        download::Success success;
+        success.content = download::Buffer{
+            std::string(reinterpret_cast<const char*>(shard_data.data()), shard_data.size())
+        };
+        success.transfer.downloaded_size = shard_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["tensorboard"] = fs::u8path("/dummy/tensorboard.msgpack.zst");
+
+        auto result = test_process_downloaded_shard(shards, "tensorboard", success, package_to_cache_path);
+
+        REQUIRE(result.has_value());
+        const auto& record = result.value().packages.at("tensorboard-2.1.1-py38_0.tar.bz2");
+        REQUIRE(record.noarch == specs::NoArchType::Generic);
+    }
+
+    SECTION("noarch false is ignored")
+    {
+        auto shard_data = create_shard_with_boolean_noarch("tensorboard", "2.1.1", "py38_0", false);
+
+        download::Success success;
+        success.content = download::Buffer{
+            std::string(reinterpret_cast<const char*>(shard_data.data()), shard_data.size())
+        };
+        success.transfer.downloaded_size = shard_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["tensorboard"] = fs::u8path("/dummy/tensorboard.msgpack.zst");
+
+        auto result = test_process_downloaded_shard(shards, "tensorboard", success, package_to_cache_path);
+
+        REQUIRE(result.has_value());
+        const auto& record = result.value().packages.at("tensorboard-2.1.1-py38_0.tar.bz2");
+        REQUIRE_FALSE(record.noarch.has_value());
     }
 }

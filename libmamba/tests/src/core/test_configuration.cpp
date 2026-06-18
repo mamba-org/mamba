@@ -1127,6 +1127,10 @@ namespace mamba
 
             TEST_BOOL_CONFIGURABLE(always_copy, ctx.link_params.always_copy);
 
+            TEST_BOOL_CONFIGURABLE(compile_pyc, ctx.link_params.compile_pyc);
+
+            TEST_BOOL_CONFIGURABLE(skip_run_link_scripts, ctx.link_params.skip_run_link_scripts);
+
             TEST_CASE_METHOD(Configuration, "always_softlink_and_copy")
             {
                 util::set_env("MAMBA_ALWAYS_COPY", "true");

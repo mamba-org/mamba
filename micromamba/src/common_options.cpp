@@ -347,6 +347,17 @@ no_channel_priority_hook(Configuration& config, bool&)
 }
 
 void
+init_link_options(CLI::App* subcom, Configuration& config)
+{
+    auto& skip_run_link_scripts = config.at("skip_run_link_scripts");
+    subcom->add_flag(
+        "--skip-run-link-scripts,!--run-link-scripts",
+        skip_run_link_scripts.get_cli_config<bool>(),
+        skip_run_link_scripts.description()
+    );
+}
+
+void
 init_install_options(CLI::App* subcom, Configuration& config)
 {
     using string_list = std::vector<std::string>;
@@ -354,6 +365,7 @@ init_install_options(CLI::App* subcom, Configuration& config)
     init_prefix_options(subcom, config);
     init_network_options(subcom, config);
     init_channel_parser(subcom, config);
+    init_link_options(subcom, config);
 
     auto& specs = config.at("specs");
     subcom

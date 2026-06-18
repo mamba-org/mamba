@@ -64,7 +64,7 @@ namespace mamba
                 make_executable(conda_path);
             }
 
-            const auto make_tx_context = [&]
+            const auto make_tx_context = [&](const LinkParams& link_params = {})
             {
                 TransactionParams tx_params{
                     .is_mamba_exe = false,
@@ -80,7 +80,7 @@ namespace mamba
                             .conda_prefix = prefix,
                             .relocate_prefix = prefix,
                         },
-                    .link_params = {},
+                    .link_params = link_params,
                     .threads_params = {},
                 };
 
@@ -165,7 +165,22 @@ namespace mamba
 
                 REQUIRE(fs::exists(pre_unlink_marker));
                 // post-unlink script should not be executed as deprecated
-                REQUIRE(!fs::exists(post_unlink_marker));
+                REQUIRE_FALSE(fs::exists(post_unlink_marker));
+            }
+
+            SECTION("link scripts disabled")
+            {
+                auto tx_context = make_tx_context({ .skip_run_link_scripts = true });
+                LinkPackage link_pkg(pkg, cache_dir, &tx_context);
+                UnlinkPackage unlink_pkg(pkg, cache_dir, &tx_context);
+
+                REQUIRE(link_pkg.execute());
+                REQUIRE(unlink_pkg.execute());
+
+                REQUIRE_FALSE(fs::exists(pre_link_marker));
+                REQUIRE_FALSE(fs::exists(post_link_marker));
+                REQUIRE_FALSE(fs::exists(pre_unlink_marker));
+                REQUIRE_FALSE(fs::exists(post_unlink_marker));
             }
         }
     }

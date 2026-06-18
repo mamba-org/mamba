@@ -1894,6 +1894,14 @@ namespace mamba
                    .description("Defines if PYC files will be compiled or not"));
 
         insert(
+            Configurable("skip_run_link_scripts", &m_context.link_params.skip_run_link_scripts)
+                .group("Extract, Link & Install")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description("Whether pre/post-un/link scripts will be skipped. Defaults to false.")
+        );
+
+        insert(
             Configurable("use_uv", &m_context.use_uv)
                 .group("Extract, Link & Install")
                 .set_rc_configurable()

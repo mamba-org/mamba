@@ -1767,20 +1767,12 @@ namespace mamba::solver::libsolv
     auto request_to_decision_queue(  //
         const Request& request,
         solv::ObjPool& pool,
-        const solv::ObjQueue& virtual_package_lock_jobs,
+        solv::ObjQueue virtual_package_lock_jobs,
         bool force_reinstall,
         MatchSpecParser parser
     ) -> expected_t<solv::ObjQueue>
     {
-        auto solv_jobs = solv::ObjQueue();
-        if (!virtual_package_lock_jobs.empty())
-        {
-            solv_jobs.insert(
-                solv_jobs.begin(),
-                virtual_package_lock_jobs.begin(),
-                virtual_package_lock_jobs.end()
-            );
-        }
+        auto solv_jobs = std::move(virtual_package_lock_jobs);
 
         auto error = expected_t<void>();
         for (const auto& unknown_job : request.jobs)

@@ -44,9 +44,13 @@ For Linux, macOS, or Git Bash on Windows install with:
 
 .. code:: bash
 
-   "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+   "${SHELL}" <(curl -L micro.mamba.pm)
 
-For NuShell users, run ``sh -c (curl -L micro.mamba.pm/install.sh)``.
+For NuShell users, run:
+
+.. code:: bash
+
+   sh -c (curl -L micro.mamba.pm)
 
 On Windows Powershell, use
 
@@ -91,6 +95,14 @@ Ensure that basic utilities are installed. We need ``curl`` and ``tar`` with sup
 Also you need a glibc based system like Ubuntu, Fedora or Centos (Alpine Linux does not work natively).
 
 The following magic URL always returns the latest available version of micromamba, and the ``bin/micromamba`` part is automatically extracted using ``tar``.
+
+On most systems you can use the output of ``uname`` to select the right platform automatically:
+
+.. code:: bash
+
+  curl -Ls https://micro.mamba.pm/api/micromamba/$(uname)-$(uname -m)/latest | tar -xvj bin/micromamba
+
+Alternatively, you can specify the platform explicitly:
 
 .. code:: bash
 

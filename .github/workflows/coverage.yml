@@ -60,7 +60,7 @@ jobs:
       - name: Install dev-extra environment
         run: micromamba install -n build_env -y -f ./dev/environment-dev-extra.yml
       - name: Install micromamba-static environment
-        run: micromamba install -n build_env -y -f ./dev/environment-micromamba-static.yml
+        run: micromamba install -n build_env -y -f ./dev/environment-micromamba-static.yml -vvv
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

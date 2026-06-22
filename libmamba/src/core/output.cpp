@@ -500,7 +500,8 @@ namespace mamba
 
     bool Console::prompt(std::string_view message, char fallback, std::istream& input_stream)
     {
-        if (instance().context().always_yes)
+        auto& context = instance().context();
+        if (context.always_yes or context.output_params.json or context.output_params.quiet)
         {
             return true;
         }

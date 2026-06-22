@@ -139,13 +139,13 @@ namespace mamba
 
     PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
         : m_package_info(pkg_info)
-        , m_caches(&caches)
+        , m_caches(&caches, [](MultiPackageCache*) {})
     {
-        const fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
+        const fs::u8path extracted_cache = m_caches->get_extracted_dir_path(m_package_info);
         if (extracted_cache.empty())
         {
-            const fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
-            auto& cache = caches.first_writable_cache(true);
+            const fs::u8path tarball_cache = m_caches->get_tarball_path(m_package_info);
+            auto& cache = m_caches->first_writable_cache(true);
             m_cache_path = cache.path() / package_cache_folder_relative_path(m_package_info);
             fs::create_directories(m_cache_path);
 
@@ -159,7 +159,7 @@ namespace mamba
             }
             else
             {
-                caches.clear_query_cache(m_package_info);
+                m_caches->clear_query_cache(m_package_info);
                 // need to download this file
                 const DownloadRequestComponents components = get_download_request_components(
                     m_package_info

@@ -42,7 +42,7 @@ jobs:
         run: |
           df -h
       - name: Checkout mamba repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v3
         with:

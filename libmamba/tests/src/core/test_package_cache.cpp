@@ -169,5 +169,35 @@ namespace mamba
             cache.clear_query_cache(pkg_info);
             REQUIRE(cache.get_extracted_dir_path(pkg_info) == pkgs_dir / rel_path);
         }
+
+        // Non-regression for https://github.com/mamba-org/mamba/issues/4322
+        SECTION("Invalid extracted cache with missing paths.json file is rejected #4322")
+        {
+            auto warn_params = ctx.validation_params;
+            warn_params.safety_checks = VerificationLevel::Warn;
+
+            const fs::u8path extract_dir = flat_dir;
+            fs::create_directories(extract_dir / "info");
+            write_repodata_record(extract_dir / "info" / "repodata_record.json", pkg_info);
+
+            nlohmann::json paths_json;
+            paths_json["paths_version"] = 1;
+            paths_json["paths"] = nlohmann::json::array(
+                {
+                    nlohmann::json{
+                        { "_path", "etc/conda/test-files/missing-file.txt" },
+                        { "path_type", "hardlink" },
+                        { "size_in_bytes", 42 },
+                    },
+                }
+            );
+            {
+                std::ofstream paths_out((extract_dir / "info" / "paths.json").std_path());
+                paths_out << paths_json.dump();
+            }
+
+            MultiPackageCache cache({ pkgs_dir }, warn_params);
+            REQUIRE(cache.get_extracted_dir_path(pkg_info).empty());
+        }
     }
 }  // namespace mamba

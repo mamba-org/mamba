@@ -1632,8 +1632,7 @@ namespace mamba
                    .set_post_merge_hook<ChannelPriority>(
                        [&](ChannelPriority& value)
                        {
-                           m_context.solver_flags
-                               .strict_repo_priority = (value == ChannelPriority::Strict);
+                           m_context.solver_flags.strict_repo_priority = (value == ChannelPriority::Strict);
                        }
                    ));
 

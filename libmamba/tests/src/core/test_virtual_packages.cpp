@@ -112,8 +112,6 @@ namespace mamba
                 REQUIRE(pkgs[0].name == "__unix");
                 REQUIRE(pkgs[1].name == "__archspec");
                 REQUIRE(pkgs[1].build_string == "wasm32");
-
-                ctx.platform = ctx.host_platform;
             }
 
             TEST_CASE("get_virtual_packages")

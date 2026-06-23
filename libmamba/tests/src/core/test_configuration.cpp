@@ -39,17 +39,13 @@ namespace mamba
 
             Configuration()
             {
-                m_channel_alias_bu = ctx.channel_alias;
-                m_ssl_verify = ctx.remote_fetch_params.ssl_verify;
-                m_proxy_servers = ctx.remote_fetch_params.proxy_servers;
+                m_context_change.preserve(&mamba::Context::channel_alias)
+                    .preserve(&mamba::Context::remote_fetch_params);
             }
 
             ~Configuration()
             {
                 config.reset_configurables();
-                ctx.channel_alias = m_channel_alias_bu;
-                ctx.remote_fetch_params.ssl_verify = m_ssl_verify;
-                ctx.remote_fetch_params.proxy_servers = m_proxy_servers;
             }
 
         protected:
@@ -131,16 +127,10 @@ namespace mamba
 
             mamba::Context& ctx = mambatests::context();
             mamba::Configuration config{ ctx };
+            mambatests::ScopedContextChange m_context_change{ ctx };
 
         private:
 
-            // Variables to restore the original Context state and avoid
-            // side effect across the tests. A better solution would be to
-            // save and restore the whole context (that requires refactoring
-            // of the Context class)
-            std::string m_channel_alias_bu;
-            std::string m_ssl_verify;
-            std::map<std::string, std::string> m_proxy_servers;
             mambatests::EnvironmentCleaner restore = { mambatests::CleanMambaEnv() };
         };
 
@@ -874,6 +864,9 @@ namespace mamba
 
             TEST_CASE_METHOD(Configuration, "platform")
             {
+                mambatests::ScopedContextChange context_change{ ctx };
+                context_change.preserve(&mamba::Context::platform);
+
                 REQUIRE(ctx.platform == ctx.host_platform);
 
                 std::string rc = "platform: mylinux-128";
@@ -903,7 +896,6 @@ namespace mamba
                 );
 
                 config.at("platform").clear_values();
-                ctx.platform = ctx.host_platform;
             }
 
 #define TEST_BOOL_CONFIGURABLE(NAME, CTX)                                                           \

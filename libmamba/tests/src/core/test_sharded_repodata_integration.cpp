@@ -454,14 +454,15 @@ namespace
 TEST_CASE("Sharded repodata - load_channels accepts root_packages", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" })
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     // Use a temp directory for package cache to ensure a writable path (required for shard index
     // and shard caching in CI environments where default pkgs_dirs may not be writable)
     const auto tmp_dir = TemporaryDirectory();
-    ctx.pkgs_dirs = { tmp_dir.path() / "pkgs" };
+    context_change.set_pkgs_dirs({ tmp_dir.path() / "pkgs" });
     create_cache_dir(ctx.pkgs_dirs.front());
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
@@ -524,8 +525,8 @@ TEST_CASE(
 TEST_CASE("Sharded repodata - noarch-only root package is installable", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1069,8 +1070,8 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
 TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1143,8 +1144,8 @@ TEST_CASE("Sharded repodata - solver results consistency", "[mamba::core][sharde
 TEST_CASE("Sharded repodata - environment consistency", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1193,8 +1194,8 @@ TEST_CASE("Sharded repodata - environment consistency", "[mamba::core][sharded][
 TEST_CASE("Sharded repodata - cross-subdir dependencies", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1249,8 +1250,8 @@ TEST_CASE("Sharded repodata - cross-subdir dependencies", "[mamba::core][sharded
 TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1371,8 +1372,8 @@ TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integr
 TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1461,8 +1462,8 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
 TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1574,8 +1575,8 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
 TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1720,8 +1721,8 @@ TEST_CASE(
 )
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const auto tmp_dir = TemporaryDirectory();
     const auto cache_dir = tmp_dir.path() / "cache";
@@ -1772,8 +1773,8 @@ TEST_CASE(
 TEST_CASE("Sharded repodata - libblas implementation preference", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" }).set_offline(false);
 
     const auto tmp_dir = TemporaryDirectory();
     const auto cache_dir = tmp_dir.path() / "cache";

@@ -128,6 +128,24 @@ namespace mambatests
             return *this;
         }
 
+        ScopedContextChange& set_root_prefix(const mamba::fs::u8path& prefix)
+        {
+            touch(&mamba::Context::prefix_params, [&](auto& params) { params.root_prefix = prefix; });
+            return *this;
+        }
+
+        ScopedContextChange& set_envs_dirs(std::vector<mamba::fs::u8path> dirs)
+        {
+            touch(&mamba::Context::envs_dirs, [&](auto& field) { field = std::move(dirs); });
+            return *this;
+        }
+
+        ScopedContextChange& set_pkgs_dirs(std::vector<mamba::fs::u8path> dirs)
+        {
+            touch(&mamba::Context::pkgs_dirs, [&](auto& field) { field = std::move(dirs); });
+            return *this;
+        }
+
         ScopedContextChange& set_prefix_data_interoperability(bool value)
         {
             touch(&mamba::Context::prefix_data_interoperability, [&](auto& field) { field = value; });

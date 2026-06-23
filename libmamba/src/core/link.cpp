@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include <fmt/format.h>
@@ -574,7 +575,7 @@ namespace mamba
             return true;
         }
 
-        std::map<std::string, std::string> envmap;
+        std::unordered_map<std::string, std::string> envmap;
         if (action == "pre-link")
         {
             LOG_WARNING

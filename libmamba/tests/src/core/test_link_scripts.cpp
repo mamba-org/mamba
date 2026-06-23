@@ -57,10 +57,12 @@ namespace mamba
                 fs::create_directories(prefix / "bin");
                 auto conda_path = prefix / "bin" / "conda";
                 auto out = open_ofstream(conda_path);
-                out << "#!/bin/sh\n";
-                out << "if [ \"$1\" = \"shell.posix\" ] && [ \"$2\" = \"hook\" ]; then\n";
-                out << "  echo 'conda() { :; }'\n";  // Define conda as a no-op function
-                out << "fi\n";
+                out << R"(#!/bin/sh
+                    if [ "$1" = "shell.posix" ] && [ "$2" = "hook" ]; then
+                      # Define conda as a no-op function
+                      echo 'conda() { :; }'
+                    fi
+                    )";
                 make_executable(conda_path);
             }
 
@@ -92,11 +94,11 @@ namespace mamba
                 );
             };
 
-            std::string script_ext = util::on_win ? ".bat" : ".sh";
-            std::string pre_link_name = ".test_pkg-pre-link" + script_ext;
-            std::string post_link_name = ".test_pkg-post-link" + script_ext;
-            std::string pre_unlink_name = ".test_pkg-pre-unlink" + script_ext;
-            std::string post_unlink_name = ".test_pkg-post-unlink" + script_ext;
+            const std::string script_ext = util::on_win ? ".bat" : ".sh";
+            const std::string pre_link_name = ".test_pkg-pre-link" + script_ext;
+            const std::string post_link_name = ".test_pkg-post-link" + script_ext;
+            const std::string pre_unlink_name = ".test_pkg-pre-unlink" + script_ext;
+            const std::string post_unlink_name = ".test_pkg-post-unlink" + script_ext;
 
             auto create_script = [](const fs::u8path& p, const fs::u8path& marker_path)
             {

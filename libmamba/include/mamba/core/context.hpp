@@ -102,7 +102,7 @@ namespace mamba
 
         // Configurable
         bool experimental = false;
-        bool experimental_repodata_parsing = true;
+        bool mamba_repodata_parsing = true;
         bool experimental_matchspec_parsing = false;
         bool debug = false;
         bool use_uv = false;

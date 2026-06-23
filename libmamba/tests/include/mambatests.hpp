@@ -98,10 +98,17 @@ namespace mambatests
     // destroyed. Repeated calls to the same setter only change the live value — the original
     // snapshot is always what gets restored.
     //
+    // Use set_* when the test assigns a known value. Use preserve() when the field will be
+    // changed later by code under test, by direct assignment (ctx.field = …), or by APIs such
+    // as Configuration::load() — preserve() only snapshots the current value for restoration.
+    //
     // Example:
     //   auto& ctx = mambatests::context();
     //   mambatests::ScopedContextChange context_change{ ctx };
     //   context_change.set_channels({ "conda-forge" }).set_offline(false);
+    //
+    //   context_change.preserve(&mamba::Context::use_sharded_repodata);
+    //   ctx.use_sharded_repodata = false;  // restored to the pre-preserve value at scope end
     class ScopedContextChange
     {
     public:
@@ -176,6 +183,8 @@ namespace mambatests
             return *this;
         }
 
+        // Snapshot member for restoration without assigning a new value. The member pointer
+        // syntax (e.g. &mamba::Context::platform) selects which Context field to guard.
         template <typename T>
         ScopedContextChange& preserve(T mamba::Context::* member)
         {

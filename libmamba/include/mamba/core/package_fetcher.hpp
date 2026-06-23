@@ -8,7 +8,6 @@
 #define MAMBA_CORE_PACKAGE_FETCHER_HPP
 
 #include <functional>
-#include <memory>
 
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_handling.hpp"
@@ -117,7 +116,7 @@ namespace mamba
         void update_monitor(progress_callback_t* cb, PackageExtractEvent event) const;
 
         specs::PackageInfo m_package_info;
-        std::shared_ptr<MultiPackageCache> m_caches;
+        MultiPackageCache* m_caches = nullptr;
 
         fs::u8path m_tarball_path;
         fs::u8path m_cache_path;

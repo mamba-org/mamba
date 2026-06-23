@@ -388,9 +388,23 @@ namespace mamba
 
     void PackageFetcher::clear_cache() const
     {
+        const auto remove_extracted_at = [&](const fs::u8path& cache_path)
+        { fs::remove_all(get_extract_path(filename(), cache_path)); };
+
         fs::remove_all(m_tarball_path);
-        const fs::u8path dest_dir = specs::strip_archive_extension(m_tarball_path.string());
-        fs::remove_all(dest_dir);
+        remove_extracted_at(m_cache_path);
+
+        // Tarballs may use the flat layout while extraction uses the hierarchical layout.
+        const fs::u8path tarball_parent = m_tarball_path.parent_path();
+        if (tarball_parent != m_cache_path)
+        {
+            remove_extracted_at(tarball_parent);
+        }
+
+        if (m_caches)
+        {
+            m_caches->clear_query_cache(m_package_info);
+        }
     }
 
     /*******************

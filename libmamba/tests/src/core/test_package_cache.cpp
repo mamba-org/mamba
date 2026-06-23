@@ -199,5 +199,42 @@ namespace mamba
             MultiPackageCache cache({ pkgs_dir }, warn_params);
             REQUIRE(cache.get_extracted_dir_path(pkg_info).empty());
         }
+
+        // Non-regression for https://github.com/mamba-org/mamba/issues/4331#issuecomment-4771693736
+        SECTION("remove_extracted_package clears invalid hierarchical cache #4331")
+        {
+            auto warn_params = ctx.validation_params;
+            warn_params.safety_checks = VerificationLevel::Warn;
+
+            const fs::u8path invalid_hierarchical_dir = pkgs_dir / rel_path
+                                                        / "test-pkg-1.0.0-h123456_0";
+            fs::create_directories(invalid_hierarchical_dir / "info");
+            write_repodata_record(invalid_hierarchical_dir / "info" / "repodata_record.json", pkg_info);
+
+            nlohmann::json paths_json;
+            paths_json["paths_version"] = 1;
+            paths_json["paths"] = nlohmann::json::array(
+                {
+                    nlohmann::json{
+                        { "_path", "etc/conda/test-files/missing-file.txt" },
+                        { "path_type", "hardlink" },
+                        { "size_in_bytes", 42 },
+                    },
+                }
+            );
+            {
+                std::ofstream paths_out((invalid_hierarchical_dir / "info" / "paths.json").std_path());
+                paths_out << paths_json.dump();
+            }
+
+            MultiPackageCache cache({ pkgs_dir }, warn_params);
+            REQUIRE(cache.get_extracted_dir_path(pkg_info).empty());
+            REQUIRE(fs::exists(invalid_hierarchical_dir));
+
+            cache.remove_extracted_package(pkg_info);
+
+            REQUIRE_FALSE(fs::exists(invalid_hierarchical_dir));
+            REQUIRE(cache.get_extracted_dir_path(pkg_info).empty());
+        }
     }
 }  // namespace mamba

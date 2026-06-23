@@ -83,6 +83,10 @@ namespace mamba
                 return path;
             }
 
+            // Drop invalid or partial extracted directories so a cached tarball can be
+            // re-extracted (e.g. after a failed extraction left stale files behind).
+            caches.remove_extracted_package(pkg);
+
             PackageFetcher fetcher(pkg, caches);
             if (fetcher.needs_download())
             {

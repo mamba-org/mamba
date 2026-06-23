@@ -541,6 +541,7 @@ namespace mamba
     bool run_script(
         const TransactionParams& transaction_params,
         const PrefixParams& prefix_params,
+        const fs::u8path& script_prefix,
         const specs::PackageInfo& pkg_info,
         const std::string& action = "post-link",
         const std::string& env_prefix = "",
@@ -550,12 +551,12 @@ namespace mamba
         fs::u8path path;
         if (util::on_win)
         {
-            path = prefix_params.target_prefix / get_bin_directory_short_path()
+            path = script_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".bat");
         }
         else
         {
-            path = prefix_params.target_prefix / get_bin_directory_short_path()
+            path = script_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".sh");
         }
 
@@ -566,13 +567,22 @@ namespace mamba
             return true;
         }
 
-        // TODO impl.
-        std::map<std::string, std::string> envmap;  // = env::copy();
-
+        std::map<std::string, std::string> envmap;
         if (action == "pre-link")
         {
-            throw std::runtime_error("mamba does not support pre-link scripts");
+            LOG_WARNING
+                << "Special Note: Pre-link scripts are particularly high-risk as they can "
+                << "modify the package cache, potentially affecting all environments on this system.";
+            envmap["SOURCE_DIR"] = script_prefix.string();
         }
+
+        if (action == "post-unlink")
+        {
+            LOG_WARNING << "post-unlink scripts are deprecated and therefore won't be executed!";
+            return true;
+        }
+
+        LOG_WARNING << "Executing " << action << " script for package '" << pkg_info.name << "'.";
 
         // script_caller = None
         std::vector<std::string> command_args;
@@ -799,6 +809,16 @@ namespace mamba
             return true;
         }
 
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_context->prefix_params().target_prefix,
+            m_pkg_info,
+            "pre-unlink",
+            "",
+            false
+        );
+
         std::ifstream json_file = open_ifstream(json);
         if (!json_file.good())
         {
@@ -847,6 +867,16 @@ namespace mamba
         }
 
         json_file.close();
+
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_context->prefix_params().target_prefix,
+            m_pkg_info,
+            "post-unlink",
+            "",
+            true
+        );
 
         fs::remove(json);
 
@@ -1167,6 +1197,16 @@ namespace mamba
         nlohmann::json index_json, out_json;
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
 
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_source,
+            m_pkg_info,
+            "pre-link",
+            "",
+            false
+        );
+
         LOG_TRACE << "Opening: " << m_source / "info" / "paths.json";
         auto paths_data = read_paths(m_source);
 
@@ -1431,6 +1471,7 @@ namespace mamba
         run_script(
             m_context->transaction_params(),
             m_context->prefix_params(),
+            m_context->prefix_params().target_prefix,
             m_pkg_info,
             "post-link",
             "",

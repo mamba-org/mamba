@@ -19,17 +19,6 @@ namespace mamba
     namespace testing
     {
 
-        template <typename Callback>
-        struct Finally
-        {
-            Callback callback;
-
-            ~Finally()
-            {
-                callback();
-            }
-        };
-
         namespace
         {
             TEST_CASE("make_virtual_package")
@@ -52,6 +41,9 @@ namespace mamba
                 using Version = specs::Version;
 
                 auto& ctx = mambatests::context();
+                mambatests::ScopedContextChange context_change{ ctx };
+                context_change.preserve(&mamba::Context::platform);
+
                 auto pkgs = detail::dist_packages(ctx.platform);
 
                 if (util::on_win)
@@ -80,11 +72,6 @@ namespace mamba
                 REQUIRE(pkgs.back().name == "__archspec");
                 REQUIRE(pkgs.back().build_string.find("x86_64") == 0);
 #endif
-
-                // This is bad design, tests should not interfere
-                // Will get rid of that when implementing context as not a singleton
-                auto restore_ctx = [&ctx, old_plat = ctx.platform]() { ctx.platform = old_plat; };
-                auto finally = Finally<decltype(restore_ctx)>{ restore_ctx };
 
                 util::set_env("CONDA_OVERRIDE_OSX", "12.1");
                 pkgs = detail::dist_packages("osx-arm");

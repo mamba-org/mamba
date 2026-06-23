@@ -14,7 +14,6 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/history.hpp"
 #include "mamba/core/util.hpp"
-#include "mamba/core/util_scope.hpp"
 
 #include "mambatests.hpp"
 
@@ -137,14 +136,12 @@ TEST_CASE(
 )
 {
     auto& ctx = mambatests::context();
-    const auto saved_target_prefix = ctx.prefix_params.target_prefix;
-    on_scope_exit restore_target_prefix{ [&]
-                                         { ctx.prefix_params.target_prefix = saved_target_prefix; } };
+    mambatests::ScopedContextChange context_change{ ctx };
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path conda_meta = tmp_dir.path() / "conda-meta";
     fs::create_directories(conda_meta);
-    ctx.prefix_params.target_prefix = tmp_dir.path();
+    context_change.set_target_prefix(tmp_dir.path());
 
     ChannelContext channel_context = ChannelContext::make_conda_compatible(ctx);
     History history(tmp_dir.path(), channel_context);

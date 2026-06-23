@@ -215,13 +215,9 @@ namespace
         const fs::u8path& cache_path
     )
     {
-        // Save original shard setting
-        const bool original_use_shards = ctx.use_sharded_repodata;
-
-        // Set shard usage
-        ctx.use_sharded_repodata = use_shards;
-
-        on_scope_exit restore_settings{ [&] { ctx.use_sharded_repodata = original_use_shards; } };
+        // Save original shard setting and restore when leaving scope.
+        mambatests::ScopedContextChange context_change{ ctx };
+        context_change.set_use_sharded_repodata(use_shards);
 
         // Create database
         libsolv::Database db{
@@ -497,19 +493,10 @@ TEST_CASE(
 )
 {
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" })
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -580,19 +567,10 @@ TEST_CASE(
 )
 {
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = { "https://prefix.dev/conda-forge" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "https://prefix.dev/conda-forge" })
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -630,19 +608,8 @@ TEST_CASE(
 )
 {
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = { "conda-forge" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "conda-forge" }).set_use_sharded_repodata(true).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -674,25 +641,17 @@ TEST_CASE(
 TEST_CASE("Sharded repodata - solve xeus-python-dev specs on emscripten", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const std::string saved_platform = ctx.platform;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.platform = saved_platform;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = {
-        "https://prefix.dev/emscripten-forge-4x",
-        "https://prefix.dev/conda-forge",
-    };
-    ctx.platform = "emscripten-wasm32";
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change
+        .set_channels(
+            {
+                "https://prefix.dev/emscripten-forge-4x",
+                "https://prefix.dev/conda-forge",
+            }
+        )
+        .set_platform("emscripten-wasm32")
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -734,25 +693,17 @@ TEST_CASE(
 {
     // Regression: cross-channel shard root expansion (noarch deps on conda-forge).
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const std::string saved_platform = ctx.platform;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.platform = saved_platform;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = {
-        "https://prefix.dev/emscripten-forge-dev",
-        "conda-forge",
-    };
-    ctx.platform = "emscripten-wasm32";
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change
+        .set_channels(
+            {
+                "https://prefix.dev/emscripten-forge-dev",
+                "conda-forge",
+            }
+        )
+        .set_platform("emscripten-wasm32")
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -823,26 +774,18 @@ TEST_CASE(
     }
 
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const std::string saved_platform = ctx.platform;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.platform = saved_platform;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = {
-        "file://" + flat_channel_dir.path().string(),
-        "https://prefix.dev/emscripten-forge-4x",
-        "conda-forge",
-    };
-    ctx.platform = "emscripten-wasm32";
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change
+        .set_channels(
+            {
+                "file://" + flat_channel_dir.path().string(),
+                "https://prefix.dev/emscripten-forge-4x",
+                "conda-forge",
+            }
+        )
+        .set_platform("emscripten-wasm32")
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -870,25 +813,17 @@ TEST_CASE(
 TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba::core][sharded][.integration]")
 {
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const std::string saved_platform = ctx.platform;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.platform = saved_platform;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = {
-        "https://repo.prefix.dev/emscripten-forge-4x",
-        "https://repo.prefix.dev/conda-forge",
-    };
-    ctx.platform = "emscripten-wasm32";
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change
+        .set_channels(
+            {
+                "https://repo.prefix.dev/emscripten-forge-4x",
+                "https://repo.prefix.dev/conda-forge",
+            }
+        )
+        .set_platform("emscripten-wasm32")
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -929,19 +864,10 @@ TEST_CASE("Sharded repodata - solve omni env specs", "[mamba::core][sharded][.in
 {
     // Non-regression for https://github.com/mamba-org/mamba/issues/4277
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = { "conda-forge", "bioconda" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "conda-forge", "bioconda" })
+        .set_use_sharded_repodata(true)
+        .set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -980,19 +906,8 @@ TEST_CASE("Sharded repodata - solve Apache Arrow sphinx env specs", "[mamba::cor
     // Non-regression for Apache Arrow docs environment:
     // https://raw.githubusercontent.com/apache/arrow/eb375a5c38b46ce96725f2f7f6376eba0e516e4f/ci/conda_env_sphinx.txt
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = { "conda-forge" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "conda-forge" }).set_use_sharded_repodata(true).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1024,19 +939,8 @@ TEST_CASE("Sharded repodata - solve issue 4274 env specs", "[mamba::core][sharde
 {
     // Non-regression for https://github.com/mamba-org/mamba/issues/4274#issue-4437049295
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                               } };
-
-    ctx.channels = { "conda-forge" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "conda-forge" }).set_use_sharded_repodata(true).set_offline(false);
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
@@ -1067,30 +971,20 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
     // Non-regression for https://gist.github.com/minrk/5fdabeb7ab8cd2c69cbc27588fed1903
     // Flow: create from @EXPLICIT lock, then solve downgrade update specs.
     auto& ctx = mambatests::context();
-    const std::vector<std::string> saved_channels = ctx.channels;
-    const bool saved_use_shards = ctx.use_sharded_repodata;
-    const bool saved_offline = ctx.offline;
-    const auto saved_target_prefix = ctx.prefix_params.target_prefix;
-    on_scope_exit restore_ctx{ [&]
-                               {
-                                   ctx.channels = saved_channels;
-                                   ctx.use_sharded_repodata = saved_use_shards;
-                                   ctx.offline = saved_offline;
-                                   ctx.prefix_params.target_prefix = saved_target_prefix;
-                               } };
-
-    ctx.channels = { "conda-forge" };
-    ctx.use_sharded_repodata = true;
-    ctx.offline = false;
+    mambatests::ScopedContextChange context_change{ ctx };
 
     const TemporaryDirectory tmp_dir;
     const fs::u8path cache_dir = tmp_dir.path() / "cache";
     const fs::u8path prefix_path = tmp_dir.path() / "minrk_env";
     fs::create_directories(cache_dir);
 
+    context_change.set_channels({ "conda-forge" })
+        .set_use_sharded_repodata(true)
+        .set_offline(false)
+        .set_target_prefix(prefix_path);
+
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     init_channels(ctx, channel_context);
-    ctx.prefix_params.target_prefix = prefix_path;
 
     const auto explicit_urls = read_explicit_urls(
         mambatests::test_data_dir / "env_file/minrk_environment.py-3.9-linux-64.lock"
@@ -1116,16 +1010,8 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
     auto solve_update_from_existing_prefix =
         [&](bool use_shards) -> std::pair<Solution, std::chrono::steady_clock::duration>
     {
-        const bool saved_mode = ctx.use_sharded_repodata;
-        const auto saved_prefix = ctx.prefix_params.target_prefix;
-        on_scope_exit restore_mode{ [&]
-                                    {
-                                        ctx.use_sharded_repodata = saved_mode;
-                                        ctx.prefix_params.target_prefix = saved_prefix;
-                                    } };
-
-        ctx.use_sharded_repodata = use_shards;
-        ctx.prefix_params.target_prefix = prefix_path;
+        mambatests::ScopedContextChange solve_context_change{ ctx };
+        solve_context_change.set_use_sharded_repodata(use_shards).set_target_prefix(prefix_path);
 
         const auto started_at = std::chrono::steady_clock::now();
         auto [db, package_caches] = prepare_solver_context(
@@ -1402,13 +1288,9 @@ TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integr
     std::vector<std::string> update_specs = { "python" };
 
     // For update, we need to create prefix data and use Update request
-    const bool original_use_shards = ctx.use_sharded_repodata;
-    const auto saved_safety_checks = ctx.validation_params.safety_checks;
-    on_scope_exit restore_ctx_update{ [&]
-                                      {
-                                          ctx.use_sharded_repodata = original_use_shards;
-                                          ctx.validation_params.safety_checks = saved_safety_checks;
-                                      } };
+    mambatests::ScopedContextChange update_context_change{ ctx };
+    update_context_change.preserve(&mamba::Context::use_sharded_repodata)
+        .preserve(&mamba::Context::validation_params);
 
     // Test traditional update
     ctx.use_sharded_repodata = false;
@@ -1518,16 +1400,8 @@ TEST_CASE("Sharded repodata - update all uses history-expanded roots", "[mamba::
 
     auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
     {
-        const bool saved_use_shards = ctx.use_sharded_repodata;
-        const auto saved_target_prefix = ctx.prefix_params.target_prefix;
-        on_scope_exit restore_ctx{ [&]
-                                   {
-                                       ctx.use_sharded_repodata = saved_use_shards;
-                                       ctx.prefix_params.target_prefix = saved_target_prefix;
-                                   } };
-
-        ctx.use_sharded_repodata = use_shards;
-        ctx.prefix_params.target_prefix = prefix_path;
+        mambatests::ScopedContextChange solve_context_change{ ctx };
+        solve_context_change.set_use_sharded_repodata(use_shards).set_target_prefix(prefix_path);
 
         auto [db, package_caches] = prepare_solver_context(
             ctx,
@@ -1625,16 +1499,8 @@ TEST_CASE("Sharded repodata - issue 4240 update-all example parity", "[mamba::co
 
     auto solve_update_all_like_api = [&](bool use_shards) -> UpdateAllSolveResult
     {
-        const bool saved_use_shards = ctx.use_sharded_repodata;
-        const auto saved_target_prefix = ctx.prefix_params.target_prefix;
-        on_scope_exit restore_ctx{ [&]
-                                   {
-                                       ctx.use_sharded_repodata = saved_use_shards;
-                                       ctx.prefix_params.target_prefix = saved_target_prefix;
-                                   } };
-
-        ctx.use_sharded_repodata = use_shards;
-        ctx.prefix_params.target_prefix = prefix_path;
+        mambatests::ScopedContextChange solve_context_change{ ctx };
+        solve_context_change.set_use_sharded_repodata(use_shards).set_target_prefix(prefix_path);
 
         auto [db, package_caches] = prepare_solver_context(
             ctx,
@@ -1747,13 +1613,9 @@ TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integr
     std::vector<std::string> remove_specs = { "numpy" };
 
     // For remove, we need to create prefix data and use Remove request
-    const bool original_use_shards = ctx.use_sharded_repodata;
-    const auto saved_safety_checks = ctx.validation_params.safety_checks;
-    on_scope_exit restore_ctx_remove{ [&]
-                                      {
-                                          ctx.use_sharded_repodata = original_use_shards;
-                                          ctx.validation_params.safety_checks = saved_safety_checks;
-                                      } };
+    mambatests::ScopedContextChange remove_context_change{ ctx };
+    remove_context_change.preserve(&mamba::Context::use_sharded_repodata)
+        .preserve(&mamba::Context::validation_params);
 
     // Test traditional remove
     ctx.use_sharded_repodata = false;

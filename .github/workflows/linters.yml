@@ -34,7 +34,7 @@ jobs:
       - name: Disk Space After Clean Up
         run: |
           df -h
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Install pre-commit and identify
         uses: mamba-org/setup-micromamba@v3
         with:

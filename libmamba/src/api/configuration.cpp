@@ -1974,7 +1974,9 @@ namespace mamba
                        }
                    )
                    .set_env_var_names()
-                   .description("Report all output as json"));
+                   .description(
+                       "Report all output as json. Implicitly bypasses prompts as if `--yes` was used."
+                   ));
 
         insert(Configurable("changeps1", &m_context.change_ps1)
                    .group("Output, Prompt and Flow Control")
@@ -2062,7 +2064,9 @@ namespace mamba
                            }
                        }
                    )
-                   .description("Set quiet mode (print less output)"));
+                   .description(
+                       "Set quiet mode (print less output). Implicitly bypasses prompts as if `--yes` was used."
+                   ));
 
         insert(Configurable("verbose", 0)
                    .group("Output, Prompt and Flow Control")

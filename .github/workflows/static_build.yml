@@ -60,7 +60,7 @@ jobs:
         run: |
           df -h
       - name: Checkout micromamba-feedstock
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: conda-forge/micromamba-feedstock
           ref: dev
@@ -71,7 +71,7 @@ jobs:
           cd micromamba-feedstock/
           sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
       - name: Checkout mamba branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: mamba
       - name: Clear mamba git directory and link source
@@ -155,7 +155,7 @@ jobs:
     name: "win-64"
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache

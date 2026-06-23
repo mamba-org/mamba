@@ -139,7 +139,7 @@ namespace mamba
 
     PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
         : m_package_info(pkg_info)
-        , m_caches(&caches, [](MultiPackageCache*) {})
+        , m_caches(&caches)
     {
         const fs::u8path extracted_cache = m_caches->get_extracted_dir_path(m_package_info);
         if (extracted_cache.empty())

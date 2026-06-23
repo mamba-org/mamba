@@ -172,7 +172,7 @@ namespace mamba::solver::libsolv
     [[nodiscard]] auto request_to_decision_queue(
         const Request& request,
         solv::ObjPool& pool,
-        solv::ObjQueue virtual_package_lock_jobs,
+        solv::ObjQueue solv_jobs,
         bool force_reinstall,
         MatchSpecParser parser
     ) -> expected_t<solv::ObjQueue>;

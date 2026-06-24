@@ -43,13 +43,12 @@ namespace mamba::testing
 
         ChannelsHookFixture()
         {
-            m_channel_alias_bu = ctx.channel_alias;
+            m_context_change.preserve(&mamba::Context::channel_alias).preserve(&mamba::Context::channels);
         }
 
         ~ChannelsHookFixture()
         {
             config.reset_configurables();
-            ctx.channel_alias = m_channel_alias_bu;
             mamba::util::unset_env("CONDA_CHANNELS");
         }
 
@@ -104,12 +103,12 @@ namespace mamba::testing
 
         mamba::Context& ctx = mambatests::context();
         mamba::Configuration config{ ctx };
+        mambatests::ScopedContextChange m_context_change{ ctx };
 
     private:
 
         std::unique_ptr<TemporaryFile> tempfile_ptr = std::make_unique<TemporaryFile>("mambarc", ".yaml");
         std::unique_ptr<TemporaryFile> envfile_ptr = std::make_unique<TemporaryFile>("env", ".yaml");
-        std::string m_channel_alias_bu;
     };
 }  // namespace mamba::testing
 

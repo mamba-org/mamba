@@ -205,8 +205,8 @@ namespace mambatests
             auto& field = m_ctx.*member;
             if (m_saved_fields.insert(static_cast<const void*>(&field)).second)
             {
-                const T initial = field;
-                m_restorers.push_back([&field, initial] { field = initial; });
+                m_restorers.push_back([&field, initial = field]() mutable
+                                      { field = std::move(initial); });
             }
             mutator(field);
         }

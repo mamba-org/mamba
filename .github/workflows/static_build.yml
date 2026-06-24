@@ -109,7 +109,7 @@ jobs:
           dockerRunArgs: -v /var/run/docker.sock:/var/run/docker.sock
           install: |
             apt-get update -y
-            apt-get install -y python3 docker.io
+            apt-get install -y python3 docker.io git
           run: |
             cd micromamba-feedstock/
             # Prevent irrelevant file permission error

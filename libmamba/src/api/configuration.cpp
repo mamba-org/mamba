@@ -915,14 +915,6 @@ namespace mamba
             }
         }
 
-        void experimental_hook(bool& value)
-        {
-            if (value)
-            {
-                LOG_WARNING << "Experimental mode enabled";
-            }
-        }
-
         // cf. https://github.com/openSUSE/libsolv/issues/562 to track corresponding issue
         void not_supported_option_hook(bool& value)
         {
@@ -1384,16 +1376,6 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Others package managers specifications"));
 
-        insert(Configurable("experimental", &m_context.experimental)
-                   .group("Basic")
-                   .description("Enable experimental features")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .long_description(unindent(R"(
-                        Enable experimental features that may be still.
-                        under active development and not stable yet.)"))
-                   .set_post_merge_hook(detail::experimental_hook));
-
         insert(Configurable("mamba_repodata_parsing", &m_context.mamba_repodata_parsing)
                    .group("Basic")
                    .description(  //
@@ -1408,7 +1390,7 @@ namespace mamba
                    .group("Basic")
                    .description(  //
                        "Enable internal parsing and matching of MatchSpecs using Mamba's experimental implementation rather than Libsolv's.\n"
-                       "This is not mean for production"
+                       "This is not meant for production"
                    )
                    .set_env_var_names());
 

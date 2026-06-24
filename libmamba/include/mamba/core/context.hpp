@@ -101,7 +101,6 @@ namespace mamba
         };
 
         // Configurable
-        bool experimental = false;
         bool mamba_repodata_parsing = true;
         bool experimental_matchspec_parsing = false;
         bool debug = false;

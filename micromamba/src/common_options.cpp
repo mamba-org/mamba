@@ -83,11 +83,6 @@ init_general_options(CLI::App* subcom, Configuration& config)
         ->add_flag("--download-only", download_only.get_cli_config<bool>(), download_only.description())
         ->group(cli_group);
 
-    auto& experimental = config.at("experimental");
-    subcom
-        ->add_flag("--experimental", experimental.get_cli_config<bool>(), experimental.description())
-        ->group(cli_group);
-
     auto& use_uv = config.at("use_uv");
     subcom->add_flag("--use-uv", use_uv.get_cli_config<bool>(), use_uv.description())->group(cli_group);
 

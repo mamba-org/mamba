@@ -57,14 +57,16 @@ namespace mamba
                 fs::create_directories(prefix / "bin");
                 auto conda_path = prefix / "bin" / "conda";
                 auto out = open_ofstream(conda_path);
-                out << "#!/bin/sh\n";
-                out << "if [ \"$1\" = \"shell.posix\" ] && [ \"$2\" = \"hook\" ]; then\n";
-                out << "  echo 'conda() { :; }'\n";  // Define conda as a no-op function
-                out << "fi\n";
+                out << R"(#!/bin/sh
+                    if [ "$1" = "shell.posix" ] && [ "$2" = "hook" ]; then
+                      # Define conda as a no-op function
+                      echo 'conda() { :; }'
+                    fi
+                    )";
                 make_executable(conda_path);
             }
 
-            const auto make_tx_context = [&]
+            const auto make_tx_context = [&](const LinkParams& link_params = {})
             {
                 TransactionParams tx_params{
                     .is_mamba_exe = false,
@@ -80,7 +82,7 @@ namespace mamba
                             .conda_prefix = prefix,
                             .relocate_prefix = prefix,
                         },
-                    .link_params = {},
+                    .link_params = link_params,
                     .threads_params = {},
                 };
 
@@ -92,11 +94,11 @@ namespace mamba
                 );
             };
 
-            std::string script_ext = util::on_win ? ".bat" : ".sh";
-            std::string pre_link_name = ".test_pkg-pre-link" + script_ext;
-            std::string post_link_name = ".test_pkg-post-link" + script_ext;
-            std::string pre_unlink_name = ".test_pkg-pre-unlink" + script_ext;
-            std::string post_unlink_name = ".test_pkg-post-unlink" + script_ext;
+            const std::string script_ext = util::on_win ? ".bat" : ".sh";
+            const std::string pre_link_name = ".test_pkg-pre-link" + script_ext;
+            const std::string post_link_name = ".test_pkg-post-link" + script_ext;
+            const std::string pre_unlink_name = ".test_pkg-pre-unlink" + script_ext;
+            const std::string post_unlink_name = ".test_pkg-post-unlink" + script_ext;
 
             auto create_script = [](const fs::u8path& p, const fs::u8path& marker_path)
             {
@@ -165,7 +167,22 @@ namespace mamba
 
                 REQUIRE(fs::exists(pre_unlink_marker));
                 // post-unlink script should not be executed as deprecated
-                REQUIRE(!fs::exists(post_unlink_marker));
+                REQUIRE_FALSE(fs::exists(post_unlink_marker));
+            }
+
+            SECTION("link scripts disabled")
+            {
+                auto tx_context = make_tx_context({ .skip_run_link_scripts = true });
+                LinkPackage link_pkg(pkg, cache_dir, &tx_context);
+                UnlinkPackage unlink_pkg(pkg, cache_dir, &tx_context);
+
+                REQUIRE(link_pkg.execute());
+                REQUIRE(unlink_pkg.execute());
+
+                REQUIRE_FALSE(fs::exists(pre_link_marker));
+                REQUIRE_FALSE(fs::exists(post_link_marker));
+                REQUIRE_FALSE(fs::exists(pre_unlink_marker));
+                REQUIRE_FALSE(fs::exists(post_unlink_marker));
             }
         }
     }

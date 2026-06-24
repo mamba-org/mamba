@@ -295,6 +295,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
     auto* remove_subcom = com->add_subcommand("remove", "Remove an environment");
     init_general_options(remove_subcom, config);
     init_prefix_options(remove_subcom, config);
+    init_link_options(remove_subcom, config);
 
     remove_subcom->callback(
         [&config]
@@ -351,6 +352,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
 
     init_general_options(update_subcom, config);
     init_prefix_options(update_subcom, config);
+    init_link_options(update_subcom, config);
 
     auto& file_specs = config.at("file_specs");
     update_subcom

@@ -19,7 +19,7 @@ namespace mamba
         {
             auto& ctx = mambatests::context();
             mambatests::ScopedContextChange context_change{ ctx };
-            context_change.preserve(&mamba::Context::graphics_params);
+            context_change.preserve(ctx.graphics_params);
 
             ctx.graphics_params.no_progress_bars = true;
             auto proxy = Console::instance().add_progress_bar("conda-forge");

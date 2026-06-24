@@ -42,7 +42,7 @@ namespace mamba
 
                 auto& ctx = mambatests::context();
                 mambatests::ScopedContextChange context_change{ ctx };
-                context_change.preserve(&mamba::Context::platform);
+                context_change.preserve(ctx.platform);
 
                 auto pkgs = detail::dist_packages(ctx.platform);
 

@@ -162,12 +162,12 @@ TEST_CASE("load_channels", "[mamba::api][channel_loader]")
     // Use test singletons so Console/progress bar are initialized (avoids SIGABRT)
     Context& ctx = mambatests::context();
     mambatests::ScopedContextChange context_change{ ctx };
-    context_change.preserve(&mamba::Context::channels)
-        .preserve(&mamba::Context::mirrored_channels)
-        .preserve(&mamba::Context::pkgs_dirs)
-        .preserve(&mamba::Context::offline)
-        .preserve(&mamba::Context::remote_fetch_params)
-        .preserve(&mamba::Context::channel_alias);
+    context_change.preserve(ctx.channels)
+        .preserve(ctx.mirrored_channels)
+        .preserve(ctx.pkgs_dirs)
+        .preserve(ctx.offline)
+        .preserve(ctx.remote_fetch_params)
+        .preserve(ctx.channel_alias);
 
     ctx.channels = {};
     ctx.mirrored_channels = {};

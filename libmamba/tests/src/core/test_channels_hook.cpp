@@ -43,7 +43,7 @@ namespace mamba::testing
 
         ChannelsHookFixture()
         {
-            m_context_change.preserve(&mamba::Context::channel_alias).preserve(&mamba::Context::channels);
+            m_context_change.preserve(ctx.channel_alias).preserve(ctx.channels);
         }
 
         ~ChannelsHookFixture()

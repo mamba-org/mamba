@@ -14,6 +14,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
@@ -126,7 +129,12 @@ namespace mambatests
         {
             for (auto& restorer : std::ranges::reverse_view(m_restorers))
             {
-                [[maybe_unused]] auto result = mamba::safe_invoke(restorer);
+                auto result = mamba::safe_invoke(restorer);
+                if (!result)
+                {
+                    INFO(result.error().what());
+                    FAIL_CHECK("ScopedContextChange restoration failed");
+                }
             }
         }
 

@@ -7,9 +7,12 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_DATABASE_HPP
 #define MAMBA_SOLVER_LIBSOLV_DATABASE_HPP
 
+#include <concepts>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string_view>
 #include <vector>
 
@@ -121,10 +124,12 @@ namespace mamba::solver::libsolv
 
         void set_installed_repo(RepoInfo repo);
 
-        template <typename Iter>
+        template <std::forward_iterator Iter>
+            requires std::same_as<std::remove_cvref_t<std::iter_value_t<Iter>>, specs::PackageInfo>
         void add_virtual_packages(const RepoInfo& repo, Iter first_package, Iter last_package);
 
-        template <typename Range>
+        template <std::ranges::forward_range Range>
+            requires std::same_as<std::remove_cvref_t<std::ranges::range_value_t<Range>>, specs::PackageInfo>
         void add_virtual_packages(const RepoInfo& repo, const Range& packages);
 
         /** Finalize repository changes after adding solvables outside @ref add_repo_from_packages.
@@ -227,7 +232,8 @@ namespace mamba::solver::libsolv
         return add_repo_from_packages(packages.begin(), packages.end(), name, add);
     }
 
-    template <typename Iter>
+    template <std::forward_iterator Iter>
+        requires std::same_as<std::remove_cvref_t<std::iter_value_t<Iter>>, specs::PackageInfo>
     void Database::add_virtual_packages(const RepoInfo& repo, Iter first_package, Iter last_package)
     {
         for (; first_package != last_package; ++first_package)
@@ -236,7 +242,8 @@ namespace mamba::solver::libsolv
         }
     }
 
-    template <typename Range>
+    template <std::ranges::forward_range Range>
+        requires std::same_as<std::remove_cvref_t<std::ranges::range_value_t<Range>>, specs::PackageInfo>
     void Database::add_virtual_packages(const RepoInfo& repo, const Range& packages)
     {
         add_virtual_packages(repo, packages.begin(), packages.end());

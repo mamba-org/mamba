@@ -2541,7 +2541,7 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
 
     cmd = ["-n", env_name, spec, "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,
@@ -2582,7 +2582,7 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
 
     cmd = ["-n", env_name, "xtensor", "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,
@@ -2618,7 +2618,7 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
 
     cmd = ["-n", env_name, "_go_select", "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,

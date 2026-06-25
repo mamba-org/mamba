@@ -172,10 +172,8 @@ namespace mamba::solver::libsolv
 
         void warn_unexpected_problem(const SolverProblem& problem)
         {
-            // TODO: Once the new error message are not experimental, we should consider
-            // reducing this level since it is not something the user has control over.
-            LOG_WARNING << "Unexpected empty optionals for problem type "
-                        << solv::enum_name(problem.type);
+            LOG_DEBUG << "Unexpected empty optionals for problem type "
+                      << solv::enum_name(problem.type);
         }
 
         class ProblemsGraphCreator

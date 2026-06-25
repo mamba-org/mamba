@@ -590,13 +590,8 @@ class TestConfigModifiers:
     def test_file_set_and_append_inputs(self, rc_file):
         # Backward test compatibility: when an empty file exists, the formatting is different
         rc_file.unlink()
-        config("set", "experimental", "true", "--file", rc_file)
         config("append", "channels", "gandalf", "--file", rc_file)
         config("append", "channels", "legolas", "--file", rc_file)
-        assert (
-            config("get", "experimental", "--file", rc_file).splitlines()
-            == "experimental: true".splitlines()
-        )
         assert config("get", "channels", "--file", rc_file).splitlines() == [
             "channels:",
             "  - gandalf",
@@ -606,25 +601,13 @@ class TestConfigModifiers:
     def test_file_set_and_prepend_inputs(self, rc_file):
         # Backward test compatibility: when an empty file exists, the formatting is different
         rc_file.unlink()
-        config("set", "experimental", "false", "--file", rc_file)
         config("prepend", "channels", "zelda", "--file", rc_file)
         config("prepend", "channels", "link", "--file", rc_file)
-        assert (
-            config("get", "experimental", "--file", rc_file).splitlines()
-            == "experimental: false".splitlines()
-        )
         assert config("get", "channels", "--file", rc_file).splitlines() == [
             "channels:",
             "  - link",
             "  - zelda",
         ]
-
-    def test_flag_env_set(self, rc_file):
-        config("set", "experimental", "false", "--env")
-        assert (
-            config("get", "experimental", "--env").splitlines()
-            == "experimental: false".splitlines()
-        )
 
     def test_flag_env_file_remove_vector(self, rc_file):
         config("prepend", "channels", "thinga-madjiga", "--env")

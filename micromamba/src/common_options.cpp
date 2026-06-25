@@ -83,11 +83,6 @@ init_general_options(CLI::App* subcom, Configuration& config)
         ->add_flag("--download-only", download_only.get_cli_config<bool>(), download_only.description())
         ->group(cli_group);
 
-    auto& experimental = config.at("experimental");
-    subcom
-        ->add_flag("--experimental", experimental.get_cli_config<bool>(), experimental.description())
-        ->group(cli_group);
-
     auto& use_uv = config.at("use_uv");
     subcom->add_flag("--use-uv", use_uv.get_cli_config<bool>(), use_uv.description())->group(cli_group);
 
@@ -470,9 +465,9 @@ init_install_options(CLI::App* subcom, Configuration& config)
         )
         ->option_text("CHANNEL1 CHANNEL2...");
 
-    auto& repo_parsing = config.at("experimental_repodata_parsing");
+    auto& repo_parsing = config.at("mamba_repodata_parsing");
     subcom->add_flag(
-        "--exp-repodata-parsing, !--no-exp-repodata-parsing",
+        "--mamba-repodata-parsing, !--no-mamba-repodata-parsing",
         repo_parsing.get_cli_config<bool>(),
         repo_parsing.description()
     );

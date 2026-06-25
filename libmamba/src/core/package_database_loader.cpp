@@ -85,7 +85,7 @@ namespace mamba
         const auto add_pip = static_cast<solver::libsolv::PipAsPythonDependency>(
             ctx.add_pip_as_python_dependency
         );
-        const auto json_parser = ctx.experimental_repodata_parsing
+        const auto json_parser = ctx.mamba_repodata_parsing
                                      ? solver::libsolv::RepodataParser::Mamba
                                      : solver::libsolv::RepodataParser::Libsolv;
 

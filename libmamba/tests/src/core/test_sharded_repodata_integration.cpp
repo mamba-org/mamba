@@ -1290,8 +1290,7 @@ TEST_CASE("Sharded repodata - update scenarios", "[mamba::core][sharded][.integr
 
     // For update, we need to create prefix data and use Update request
     mambatests::ScopedContextChange update_context_change{ ctx };
-    update_context_change.preserve(&mamba::Context::use_sharded_repodata)
-        .preserve(&mamba::Context::validation_params);
+    update_context_change.preserve(ctx.use_sharded_repodata).preserve(ctx.validation_params);
 
     // Test traditional update
     ctx.use_sharded_repodata = false;
@@ -1615,8 +1614,7 @@ TEST_CASE("Sharded repodata - remove scenarios", "[mamba::core][sharded][.integr
 
     // For remove, we need to create prefix data and use Remove request
     mambatests::ScopedContextChange remove_context_change{ ctx };
-    remove_context_change.preserve(&mamba::Context::use_sharded_repodata)
-        .preserve(&mamba::Context::validation_params);
+    remove_context_change.preserve(ctx.use_sharded_repodata).preserve(ctx.validation_params);
 
     // Test traditional remove
     ctx.use_sharded_repodata = false;

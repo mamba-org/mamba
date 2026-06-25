@@ -9,11 +9,16 @@
 
 #include <array>
 #include <functional>
+#include <ranges>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
 
+#include <catch2/catch_message.hpp>
+#include <catch2/catch_test_macros.hpp>
+
 #include "mamba/core/context.hpp"
+#include "mamba/core/invoke.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/environment.hpp"
@@ -91,8 +96,10 @@ namespace mambatests
     };
 
     // RAII helper for C++ tests that temporarily override fields on the shared Context
-    // singleton (see context()). Tests often need to point at a temp prefix, tweak channels,
-    // or flip feature flags; without restoration, later tests inherit stale state.
+    // singleton (see context()). A future improvement would be to give each test its own
+    // Context instance instead of mutating the singleton (see singletons() FIXME). Until then,
+    // tests often need to point at a temp prefix, tweak channels, or flip feature flags;
+    // without restoration, later tests inherit stale state.
     //
     // Save the value of each touched field on first use and restore it when the guard is
     // destroyed. Repeated calls to the same setter only change the live value — the original
@@ -107,7 +114,7 @@ namespace mambatests
     //   mambatests::ScopedContextChange context_change{ ctx };
     //   context_change.set_channels({ "conda-forge" }).set_offline(false);
     //
-    //   context_change.preserve(&mamba::Context::use_sharded_repodata);
+    //   context_change.preserve(ctx.use_sharded_repodata);
     //   ctx.use_sharded_repodata = false;  // restored to the pre-preserve value at scope end
     class ScopedContextChange
     {
@@ -120,73 +127,74 @@ namespace mambatests
 
         ~ScopedContextChange()
         {
-            for (auto it = m_restorers.rbegin(); it != m_restorers.rend(); ++it)
+            for (auto& restorer : std::ranges::reverse_view(m_restorers))
             {
-                (*it)();
+                auto result = mamba::safe_invoke(restorer);
+                if (!result)
+                {
+                    INFO(result.error().what());
+                    FAIL_CHECK("ScopedContextChange restoration failed");
+                }
             }
         }
 
         ScopedContextChange& set_target_prefix(const mamba::fs::u8path& prefix)
         {
-            touch(
-                &mamba::Context::prefix_params,
-                [&](auto& params) { params.target_prefix = prefix; }
-            );
+            touch(m_ctx.prefix_params, [&](auto& params) { params.target_prefix = prefix; });
             return *this;
         }
 
         ScopedContextChange& set_root_prefix(const mamba::fs::u8path& prefix)
         {
-            touch(&mamba::Context::prefix_params, [&](auto& params) { params.root_prefix = prefix; });
+            touch(m_ctx.prefix_params, [&](auto& params) { params.root_prefix = prefix; });
             return *this;
         }
 
         ScopedContextChange& set_envs_dirs(std::vector<mamba::fs::u8path> dirs)
         {
-            touch(&mamba::Context::envs_dirs, [&](auto& field) { field = std::move(dirs); });
+            touch(m_ctx.envs_dirs, [&](auto& field) { field = std::move(dirs); });
             return *this;
         }
 
         ScopedContextChange& set_pkgs_dirs(std::vector<mamba::fs::u8path> dirs)
         {
-            touch(&mamba::Context::pkgs_dirs, [&](auto& field) { field = std::move(dirs); });
+            touch(m_ctx.pkgs_dirs, [&](auto& field) { field = std::move(dirs); });
             return *this;
         }
 
         ScopedContextChange& set_prefix_data_interoperability(bool value)
         {
-            touch(&mamba::Context::prefix_data_interoperability, [&](auto& field) { field = value; });
+            touch(m_ctx.prefix_data_interoperability, [&](auto& field) { field = value; });
             return *this;
         }
 
         ScopedContextChange& set_channels(std::vector<std::string> channels)
         {
-            touch(&mamba::Context::channels, [&](auto& field) { field = std::move(channels); });
+            touch(m_ctx.channels, [&](auto& field) { field = std::move(channels); });
             return *this;
         }
 
         ScopedContextChange& set_use_sharded_repodata(bool value)
         {
-            touch(&mamba::Context::use_sharded_repodata, [&](auto& field) { field = value; });
+            touch(m_ctx.use_sharded_repodata, [&](auto& field) { field = value; });
             return *this;
         }
 
         ScopedContextChange& set_offline(bool value)
         {
-            touch(&mamba::Context::offline, [&](auto& field) { field = value; });
+            touch(m_ctx.offline, [&](auto& field) { field = value; });
             return *this;
         }
 
         ScopedContextChange& set_platform(std::string platform)
         {
-            touch(&mamba::Context::platform, [&](auto& field) { field = std::move(platform); });
+            touch(m_ctx.platform, [&](auto& field) { field = std::move(platform); });
             return *this;
         }
 
-        // Snapshot member for restoration without assigning a new value. The member pointer
-        // syntax (e.g. &mamba::Context::platform) selects which Context field to guard.
+        // Snapshot member for restoration without assigning a new value.
         template <typename T>
-        ScopedContextChange& preserve(T mamba::Context::* member)
+        ScopedContextChange& preserve(T& member)
         {
             touch(member, [](auto&) {});
             return *this;
@@ -200,15 +208,14 @@ namespace mambatests
     private:
 
         template <typename T, typename F>
-        void touch(T mamba::Context::* member, F&& mutator)
+        void touch(T& member, F&& mutator)
         {
-            auto& field = m_ctx.*member;
-            if (m_saved_fields.insert(static_cast<const void*>(&field)).second)
+            if (m_saved_fields.insert(static_cast<const void*>(&member)).second)
             {
-                m_restorers.push_back([&field, initial = field]() mutable
-                                      { field = std::move(initial); });
+                m_restorers.push_back([&member, initial = member]() mutable
+                                      { member = std::move(initial); });
             }
-            mutator(field);
+            std::invoke(std::forward<F>(mutator), member);
         }
 
         mamba::Context& m_ctx;

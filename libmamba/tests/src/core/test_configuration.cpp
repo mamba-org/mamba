@@ -39,8 +39,7 @@ namespace mamba
 
             Configuration()
             {
-                m_context_change.preserve(&mamba::Context::channel_alias)
-                    .preserve(&mamba::Context::remote_fetch_params);
+                m_context_change.preserve(ctx.channel_alias).preserve(ctx.remote_fetch_params);
             }
 
             ~Configuration()
@@ -865,7 +864,7 @@ namespace mamba
             TEST_CASE_METHOD(Configuration, "platform")
             {
                 mambatests::ScopedContextChange context_change{ ctx };
-                context_change.preserve(&mamba::Context::platform);
+                context_change.preserve(ctx.platform);
 
                 REQUIRE(ctx.platform == ctx.host_platform);
 

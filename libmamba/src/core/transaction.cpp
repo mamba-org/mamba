@@ -1555,16 +1555,14 @@ namespace mamba
             conda_package_set.end()
         );
 
-        std::vector<specs::PackageInfo> pip_packages(pip_package_set.begin(), pip_package_set.end());
-
         // extract pip packages
-        if (!pip_packages.empty())
+        if (!pip_package_set.empty())
         {
             std::vector<std::string> pip_specs = {};
-            pip_specs.reserve(pip_packages.size());
+            pip_specs.reserve(pip_package_set.size());
             std::transform(
-                pip_packages.cbegin(),
-                pip_packages.cend(),
+                pip_package_set.cbegin(),
+                pip_package_set.cend(),
                 std::back_inserter(pip_specs),
                 [](const specs::PackageInfo& pkg)
                 { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.package_url, pkg.sha256); }
@@ -1575,7 +1573,7 @@ namespace mamba
         }
 
 
-        for (const auto& package : pip_packages)
+        for (const auto& package : pip_package_set)
         {
             LOG_DEBUG << "pip package to install: " << package.name;
         }

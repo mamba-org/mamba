@@ -11,6 +11,7 @@
 #include <set>
 #include <stack>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -1519,19 +1520,15 @@ namespace mamba
 
         // TODO: FIXME: inject channel info coming from the lockfile!
 
-        std::vector<specs::PackageInfo> conda_packages = {};
-        std::vector<specs::PackageInfo> pip_packages = {};
+        std::unordered_set<specs::PackageInfo> conda_package_set;
+        std::unordered_set<specs::PackageInfo> pip_package_set;
 
         for (const auto& category : categories)
         {
             std::vector<specs::PackageInfo> selected_packages = lockfile_data.get_packages_for(
                 { .category = category, .platform = ctx.platform, .manager = "conda" }
             );
-            std::copy(
-                selected_packages.begin(),
-                selected_packages.end(),
-                std::back_inserter(conda_packages)
-            );
+            conda_package_set.insert(selected_packages.begin(), selected_packages.end());
 
             if (selected_packages.empty())
             {
@@ -1550,12 +1547,15 @@ namespace mamba
                   //       specified we filter to the current platform.
                   .allow_no_platform = true }
             );
-            std::copy(
-                selected_packages.begin(),
-                selected_packages.end(),
-                std::back_inserter(pip_packages)
-            );
+            pip_package_set.insert(selected_packages.begin(), selected_packages.end());
         }
+
+        std::vector<specs::PackageInfo> conda_packages(
+            conda_package_set.begin(),
+            conda_package_set.end()
+        );
+
+        std::vector<specs::PackageInfo> pip_packages(pip_package_set.begin(), pip_package_set.end());
 
         // extract pip packages
         if (!pip_packages.empty())

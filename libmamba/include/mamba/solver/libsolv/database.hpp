@@ -7,10 +7,14 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_DATABASE_HPP
 #define MAMBA_SOLVER_LIBSOLV_DATABASE_HPP
 
+#include <concepts>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string_view>
+#include <vector>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
@@ -22,6 +26,7 @@
 namespace solv
 {
     class ObjPool;
+    class ObjQueue;
 }
 
 namespace mamba
@@ -119,6 +124,25 @@ namespace mamba::solver::libsolv
 
         void set_installed_repo(RepoInfo repo);
 
+        template <std::forward_iterator Iter>
+            requires std::same_as<std::remove_cvref_t<std::iter_value_t<Iter>>, specs::PackageInfo>
+        void add_virtual_packages(const RepoInfo& repo, Iter first_package, Iter last_package);
+
+        template <std::ranges::forward_range Range>
+            requires std::same_as<std::remove_cvref_t<std::ranges::range_value_t<Range>>, specs::PackageInfo>
+        void add_virtual_packages(const RepoInfo& repo, const Range& packages);
+
+        /** Finalize repository changes after adding solvables outside @ref add_repo_from_packages.
+         */
+        void internalize_repo(const RepoInfo& repo);
+
+        /** Forget solver jobs from @ref add_virtual_packages, e.g. before reloading installed
+         * packages. */
+        void clear_virtual_package_lock_jobs();
+
+        /** Solver jobs recorded by @ref add_virtual_packages. */
+        [[nodiscard]] auto virtual_package_lock_jobs() const -> const solv::ObjQueue&;
+
         void set_repo_priority(RepoInfo repo, Priorities priorities);
 
         void remove_repo(RepoInfo repo);
@@ -164,6 +188,7 @@ namespace mamba::solver::libsolv
         auto add_repo_from_packages_impl_pre(std::string_view name) -> RepoInfo;
         void add_repo_from_packages_impl_loop(const RepoInfo& repo, const specs::PackageInfo& pkg);
         void add_repo_from_packages_impl_post(const RepoInfo& repo, PipAsPythonDependency add);
+        void add_virtual_package_impl(const RepoInfo& repo, const specs::PackageInfo& pkg);
 
         enum class PackageId : int;
 
@@ -205,6 +230,23 @@ namespace mamba::solver::libsolv
         -> RepoInfo
     {
         return add_repo_from_packages(packages.begin(), packages.end(), name, add);
+    }
+
+    template <std::forward_iterator Iter>
+        requires std::same_as<std::remove_cvref_t<std::iter_value_t<Iter>>, specs::PackageInfo>
+    void Database::add_virtual_packages(const RepoInfo& repo, Iter first_package, Iter last_package)
+    {
+        for (; first_package != last_package; ++first_package)
+        {
+            add_virtual_package_impl(repo, *first_package);
+        }
+    }
+
+    template <std::ranges::forward_range Range>
+        requires std::same_as<std::remove_cvref_t<std::ranges::range_value_t<Range>>, specs::PackageInfo>
+    void Database::add_virtual_packages(const RepoInfo& repo, const Range& packages)
+    {
+        add_virtual_packages(repo, packages.begin(), packages.end());
     }
 
     // TODO(C++20): Use ranges::transform

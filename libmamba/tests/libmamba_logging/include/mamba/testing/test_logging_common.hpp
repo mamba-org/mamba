@@ -11,7 +11,7 @@
 #include <vector>
 
 #include <catch2/catch_all.hpp>
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <fmt/std.h>
 
 #include <mamba/core/logging.hpp>

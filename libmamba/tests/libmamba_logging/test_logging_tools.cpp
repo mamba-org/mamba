@@ -9,7 +9,7 @@
 #include <string>
 
 #include <catch2/catch_all.hpp>
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <mamba/core/logging_tools.hpp>
 #include <mamba/testing/test_logging_common.hpp>

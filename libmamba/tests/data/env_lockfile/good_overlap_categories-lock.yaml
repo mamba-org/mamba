@@ -1,0 +1,94 @@
+version: 1
+metadata:
+  content_hash:
+    linux-64: df674ed55f81a1c751a6c1777786882528055c0ccbbd093c6262e435ab7306ad
+  channels:
+    - url: conda-forge
+      used_env_vars: []
+  platforms:
+    - linux-64
+  sources:
+    - myenv.yml
+package:
+  # conda: pkg_a is in both foo and bar → should be deduped
+  - name: pkg_a
+    version: "1.0"
+    manager: conda
+    platform: linux-64
+    dependencies: {}
+    url: https://example.com/pkg-a-1.0-0.tar.bz2
+    hash:
+      md5: a9f577daf3de00bca7c3c76c0ecbd1de
+      sha256: 1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb3c9
+    category: foo
+    optional: true
+  - name: pkg_a
+    version: "1.0"
+    manager: conda
+    platform: linux-64
+    dependencies: {}
+    url: https://example.com/pkg-a-1.0-0.tar.bz2
+    hash:
+      md5: a9f577daf3de00bca7c3c76c0ecbd1de
+      sha256: 1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb3c9
+    category: bar
+    optional: true
+  # conda: pkg_b is only in bar
+  - name: pkg_b
+    version: "2.0"
+    manager: conda
+    platform: linux-64
+    dependencies: {}
+    url: https://example.com/pkg-b-2.0-0.tar.bz2
+    hash:
+      md5: a9f577daf3de00bca7c3c76c0ecbd1df
+      sha256: 1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb3c5
+    category: bar
+    optional: true
+  # pip: pip_a is in both foo and bar → should be deduped
+  - name: pip_a
+    version: "1.0.0"
+    manager: pip
+    platform: linux-64
+    dependencies: {}
+    url: https://example.com/pip_a-1.0.0-py3-none-any.whl
+    hash:
+      md5: a9f577daf3de00bca7c3c76c0ecbd2e3
+      sha256: 1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb7d5
+    category: foo
+    optional: true
+  - name: pip_a
+    version: "1.0.0"
+    manager: pip
+    platform: linux-64
+    dependencies: {}
+    url: https://example.com/pip_a-1.0.0-py3-none-any.whl
+    hash:
+      md5: a9f577daf3de00bca7c3c76c0ecbd2e3
+      sha256: 1dd3fffd892081df9726d7eb7e0dea6198962ba775bd88842135a4ddb4deb7d5
+    category: bar
+    optional: true
+  # pip: pip_b is only in bar
+  - name: pip_b
+    version: "2.0.0"
+    manager: pip
+    platform: linux-64
+    dependencies: {}
+    url: https://example.com/pip_b-2.0.0-py3-none-any.whl
+    hash:
+      md5: a9f577daf3de00bca7c3c76c06cbd2e3
+      sha256: 1dd3fffd892081df9726d7eb7e0dea6198962ba775b888842135a4ddb4deb7d5
+    category: bar
+    optional: true
+  # pip: pip_c is only in bar
+  - name: pip_c
+    version: "3.0.0"
+    manager: pip
+    platform: linux-64
+    dependencies: {}
+    url: https://example.com/pip_c-3.0.0-py3-none-any.whl
+    hash:
+      md5: a9f577daf3de00bca7c3c76c07cbd2e3
+      sha256: 1dd3fffd892081df9726d7eb7e0dea6198962bf775b888842135a4ddb4deb7d5
+    category: bar
+    optional: true

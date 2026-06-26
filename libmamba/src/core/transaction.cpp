@@ -1550,11 +1550,6 @@ namespace mamba
             pip_package_set.insert(selected_packages.begin(), selected_packages.end());
         }
 
-        std::vector<specs::PackageInfo> conda_packages(
-            conda_package_set.begin(),
-            conda_package_set.end()
-        );
-
         // extract pip packages
         if (!pip_package_set.empty())
         {
@@ -1577,6 +1572,11 @@ namespace mamba
         {
             LOG_DEBUG << "pip package to install: " << package.name;
         }
+
+        std::vector<specs::PackageInfo> conda_packages(
+            conda_package_set.begin(),
+            conda_package_set.end()
+        );
 
         return MTransaction{ ctx, database, std::move(conda_packages), package_caches };
     }

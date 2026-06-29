@@ -302,7 +302,7 @@ namespace mamba
     MTransaction::MTransaction(
         const Context& ctx,
         solver::libsolv::Database& database,
-        std::vector<specs::PackageInfo> packages,
+        std::unordered_set<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
         : MTransaction(ctx.command_params, caches)
@@ -325,12 +325,11 @@ namespace mamba
         );
 
         m_solution.actions.reserve(packages.size());
-        std::transform(
-            std::move_iterator(packages.begin()),
-            std::move_iterator(packages.end()),
-            std::back_insert_iterator(m_solution.actions),
-            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
-        );
+        for (auto it = packages.begin(); it != packages.end();)
+        {
+            auto node = packages.extract(it++);
+            m_solution.actions.emplace_back(solver::Solution::Install{ std::move(node.value()) });
+        }
 
         std::tie(
             m_py_versions,
@@ -1573,12 +1572,7 @@ namespace mamba
             LOG_DEBUG << "pip package to install: " << package.name;
         }
 
-        std::vector<specs::PackageInfo> conda_packages(
-            conda_package_set.begin(),
-            conda_package_set.end()
-        );
-
-        return MTransaction{ ctx, database, std::move(conda_packages), package_caches };
+        return MTransaction{ ctx, database, std::move(conda_package_set), package_caches };
     }
 
 }  // namespace mamba

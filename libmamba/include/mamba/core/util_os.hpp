@@ -38,7 +38,30 @@ namespace mamba
 #endif
 
     void run_as_admin(const std::string& args);
+
+#ifdef _WIN32
     bool enable_long_paths_support(bool force, Palette palette = Palette::no_color());
+
+    /**
+     * Return whether the current process can use paths longer than MAX_PATH.
+     *
+     * Requires Windows 10 version 1607 or later, ``LongPathsEnabled`` in the registry, and a
+     * ``longPathAware`` application manifest. See Microsoft's documentation:
+     * https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry#enable-long-paths-in-windows-10-version-1607-and-later
+     */
+    [[nodiscard]] auto are_long_paths_enabled() -> bool;
+
+    /**
+     * Human-readable hint when long paths are disabled; empty string otherwise.
+     */
+    [[nodiscard]] auto format_long_paths_support_diagnostic() -> std::string;
+
+    /**
+     * Log a long-path diagnostic when @p error is a path-length related filesystem error and long
+     * paths are disabled.
+     */
+    void log_long_paths_support_hint_if_relevant(const std::exception& error);
+#endif
 
     void init_console();
     void reset_console();

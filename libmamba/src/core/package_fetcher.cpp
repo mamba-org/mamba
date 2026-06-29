@@ -10,6 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
@@ -371,6 +372,9 @@ namespace mamba
             {
                 Console::instance().print(filename() + " extraction failed");
                 LOG_ERROR << "Error when extracting package: " << e.what();
+#ifdef _WIN32
+                log_long_paths_support_hint_if_relevant(e);
+#endif
                 update_monitor(cb, PackageExtractEvent::extract_failure);
                 return false;
             }

@@ -11,9 +11,7 @@
 #include <set>
 #include <stack>
 #include <string>
-#include <unordered_set>
 #include <utility>
-#include <vector>
 
 #include <fmt/color.h>
 #include <fmt/format.h>

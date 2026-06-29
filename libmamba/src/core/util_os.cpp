@@ -36,6 +36,7 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/os_win.hpp"
@@ -149,6 +150,178 @@ namespace mamba
     }
 
 #ifdef _WIN32
+    namespace
+    {
+        // https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+        static constexpr std::string_view k_windows_long_paths_doc_url = "https://learn.microsoft.com/en-us/windows/win32/fileio/"
+                                                                         "maximum-file-path-limitation?tabs=registry"
+                                                                         "#enable-long-paths-in-windows-10-version-1607-and-later";
+
+        static constexpr wchar_t k_file_system_registry_path[] = L"SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+        static constexpr std::string_view k_file_system_registry_subkey = "SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+
+        struct LongPathsSupportInfo
+        {
+            bool enabled = false;
+            bool os_supports = false;
+            bool registry_enabled = false;
+            bool process_long_path_aware = false;
+        };
+
+        auto windows_supports_long_paths_registry() -> bool
+        {
+            const auto win_ver = util::windows_version();
+            if (!win_ver.has_value())
+            {
+                return false;
+            }
+
+            const auto split_out = util::split(win_ver.value(), ".");
+            return split_out.size() >= 3 && std::stoull(split_out[0]) >= 10
+                   && std::stoull(split_out[2]) >= 14352;
+        }
+
+        auto read_long_paths_registry_enabled() -> bool
+        {
+            winreg::RegKey key;
+            key.Open(HKEY_LOCAL_MACHINE, k_file_system_registry_path, KEY_QUERY_VALUE);
+            return key.GetDwordValue(L"LongPathsEnabled") == 1;
+        }
+
+        auto is_process_long_path_aware() -> bool
+        {
+            const auto kernel32 = ::GetModuleHandleW(L"kernel32.dll");
+            if (kernel32 == nullptr)
+            {
+                return false;
+            }
+
+            using AreLongPathsEnabledFn = BOOL(WINAPI*)();
+            const auto are_long_paths_enabled = reinterpret_cast<AreLongPathsEnabledFn>(
+                ::GetProcAddress(kernel32, "AreLongPathsEnabled")
+            );
+            if (are_long_paths_enabled == nullptr)
+            {
+                return false;
+            }
+            return are_long_paths_enabled() != FALSE;
+        }
+
+        auto query_long_paths_support() -> LongPathsSupportInfo
+        {
+            LongPathsSupportInfo info;
+            info.os_supports = windows_supports_long_paths_registry();
+            if (!info.os_supports)
+            {
+                return info;
+            }
+
+            try
+            {
+                info.registry_enabled = read_long_paths_registry_enabled();
+            }
+            catch (const winreg::RegException&)
+            {
+                return info;
+            }
+
+            if (info.registry_enabled)
+            {
+                info.process_long_path_aware = is_process_long_path_aware();
+            }
+
+            info.enabled = info.process_long_path_aware;
+            return info;
+        }
+
+        auto make_long_paths_support_diagnostic(const LongPathsSupportInfo& info) -> std::string
+        {
+            if (info.enabled)
+            {
+                return {};
+            }
+
+            if (!info.os_supports)
+            {
+                return fmt::format(
+                    "Windows long path support requires Windows 10 version 1607 (build 14352) or newer. "
+                    "See {}",
+                    k_windows_long_paths_doc_url
+                );
+            }
+
+            if (!info.registry_enabled)
+            {
+                return fmt::format(
+                    "Windows long path support is disabled at the OS level "
+                    "(LongPathsEnabled registry key). "
+                    "Run 'micromamba shell enable_long_path_support' or follow Microsoft's guide: {}",
+                    k_windows_long_paths_doc_url
+                );
+            }
+
+            if (!info.process_long_path_aware)
+            {
+                return fmt::format(
+                    "This executable is not long-path aware (missing longPathAware in the "
+                    "application manifest). Use an official micromamba build or embed "
+                    "longpath.manifest in your application. See {}",
+                    k_windows_long_paths_doc_url
+                );
+            }
+
+            return fmt::format(
+                "Windows long path support appears to be disabled. See {}",
+                k_windows_long_paths_doc_url
+            );
+        }
+
+        auto is_path_length_related_error(const std::error_code& ec) -> bool
+        {
+            // ERROR_FILENAME_EXCEED_RANGE; see
+            // https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+#ifndef ERROR_FILENAME_EXCEED_RANGE
+#define ERROR_FILENAME_EXCEED_RANGE 206
+#endif
+            return ec.category() == std::system_category()
+                   && ec.value() == static_cast<int>(ERROR_FILENAME_EXCEED_RANGE);
+        }
+
+        auto is_path_length_related_error(const std::exception& error) -> bool
+        {
+            const auto* fs_error = dynamic_cast<const fs::filesystem_error*>(&error);
+            if (fs_error == nullptr)
+            {
+                return false;
+            }
+            return is_path_length_related_error(fs_error->code());
+        }
+    }
+
+    auto are_long_paths_enabled() -> bool
+    {
+        return query_long_paths_support().enabled;
+    }
+
+    auto format_long_paths_support_diagnostic() -> std::string
+    {
+        return make_long_paths_support_diagnostic(query_long_paths_support());
+    }
+
+    void log_long_paths_support_hint_if_relevant(const std::exception& error)
+    {
+        if (!is_path_length_related_error(error))
+        {
+            return;
+        }
+
+        const auto hint = format_long_paths_support_diagnostic();
+        if (!hint.empty())
+        {
+            LOG_WARNING << "This error may be caused by disabled Windows long path support. " << hint;
+        }
+    }
+
     bool run_as_admin(const std::string& exe, const std::string& args)
     {
         SHELLEXECUTEINFO excinfo;
@@ -188,6 +361,25 @@ namespace mamba
     bool enable_long_paths_support(bool force, Palette palette)
     {
         // Needs to be set system-wide & can only be run as admin ...
+        const auto status = query_long_paths_support();
+        if (status.enabled)
+        {
+            const auto win_ver = util::windows_version();
+            auto out = Console::stream();
+            fmt::print(
+                out,
+                "{} (Windows version = {})",
+                fmt::styled("Windows long-path support already enabled.", palette.ignored),
+                win_ver ? win_ver.value() : "unknown"
+            );
+            return true;
+        }
+
+        if (status.registry_enabled && !status.process_long_path_aware)
+        {
+            LOG_WARNING << make_long_paths_support_diagnostic(status);
+            return false;
+        }
 
         const auto win_ver = util::windows_version();
         LOG_DEBUG << fmt::format(
@@ -198,54 +390,27 @@ namespace mamba
         static constexpr auto error_message_wrong_version = "Not setting long path registry key;"
                                                             "Windows version must be at least 10 with the fall 2016 \"Anniversary update\" or newer.";
 
-        if (!win_ver.has_value())
+        if (!status.os_supports)
         {
-            LOG_WARNING << "failed to acquire Windows version - " << error_message_wrong_version;
+            LOG_WARNING << "Windows version found:" << (win_ver ? win_ver.value() : "unknown")
+                        << " - " << error_message_wrong_version;
             return false;
         }
 
-
-        auto split_out = util::split(win_ver.value(), ".");
-        if (!(split_out.size() >= 3 && std::stoull(split_out[0]) >= 10
-              && std::stoull(split_out[2]) >= 14352))
-        {
-            LOG_WARNING << "Windows version found:" << win_ver.value() << " - "
-                        << error_message_wrong_version;
-            return false;
-        }
-
-        winreg::RegKey key;
-        key.Open(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", KEY_QUERY_VALUE);
-        DWORD prev_value;
         try
         {
-            prev_value = key.GetDwordValue(L"LongPathsEnabled");
+            [[maybe_unused]] const bool long_paths_registry_readable = read_long_paths_registry_enabled();
         }
         catch (const winreg::RegException& /*e*/)
         {
-            LOG_INFO << "No LongPathsEnabled key detected. (Windows version = " << win_ver.value()
-                     << ")";
+            LOG_INFO << "No LongPathsEnabled key detected. (Windows version = "
+                     << (win_ver ? win_ver.value() : "unknown") << ")";
             return false;
-        }
-
-        if (prev_value == 1)
-        {
-            auto out = Console::stream();
-            fmt::print(
-                out,
-                "{} (Windows version = {})",
-                fmt::styled("Windows long-path support already enabled.", palette.ignored),
-                win_ver.value()
-            );
-            return true;
         }
 
         if (force || is_admin())
         {
-            winreg::RegKey key_for_write(
-                HKEY_LOCAL_MACHINE,
-                L"SYSTEM\\CurrentControlSet\\Control\\FileSystem"
-            );
+            winreg::RegKey key_for_write(HKEY_LOCAL_MACHINE, k_file_system_registry_path);
             key_for_write.SetDwordValue(L"LongPathsEnabled", 1);
         }
         else
@@ -254,7 +419,10 @@ namespace mamba
             {
                 if (!run_as_admin(
                         "reg.exe",
-                        "ADD HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /d 1 /t REG_DWORD /f"
+                        fmt::format(
+                            "ADD HKEY_LOCAL_MACHINE\\{} /v LongPathsEnabled /d 1 /t REG_DWORD /f",
+                            k_file_system_registry_subkey
+                        )
                     ))
                 {
                     return false;
@@ -267,8 +435,7 @@ namespace mamba
             }
         }
 
-        prev_value = key.GetDwordValue(L"LongPathsEnabled");
-        if (prev_value == 1)
+        if (read_long_paths_registry_enabled())
         {
             auto out = Console::stream();
             fmt::print(out, "{}", fmt::styled("Windows long-path support enabled.", palette.success));

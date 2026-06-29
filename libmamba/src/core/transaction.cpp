@@ -31,6 +31,7 @@
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -467,6 +468,25 @@ namespace mamba
             {
                 LOG_ERROR << "Unexpected error while " << phase << " package '" << pkg.name
                           << "': " << e.what();
+#ifdef _WIN32
+                if (phase == "linking" || phase == "unlinking")
+                {
+                    if (!are_long_paths_enabled())
+                    {
+                        LOG_WARNING << "Windows long path support is disabled, which can cause "
+                                    << phase << " failures with deep cache or prefix paths. "
+                                    << format_long_paths_support_diagnostic();
+                    }
+                    else
+                    {
+                        log_long_paths_support_hint_if_relevant(e);
+                    }
+                }
+                else
+                {
+                    log_long_paths_support_hint_if_relevant(e);
+                }
+#endif
                 rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, phase, e);
             }
             catch (...)

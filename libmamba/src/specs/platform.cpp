@@ -38,7 +38,8 @@ namespace mamba::specs
                || (plat == KnownPlatform::linux_ppc64)    //
                || (plat == KnownPlatform::linux_s390x)    //
                || (plat == KnownPlatform::linux_riscv32)  //
-               || (plat == KnownPlatform::linux_riscv64);
+               || (plat == KnownPlatform::linux_riscv64)  //
+               || (plat == KnownPlatform::linux_loongarch64);
     }
 
     auto platform_is_linux(DynamicPlatform plat) -> bool
@@ -119,6 +120,8 @@ namespace mamba::specs
         return KnownPlatform::linux_riscv32;
 #elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 64)
         return KnownPlatform::linux_riscv64;
+#elif defined(__loongarch64)
+        return KnownPlatform::linux_loongarch64;
 #else
 #error "Unknown Linux platform"
 #endif

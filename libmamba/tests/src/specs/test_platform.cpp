@@ -17,6 +17,7 @@ namespace
         SECTION("name")
         {
             REQUIRE(platform_name(KnownPlatform::linux_riscv32) == "linux-riscv32");
+            REQUIRE(platform_name(KnownPlatform::linux_loongarch64) == "linux-loongarch64");
             REQUIRE(platform_name(KnownPlatform::osx_arm64) == "osx-arm64");
             REQUIRE(platform_name(KnownPlatform::win_64) == "win-64");
         }
@@ -24,6 +25,7 @@ namespace
         SECTION("parse")
         {
             REQUIRE(platform_parse("linux-armv6l") == KnownPlatform::linux_armv6l);
+            REQUIRE(platform_parse("linux-loongarch64") == KnownPlatform::linux_loongarch64);
             REQUIRE(platform_parse(" win-32 ") == KnownPlatform::win_32);
             REQUIRE(platform_parse(" OSX-64") == KnownPlatform::osx_64);
             REQUIRE(platform_parse("linus-46") == std::nullopt);
@@ -32,10 +34,11 @@ namespace
         SECTION("known_platform")
         {
             static constexpr decltype(known_platform_names()) expected{
-                "noarch",        "linux-32",      "linux-64",    "linux-armv6l", "linux-armv7l",
-                "linux-aarch64", "linux-ppc64le", "linux-ppc64", "linux-s390x",  "linux-riscv32",
-                "linux-riscv64", "osx-64",        "osx-arm64",   "win-32",       "win-64",
-                "win-arm64",     "zos-z",
+                "noarch",       "linux-32",      "linux-64",      "linux-armv6l",
+                "linux-armv7l", "linux-aarch64", "linux-ppc64le", "linux-ppc64",
+                "linux-s390x",  "linux-riscv32", "linux-riscv64", "linux-loongarch64",
+                "osx-64",       "osx-arm64",     "win-32",        "win-64",
+                "win-arm64",    "zos-z",
 
             };
             REQUIRE(expected == known_platform_names());

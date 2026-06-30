@@ -35,6 +35,7 @@ namespace mamba::specs
         linux_s390x,
         linux_riscv32,
         linux_riscv64,
+        linux_loongarch64,
         osx_64,
         osx_arm64,
         win_32,
@@ -190,6 +191,8 @@ namespace mamba::specs
                 return "linux-riscv32";
             case KnownPlatform::linux_riscv64:
                 return "linux-riscv64";
+            case KnownPlatform::linux_loongarch64:
+                return "linux-loongarch64";
             case KnownPlatform::osx_64:
                 return "osx-64";
             case KnownPlatform::osx_arm64:

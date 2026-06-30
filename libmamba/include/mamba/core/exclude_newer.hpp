@@ -7,6 +7,7 @@
 #ifndef MAMBA_CORE_EXCLUDE_NEWER_HPP
 #define MAMBA_CORE_EXCLUDE_NEWER_HPP
 
+#include <chrono>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -127,6 +128,19 @@ namespace mamba
      */
     [[nodiscard]] auto resolve_exclude_newer_cutoff(std::string_view value, std::uint64_t now_seconds)
         -> std::optional<std::uint64_t>;
+
+    namespace detail
+    {
+        /**
+         * Parse an ISO 8601 duration (``P…Y…M…W…DT…H…M…S``) to seconds.
+         *
+         * Returns ``std::nullopt`` when ``value`` is not an ISO 8601 duration.
+         *
+         * @throws std::invalid_argument when the value starts with ``P`` but has no components.
+         */
+        [[nodiscard]] auto parse_iso8601_duration_seconds(std::string_view value)
+            -> std::optional<std::chrono::seconds>;
+    }
 
 }  // namespace mamba
 

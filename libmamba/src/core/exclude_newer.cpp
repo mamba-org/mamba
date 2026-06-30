@@ -8,6 +8,7 @@
 #include <charconv>
 #include <chrono>
 #include <optional>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -169,83 +170,6 @@ namespace mamba
         }
 
         /**
-         * Parse an ISO 8601 duration such as ``P7D`` or ``P1DT12H``.
-         *
-         * @throws std::invalid_argument when the value starts with ``P`` but has no components.
-         */
-        [[nodiscard]] auto parse_iso8601_duration_seconds(std::string_view value)
-            -> std::optional<std::chrono::seconds>
-        {
-            if (value.empty() || std::tolower(static_cast<unsigned char>(value.front())) != 'p')
-            {
-                return std::nullopt;
-            }
-
-            auto remaining = value.substr(1);
-            std::uint64_t total = 0;
-            bool has_component = false;
-
-            const auto consume_if_unit = [&](char unit, std::uint64_t multiplier) -> bool
-            {
-                std::size_t digits = 0;
-                while (digits < remaining.size()
-                       && std::isdigit(static_cast<unsigned char>(remaining[digits])))
-                {
-                    ++digits;
-                }
-                if (digits == 0)
-                {
-                    return true;
-                }
-                if (remaining.size() < digits + 1)
-                {
-                    return false;
-                }
-                if (std::tolower(static_cast<unsigned char>(remaining[digits]))
-                    != std::tolower(static_cast<unsigned char>(unit)))
-                {
-                    return true;
-                }
-
-                const auto amount = parse_fixed_uint(remaining.substr(0, digits));
-                if (!amount)
-                {
-                    return false;
-                }
-                remaining.remove_prefix(digits + 1);
-                has_component = true;
-                total += *amount * multiplier;
-                return true;
-            };
-
-            if (!consume_if_unit('W', 604800) || !consume_if_unit('D', 86400))
-            {
-                return std::nullopt;
-            }
-
-            if (!remaining.empty()
-                && std::tolower(static_cast<unsigned char>(remaining.front())) == 't')
-            {
-                remaining.remove_prefix(1);
-                if (!consume_if_unit('H', 3600) || !consume_if_unit('M', 60)
-                    || !consume_if_unit('S', 1))
-                {
-                    return std::nullopt;
-                }
-            }
-
-            if (!remaining.empty())
-            {
-                return std::nullopt;
-            }
-            if (!has_component)
-            {
-                throw invalid_exclude_newer(value);
-            }
-            return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
-        }
-
-        /**
          * Parse a duration string in any supported format.
          *
          * Tries plain seconds, ISO 8601, then compact notation, in that order.
@@ -257,7 +181,7 @@ namespace mamba
             {
                 return seconds;
             }
-            if (auto seconds = parse_iso8601_duration_seconds(value))
+            if (auto seconds = detail::parse_iso8601_duration_seconds(value))
             {
                 return seconds;
             }
@@ -325,6 +249,71 @@ namespace mamba
         }
 
     }  // namespace
+
+    namespace detail
+    {
+        auto parse_iso8601_duration_seconds(std::string_view value)
+            -> std::optional<std::chrono::seconds>
+        {
+            // P(n)Y(n)M(n)W(n)DT(n)H(n)M(n)S
+            static const std::regex iso8601_duration{
+                R"(^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$)",
+                std::regex_constants::icase,
+            };
+
+            constexpr std::uint64_t seconds_per_minute = 60;
+            constexpr std::uint64_t seconds_per_hour = 3600;
+            constexpr std::uint64_t seconds_per_day = 86400;
+            constexpr std::uint64_t seconds_per_week = 604800;
+            constexpr std::uint64_t seconds_per_month = 30 * seconds_per_day;
+            constexpr std::uint64_t seconds_per_year = 365 * seconds_per_day;
+
+            if (value.empty())
+            {
+                return std::nullopt;
+            }
+
+            std::match_results<std::string_view::const_iterator> match;
+            if (!std::regex_match(value.begin(), value.end(), match, iso8601_duration))
+            {
+                return std::nullopt;
+            }
+
+            std::uint64_t total = 0;
+            bool has_component = false;
+
+            const auto accumulate_component = [&](std::size_t group, std::uint64_t multiplier) -> bool
+            {
+                if (!match[group].matched)
+                {
+                    return true;
+                }
+                const auto amount = parse_fixed_uint(match[group].str());
+                if (!amount)
+                {
+                    return false;
+                }
+                total += *amount * multiplier;
+                has_component = true;
+                return true;
+            };
+
+            if (!accumulate_component(1, seconds_per_year)
+                || !accumulate_component(2, seconds_per_month)
+                || !accumulate_component(3, seconds_per_week)
+                || !accumulate_component(4, seconds_per_day)
+                || !accumulate_component(5, seconds_per_hour)
+                || !accumulate_component(6, seconds_per_minute) || !accumulate_component(7, 1))
+            {
+                return std::nullopt;
+            }
+            if (!has_component)
+            {
+                throw invalid_exclude_newer(value);
+            }
+            return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
+        }
+    }  // namespace detail
 
     /** Resolve a global ``exclude_newer`` value; see ``resolve_exclude_newer_cutoff`` in the
      * header. */

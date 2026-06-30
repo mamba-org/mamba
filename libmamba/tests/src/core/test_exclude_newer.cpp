@@ -46,6 +46,13 @@ namespace
             REQUIRE(resolve_exclude_newer_cutoff("P7D", now) == now - 7 * 86400);
             REQUIRE(resolve_exclude_newer_cutoff("PT24H", now) == now - 24 * 3600);
             REQUIRE(resolve_exclude_newer_cutoff("P1DT12H", now) == now - (86400 + 12 * 3600));
+            REQUIRE(resolve_exclude_newer_cutoff("P1Y", now) == now - 365 * 86400);
+            REQUIRE(resolve_exclude_newer_cutoff("P6M", now) == now - 6 * 30 * 86400);
+            REQUIRE(resolve_exclude_newer_cutoff("PT1M", now) == now - 60);
+            REQUIRE(
+                resolve_exclude_newer_cutoff("P3Y6M4DT12H30M5S", now)
+                == now - (3 * 365 * 86400 + 6 * 30 * 86400 + 4 * 86400 + 12 * 3600 + 30 * 60 + 5)
+            );
         }
 
         SECTION("date-only values use the start of the next UTC day")
@@ -72,6 +79,16 @@ namespace
         {
             REQUIRE_THROWS_AS(resolve_exclude_newer_cutoff("not-a-duration", now), std::invalid_argument);
             REQUIRE_THROWS_AS(resolve_exclude_newer_cutoff("P", now), std::invalid_argument);
+        }
+    }
+
+    TEST_CASE("parse_iso8601_duration_seconds")
+    {
+        SECTION("malformed durations are rejected")
+        {
+            REQUIRE(detail::parse_iso8601_duration_seconds("P3Y6M4D12H30M5S") == std::nullopt);
+            REQUIRE(detail::parse_iso8601_duration_seconds("3Y6M4DT12H30M5S") == std::nullopt);
+            REQUIRE(detail::parse_iso8601_duration_seconds("12H30M5S") == std::nullopt);
         }
     }
 

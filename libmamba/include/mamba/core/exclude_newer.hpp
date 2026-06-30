@@ -21,8 +21,6 @@ namespace mamba
     {
         struct ExcludeNewerPackageHash
         {
-            using is_transparent = void;
-
             [[nodiscard]] auto operator()(std::string_view value) const noexcept -> std::size_t
             {
                 return std::hash<std::string_view>{}(value);
@@ -31,8 +29,6 @@ namespace mamba
 
         struct ExcludeNewerPackageEqual
         {
-            using is_transparent = void;
-
             [[nodiscard]] auto operator()(std::string_view lhs, std::string_view rhs) const noexcept
                 -> bool
             {

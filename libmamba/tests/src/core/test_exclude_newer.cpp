@@ -6,6 +6,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/exclude_newer.hpp"
 
 using namespace mamba;
@@ -16,10 +17,14 @@ namespace
     {
         constexpr std::uint64_t now = 1'700'000'000;
 
-        SECTION("empty or whitespace-only values disable the policy")
+        SECTION("empty values disable the policy")
         {
             REQUIRE(resolve_exclude_newer_cutoff("", now) == std::nullopt);
-            REQUIRE(resolve_exclude_newer_cutoff("   ", now) == std::nullopt);
+        }
+
+        SECTION("whitespace-only values cannot be parsed")
+        {
+            REQUIRE_THROWS_AS(resolve_exclude_newer_cutoff("   ", now), mamba_error);
         }
 
         SECTION("zero values use the current time as the cutoff")
@@ -83,8 +88,8 @@ namespace
 
         SECTION("invalid values throw")
         {
-            REQUIRE_THROWS_AS(resolve_exclude_newer_cutoff("not-a-duration", now), std::invalid_argument);
-            REQUIRE_THROWS_AS(resolve_exclude_newer_cutoff("P", now), std::invalid_argument);
+            REQUIRE_THROWS_AS(resolve_exclude_newer_cutoff("not-a-duration", now), mamba_error);
+            REQUIRE_THROWS_AS(resolve_exclude_newer_cutoff("P", now), mamba_error);
         }
     }
 

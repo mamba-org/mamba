@@ -96,7 +96,7 @@ namespace mamba
      * ``false``).
      * @param now_seconds Reference time for relative durations, in Unix seconds.
      *
-     * @throws std::invalid_argument when a non-``false`` value cannot be parsed.
+     * @throws mamba_error when a non-``false`` value cannot be parsed.
      */
     [[nodiscard]] auto resolve_exclude_newer_package_cutoffs(
         const std::map<std::string, std::string>& exclude_newer_package,
@@ -121,13 +121,17 @@ namespace mamba
      *
      * @param value Raw configuration string.
      * @param now_seconds Reference time for relative durations, in Unix seconds.
+     * @param package_name When resolving a per-package override, used in parse-failure warnings.
      *
      * Returns ``std::nullopt`` when ``value`` is empty/whitespace-only.
      *
-     * @throws std::invalid_argument when the value cannot be parsed.
+     * @throws mamba_error when the value cannot be parsed.
      */
-    [[nodiscard]] auto resolve_exclude_newer_cutoff(std::string_view value, std::uint64_t now_seconds)
-        -> std::optional<std::uint64_t>;
+    [[nodiscard]] auto resolve_exclude_newer_cutoff(
+        std::string_view value,
+        std::uint64_t now_seconds,
+        std::string_view package_name = {}
+    ) -> std::optional<std::uint64_t>;
 
     namespace detail
     {
@@ -136,7 +140,7 @@ namespace mamba
          *
          * Returns ``std::nullopt`` when ``value`` is not an ISO 8601 duration.
          *
-         * @throws std::invalid_argument when the value starts with ``P`` but has no components.
+         * @throws mamba_error when the value starts with ``P`` but has no components.
          */
         [[nodiscard]] auto parse_iso8601_duration_seconds(std::string_view value)
             -> std::optional<std::chrono::seconds>;

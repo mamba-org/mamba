@@ -71,27 +71,6 @@ namespace mamba
             );
         }
 
-        /**
-         * Parse a leading unsigned integer from ``value`` and advance past the consumed digits.
-         *
-         * Used by compact duration parsing (e.g. ``7d``).
-         */
-        [[nodiscard]] auto parse_uint_prefix(std::string_view& value) -> std::optional<std::uint64_t>
-        {
-            if (value.empty() || !std::isdigit(static_cast<unsigned char>(value.front())))
-            {
-                return std::nullopt;
-            }
-            std::uint64_t number = 0;
-            const auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), number);
-            if (ec != std::errc())
-            {
-                return std::nullopt;
-            }
-            value.remove_prefix(static_cast<std::size_t>(ptr - value.data()));
-            return number;
-        }
-
         /** Parse ``value`` as an unsigned integer that must consume the entire string. */
         [[nodiscard]] auto parse_fixed_uint(std::string_view value) -> std::optional<std::uint64_t>
         {
@@ -115,60 +94,6 @@ namespace mamba
             return std::nullopt;
         }
 
-        /** Parse a compact duration such as ``7d``, ``3d12h``, ``1w``, or ``30s``. */
-        [[nodiscard]] auto parse_compact_duration_seconds(std::string_view value)
-            -> std::optional<std::chrono::seconds>
-        {
-            auto remaining = value;
-            std::uint64_t total = 0;
-            bool has_component = false;
-
-            while (!remaining.empty())
-            {
-                const auto amount = parse_uint_prefix(remaining);
-                if (!amount)
-                {
-                    return std::nullopt;
-                }
-                remaining = util::lstrip_if(remaining, is_space);
-                if (remaining.empty())
-                {
-                    return std::nullopt;
-                }
-
-                std::uint64_t multiplier = 0;
-                switch (std::tolower(static_cast<unsigned char>(remaining.front())))
-                {
-                    case 'w':
-                        multiplier = 604800;
-                        break;
-                    case 'd':
-                        multiplier = 86400;
-                        break;
-                    case 'h':
-                        multiplier = 3600;
-                        break;
-                    case 'm':
-                        multiplier = 60;
-                        break;
-                    case 's':
-                        multiplier = 1;
-                        break;
-                    default:
-                        return std::nullopt;
-                }
-                remaining.remove_prefix(1);
-                has_component = true;
-                total += *amount * multiplier;
-            }
-
-            if (!has_component)
-            {
-                return std::nullopt;
-            }
-            return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
-        }
-
         /**
          * Parse a duration string in any supported format.
          *
@@ -185,7 +110,7 @@ namespace mamba
             {
                 return seconds;
             }
-            return parse_compact_duration_seconds(value);
+            return detail::parse_compact_duration_seconds(value);
         }
 
         /**
@@ -311,6 +236,69 @@ namespace mamba
             {
                 throw invalid_exclude_newer(value);
             }
+            return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
+        }
+
+        auto parse_compact_duration_seconds(std::string_view value)
+            -> std::optional<std::chrono::seconds>
+        {
+            // (n)y(n)M(n)w(n)d(n)h(n)m(n)s — lowercase units except M for months.
+            static const std::regex compact_duration{ R"(^(\d+[yMwdhms])+$)" };
+            static const std::regex compact_segment{ R"((\d+)([yMwdhms]))" };
+
+            constexpr std::uint64_t seconds_per_minute = 60;
+            constexpr std::uint64_t seconds_per_hour = 3600;
+            constexpr std::uint64_t seconds_per_day = 86400;
+            constexpr std::uint64_t seconds_per_week = 604800;
+            constexpr std::uint64_t seconds_per_month = 30 * seconds_per_day;
+            constexpr std::uint64_t seconds_per_year = 365 * seconds_per_day;
+
+            if (value.empty() || !std::regex_match(value.begin(), value.end(), compact_duration))
+            {
+                return std::nullopt;
+            }
+
+            std::uint64_t total = 0;
+            const std::string input(value);
+            const std::sregex_iterator end;
+            for (std::sregex_iterator it(input.begin(), input.end(), compact_segment); it != end; ++it)
+            {
+                const auto amount = parse_fixed_uint((*it)[1].str());
+                if (!amount)
+                {
+                    return std::nullopt;
+                }
+
+                std::uint64_t multiplier = 0;
+                switch ((*it)[2].str().front())
+                {
+                    case 'y':
+                        multiplier = seconds_per_year;
+                        break;
+                    case 'M':
+                        multiplier = seconds_per_month;
+                        break;
+                    case 'w':
+                        multiplier = seconds_per_week;
+                        break;
+                    case 'd':
+                        multiplier = seconds_per_day;
+                        break;
+                    case 'h':
+                        multiplier = seconds_per_hour;
+                        break;
+                    case 'm':
+                        multiplier = seconds_per_minute;
+                        break;
+                    case 's':
+                        multiplier = 1;
+                        break;
+                    default:
+                        return std::nullopt;
+                }
+                total += *amount * multiplier;
+            }
+
             return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
         }
     }  // namespace detail

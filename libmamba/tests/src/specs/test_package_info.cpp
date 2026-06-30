@@ -414,6 +414,37 @@ namespace
             CHECK(pkg.version == "1.24.0");
         }
 
+        SECTION("Wheel package with dotless version (.whl)")
+        {
+            // Versions without dots (e.g. pywin32-312) must not be mistaken for build tags.
+            static constexpr std::string_view url = "https://files.pythonhosted.org/packages/ba/db/36a78e3403099d31d9746d13fdcde5accc43c1155f375a34d15983a479a7/pywin32-312-cp313-cp313-win_amd64.whl";
+            static constexpr std::string_view filename = "pywin32-312-cp313-cp313-win_amd64.whl";
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
+
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_string));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::subdir));
+
+            CHECK(pkg.name == "pywin32");
+            CHECK(pkg.version == "312");
+            CHECK(pkg.filename == filename);
+            CHECK(pkg.package_url == url);
+            CHECK(pkg.package_type == PackageType::Wheel);
+            CHECK(pkg.channel.empty());
+            CHECK(pkg.platform.empty());
+            CHECK(pkg.build_string.empty());
+            CHECK(pkg.md5.empty());
+            CHECK(pkg.sha256.empty());
+        }
+
         SECTION("TarGz package (.tar.gz) has correct defaulted_keys")
         {
             // PURPOSE: Verify .tar.gz packages (like wheels) mark build info as defaulted

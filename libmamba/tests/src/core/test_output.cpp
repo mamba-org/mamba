@@ -17,12 +17,16 @@ namespace mamba
     {
         TEST_CASE("no_progress_bars")
         {
-            mambatests::context().graphics_params.no_progress_bars = true;
+            auto& ctx = mambatests::context();
+            mambatests::ScopedContextChange context_change{ ctx };
+            context_change.preserve(ctx.graphics_params);
+
+            ctx.graphics_params.no_progress_bars = true;
             auto proxy = Console::instance().add_progress_bar("conda-forge");
             REQUIRE_FALSE(proxy.defined());
             REQUIRE_FALSE(proxy);
 
-            mambatests::context().graphics_params.no_progress_bars = false;
+            ctx.graphics_params.no_progress_bars = false;
             proxy = Console::instance().add_progress_bar("conda-forge");
             REQUIRE(proxy.defined());
             REQUIRE(proxy);

@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/core.h>  // TODO: replace by `<format>` once available on all ci compilers
+#include <fmt/format.h>  // TODO: replace by `<format>` once available on all ci compilers
 
 #include <mamba/core/context.hpp>
 #include <mamba/core/error_handling.hpp>

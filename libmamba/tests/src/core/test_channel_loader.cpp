@@ -161,45 +161,13 @@ TEST_CASE("load_channels", "[mamba::api][channel_loader]")
 {
     // Use test singletons so Console/progress bar are initialized (avoids SIGABRT)
     Context& ctx = mambatests::context();
-
-    // Save and restore context so we don't affect other tests (e.g. test_configuration
-    // expects default ssl_verify / config state)
-    struct ContextGuard
-    {
-        Context& ctx;
-        std::vector<std::string> channels;
-        std::map<std::string, std::vector<std::string>> mirrored_channels;
-        std::vector<fs::u8path> pkgs_dirs;
-        bool offline;
-        std::string ssl_verify;
-        std::string channel_alias;
-        std::map<std::string, std::string> proxy_servers;
-
-        explicit ContextGuard(Context& c)
-            : ctx(c)
-            , channels(c.channels)
-            , mirrored_channels(c.mirrored_channels)
-            , pkgs_dirs(c.pkgs_dirs)
-            , offline(c.offline)
-            , ssl_verify(c.remote_fetch_params.ssl_verify)
-            , channel_alias(c.channel_alias)
-            , proxy_servers(c.remote_fetch_params.proxy_servers)
-        {
-        }
-
-        ~ContextGuard()
-        {
-            ctx.channels = std::move(channels);
-            ctx.mirrored_channels = std::move(mirrored_channels);
-            ctx.pkgs_dirs = std::move(pkgs_dirs);
-            ctx.offline = offline;
-            ctx.remote_fetch_params.ssl_verify = std::move(ssl_verify);
-            ctx.channel_alias = std::move(channel_alias);
-            ctx.remote_fetch_params.proxy_servers = std::move(proxy_servers);
-        }
-    };
-
-    ContextGuard guard(ctx);
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.preserve(ctx.channels)
+        .preserve(ctx.mirrored_channels)
+        .preserve(ctx.pkgs_dirs)
+        .preserve(ctx.offline)
+        .preserve(ctx.remote_fetch_params)
+        .preserve(ctx.channel_alias);
 
     ctx.channels = {};
     ctx.mirrored_channels = {};
@@ -220,8 +188,8 @@ TEST_CASE("load_channels", "[mamba::api][channel_loader]")
 TEST_CASE("load_channels with root_packages", "[mamba::core][mamba::api::channel_loader]")
 {
     auto& ctx = mambatests::context();
-    ctx.channels = { "conda-forge" };
-    ctx.use_sharded_repodata = true;
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.set_channels({ "conda-forge" }).set_use_sharded_repodata(true);
 
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     solver::libsolv::Database db{ channel_context.params() };

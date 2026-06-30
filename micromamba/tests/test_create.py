@@ -2430,10 +2430,13 @@ def test_create_from_mirror_with_prefix(tmp_home, tmp_root_prefix, tmp_path):
         for package in res["actions"]["LINK"]
     )
 
-    # Verify no warnings in output
-    combined_output = result.stdout + result.stderr
-    assert "warning" not in combined_output.lower(), (
-        f"Unexpected warning in output:\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    # Verify warning in output
+    assert (
+        helpers.find_message_in_json_logs(
+            res,
+            "Security Warning: This transaction includes executing package scripts (pre/post-link/unlink) if present.",
+        )
+        is not None
     )
 
 
@@ -2542,7 +2545,7 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
 
     cmd = ["-n", env_name, spec, "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,
@@ -2583,7 +2586,7 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
 
     cmd = ["-n", env_name, "xtensor", "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,
@@ -2619,7 +2622,7 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
 
     cmd = ["-n", env_name, "_go_select", "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,

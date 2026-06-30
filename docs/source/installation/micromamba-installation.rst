@@ -272,7 +272,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
    Use these paths to adapt the commands below to your specific installation.
 
 1. Remove shell initialization
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    If you initialized your shell with ``micromamba shell init``, you need to remove the initialization code from your shell configuration files.
    Run the following command for each shell you initialized:
@@ -295,7 +295,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
    This will remove the mamba initialization block from your shell configuration files (``.bashrc``, ``.zshrc``, ``config.fish``, etc.).
 
 2. Remove the micromamba executable
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    The location of the ``micromamba`` executable depends on your installation method:
 
@@ -311,7 +311,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
    Remove the directory where you extracted or installed the ``micromamba`` executable.
 
 3. Remove the root prefix directory and package cache
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    ``micromamba`` stores all environments, packages, and cache in specific directories.
    Check ``micromamba info`` to find the exact locations for your installation:
@@ -346,7 +346,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
       This will delete all environments, installed packages, and cached data. Make sure you have backed up any important environments or data before removing this directory.
 
 4. Remove configuration files (optional)
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    Check ``micromamba info`` for the exact paths to your configuration files:
 

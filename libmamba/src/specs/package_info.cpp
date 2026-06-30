@@ -166,35 +166,32 @@ namespace mamba::specs
                     out.version = tail;
                     // The head is the name
                     out.name = head.value();  // There may be '-' in the name
-
-                    // Wheels lack `build` info in filename. See issue #4095.
-                    out.defaulted_keys.assign(
-                        wheel_targz_defaulted_keys.begin(),
-                        wheel_targz_defaulted_keys.end()
-                    );
                 }
                 else
                 {
-                    // The previous tail is the optional build tag
-                    std::tie(head, tail) = util::rsplit_once(head.value(), '-');
-                    // The tail is the version
-                    out.version = tail;
-                    if (!head.has_value())
+                    // The tail may be the version (no build tag) or an optional build tag.
+                    // Versions without dots (e.g. pywin32-312) are indistinguishable from
+                    // build tags by this property alone; check whether head still splits.
+                    auto [name_head, version_candidate] = util::rsplit_once(head.value(), '-');
+                    if (!name_head.has_value())
                     {
-                        return make_unexpected_parse(
-                            fmt::format(R"(Missing name in filename "{}".)", out.filename)
-                        );
+                        // head is the package name, tail is the version
+                        out.name = head.value();
+                        out.version = tail;
                     }
-
-                    // Name
-                    out.name = head.value();  // There may be '-' in the name
-
-                    // Wheels lack `build` info in filename. See issue #4095.
-                    out.defaulted_keys.assign(
-                        wheel_targz_defaulted_keys.begin(),
-                        wheel_targz_defaulted_keys.end()
-                    );
+                    else
+                    {
+                        // The previous tail is the optional build tag
+                        out.version = version_candidate;
+                        out.name = name_head.value();  // There may be '-' in the name
+                    }
                 }
+
+                // Wheels lack `build` info in filename. See issue #4095.
+                out.defaulted_keys.assign(
+                    wheel_targz_defaulted_keys.begin(),
+                    wheel_targz_defaulted_keys.end()
+                );
             }
             // PackageType::TarGz (.tar.gz): {pkg name}-{version}.tar.gz
             else if (out.package_type == PackageType::TarGz)

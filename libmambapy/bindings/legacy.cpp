@@ -998,7 +998,7 @@ bind_submodule_impl(pybind11::module_ m)
         .def_readwrite("channel_alias", &Context::channel_alias)
         .def_readwrite("use_only_tar_bz2", &Context::use_only_tar_bz2)
         .def_readwrite("channel_priority", &Context::channel_priority)
-        .def_readwrite("experimental_repodata_parsing", &Context::experimental_repodata_parsing)
+        .def_readwrite("mamba_repodata_parsing", &Context::mamba_repodata_parsing)
         .def_readwrite("solver_flags", &Context::solver_flags)
         .def_property(
             "experimental_sat_error_message",
@@ -1137,25 +1137,32 @@ bind_submodule_impl(pybind11::module_ m)
     pyLinkParams
         .def(
             py::init(
-                [](bool allow_softlinks, bool always_copy, bool always_softlink, bool compile_pyc) -> LinkParams
+                [](bool allow_softlinks,
+                   bool always_copy,
+                   bool always_softlink,
+                   bool compile_pyc,
+                   bool skip_run_link_scripts) -> LinkParams
                 {
                     return {
                         .allow_softlinks = allow_softlinks,
                         .always_copy = always_copy,
                         .always_softlink = always_softlink,
                         .compile_pyc = compile_pyc,
+                        .skip_run_link_scripts = skip_run_link_scripts,
                     };
                 }
             ),
             py::arg("allow_softlinks") = default_link_params.allow_softlinks,
             py::arg("always_copy") = default_link_params.always_copy,
             py::arg("always_softlink") = default_link_params.always_softlink,
-            py::arg("compile_pyc") = default_link_params.compile_pyc
+            py::arg("compile_pyc") = default_link_params.compile_pyc,
+            py::arg("skip_run_link_scripts") = default_link_params.skip_run_link_scripts
         )
         .def_readwrite("allow_softlinks", &LinkParams::allow_softlinks)
         .def_readwrite("always_copy", &LinkParams::always_copy)
         .def_readwrite("always_softlink", &LinkParams::always_softlink)
-        .def_readwrite("compile_pyc", &LinkParams::compile_pyc);
+        .def_readwrite("compile_pyc", &LinkParams::compile_pyc)
+        .def_readwrite("skip_run_link_scripts", &LinkParams::skip_run_link_scripts);
 
     static const auto default_validation_params = ValidationParams{};
     pyValidationParams

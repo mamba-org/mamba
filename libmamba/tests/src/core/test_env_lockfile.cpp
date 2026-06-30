@@ -443,14 +443,15 @@ namespace mamba
             // so we only have this test for yaml/conda env-lock-files.
 
             auto& ctx = mambatests::context();
+            mambatests::ScopedContextChange context_change{ ctx };
+            context_change.set_platform("linux-64");
+
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
             auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
             solver::libsolv::Database db{ channel_context.params() };
             add_logger_to_database(db);
             mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
-
-            ctx.platform = "linux-64";
 
             auto check_categories =
                 [&](std::vector<std::string> categories, size_t num_conda, size_t num_pip)
@@ -482,8 +483,6 @@ namespace mamba
             check_categories({ "main", "dev" }, 31, 6);
             check_categories({ "dev" }, 28, 1);
             check_categories({ "nonesuch" }, 0, 0);
-
-            ctx.platform = ctx.host_platform;
         }
 
     }

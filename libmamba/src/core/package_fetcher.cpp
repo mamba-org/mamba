@@ -139,6 +139,7 @@ namespace mamba
 
     PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
         : m_package_info(pkg_info)
+        , m_caches(&caches)
     {
         const fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
         if (extracted_cache.empty())
@@ -359,6 +360,7 @@ namespace mamba
                 LOG_DEBUG << "Extracted to '" << extract_path.string() << "'";
                 write_repodata_record(extract_path);
                 update_urls_txt();
+                m_caches->clear_query_cache(m_package_info);
                 update_monitor(cb, PackageExtractEvent::extract_success);
             }
             catch (const std::logic_error&)

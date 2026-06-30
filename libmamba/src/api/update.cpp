@@ -41,11 +41,10 @@ namespace mamba
 
             if (update_params.update_all == UpdateAll::Yes)
             {
-                // TODO fix update --all
                 if (update_params.prune_deps == PruneDeps::Yes)
                 {
                     auto hist_map = prefix_data.history().get_requested_specs_map();
-                    request.jobs.reserve(hist_map.size() + 1);
+                    request.jobs.reserve(hist_map.size() + specs.size() + 1);
 
                     for (auto& [name, spec] : hist_map)
                     {
@@ -55,7 +54,20 @@ namespace mamba
                 }
                 else
                 {
+                    request.jobs.reserve(specs.size() + 1);
                     request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+                }
+
+                // Install everything else
+                for (const auto& raw_ms : specs)
+                {
+                    request.jobs.emplace_back(
+                        Request::Install{
+                            specs::MatchSpec::parse(raw_ms)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value(),
+                        }
+                    );
                 }
             }
             else
@@ -181,17 +193,19 @@ namespace mamba
             {
                 for (const auto& raw_spec : raw_update_specs)
                 {
-                    auto match_spec = specs::MatchSpec::parse(raw_spec)
-                                          .or_else([](specs::ParseError&& err)
-                                                   { throw std::move(err); })
-                                          .value();
-                    if (!prefix_data.records().contains(match_spec.name().to_string()))
+                    auto match_spec_name = specs::MatchSpec::parse(raw_spec)
+                                               .or_else([](specs::ParseError&& err)
+                                                        { throw std::move(err); })
+                                               .value()
+                                               .name()
+                                               .to_string();
+                    if (!prefix_data.records().contains(match_spec_name))
                     {
                         throw std::runtime_error(
                             fmt::format(
                                 "Package is not installed in prefix.\n  prefix: {}\n  package name: {}",
                                 prefix_data.path().string(),
-                                match_spec.name().to_string()
+                                match_spec_name
                             )
                         );
                     }

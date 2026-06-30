@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 
+#include "mamba/core/error_handling.hpp"
 #include "mamba/core/exclude_newer.hpp"
 #include "mamba/util/string.hpp"
 
@@ -62,13 +63,27 @@ namespace mamba
                    );
         }
 
-        /** Build a ``std::invalid_argument`` for an unparsable ``exclude_newer`` value. */
-        [[nodiscard]] auto invalid_exclude_newer(std::string_view value) -> std::invalid_argument
+        /** Throw when an ``exclude_newer`` value could not be parsed. */
+        [[noreturn]] void
+        throw_invalid_exclude_newer(std::string_view value, std::string_view package_name = {})
         {
-            return std::invalid_argument(
-                "Invalid exclude_newer value '" + std::string(value)
-                + "'; use e.g. 7d, P7D, 2026-04-01, or 2026-04-01T12:00:00Z"
-            );
+            constexpr auto duration_hint = "expected a compact duration (e.g. 7d, 3d12h, 1w, 1y, 6M), an ISO 8601 duration "
+                                           "(e.g. P7D, PT24H, P1DT12H), a plain integer in seconds (e.g. 3600), a date "
+                                           "(e.g. 2026-04-01), or a datetime (e.g. 2026-04-01T12:00:00Z)";
+
+            std::string message;
+            if (package_name.empty())
+            {
+                message = "Could not parse exclude_newer value '" + std::string(value) + "'; "
+                          + duration_hint;
+            }
+            else
+            {
+                message = "Could not parse exclude_newer_package value for package '"
+                          + std::string(package_name) + "' ('" + std::string(value) + "'); "
+                          + duration_hint + ", or false";
+            }
+            throw mamba_error(std::move(message), mamba_error_code::incorrect_usage);
         }
 
         /** Parse ``value`` as an unsigned integer that must consume the entire string. */
@@ -234,7 +249,7 @@ namespace mamba
             }
             if (!has_component)
             {
-                throw invalid_exclude_newer(value);
+                throw_invalid_exclude_newer(value);
             }
             return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
         }
@@ -305,12 +320,20 @@ namespace mamba
 
     /** Resolve a global ``exclude_newer`` value; see ``resolve_exclude_newer_cutoff`` in the
      * header. */
-    auto resolve_exclude_newer_cutoff(std::string_view value, std::uint64_t now_seconds)
-        -> std::optional<std::uint64_t>
+    auto resolve_exclude_newer_cutoff(
+        std::string_view value,
+        std::uint64_t now_seconds,
+        std::string_view package_name
+    ) -> std::optional<std::uint64_t>
     {
+        const auto raw = value;
         value = util::strip_if(value, is_space);
         if (value.empty())
         {
+            if (!raw.empty())
+            {
+                throw_invalid_exclude_newer(raw, package_name);
+            }
             return std::nullopt;
         }
 
@@ -331,7 +354,7 @@ namespace mamba
             return to_unix_seconds(*instant);
         }
 
-        throw invalid_exclude_newer(value);
+        throw_invalid_exclude_newer(value, package_name);
     }
 
     /** Return the per-package or global cutoff for ``package_name``. */
@@ -372,7 +395,7 @@ namespace mamba
             }
             else
             {
-                out.emplace(name, resolve_exclude_newer_cutoff(trimmed, now_seconds));
+                out.emplace(name, resolve_exclude_newer_cutoff(trimmed, now_seconds, name));
             }
         }
         return out;

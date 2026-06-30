@@ -214,6 +214,13 @@ class TestUpdate:
                     break
                 assert not x.startswith("update specs:")
 
+        # --all with a new spec should install it
+        update_res = helpers.update("--all", "numpy", "--json")
+        assert update_res["success"]
+
+        pkgs = helpers.umamba_list("-n", TestUpdate.env_name, "--json")
+        assert any(pkg["name"] == "numpy" for pkg in pkgs)
+
     @pytest.mark.parametrize(
         "alias",
         [

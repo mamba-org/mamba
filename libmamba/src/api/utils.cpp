@@ -528,13 +528,24 @@ namespace mamba
         ) -> solver::libsolv::Database::Settings
         {
             const auto now = static_cast<std::uint64_t>(std::time(nullptr));
+            const auto matchspec_parser = experimental_matchspec_parsing
+                                              ? solver::libsolv::MatchSpecParser::Mamba
+                                              : solver::libsolv::MatchSpecParser::Libsolv;
+            const std::optional<std::uint64_t>
+                exclude_newer_timestamp = exclude_newer_policy.exclude_newer.empty()
+                                              ? std::nullopt
+                                              : resolve_exclude_newer_cutoff(
+                                                    exclude_newer_policy.exclude_newer,
+                                                    now
+                                                );
+            const ExcludeNewerPackageCutoffs exclude_newer_package = resolve_exclude_newer_package_cutoffs(
+                exclude_newer_policy.exclude_newer_package,
+                now
+            );
             return {
-                experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                               : solver::libsolv::MatchSpecParser::Libsolv,
-                exclude_newer_policy.exclude_newer.empty()
-                    ? std::nullopt
-                    : resolve_exclude_newer_cutoff(exclude_newer_policy.exclude_newer, now),
-                resolve_exclude_newer_package_cutoffs(exclude_newer_policy.exclude_newer_package, now),
+                matchspec_parser,
+                exclude_newer_timestamp,
+                exclude_newer_package,
             };
         }
     }  // namespace

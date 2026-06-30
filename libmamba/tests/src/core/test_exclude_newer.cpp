@@ -39,6 +39,12 @@ namespace
             REQUIRE(resolve_exclude_newer_cutoff("7d", now) == now - 7 * 86400);
             REQUIRE(resolve_exclude_newer_cutoff("1w", now) == now - 604800);
             REQUIRE(resolve_exclude_newer_cutoff("3d12h", now) == now - (3 * 86400 + 12 * 3600));
+            REQUIRE(resolve_exclude_newer_cutoff("1y", now) == now - 365 * 86400);
+            REQUIRE(resolve_exclude_newer_cutoff("6M", now) == now - 6 * 30 * 86400);
+            REQUIRE(
+                resolve_exclude_newer_cutoff("1y6M7d", now)
+                == now - (365 * 86400 + 6 * 30 * 86400 + 7 * 86400)
+            );
         }
 
         SECTION("ISO 8601 durations resolve relative to now")
@@ -89,6 +95,95 @@ namespace
             REQUIRE(detail::parse_iso8601_duration_seconds("P3Y6M4D12H30M5S") == std::nullopt);
             REQUIRE(detail::parse_iso8601_duration_seconds("3Y6M4DT12H30M5S") == std::nullopt);
             REQUIRE(detail::parse_iso8601_duration_seconds("12H30M5S") == std::nullopt);
+        }
+    }
+
+    TEST_CASE("parse_compact_duration_seconds")
+    {
+        constexpr std::uint64_t y = 365 * 86400;
+        constexpr std::uint64_t mon = 30 * 86400;
+        constexpr std::uint64_t w = 604800;
+        constexpr std::uint64_t d = 86400;
+        constexpr std::uint64_t h = 3600;
+        constexpr std::uint64_t min = 60;
+
+        const auto sec = [](std::int64_t n) { return std::chrono::seconds{ n }; };
+        const auto parse = [](std::string_view value)
+        { return detail::parse_compact_duration_seconds(value); };
+
+        SECTION("each unit suffix is parsed on its own")
+        {
+            REQUIRE(parse("1y") == sec(static_cast<std::int64_t>(y)));
+            REQUIRE(parse("2M") == sec(static_cast<std::int64_t>(2 * mon)));
+            REQUIRE(parse("3w") == sec(static_cast<std::int64_t>(3 * w)));
+            REQUIRE(parse("4d") == sec(static_cast<std::int64_t>(4 * d)));
+            REQUIRE(parse("5h") == sec(static_cast<std::int64_t>(5 * h)));
+            REQUIRE(parse("6m") == sec(static_cast<std::int64_t>(6 * min)));
+            REQUIRE(parse("7s") == sec(7));
+        }
+
+        SECTION("zero amounts are valid")
+        {
+            REQUIRE(parse("0y") == sec(0));
+            REQUIRE(parse("0M") == sec(0));
+            REQUIRE(parse("0w") == sec(0));
+            REQUIRE(parse("0d") == sec(0));
+            REQUIRE(parse("0h") == sec(0));
+            REQUIRE(parse("0m") == sec(0));
+            REQUIRE(parse("0s") == sec(0));
+            REQUIRE(parse("0y0M0w0d0h0m0s") == sec(0));
+        }
+
+        SECTION("multiple segments are summed")
+        {
+            REQUIRE(parse("3d12h") == sec(static_cast<std::int64_t>(3 * d + 12 * h)));
+            REQUIRE(parse("1w2d") == sec(static_cast<std::int64_t>(w + 2 * d)));
+            REQUIRE(parse("1y6M7d") == sec(static_cast<std::int64_t>(y + 6 * mon + 7 * d)));
+            REQUIRE(
+                parse("1y2M3w4d5h6m7s")
+                == sec(static_cast<std::int64_t>(y + 2 * mon + 3 * w + 4 * d + 5 * h + 6 * min + 7))
+            );
+        }
+
+        SECTION("minutes and months are distinguished by case")
+        {
+            REQUIRE(parse("30m") == sec(30 * min));
+            REQUIRE(parse("30M") == sec(static_cast<std::int64_t>(30 * mon)));
+            REQUIRE(parse("1m2M") == sec(static_cast<std::int64_t>(min + 2 * mon)));
+        }
+
+        SECTION("unit letters are case-sensitive")
+        {
+            REQUIRE(parse("7D") == std::nullopt);
+            REQUIRE(parse("1Y") == std::nullopt);
+            REQUIRE(parse("1W") == std::nullopt);
+            REQUIRE(parse("12H") == std::nullopt);
+            REQUIRE(parse("30S") == std::nullopt);
+            REQUIRE(parse("6m") == sec(6 * min));
+            REQUIRE(parse("6M") == sec(static_cast<std::int64_t>(6 * mon)));
+        }
+
+        SECTION("incomplete or malformed compact durations are rejected")
+        {
+            REQUIRE(parse("") == std::nullopt);
+            REQUIRE(parse("7") == std::nullopt);
+            REQUIRE(parse("7 ") == std::nullopt);
+            REQUIRE(parse("d7") == std::nullopt);
+            REQUIRE(parse("7d12") == std::nullopt);
+            REQUIRE(parse("7d12x") == std::nullopt);
+            REQUIRE(parse("-1d") == std::nullopt);
+            REQUIRE(parse("1.5d") == std::nullopt);
+            REQUIRE(parse("1x") == std::nullopt);
+            REQUIRE(parse("not-a-duration") == std::nullopt);
+        }
+
+        SECTION("values handled by other parsers are not compact durations")
+        {
+            REQUIRE(parse("3600") == std::nullopt);
+            REQUIRE(parse("0") == std::nullopt);
+            REQUIRE(parse("P7D") == std::nullopt);
+            REQUIRE(parse("PT1H") == std::nullopt);
+            REQUIRE(parse("2026-04-01") == std::nullopt);
         }
     }
 

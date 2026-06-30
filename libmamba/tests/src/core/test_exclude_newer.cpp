@@ -16,19 +16,36 @@ namespace
     {
         constexpr std::uint64_t now = 1'700'000'000;
 
-        SECTION("empty value is disabled")
+        SECTION("empty or whitespace-only values disable the policy")
         {
             REQUIRE(resolve_exclude_newer_cutoff("", now) == std::nullopt);
             REQUIRE(resolve_exclude_newer_cutoff("   ", now) == std::nullopt);
         }
 
-        SECTION("durations resolve relative to now")
+        SECTION("zero values use the current time as the cutoff")
         {
-            REQUIRE(resolve_exclude_newer_cutoff("7d", now) == now - 7 * 86400);
-            REQUIRE(resolve_exclude_newer_cutoff("P7D", now) == now - 7 * 86400);
-            REQUIRE(resolve_exclude_newer_cutoff("3600", now) == now - 3600);
+            REQUIRE(resolve_exclude_newer_cutoff("0", now) == now);
             REQUIRE(resolve_exclude_newer_cutoff("0d", now) == now);
             REQUIRE(resolve_exclude_newer_cutoff("P0D", now) == now);
+        }
+
+        SECTION("plain integers are durations in seconds")
+        {
+            REQUIRE(resolve_exclude_newer_cutoff("3600", now) == now - 3600);
+        }
+
+        SECTION("compact durations resolve relative to now")
+        {
+            REQUIRE(resolve_exclude_newer_cutoff("7d", now) == now - 7 * 86400);
+            REQUIRE(resolve_exclude_newer_cutoff("1w", now) == now - 604800);
+            REQUIRE(resolve_exclude_newer_cutoff("3d12h", now) == now - (3 * 86400 + 12 * 3600));
+        }
+
+        SECTION("ISO 8601 durations resolve relative to now")
+        {
+            REQUIRE(resolve_exclude_newer_cutoff("P7D", now) == now - 7 * 86400);
+            REQUIRE(resolve_exclude_newer_cutoff("PT24H", now) == now - 24 * 3600);
+            REQUIRE(resolve_exclude_newer_cutoff("P1DT12H", now) == now - (86400 + 12 * 3600));
         }
 
         SECTION("date-only values use the start of the next UTC day")
@@ -36,7 +53,15 @@ namespace
             REQUIRE(resolve_exclude_newer_cutoff("2026-04-01", now) == 1'775'088'000);
         }
 
-        SECTION("datetimes resolve to absolute instants")
+        SECTION("date-only values roll over at month and year boundaries")
+        {
+            REQUIRE(resolve_exclude_newer_cutoff("2026-01-31", now) == 1'769'904'000);  // 2026-02-01
+            REQUIRE(resolve_exclude_newer_cutoff("2025-02-28", now) == 1'740'787'200);  // 2025-03-01
+            REQUIRE(resolve_exclude_newer_cutoff("2024-02-29", now) == 1'709'251'200);  // 2024-03-01
+            REQUIRE(resolve_exclude_newer_cutoff("2025-12-31", now) == 1'767'225'600);  // 2026-01-01
+        }
+
+        SECTION("RFC 3339 datetimes resolve to absolute UTC instants")
         {
             REQUIRE(resolve_exclude_newer_cutoff("2026-04-01T12:00:00", now) == 1'775'044'800);
             REQUIRE(resolve_exclude_newer_cutoff("2026-04-01T10:00:00Z", now) == 1'775'037'600);
@@ -81,6 +106,12 @@ namespace
                 { "custom-pkg", 1500 },
             },
         };
+
+        SECTION("unset policy is empty")
+        {
+            const ExcludeNewerPolicy unset{};
+            REQUIRE(unset.empty());
+        }
 
         SECTION("unknown packages use the global cutoff")
         {

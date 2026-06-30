@@ -8,7 +8,6 @@
 #define MAMBA_CORE_EXCLUDE_NEWER_HPP
 
 #include <cstdint>
-#include <functional>
 #include <map>
 #include <optional>
 #include <string>
@@ -17,28 +16,12 @@
 
 namespace mamba
 {
-    namespace detail
-    {
-        struct ExcludeNewerPackageHash
-        {
-            [[nodiscard]] auto operator()(std::string_view value) const noexcept -> std::size_t
-            {
-                return std::hash<std::string_view>{}(value);
-            }
-        };
-
-        struct ExcludeNewerPackageEqual
-        {
-            [[nodiscard]] auto operator()(std::string_view lhs, std::string_view rhs) const noexcept
-                -> bool
-            {
-                return lhs == rhs;
-            }
-        };
-    }  // namespace detail
-
     /**
      * Resolved per-package ``exclude_newer`` cutoffs.
+     *
+     * Cutoffs are stored as Unix epoch seconds (``std::uint64_t``) for compatibility with
+     * conda repodata timestamps and ``Database::Settings``. Parsing uses
+     * ``std::chrono::sys_seconds`` internally; see ``resolve_exclude_newer_cutoff``.
      *
      * When a package name is present:
      * - ``std::nullopt`` exempts the package from the global policy (``false`` in config)
@@ -46,12 +29,13 @@ namespace mamba
      *
      * Packages not listed fall back to the global cutoff.
      */
-    using ExcludeNewerPackageCutoffs = std::unordered_map<
-        std::string,
-        std::optional<std::uint64_t>,
-        detail::ExcludeNewerPackageHash,
-        detail::ExcludeNewerPackageEqual>;
+    using ExcludeNewerPackageCutoffs = std::unordered_map<std::string, std::optional<std::uint64_t>>;
 
+    /**
+     * Resolved and raw ``exclude_newer`` policy from configuration.
+     *
+     * Holds both unresolved config strings and resolved Unix-second cutoffs used by the solver.
+     */
     struct ExcludeNewerPolicy
     {
         /**
@@ -61,6 +45,13 @@ namespace mamba
          * https://github.com/conda/conda/issues/15759
          */
         std::string exclude_newer;
+
+        /**
+         * Raw per-package ``exclude_newer`` overrides from configuration.
+         *
+         * Values are resolved to timestamps (or exemption) via
+         * ``resolve_exclude_newer_package_cutoffs``.
+         */
         std::map<std::string, std::string> exclude_newer_package;
 
         /**
@@ -73,20 +64,36 @@ namespace mamba
          */
         ExcludeNewerPackageCutoffs per_package = {};
 
+        /** Return whether no ``exclude_newer`` configuration is set. */
         [[nodiscard]] auto empty() const -> bool
         {
             return exclude_newer.empty() && exclude_newer_package.empty();
         }
 
+        /**
+         * Return the effective cutoff for ``package_name``.
+         *
+         * Per-package entries take precedence over the global cutoff. A mapped ``std::nullopt``
+         * means the package is exempt.
+         */
         [[nodiscard]] auto cutoff_for(std::string_view package_name) const
             -> std::optional<std::uint64_t>;
 
+        /**
+         * Return whether ``pkg_timestamp`` is newer than the effective cutoff for ``package_name``.
+         *
+         * Exempt packages (no cutoff) are never excluded.
+         */
         [[nodiscard]] auto
         excludes(std::string_view package_name, std::uint64_t pkg_timestamp) const -> bool;
     };
 
     /**
      * Resolve raw per-package ``exclude_newer`` configuration values.
+     *
+     * @param exclude_newer_package Map of package name to config value (duration, date, or
+     * ``false``).
+     * @param now_seconds Reference time for relative durations, in Unix seconds.
      *
      * @throws std::invalid_argument when a non-``false`` value cannot be parsed.
      */
@@ -99,11 +106,20 @@ namespace mamba
      * Resolve a global ``exclude_newer`` configuration value to an absolute Unix
      * timestamp cutoff in seconds.
      *
+     * The public API exposes ``std::uint64_t`` seconds for compatibility with repodata
+     * timestamps. Internally, date and datetime values are parsed with
+     * ``std::chrono::parse`` and converted at this boundary. Duration strings
+     * (``7d``, ``P7D``, plain seconds) use custom parsers because the standard library
+     * does not provide ISO 8601 duration parsing.
+     *
      * Matches conda's ``exclude_newer`` semantics:
      * - Durations (``7d``, ``P7D``, plain seconds) resolve to ``now - duration``
      * - Date-only values (``YYYY-MM-DD``) resolve to the start of the next UTC day
      * - Datetimes resolve to the given instant (naive values are UTC)
      * - Zero durations (``0``, ``0d``, ``P0D``) resolve to ``now``
+     *
+     * @param value Raw configuration string.
+     * @param now_seconds Reference time for relative durations, in Unix seconds.
      *
      * Returns ``std::nullopt`` when ``value`` is empty/whitespace-only.
      *

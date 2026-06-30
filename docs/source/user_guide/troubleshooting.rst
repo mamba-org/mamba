@@ -110,27 +110,29 @@ See :ref:`defaults_channels`.
 Windows long paths
 ------------------
 
-Windows API historically supports paths up to 260 characters. While it's now possible to used longer ones, there are still limitations related to that.
-
-``libmamba`` internally relies on ``\\?\`` prefixing to handle such paths. If you get error messages advertising such prefix, please have look at the following steps:
+Windows historically limits many Win32 paths to ``MAX_PATH`` (260 characters). Starting in
+Windows 10 version 1607, this restriction can be lifted for applications that opt in.
 
 
 Long paths support has to be activated
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-source: Robocop `troubleshooting documentation <https://sema4.ai/docs/automation/troubleshooting/windows-long-path>`_
+Microsoft documents the two required conditions in `Enable long paths in Windows 10, version 1607, and later
+<https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation?tabs=registry#enable-long-paths-in-windows-10-version-1607-and-later>`_:
 
-1. Open the Local Group Policy Editor application: - Start --> type gpedit.msc --> Enter:
-2. Navigate to Computer Configuration > Administrative Templates > System > Filesystem. On the right, find the "Enable win32 long paths" item and double-click it
-3. Change the setting to Enabled
-4. Exit the Local Group Policy Editor and restart your computer (or sign out and back in) to allow the changes to finish
+1. The system registry value ``LongPathsEnabled`` must be set to ``1`` under
+   ``HKLM\SYSTEM\CurrentControlSet\Control\FileSystem``.
+2. The application manifest must declare ``longPathAware`` (official micromamba builds ship with
+   ``longpath.manifest``).
 
-If the problem persists after those steps, try the following:
+``libmamba`` checks both conditions at runtime via ``are_long_paths_enabled()`` and logs a
+diagnostic when linking or filesystem operations fail while long paths are disabled.
 
-1. Open the Registry Editor application: - Start --> type regedit.msc and press Enter:
-2. Navigate to HKEY-LOCAL-MACHINE > SYSTEM > CurrentControlSet > Control > FileSystem. On the right, find the LongPathsEnabled item and double-click it
-3. Change the Value data: to 1
-4. Exit the Registry Editor
+Set the ``LongPathsEnabled`` registry value to ``1`` under
+``HKLM\SYSTEM\CurrentControlSet\Control\FileSystem``, or enable **Enable Win32 long paths** in
+Group Policy (**Computer Configuration > Administrative Templates > System > Filesystem**).
+Microsoft's guide linked above describes both approaches. A reboot or sign-out may be required
+for running processes to pick up the registry change.
 
 
 cmd.exe does not support calls to long prefixes

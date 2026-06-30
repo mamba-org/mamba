@@ -140,6 +140,15 @@ namespace mamba
          */
         [[nodiscard]] auto parse_iso8601_duration_seconds(std::string_view value)
             -> std::optional<std::chrono::seconds>;
+
+        /**
+         * Parse a compact duration (``(n)y(n)M(n)w(n)d(n)h(n)m(n)s``, e.g. ``7d``, ``3d12h``)
+         * to seconds.
+         *
+         * Returns ``std::nullopt`` when ``value`` is not a compact duration.
+         */
+        [[nodiscard]] auto parse_compact_duration_seconds(std::string_view value)
+            -> std::optional<std::chrono::seconds>;
     }
 
 }  // namespace mamba

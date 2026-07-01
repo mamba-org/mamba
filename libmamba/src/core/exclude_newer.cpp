@@ -9,10 +9,10 @@
 #include <chrono>
 #include <optional>
 #include <regex>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 
+#include "mamba/core/detail/chrono_parse.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/exclude_newer.hpp"
 #include "mamba/util/string.hpp"
@@ -31,24 +31,6 @@ namespace mamba
         [[nodiscard]] auto to_unix_seconds(CutoffInstant instant) -> std::uint64_t
         {
             return static_cast<std::uint64_t>(instant.time_since_epoch().count());
-        }
-
-        /**
-         * Parse ``value`` with ``std::chrono::parse`` using ``fmt``.
-         *
-         * Returns ``std::nullopt`` when parsing fails or trailing characters remain.
-         */
-        template <typename T>
-        [[nodiscard]] auto parse_chrono(std::string_view value, const char* fmt) -> std::optional<T>
-        {
-            std::istringstream stream{ std::string(value) };
-            T out{};
-            stream >> std::chrono::parse(fmt, out);
-            if (stream.fail() || stream.peek() != std::istringstream::traits_type::eof())
-            {
-                return std::nullopt;
-            }
-            return out;
         }
 
         /** Case-insensitive equality for ASCII strings. */
@@ -140,7 +122,7 @@ namespace mamba
                 return std::nullopt;
             }
 
-            const auto day = parse_chrono<std::chrono::sys_days>(value, "%F");
+            const auto day = detail::parse_chrono<std::chrono::sys_days>(value, "%F");
             if (!day)
             {
                 return std::nullopt;
@@ -162,15 +144,15 @@ namespace mamba
                 return std::nullopt;
             }
 
-            if (auto instant = parse_chrono<SysTime>(value, "%FT%T%Ez"))
+            if (auto instant = detail::parse_chrono<SysTime>(value, "%FT%T%Ez"))
             {
                 return CutoffInstant{ instant->time_since_epoch() };
             }
-            if (auto instant = parse_chrono<SysTime>(value, "%FT%TZ"))
+            if (auto instant = detail::parse_chrono<SysTime>(value, "%FT%TZ"))
             {
                 return CutoffInstant{ instant->time_since_epoch() };
             }
-            if (auto instant = parse_chrono<SysTime>(value, "%FT%T"))
+            if (auto instant = detail::parse_chrono<SysTime>(value, "%FT%T"))
             {
                 return CutoffInstant{ instant->time_since_epoch() };
             }

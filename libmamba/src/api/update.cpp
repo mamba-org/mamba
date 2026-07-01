@@ -39,6 +39,18 @@ namespace mamba
 
             auto request = Request();
 
+            // Parse all specs upfront
+            std::vector<specs::MatchSpec> parsed_specs;
+            parsed_specs.reserve(specs.size());
+            for (const auto& raw_ms : specs)
+            {
+                parsed_specs.push_back(
+                    specs::MatchSpec::parse(raw_ms)
+                        .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                        .value()
+                );
+            }
+
             if (update_params.update_all == UpdateAll::Yes)
             {
                 if (update_params.prune_deps == PruneDeps::Yes)
@@ -59,15 +71,9 @@ namespace mamba
                 }
 
                 // Install everything else
-                for (const auto& raw_ms : specs)
+                for (auto& ms : parsed_specs)
                 {
-                    request.jobs.emplace_back(
-                        Request::Install{
-                            specs::MatchSpec::parse(raw_ms)
-                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                .value(),
-                        }
-                    );
+                    request.jobs.emplace_back(Request::Install{ std::move(ms) });
                 }
             }
             else
@@ -78,40 +84,18 @@ namespace mamba
                     if (update_params.remove_not_specified == RemoveNotSpecified::Yes)
                     {
                         auto hist_map = prefix_data.history().get_requested_specs_map();
-                        for (auto& it : hist_map)
+                        for (auto& [name, _] : hist_map)
                         {
-                            // We use `spec_names` here because `specs` contain more info than just
-                            // the spec name.
-                            // Therefore, the search later and comparison (using `specs`) with
-                            // MatchSpec.name().str() in `hist_map` second elements wouldn't be
-                            // relevant
-                            std::vector<std::string> spec_names;
-                            spec_names.reserve(specs.size());
-                            std::transform(
-                                specs.begin(),
-                                specs.end(),
-                                std::back_inserter(spec_names),
-                                [](const std::string& spec)
-                                {
-                                    return specs::MatchSpec::parse(spec)
-                                        .or_else([](specs::ParseError&& err)
-                                                 { throw std::move(err); })
-                                        .value()
-                                        .name()
-                                        .to_string();
-                                }
+                            auto it = std::find_if(
+                                parsed_specs.begin(),
+                                parsed_specs.end(),
+                                [&](const auto& ms) { return ms.name().to_string() == name; }
                             );
-
-                            if (std::find(
-                                    spec_names.begin(),
-                                    spec_names.end(),
-                                    it.second.name().to_string()
-                                )
-                                == spec_names.end())
+                            if (it == parsed_specs.end())
                             {
                                 request.jobs.emplace_back(
                                     Request::Remove{
-                                        specs::MatchSpec::parse(it.second.name().to_string())
+                                        specs::MatchSpec::parse(name)
                                             .or_else([](specs::ParseError&& err)
                                                      { throw std::move(err); })
                                             .value(),
@@ -123,28 +107,16 @@ namespace mamba
                     }
 
                     // Install/update everything in specs
-                    for (const auto& raw_ms : specs)
+                    for (auto& ms : parsed_specs)
                     {
-                        request.jobs.emplace_back(
-                            Request::Install{
-                                specs::MatchSpec::parse(raw_ms)
-                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                    .value(),
-                            }
-                        );
+                        request.jobs.emplace_back(Request::Install{ std::move(ms) });
                     }
                 }
                 else
                 {
-                    for (const auto& raw_ms : specs)
+                    for (auto& ms : parsed_specs)
                     {
-                        request.jobs.emplace_back(
-                            Request::Update{
-                                specs::MatchSpec::parse(raw_ms)
-                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                    .value(),
-                            }
-                        );
+                        request.jobs.emplace_back(Request::Update{ std::move(ms) });
                     }
                 }
             }
@@ -203,7 +175,11 @@ namespace mamba
                     {
                         throw std::runtime_error(
                             fmt::format(
-                                "Package is not installed in prefix.\n  prefix: {}\n  package name: {}",
+                                "Package is not installed in prefix.\n"
+                                "prefix: {}\n"
+                                "package name: {}\n"
+                                "\n"
+                                "Use `(micro)mamba env update` or `(micro)mamba update --all` to install new packages.",
                                 prefix_data.path().string(),
                                 match_spec_name
                             )

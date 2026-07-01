@@ -614,6 +614,12 @@ namespace mamba
                                          .value();
             assert(not pkg_channel.empty());
             const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
+
+            pkg.channel = channel_url;
+            if (pkg.package_url.empty())
+            {
+                pkg.package_url = pkg.url_for_channel_platform(channel_url);
+            }
         };
 
 

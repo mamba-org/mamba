@@ -109,7 +109,9 @@ namespace mamba
      *
      * The public API exposes ``std::uint64_t`` seconds for compatibility with repodata
      * timestamps. Internally, date and datetime values are parsed with
-     * ``std::chrono::parse`` and converted at this boundary. Duration strings
+     * ``std::chrono::parse`` when the standard library provides it, otherwise with
+     * Howard Hinnant's ``date`` library until libc++ implements P0355
+     * (https://github.com/llvm/llvm-project/issues/166051). Duration strings
      * (``7d``, ``P7D``, plain seconds) use custom parsers because the standard library
      * does not provide ISO 8601 duration parsing.
      *
@@ -156,5 +158,7 @@ namespace mamba
     }
 
 }  // namespace mamba
+
+#include "mamba/core/detail/chrono_parse.hpp"
 
 #endif

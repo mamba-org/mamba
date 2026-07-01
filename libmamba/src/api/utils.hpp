@@ -8,6 +8,7 @@
 #define MAMBA_UTILS_HPP
 
 #include <functional>
+#include <map>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -25,6 +26,7 @@ namespace mamba
     class ChannelContext;
     class Configuration;
     class Context;
+    struct ExcludeNewerPolicy;
     class MTransaction;
     class PrefixData;
     class MultiPackageCache;
@@ -123,8 +125,11 @@ namespace mamba
     /**
      * Create a libsolv database configured for the current matching behavior.
      */
-    solver::libsolv::Database
-    make_solver_database(bool experimental_matchspec_parsing, ChannelContext& channel_context);
+    solver::libsolv::Database make_solver_database(
+        ChannelContext& channel_context,
+        bool experimental_matchspec_parsing,
+        const ExcludeNewerPolicy& exclude_newer_policy
+    );
 
     /**
      * Apply shared prefix fallback defaults used by install/update entry points.

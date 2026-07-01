@@ -126,7 +126,11 @@ namespace mamba
         )
         {
             validate_target_prefix_and_channels(ctx, /* create_env= */ false);
-            auto database = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
+            auto database = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer_policy
+            );
             auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, database);
 
             const fs::u8path pkgs_dirs(ctx.prefix_params.root_prefix / "pkgs");

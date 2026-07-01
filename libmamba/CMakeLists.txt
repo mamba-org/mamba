@@ -9,6 +9,44 @@ cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(libmamba)
 
+include(CheckCXXSourceCompiles)
+
+# std::chrono::parse (P0355) is not yet available on all platforms (e.g. libc++ on macOS).
+# https://github.com/llvm/llvm-project/issues/166051
+if(NOT DEFINED MAMBA_HAVE_STD_CHRONO_PARSE)
+    set(CMAKE_REQUIRED_FLAGS_BACKUP "${CMAKE_REQUIRED_FLAGS}")
+    if(MSVC)
+        list(APPEND CMAKE_REQUIRED_FLAGS "/std:c++20")
+    else()
+        list(APPEND CMAKE_REQUIRED_FLAGS "-std=c++20")
+    endif()
+    check_cxx_source_compiles(
+        "
+#include <chrono>
+#include <sstream>
+int main()
+{
+    std::istringstream is{ \"2020-01-01\" };
+    std::chrono::sys_days d{};
+    is >> std::chrono::parse( \"%F\", d );
+    return is.fail() ? 1 : 0;
+}
+"
+        MAMBA_HAVE_STD_CHRONO_PARSE
+    )
+    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS_BACKUP}")
+endif()
+
+if(MAMBA_HAVE_STD_CHRONO_PARSE)
+    message(STATUS "libmamba: using std::chrono::parse for date/datetime parsing")
+else()
+    find_package(date CONFIG REQUIRED)
+    message(
+        STATUS
+            "libmamba: using Howard Hinnant date for date/datetime parsing (std::chrono::parse unavailable)"
+    )
+endif()
+
 set(LIBMAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(LIBMAMBA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(LIBMAMBA_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
@@ -227,6 +265,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_mambajs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/exclude_newer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
@@ -382,6 +421,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/exclude_newer.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/execution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
@@ -720,6 +760,11 @@ macro(libmamba_create_target target_name linkage output_name)
         target_link_libraries(${target_name} PUBLIC Threads::Threads)
     endif()
 
+    if(NOT MAMBA_HAVE_STD_CHRONO_PARSE)
+        target_compile_definitions(${target_name} PUBLIC MAMBA_USE_HOWARD_HINNANT_DATE)
+        target_link_libraries(${target_name} PUBLIC date::date date::date-tz)
+    endif()
+
     list(APPEND libmamba_targets ${target_name})
     add_library(mamba::${target_name} ALIAS ${target_name})
 endmacro()
@@ -795,6 +840,12 @@ install(
     PATTERN "*.hpp"
     PATTERN "*.h"
 )
+
+if(NOT MAMBA_HAVE_STD_CHRONO_PARSE)
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE ON)
+else()
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE OFF)
+endif()
 
 # Configure 'mambaConfig.cmake' for a build tree
 set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")

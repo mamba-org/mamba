@@ -182,6 +182,178 @@ def test_Database_RepoInfo_from_packages(add_pip_as_python_dependency, matchspec
     assert db.installed_repo() is None
 
 
+def test_Database_exclude_newer_timestamp_filters_packages():
+    cutoff = 2000
+    db = libsolv.Database(
+        libmambapy.specs.ChannelResolveParams(),
+        exclude_newer_timestamp=cutoff,
+    )
+
+    old_pkg = libmambapy.specs.PackageInfo(name="old-pkg")
+    old_pkg.version = "1.0"
+    old_pkg.timestamp = 1000
+
+    new_pkg = libmambapy.specs.PackageInfo(name="new-pkg")
+    new_pkg.version = "1.0"
+    new_pkg.timestamp = 3000
+
+    repo = db.add_repo_from_packages([old_pkg, new_pkg], name="test")
+    assert repo.package_count() == 1
+
+    pkgs = db.packages_in_repo(repo)
+    assert len(pkgs) == 1
+    assert pkgs[0].name == "old-pkg"
+
+
+def test_Database_exclude_newer_timestamp_none_keeps_all():
+    db = libsolv.Database(
+        libmambapy.specs.ChannelResolveParams(),
+        exclude_newer_timestamp=None,
+    )
+
+    pkg = libmambapy.specs.PackageInfo(name="pkg")
+    pkg.version = "1.0"
+    pkg.timestamp = 9999
+
+    repo = db.add_repo_from_packages([pkg], name="test")
+    assert repo.package_count() == 1
+
+
+def test_Database_exclude_newer_timestamp_repodata(tmp_path):
+    repodata_file = tmp_path / "repodata.json"
+    with open(repodata_file, "w+") as f:
+        json.dump(
+            {
+                "packages": {
+                    "excluded-pkg-1.0-bld.tar.bz2": {
+                        "name": "excluded-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1000,
+                        "indexed_timestamp": 3000,
+                    },
+                    "included-pkg-1.0-bld.tar.bz2": {
+                        "name": "included-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000,
+                        "indexed_timestamp": 1000,
+                    },
+                },
+                "packages.conda": {},
+            },
+            f,
+        )
+
+    db = libsolv.Database(
+        libmambapy.specs.ChannelResolveParams(),
+        exclude_newer_timestamp=2000,
+    )
+    repo = db.add_repo_from_repodata_json(
+        repodata_file,
+        "https://example.com/linux-64",
+        "test-channel",
+    )
+    assert repo is not None
+    assert repo.package_count() == 1
+    pkgs = db.packages_in_repo(repo)
+    assert pkgs[0].name == "included-pkg"
+
+
+def test_Database_exclude_newer_timestamp_repodata_timestamp_only(tmp_path):
+    repodata_file = tmp_path / "repodata_timestamp_only.json"
+    with open(repodata_file, "w+") as f:
+        json.dump(
+            {
+                "packages": {
+                    "excluded-by-timestamp-1.0-bld.tar.bz2": {
+                        "name": "excluded-by-timestamp",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000,
+                    },
+                    "included-by-timestamp-1.0-bld.tar.bz2": {
+                        "name": "included-by-timestamp",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1000,
+                    },
+                },
+                "packages.conda": {},
+            },
+            f,
+        )
+
+    db = libsolv.Database(
+        libmambapy.specs.ChannelResolveParams(),
+        exclude_newer_timestamp=2000,
+    )
+    repo = db.add_repo_from_repodata_json(
+        repodata_file,
+        "https://example.com/linux-64",
+        "test-channel",
+    )
+    assert repo is not None
+    assert repo.package_count() == 1
+    pkgs = db.packages_in_repo(repo)
+    assert pkgs[0].name == "included-by-timestamp"
+
+
+def test_Database_exclude_newer_timestamp_repodata_without_timestamps(tmp_path):
+    repodata_file = tmp_path / "repodata_no_timestamps.json"
+    with open(repodata_file, "w+") as f:
+        json.dump(
+            {
+                "packages": {
+                    "pkg-no-ts-a-1.0-bld.tar.bz2": {
+                        "name": "pkg-no-ts-a",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                    },
+                    "pkg-no-ts-b-1.0-bld.tar.bz2": {
+                        "name": "pkg-no-ts-b",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                    },
+                },
+                "packages.conda": {},
+            },
+            f,
+        )
+
+    db = libsolv.Database(
+        libmambapy.specs.ChannelResolveParams(),
+        exclude_newer_timestamp=2000,
+    )
+    repo = db.add_repo_from_repodata_json(
+        repodata_file,
+        "https://example.com/linux-64",
+        "test-channel",
+    )
+    assert repo is not None
+    assert repo.package_count() == 2
+    pkgs = db.packages_in_repo(repo)
+    assert {pkg.name for pkg in pkgs} == {"pkg-no-ts-a", "pkg-no-ts-b"}
+
+
 @pytest.fixture
 def tmp_repodata_json(tmp_path):
     file = tmp_path / "repodata.json"

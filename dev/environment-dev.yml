@@ -21,6 +21,7 @@ dependencies:
   - libmsgpack-c
   - nlohmann_json
   - reproc-cpp >=14.2.4.post0
+  - sel(osx): howardhinnant_date
   - simdjson >=3.3.0
   - spdlog >=1.16.0
   - yaml-cpp >=0.8.0

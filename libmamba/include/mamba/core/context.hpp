@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
@@ -130,6 +131,7 @@ namespace mamba
 
         // solver options
         solver::Request::Flags solver_flags = {};
+        ExcludeNewerPolicy exclude_newer_policy;
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;

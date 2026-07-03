@@ -8,6 +8,8 @@
 
 #include "solver/helpers.hpp"
 
+#include "mamba/core/channel_context.hpp"
+
 namespace mamba::solver
 {
     auto find_new_python_in_solution(const Solution& solution)
@@ -35,5 +37,17 @@ namespace mamba::solver
                && a_ver.size() >= 2 && b_ver.size() >= 2  //
                && a_ver[0] == b_ver[0]                    //
                && a_ver[1] == b_ver[1];
+    }
+
+    auto resolve_package_url(ChannelContext& channel_context, const specs::PackageInfo& package)
+        -> std::string
+    {
+        using namespace mamba::specs;
+        const auto unresolved_pkg_channel = UnresolvedChannel::parse(package.channel).value();
+        const auto pkg_channel = Channel::resolve(unresolved_pkg_channel, channel_context.params())
+                                     .value();
+        assert(not pkg_channel.empty());
+        const auto channel_url = pkg_channel.front().platform_url(package.platform).str();
+        return package.url_for_channel_platform(channel_url);
     }
 }

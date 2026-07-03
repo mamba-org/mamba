@@ -405,8 +405,15 @@ namespace mamba::specs
 
     auto PackageInfo::long_str() const -> std::string
     {
-        // TODO channel contains subdir right now?!
-        return util::concat(channel, "::", str());
+        if (not package_url.empty())
+        {
+            return package_url;
+        }
+        else
+        {
+            // TODO channel contains subdir right now?!
+            return util::concat(channel, "::", str());
+        }
     }
 
     namespace

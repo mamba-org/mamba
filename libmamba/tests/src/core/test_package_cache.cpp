@@ -156,6 +156,8 @@ namespace mamba
 
         SECTION("Hierarchical cache under a long path")
         {
+            // Needs OS-level long paths and a longPathAware manifest for this process;
+            // otherwise create_directories may fail before cache logic is exercised.
             constexpr std::size_t min_pkgs_dir_path_length = 300;
             constexpr auto segment = "very_long_directory_name_segment";
 

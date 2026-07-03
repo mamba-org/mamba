@@ -150,11 +150,11 @@ namespace mamba
     {
         if (are_long_paths_enabled())
         {
-            REQUIRE(format_long_paths_support_diagnostic().empty());
+            REQUIRE(long_paths_support_diagnostic().empty());
         }
         else
         {
-            REQUIRE_FALSE(format_long_paths_support_diagnostic().empty());
+            REQUIRE_FALSE(long_paths_support_diagnostic().empty());
         }
     }
 #endif

@@ -468,23 +468,13 @@ namespace mamba
                 LOG_ERROR << "Unexpected error while " << phase << " package '" << pkg.name
                           << "': " << e.what();
 #ifdef _WIN32
-                if (phase == "linking" || phase == "unlinking")
+                if ((phase == "linking" || phase == "unlinking") && !are_long_paths_enabled())
                 {
-                    if (!are_long_paths_enabled())
-                    {
-                        LOG_WARNING << "Windows long path support is disabled, which can cause "
-                                    << phase << " failures with deep cache or prefix paths. "
-                                    << format_long_paths_support_diagnostic();
-                    }
-                    else
-                    {
-                        log_long_paths_support_hint_if_relevant(e);
-                    }
+                    LOG_WARNING << "Windows long path support is disabled, which can cause "
+                                << phase << " failures with deep cache or prefix paths. "
+                                << long_paths_support_diagnostic();
                 }
-                else
-                {
-                    log_long_paths_support_hint_if_relevant(e);
-                }
+                log_long_paths_support_hint_if_relevant(e);
 #endif
                 rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, phase, e);
             }

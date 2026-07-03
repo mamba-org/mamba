@@ -21,6 +21,7 @@
 #include <intrin.h>
 #include <io.h>
 #include <shlobj_core.h>
+#include <versionhelpers.h>
 #include <windows.h>
 // Incomplete header included last
 #include <tlhelp32.h>
@@ -174,12 +175,19 @@ namespace mamba
             }
         };
 
-        auto windows_supports_long_paths_registry() -> bool
+        auto windows_version_supports_long_paths() -> bool
         {
-            const DWORD version = ::GetVersion();
-            const DWORD major = LOBYTE(LOWORD(version));
-            const DWORD build = HIWORD(version);
-            return major >= 10 && build >= 14352;
+            OSVERSIONINFOEXW version_info = {};
+            version_info.dwOSVersionInfoSize = sizeof(version_info);
+            version_info.dwMajorVersion = 10;
+            version_info.dwBuildNumber = 14352;
+
+            DWORDLONG condition_mask = 0;
+            VER_SET_CONDITION(condition_mask, VER_MAJORVERSION, VER_GREATER_EQUAL);
+            VER_SET_CONDITION(condition_mask, VER_BUILDNUMBER, VER_GREATER_EQUAL);
+
+            return ::VerifyVersionInfoW(&version_info, VER_MAJORVERSION | VER_BUILDNUMBER, condition_mask)
+                   != FALSE;
         }
 
         auto read_long_paths_registry_enabled() -> bool
@@ -283,7 +291,7 @@ namespace mamba
         auto query_long_paths_support() -> LongPathsSupportInfo
         {
             LongPathsSupportInfo info;
-            info.os_supports = windows_supports_long_paths_registry();
+            info.os_supports = windows_version_supports_long_paths();
             info.registry_enabled = read_long_paths_registry_enabled();
             info.manifest_long_path_aware = read_long_path_aware_manifest();
             return info;

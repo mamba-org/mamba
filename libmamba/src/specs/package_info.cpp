@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <functional>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
 
@@ -403,11 +404,28 @@ namespace mamba::specs
         return fmt::format("{}-{}-{}", name, version, build_string);
     }
 
+    namespace
+    {
+        [[nodiscard]]
+        auto pkg_url_to_pkg_desc(std::string_view package_url) -> std::string
+        {
+            using namespace std::literals;
+            const auto sep_pos = package_url.find_last_of('/');
+
+            const auto channel_url = package_url.substr(0, sep_pos);
+            const auto package_name = fs::u8path(package_url.substr(sep_pos + 1))
+                                          .replace_extension()  // removes file extension
+                                          .string();
+
+            return fmt::format("{}::{}", channel_url, package_name);
+        }
+    }
+
     auto PackageInfo::long_str() const -> std::string
     {
         if (not package_url.empty())
         {
-            return package_url;
+            return pkg_url_to_pkg_desc(package_url);
         }
         else
         {

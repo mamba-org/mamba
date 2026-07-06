@@ -52,10 +52,28 @@ namespace mamba
         );
 
         // Only use if the packages have been solved previously already.
+        template <std::forward_iterator I, std::sentinel_for<I> S>
+            requires std::same_as<std::remove_cvref<typename std::iterator_traits<I>::value_type>, specs::PackageInfo>
         MTransaction(
             const Context& ctx,
             solver::libsolv::Database& database,
-            std::unordered_set<specs::PackageInfo> packages,
+            I begin_packages,
+            S end_packages,
+            MultiPackageCache& caches
+        )
+            : MTransaction(
+                  ctx,
+                  database,
+                  std::vector<specs::PackageInfo>(begin_packages, end_packages),
+                  caches
+              )
+        {
+        }
+
+        MTransaction(
+            const Context& ctx,
+            solver::libsolv::Database& database,
+            std::vector<specs::PackageInfo> packages,
             MultiPackageCache& caches
         );
 

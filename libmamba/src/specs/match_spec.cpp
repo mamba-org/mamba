@@ -355,12 +355,12 @@ namespace mamba::specs
             if (util::starts_with(key_val, "version"))
             {
                 const auto op_val = util::lstrip(key_val, "version");
-                if ( //
-                                util::starts_with(op_val, "==") //
-                                || util::starts_with(op_val, "!=")
-                                || util::starts_with(op_val, "~=")  //
-                                || util::starts_with(op_val, '>') //
-                                || util::starts_with(op_val, '<'))
+                if (                                                                       //
+                    util::starts_with(op_val, "==")                                        //
+                    || util::starts_with(op_val, "!=") || util::starts_with(op_val, "~=")  //
+                    || util::starts_with(op_val, '>')                                      //
+                    || util::starts_with(op_val, '<')
+                )
                 {
                     return make_unexpected_parse(
                         fmt::format(
@@ -542,6 +542,8 @@ namespace mamba::specs
 
     auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>
     {
+        using namespace std::literals;
+
         // Remove comments, i.e. everything after ` #` (space included)
         if (const auto idx = str.find(" #"); idx != std::string::npos)
         {
@@ -569,8 +571,8 @@ namespace mamba::specs
         // TODO: this solution reallocates memory several times potentially, but the
         //  number of operators is small and the strings are short, so it must be fine.
         //  If needed it can be optimized so that the string is only copied once.
-        const auto op_array = std::array<std::string, 9>{ ">=", "<=", ">",  "<", "!=",
-                                                          "=",  "==", "~=", "," };
+        static constexpr auto op_array = std::array{ ">="s, "<="s, ">"s,  "<"s, "!="s,
+                                                     "="s,  "=="s, "~="s, ","s };
         for (const std::string& op : op_array)
         {
             const std::string bad_op = op + " ";

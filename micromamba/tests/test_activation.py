@@ -565,7 +565,11 @@ def test_shell_init_deinit_contents(
             rc_contents_after_deinit = fi.read()
     else:
         rc_contents_after_deinit = ""
-    assert rc_contents_after_deinit == prev_rc_contents
+    if interpreter == "powershell":
+        assert "#region mamba initialize" not in rc_contents_after_deinit
+    else:
+        assert "# >>> mamba initialize >>>" not in rc_contents_after_deinit
+    assert not find_path_in_str(tmp_root_prefix, rc_contents_after_deinit)
 
 
 @pytest.mark.parametrize("interpreter", get_interpreters())

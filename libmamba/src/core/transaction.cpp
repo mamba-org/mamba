@@ -12,7 +12,6 @@
 #include <stack>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <fmt/color.h>
 #include <fmt/format.h>
@@ -301,7 +300,7 @@ namespace mamba
     MTransaction::MTransaction(
         const Context& ctx,
         solver::libsolv::Database& database,
-        std::vector<specs::PackageInfo> packages,
+        std::unordered_set<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
         : MTransaction(ctx.command_params, caches)
@@ -324,12 +323,12 @@ namespace mamba
         );
 
         m_solution.actions.reserve(packages.size());
-        std::transform(
-            std::move_iterator(packages.begin()),
-            std::move_iterator(packages.end()),
-            std::back_insert_iterator(m_solution.actions),
-            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
-        );
+        // TODO(C++23): Use std::flat_set instead of std::unordered_set for `packages`
+        for (auto it = packages.begin(); it != packages.end();)
+        {
+            auto node = packages.extract(it++);
+            m_solution.actions.emplace_back(solver::Solution::Install{ std::move(node.value()) });
+        }
 
         std::tie(
             m_py_versions,
@@ -1519,19 +1518,15 @@ namespace mamba
 
         // TODO: FIXME: inject channel info coming from the lockfile!
 
-        std::vector<specs::PackageInfo> conda_packages = {};
-        std::vector<specs::PackageInfo> pip_packages = {};
+        std::unordered_set<specs::PackageInfo> conda_package_set;
+        std::unordered_set<specs::PackageInfo> pip_package_set;
 
         for (const auto& category : categories)
         {
             std::vector<specs::PackageInfo> selected_packages = lockfile_data.get_packages_for(
                 { .category = category, .platform = ctx.platform, .manager = "conda" }
             );
-            std::copy(
-                selected_packages.begin(),
-                selected_packages.end(),
-                std::back_inserter(conda_packages)
-            );
+            conda_package_set.insert(selected_packages.begin(), selected_packages.end());
 
             if (selected_packages.empty())
             {
@@ -1550,21 +1545,17 @@ namespace mamba
                   //       specified we filter to the current platform.
                   .allow_no_platform = true }
             );
-            std::copy(
-                selected_packages.begin(),
-                selected_packages.end(),
-                std::back_inserter(pip_packages)
-            );
+            pip_package_set.insert(selected_packages.begin(), selected_packages.end());
         }
 
         // extract pip packages
-        if (!pip_packages.empty())
+        if (!pip_package_set.empty())
         {
             std::vector<std::string> pip_specs = {};
-            pip_specs.reserve(pip_packages.size());
+            pip_specs.reserve(pip_package_set.size());
             std::transform(
-                pip_packages.cbegin(),
-                pip_packages.cend(),
+                pip_package_set.cbegin(),
+                pip_package_set.cend(),
                 std::back_inserter(pip_specs),
                 [](const specs::PackageInfo& pkg)
                 { return fmt::format("{} @ {}#sha256={}", pkg.name, pkg.package_url, pkg.sha256); }
@@ -1575,12 +1566,12 @@ namespace mamba
         }
 
 
-        for (const auto& package : pip_packages)
+        for (const auto& package : pip_package_set)
         {
             LOG_DEBUG << "pip package to install: " << package.name;
         }
 
-        return MTransaction{ ctx, database, std::move(conda_packages), package_caches };
+        return MTransaction{ ctx, database, std::move(conda_package_set), package_caches };
     }
 
 }  // namespace mamba

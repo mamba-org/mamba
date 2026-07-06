@@ -9,6 +9,7 @@
 
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <vector>
 
 #include "mamba/api/install.hpp"
@@ -54,7 +55,7 @@ namespace mamba
         MTransaction(
             const Context& ctx,
             solver::libsolv::Database& database,
-            std::vector<specs::PackageInfo> packages,
+            std::unordered_set<specs::PackageInfo> packages,
             MultiPackageCache& caches
         );
 

@@ -323,6 +323,7 @@ namespace mamba
         );
 
         m_solution.actions.reserve(packages.size());
+        // TODO(C++23): Use std::flat_set instead of std::unordered_set for `packages`
         for (auto it = packages.begin(); it != packages.end();)
         {
             auto node = packages.extract(it++);

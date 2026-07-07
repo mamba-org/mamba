@@ -116,6 +116,21 @@ namespace mamba
                 {
                     for (auto& ms : parsed_specs)
                     {
+                        const auto& match_spec_name = ms.name().to_string();
+                        if (!prefix_data.records().contains(match_spec_name))
+                        {
+                            throw std::runtime_error(
+                                fmt::format(
+                                    "Package is not installed in prefix.\n"
+                                    "prefix: {}\n"
+                                    "package name: {}\n"
+                                    "\n"
+                                    "Use `(micro)mamba env update` or `(micro)mamba update --all` to install new packages.",
+                                    prefix_data.path().string(),
+                                    match_spec_name
+                                )
+                            );
+                        }
                         request.jobs.emplace_back(Request::Update{ std::move(ms) });
                     }
                 }
@@ -160,33 +175,6 @@ namespace mamba
             );
 
             auto prefix_data = load_prefix_data_and_installed(ctx, channel_context, db);
-
-            if (update_params.env_update == EnvUpdate::No && update_params.update_all == UpdateAll::No)
-            {
-                for (const auto& raw_spec : raw_update_specs)
-                {
-                    auto match_spec_name = specs::MatchSpec::parse(raw_spec)
-                                               .or_else([](specs::ParseError&& err)
-                                                        { throw std::move(err); })
-                                               .value()
-                                               .name()
-                                               .to_string();
-                    if (!prefix_data.records().contains(match_spec_name))
-                    {
-                        throw std::runtime_error(
-                            fmt::format(
-                                "Package is not installed in prefix.\n"
-                                "prefix: {}\n"
-                                "package name: {}\n"
-                                "\n"
-                                "Use `(micro)mamba env update` or `(micro)mamba update --all` to install new packages.",
-                                prefix_data.path().string(),
-                                match_spec_name
-                            )
-                        );
-                    }
-                }
-            }
 
             auto request = create_update_request(prefix_data, raw_update_specs, update_params);
 

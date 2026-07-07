@@ -656,6 +656,9 @@ namespace mamba
 
     void MultiPackageCache::clear_query_cache(const specs::PackageInfo& s)
     {
+        const std::string pkg = s.long_str();
+        m_cached_tarballs.erase(pkg);
+        m_cached_extracted_dirs.erase(pkg);
         for (auto& c : m_caches)
         {
             c.clear_query_cache(s);

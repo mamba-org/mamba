@@ -41,10 +41,11 @@ namespace mamba
 
             if (update_params.update_all == UpdateAll::Yes)
             {
+                request.jobs.reserve(specs.size() + 1);
                 if (update_params.prune_deps == PruneDeps::Yes)
                 {
                     auto hist_map = prefix_data.history().get_requested_specs_map();
-                    request.jobs.reserve(hist_map.size() + 1);
+                    request.jobs.reserve(hist_map.size() + specs.size() + 1);
 
                     for (auto& [name, spec] : hist_map)
                     {
@@ -55,6 +56,20 @@ namespace mamba
                 else
                 {
                     request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
+                }
+
+                // Constraints passed with `update --all` should still be honored. We model this
+                // as additional update jobs so they constrain already-installed packages without
+                // turning constraints into globally pinned packages.
+                for (const auto& raw_ms : specs)
+                {
+                    request.jobs.emplace_back(
+                        Request::Update{
+                            specs::MatchSpec::parse(raw_ms)
+                                .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                                .value(),
+                        }
+                    );
                 }
             }
             else

@@ -26,6 +26,7 @@
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
+#include "mamba/core/package_handling.hpp"
 #include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
@@ -54,6 +55,58 @@ namespace mamba
         {
             return caches.get_extracted_dir_path(pkg_info).empty()
                    && caches.get_tarball_path(pkg_info).empty();
+        }
+
+        /**
+         * Resolve the extracted package cache directory for linking.
+         *
+         * Clears stale negative cache entries (e.g. from before fetch/extract in the same
+         * transaction) and, if needed, re-extracts from a cached tarball at link time.
+         */
+        fs::u8path resolve_extracted_cache_path(
+            const specs::PackageInfo& pkg,
+            MultiPackageCache& caches,
+            const Context& ctx
+        )
+        {
+            auto lookup = [&]() { return caches.get_extracted_dir_path(pkg); };
+
+            if (auto path = lookup(); !path.empty())
+            {
+                return path;
+            }
+
+            caches.clear_query_cache(pkg);
+            if (auto path = lookup(); !path.empty())
+            {
+                return path;
+            }
+
+            PackageFetcher fetcher(pkg, caches);
+            if (fetcher.needs_download())
+            {
+                LOG_ERROR << "Cannot find a valid extracted directory cache for '" << pkg.filename
+                          << "'";
+                throw std::runtime_error("Package cache error.");
+            }
+
+            if (fetcher.needs_extract())
+            {
+                const auto extract_options = ExtractOptions::from_context(ctx);
+                if (!fetcher.extract(extract_options))
+                {
+                    LOG_ERROR << "Failed to extract package '" << pkg.filename << "' for linking";
+                    throw std::runtime_error("Package cache error.");
+                }
+                caches.clear_query_cache(pkg);
+                if (auto path = lookup(); !path.empty())
+                {
+                    return path;
+                }
+            }
+
+            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << pkg.filename << "'";
+            throw std::runtime_error("Package cache error.");
         }
 
         // TODO duplicated function, consider moving it to Pool
@@ -256,7 +309,7 @@ namespace mamba
                 request,
                 [&](const auto& item) { m_history_entry.update.push_back(item.spec.to_string()); }
             );
-            solver::for_each_of<Request::Remove, Request::Update>(
+            solver::for_each_of<Request::Remove>(
                 request,
                 [&](const auto& item) { m_history_entry.remove.push_back(item.spec.to_string()); }
             );
@@ -770,7 +823,7 @@ namespace mamba
             }
 
             Console::stream() << "Linking " << pkg.str();
-            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
+            const fs::u8path cache_path(resolve_extracted_cache_path(pkg, m_multi_cache, ctx));
             LinkPackage lp(pkg, cache_path, &transaction_context);
             try
             {

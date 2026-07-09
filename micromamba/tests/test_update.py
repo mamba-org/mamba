@@ -5,10 +5,20 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 # Need to import everything to get fixtures
 from .helpers import *  # noqa: F403
 from . import helpers
+
+env_yaml_content_pip_deps = """
+channels:
+- conda-forge
+dependencies:
+- pip
+- pip:
+  - numpy
+"""
 
 
 @pytest.mark.skipif(
@@ -147,13 +157,38 @@ class TestUpdate:
 
             assert TestUpdate.old_version != version
 
-        # This should do nothing since python is not installed!
-        update_res = helpers.update("python", "-n", TestUpdate.env_name, "--json")
+        # This should error out since python is not installed!
+        with pytest.raises(helpers.subprocess.CalledProcessError) as e:
+            helpers.update("python", "-n", TestUpdate.env_name, "--json")
+        out_string = str(e.value.stdout.decode("utf-8"))
+        assert "Package is not installed in prefix" in out_string
+        assert "package name: python" in out_string
 
-        # TODO fix this?!
-        assert update_res["message"] == "All requested packages already installed"
-        assert update_res["success"] is True
-        assert "action" not in update_res
+    def test_update_with_pip_deps_after_install(self, env_created, tmp_path):
+        yaml_file = tmp_path / "test_update_pip_deps.yaml"
+        yaml_file.write_text(env_yaml_content_pip_deps)
+
+        # First update should fail because pip is not installed
+        with pytest.raises(helpers.subprocess.CalledProcessError) as e:
+            helpers.update("-n", env_created, "-f", str(yaml_file), "--json")
+        out_string = str(e.value.stdout.decode("utf-8"))
+        assert "Package is not installed in prefix" in out_string
+        assert "package name: pip" in out_string
+
+        # Install pip
+        res = helpers.install("pip", "-n", env_created, "--json", no_dry_run=True)
+        assert res["success"]
+
+        # Second update should succeed and install pip deps (numpy)
+        update_res = helpers.update(
+            "-n", env_created, "-f", str(yaml_file), "--json", no_dry_run=True
+        )
+        assert update_res["success"]
+
+        # Verify numpy was actually installed via pip
+        pip_list_output = helpers.umamba_run("-n", env_created, "pip", "list", "--format=json")
+        pip_packages_list = yaml.safe_load(pip_list_output)
+        assert any(pkg["name"] == "numpy" for pkg in pip_packages_list)
 
     def test_update_all(self, env_created):
         update_res = helpers.update("--all", "--json")
@@ -178,6 +213,13 @@ class TestUpdate:
                 if x.startswith(">=="):
                     break
                 assert not x.startswith("update specs:")
+
+        # --all with a new spec should install it
+        update_res = helpers.update("--all", "numpy", "--json")
+        assert update_res["success"]
+
+        pkgs = helpers.umamba_list("-n", TestUpdate.env_name, "--json")
+        assert any(pkg["name"] == "numpy" for pkg in pkgs)
 
     @pytest.mark.parametrize(
         "alias",

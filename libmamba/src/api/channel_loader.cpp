@@ -441,7 +441,9 @@ namespace mamba
 
             LOG_DEBUG << "Shard index fetched for " << subdir.name();
             const auto& channel = subdir.channel();
-            std::string current_repodata_url = subdir.repodata_url().str();
+            std::string current_repodata_url = subdir.repodata_url().str(
+                specs::CondaURL::Credentials::Show
+            );
             if (python_minor_version_for_prefilter.has_value())
             {
                 LOG_DEBUG << "Shard prefilter on python minor version enabled with "
@@ -476,7 +478,9 @@ namespace mamba
                         continue;
                     }
                     auto si = std::move(sidx_result.value().value());
-                    std::string sdir_url = subdirs[j].repodata_url().str();
+                    std::string sdir_url = subdirs[j].repodata_url().str(
+                        specs::CondaURL::Credentials::Show
+                    );
                     all_shards.emplace_back(
                         std::move(si),
                         sdir_url,

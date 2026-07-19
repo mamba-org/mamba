@@ -46,6 +46,35 @@ namespace
         }
         return "";
     }
+    // When 'activate' / 'deactivate' is run as subprocess, it cannot modify the parent shell.
+    // In that case, print instructions to initialize the shell and throw an exception to stop execution.
+    // If the shell is initialized, the 'activate' / 'deactivate' command are intercepted by the shell.
+    // The shell calls 'shell activate' / 'shell deactivate' instead, in that case the code below is never executed.
+    [[noreturn]] void notify_shell_not_initialized()
+    {
+        const std::string guessed_shell = guess_shell();
+
+        const std::string message = fmt::format(
+            "\n'{exe}' is running as a subprocess and can't modify the parent shell.\n"
+            "Thus you must initialize your shell before using activate and deactivate.\n"
+            "\n"
+            "{0}\n"
+            "To automatically initialize all future ({1}) shells, run:\n"
+            "    $ {exe} shell init --shell {1} --root-prefix=~/.local/share/mamba\n"
+            "If your shell was already initialized, reinitialize your shell with:\n"
+            "    $ {exe} shell reinit --shell {1}\n"
+            "Otherwise, this may be an issue. In the meantime you can run commands. See:\n"
+            "    $ {exe} run --help\n"
+            "\n"
+            "Supported shells are {{bash, zsh, csh, posix, xonsh, cmd.exe, powershell, fish, nu}}.\n",
+            get_shell_hook(guessed_shell),
+            guessed_shell,
+            fmt::arg("exe", get_self_exe_path().stem().string())
+        );
+
+        std::cout << message;
+        throw std::runtime_error("Shell not initialized");
+    }
 }
 
 void
@@ -61,31 +90,11 @@ set_activate_command(CLI::App* subcom)
         "Activate the specified environment without first deactivating the current one"
     );
 
-    subcom->callback(
-        [&]()
-        {
-            const std::string guessed_shell = guess_shell();
+    subcom->callback([&]() { notify_shell_not_initialized(); });
+}
 
-            const std::string message = fmt::format(
-                "\n'{exe}' is running as a subprocess and can't modify the parent shell.\n"
-                "Thus you must initialize your shell before using activate and deactivate.\n"
-                "\n"
-                "{0}\n"
-                "To automatically initialize all future ({1}) shells, run:\n"
-                "    $ {exe} shell init --shell {1} --root-prefix=~/.local/share/mamba\n"
-                "If your shell was already initialized, reinitialize your shell with:\n"
-                "    $ {exe} shell reinit --shell {1}\n"
-                "Otherwise, this may be an issue. In the meantime you can run commands. See:\n"
-                "    $ {exe} run --help\n"
-                "\n"
-                "Supported shells are {{bash, zsh, csh, posix, xonsh, cmd.exe, powershell, fish, nu}}.\n",
-                get_shell_hook(guessed_shell),
-                guessed_shell,
-                fmt::arg("exe", get_self_exe_path().stem().string())
-            );
-
-            std::cout << message;
-            throw std::runtime_error("Shell not initialized");
-        }
-    );
+void
+set_deactivate_command(CLI::App* subcom)
+{
+    subcom->callback([]() { notify_shell_not_initialized(); });
 }

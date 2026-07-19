@@ -193,6 +193,28 @@ def test_activate_target_prefix_checks(tmp_home, tmp_root_prefix):
     assert not res["use_default_prefix_fallback"]
     assert not res["use_root_prefix_fallback"]
 
+@pytest.mark.parametrize(
+    "command, description",
+    [
+        ("activate", "Activate an environment"),
+        ("deactivate", "Deactivate the active environment"),
+    ],
+)
+def test_top_level_activate_deactivate_not_initialized(
+    tmp_home, tmp_root_prefix, command, description
+):
+    """Test that top-level activate/deactivate commands are not initialized."""
+    umamba = helpers.get_umamba()
+
+    # Commands must be listed in top-level help.
+    top_help = helpers.subprocess_run(umamba, "--help").decode()
+    assert description in top_help
+
+    # Commands run directly with no shell function aborts with error message.
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
+        helpers.subprocess_run(umamba, command)
+    assert "Shell not initialized" in excinfo.value.stderr.decode()
+
 
 @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
 @pytest.mark.parametrize("prefix_selector", [None, "prefix"])

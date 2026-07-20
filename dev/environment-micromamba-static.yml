@@ -37,6 +37,7 @@ dependencies:
   - zlib
   - libnghttp2-static
   - lz4-c-static
+  - sel(osx): howardhinnant_date-static
   # libmamba test dependencies
   - catch2
   # micromamba dependencies

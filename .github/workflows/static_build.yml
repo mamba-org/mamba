@@ -70,7 +70,7 @@ jobs:
         run: |
           cd micromamba-feedstock/
           sed -i '' '/conda_forge_output_validation/d' conda-forge.yml
-      - name: Add howardhinnant_date host dependency for osx
+      - name: Add howardhinnant_date-static host dependency for osx
         if: ${{ matrix.platform == 'osx' }}
         run: |
           cd micromamba-feedstock/
@@ -78,13 +78,13 @@ jobs:
           from pathlib import Path
           meta = Path("recipe/meta.yaml")
           lines = meta.read_text().splitlines()
-          if any("howardhinnant_date" in line for line in lines):
+          if any("howardhinnant_date-static" in line for line in lines):
               raise SystemExit(0)
           out = []
           for line in lines:
               out.append(line)
               if line.strip().startswith("- lz4-c-static"):
-                  out.append("    - howardhinnant_date")
+                  out.append("    - howardhinnant_date-static")
           meta.write_text("\n".join(out) + "\n")
           PY
       - name: Checkout mamba branch

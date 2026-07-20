@@ -46,10 +46,12 @@ namespace
         }
         return "";
     }
+
     // When 'activate' / 'deactivate' is run as subprocess, it cannot modify the parent shell.
-    // In that case, print instructions to initialize the shell and throw an exception to stop execution.
-    // If the shell is initialized, the 'activate' / 'deactivate' command are intercepted by the shell.
-    // The shell calls 'shell activate' / 'shell deactivate' instead, in that case the code below is never executed.
+    // In that case, print instructions to initialize the shell and throw an exception to stop
+    // execution. If the shell is initialized, the 'activate' / 'deactivate' command are intercepted
+    // by the shell. The shell calls 'shell activate' / 'shell deactivate' instead, in that case the
+    // code below is never executed.
     [[noreturn]] void notify_shell_not_initialized()
     {
         const std::string guessed_shell = guess_shell();

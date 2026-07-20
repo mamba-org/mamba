@@ -193,6 +193,7 @@ def test_activate_target_prefix_checks(tmp_home, tmp_root_prefix):
     assert not res["use_default_prefix_fallback"]
     assert not res["use_root_prefix_fallback"]
 
+
 @pytest.mark.parametrize(
     "command, description",
     [

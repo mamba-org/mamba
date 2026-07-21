@@ -43,6 +43,44 @@ def test_clean_all_removes_nested_package_cache_entries(tmp_home, tmp_root_prefi
     assert not extracted.exists()
 
 
+def test_clean_tarballs_does_not_enter_extracted_packages(tmp_home, tmp_root_prefix):
+    pkgs_dir = tmp_home / "pkgs"
+    os.environ["CONDA_PKGS_DIRS"] = str(pkgs_dir)
+
+    channel_dir = pkgs_dir / "https" / "conda.anaconda.org" / "conda-forge" / "linux-64"
+    channel_dir.mkdir(parents=True, exist_ok=True)
+
+    tarball = channel_dir / "ambertools-26.0-test.conda"
+    tarball.write_bytes(b"cached package archive")
+
+    extracted = channel_dir / "ambertools-26.0-test"
+    (extracted / "info").mkdir(parents=True)
+    (extracted / "info" / "index.json").write_text("{}")
+
+    payload_file = extracted / "share" / "example.conda"
+    payload_file.parent.mkdir(parents=True)
+    payload_file.write_bytes(b"package payload")
+
+    # AmberTools ships a bin/amber.conda symlink. On conda-forge it can be
+    # dangling because the package does not include Amber's bundled Miniconda.
+    # Creating symlinks may require elevated privileges on Windows, so the
+    # regular payload file above provides cross-platform coverage.
+    dangling_symlink = None
+    if os.name != "nt":
+        dangling_symlink = extracted / "bin" / "amber.conda"
+        dangling_symlink.parent.mkdir()
+        dangling_symlink.symlink_to("../miniconda/bin/conda")
+        assert dangling_symlink.is_symlink()
+
+    helpers.clean("--tarballs", "--no-rc", no_dry_run=True)
+
+    assert not tarball.exists()
+    assert extracted.exists()
+    assert payload_file.exists()
+    if dangling_symlink is not None:
+        assert dangling_symlink.is_symlink()
+
+
 def test_clean_all_clears_all_cache_kinds(tmp_home, tmp_root_prefix):
     pkgs_dir = tmp_home / "pkgs"
     os.environ["CONDA_PKGS_DIRS"] = str(pkgs_dir)

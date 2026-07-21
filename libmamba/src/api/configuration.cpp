@@ -1740,7 +1740,9 @@ namespace mamba
                    .long_description(unindent(R"(
                         Maps package names to durations, dates, timestamps, or false to exempt
                         a package from the global exclude_newer policy. Package-specific values
-                        take precedence over the global cutoff.)")));
+                        take precedence over the global cutoff. This must
+                        be expressed as a JSON dictionary with package names as keys (e.g.
+                        '{"numpy": "false", "pandas": "7d"}'.)")));
 
         insert(Configurable("order_solver_request", &m_context.solver_flags.order_request)
                    .group("Solver")

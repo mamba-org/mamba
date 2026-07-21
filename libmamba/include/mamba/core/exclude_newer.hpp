@@ -38,6 +38,13 @@ namespace mamba
      * Holds Unix-second cutoffs only. Raw configuration strings live on ``Context`` and are
      * resolved via ``resolve_exclude_newer_policy``.
      *
+     * When set, packages with a policy timestamp newer than the effective cutoff are excluded
+     * during repodata loading. For repodata JSON, ``indexed_timestamp`` is preferred over
+     * ``timestamp`` when both are present, matching conda's ``--exclude-newer`` semantics.
+     * Per-package overrides take precedence over the global cutoff; a package mapped to
+     * ``std::nullopt`` is exempt (``false`` in config). The ``.solv`` cache path is not
+     * filtered; invalidate the cache when this policy changes.
+     *
      * Background and cross-ecosystem tracking:
      * https://github.com/conda/conda/issues/15759
      */

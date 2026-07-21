@@ -103,6 +103,9 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
     CLI::App* activate_subcom = com->add_subcommand("activate", "Activate an environment");
     set_activate_command(activate_subcom);
 
+    CLI::App* deactivate_subcom = com->add_subcommand("deactivate", "Deactivate the active environment");
+    set_deactivate_command(deactivate_subcom);
+
     CLI::App* run_subcom = com->add_subcommand("run", "Run an executable in an environment");
     set_run_command(run_subcom, config);
 

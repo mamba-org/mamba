@@ -76,6 +76,9 @@ void
 set_activate_command(CLI::App* subcom);
 
 void
+set_deactivate_command(CLI::App* subcom);
+
+void
 set_run_command(CLI::App* subcom, mamba::Configuration& config);
 
 void

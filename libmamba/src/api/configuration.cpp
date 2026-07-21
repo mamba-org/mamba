@@ -1719,7 +1719,7 @@ namespace mamba
                    .set_env_var_names()
                    .description("Allow downgrade when installing packages. Default is false."));
 
-        insert(Configurable("exclude_newer", &m_context.exclude_newer_policy.exclude_newer)
+        insert(Configurable("exclude_newer", &m_context.exclude_newer)
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_EXCLUDE_NEWER", "MAMBA_EXCLUDE_NEWER" })
@@ -1732,7 +1732,7 @@ namespace mamba
                         treated as durations in seconds. Supply 0 for no delay, using the
                         current time as the cutoff.)")));
 
-        insert(Configurable("exclude_newer_package", &m_context.exclude_newer_policy.exclude_newer_package)
+        insert(Configurable("exclude_newer_package", &m_context.exclude_newer_package)
                    .group("Solver")
                    .set_rc_configurable()
                    .set_env_var_names({ "CONDA_EXCLUDE_NEWER_PACKAGE", "MAMBA_EXCLUDE_NEWER_PACKAGE" })

@@ -33,28 +33,16 @@ namespace mamba
     using ExcludeNewerPackageCutoffs = std::unordered_map<std::string, std::optional<std::uint64_t>>;
 
     /**
-     * Resolved and raw ``exclude_newer`` policy from configuration.
+     * Resolved ``exclude_newer`` policy used by the solver / database.
      *
-     * Holds both unresolved config strings and resolved Unix-second cutoffs used by the solver.
+     * Holds Unix-second cutoffs only. Raw configuration strings live on ``Context`` and are
+     * resolved via ``resolve_exclude_newer_policy``.
+     *
+     * Background and cross-ecosystem tracking:
+     * https://github.com/conda/conda/issues/15759
      */
     struct ExcludeNewerPolicy
     {
-        /**
-         * Raw ``exclude_newer`` configuration values from CLI or configuration file.
-         *
-         * Background and cross-ecosystem tracking:
-         * https://github.com/conda/conda/issues/15759
-         */
-        std::string exclude_newer;
-
-        /**
-         * Raw per-package ``exclude_newer`` overrides from configuration.
-         *
-         * Values are resolved to timestamps (or exemption) via
-         * ``resolve_exclude_newer_package_cutoffs``.
-         */
-        std::map<std::string, std::string> exclude_newer_package;
-
         /**
          * Resolved global cutoff timestamp in seconds.
          */
@@ -65,10 +53,10 @@ namespace mamba
          */
         ExcludeNewerPackageCutoffs per_package = {};
 
-        /** Return whether no ``exclude_newer`` configuration is set. */
+        /** Return whether no cutoff is configured. */
         [[nodiscard]] auto empty() const -> bool
         {
-            return exclude_newer.empty() && exclude_newer_package.empty();
+            return !global.has_value() && per_package.empty();
         }
 
         /**
@@ -102,6 +90,21 @@ namespace mamba
         const std::map<std::string, std::string>& exclude_newer_package,
         std::uint64_t now_seconds
     ) -> ExcludeNewerPackageCutoffs;
+
+    /**
+     * Resolve raw ``exclude_newer`` configuration into a policy for the database.
+     *
+     * @param exclude_newer Global cutoff configuration string.
+     * @param exclude_newer_package Per-package overrides.
+     * @param now_seconds Reference time for relative durations, in Unix seconds.
+     *
+     * @throws mamba_error when a value cannot be parsed.
+     */
+    [[nodiscard]] auto resolve_exclude_newer_policy(
+        std::string_view exclude_newer,
+        const std::map<std::string, std::string>& exclude_newer_package,
+        std::uint64_t now_seconds
+    ) -> ExcludeNewerPolicy;
 
     /**
      * Resolve a global ``exclude_newer`` configuration value to an absolute Unix

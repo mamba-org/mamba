@@ -177,7 +177,12 @@ namespace mamba
         auto parse_iso8601_duration_seconds(std::string_view value)
             -> std::optional<std::chrono::seconds>
         {
-            // P(n)Y(n)M(n)W(n)DT(n)H(n)M(n)S
+            // For a definition of the ISO 8601 duration format, see:
+            // https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm
+            // but mind the missing "(n)W" segment for weeks! Weeks are supported here folloiwing:
+            //
+            //     P(n)Y(n)M(n)W(n)DT(n)H(n)M(n)S
+            //
             static const std::regex iso8601_duration{
                 R"(^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$)",
                 std::regex_constants::icase,

@@ -388,4 +388,18 @@ namespace mamba
         return out;
     }
 
+    auto resolve_exclude_newer_policy(
+        std::string_view exclude_newer,
+        const std::map<std::string, std::string>& exclude_newer_package,
+        std::uint64_t now_seconds
+    ) -> ExcludeNewerPolicy
+    {
+        return {
+            /* .global= */ exclude_newer.empty()
+                ? std::nullopt
+                : resolve_exclude_newer_cutoff(exclude_newer, now_seconds),
+            /* .per_package= */ resolve_exclude_newer_package_cutoffs(exclude_newer_package, now_seconds),
+        };
+    }
+
 }  // namespace mamba

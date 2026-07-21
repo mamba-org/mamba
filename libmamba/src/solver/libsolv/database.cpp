@@ -99,16 +99,6 @@ namespace mamba::solver::libsolv
         return m_data->settings;
     }
 
-    auto Database::Settings::exclude_newer_policy() const -> ExcludeNewerPolicy
-    {
-        return {
-            /* .exclude_newer= */ "",
-            /* .exclude_newer_package= */ {},
-            /* .global= */ exclude_newer_timestamp,
-            /* .per_package= */ exclude_newer_package,
-        };
-    }
-
     namespace
     {
         auto libsolv_to_log_level(int type) -> LogLevel
@@ -194,7 +184,7 @@ namespace mamba::solver::libsolv
                     package_types,
                     settings().matchspec_parser,
                     verify_artifacts,
-                    settings().exclude_newer_policy()
+                    settings().exclude_newer_policy
                 );
             }
 
@@ -272,10 +262,7 @@ namespace mamba::solver::libsolv
     void
     Database::add_repo_from_packages_impl_loop(const RepoInfo& repo, const specs::PackageInfo& pkg)
     {
-        if (settings().exclude_newer_policy().excludes(
-                pkg.name,
-                normalize_conda_timestamp(pkg.timestamp)
-            ))
+        if (settings().exclude_newer_policy.excludes(pkg.name, normalize_conda_timestamp(pkg.timestamp)))
         {
             return;
         }

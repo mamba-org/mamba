@@ -38,13 +38,12 @@ namespace mamba::fs
 
 namespace mamba::solver::libsolv
 {
-    // Beyond this value, the timestamp would be in milliseconds and therefore should be
-    // converted to seconds.
-    inline constexpr std::uint64_t MAX_CONDA_TIMESTAMP = 253402300799ULL;
-
     [[nodiscard]] constexpr auto normalize_conda_timestamp(std::uint64_t timestamp) -> std::uint64_t
     {
-        return (timestamp > MAX_CONDA_TIMESTAMP) ? (timestamp / 1000) : timestamp;
+        // Beyond this value, the timestamp would be in milliseconds and therefore should be
+        // converted to seconds.
+        constexpr std::uint64_t max_conda_timestamp = 253402300799ULL;
+        return (timestamp > max_conda_timestamp) ? (timestamp / 1000) : timestamp;
     }
 
     void set_solvable(

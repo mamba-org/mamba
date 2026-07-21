@@ -404,6 +404,14 @@ init_install_options(CLI::App* subcom, Configuration& config)
         exclude_newer.description()
     );
 
+    auto& exclude_newer_package = config.at("exclude_newer_package");
+    subcom->add_option_function<std::string>(
+        "--exclude-newer-package",
+        [&exclude_newer_package](const std::string& value)
+        { exclude_newer_package.set_cli_yaml_value(value); },
+        exclude_newer_package.description()
+    );
+
     auto& allow_softlinks = config.at("allow_softlinks");
     subcom->add_flag(
         "--allow-softlinks,!--no-allow-softlinks",

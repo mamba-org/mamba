@@ -48,6 +48,21 @@ class TestInstall:
         if Path(TestInstall.prefix).exists():
             helpers.rmtree(TestInstall.prefix)
 
+    def test_exclude_newer_cli(self):
+        res = helpers.install(
+            "-p",
+            TestInstall.prefix,
+            "xtensor",
+            "--exclude-newer",
+            "7d",
+            "--exclude-newer-package",
+            "{numpy: 'false', pandas: '7d'}",
+            "--print-config-only",
+        )
+        assert res["exclude_newer"] == "7d"
+        # `--print-config-only` returns YAML; the string "false" is loaded as a bool.
+        assert res["exclude_newer_package"] == {"numpy": False, "pandas": "7d"}
+
     @classmethod
     def config_tests(cls, res, root_prefix=root_prefix, target_prefix=prefix):
         assert res["root_prefix"] == root_prefix

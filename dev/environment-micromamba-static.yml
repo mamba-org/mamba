@@ -37,6 +37,7 @@ dependencies:
   - zlib
   - libnghttp2-static
   - lz4-c-static
+  # Replacement of `std::chrono::parse` (P0355R7) missing in libc++, see: https://github.com/llvm/llvm-project/issues/166051
   - sel(osx): howardhinnant_date-static
   # libmamba test dependencies
   - catch2

@@ -238,7 +238,25 @@ namespace mamba
     auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>
     {
         // def looks like: "wheel = wheel.cli:main"
-        auto cmd_mod_func = util::rsplit(ep_def, ":", 1);
+        // Same approach as conda's parse_entry_point_def (conda/conda#16340):
+        //   1. split on the first '=' into command and RHS
+        //   2. strip whitespace and surrounding quotes from the RHS
+        //      (some packages, e.g. findpython, ship `cmd = "mod:func"`)
+        //   3. rsplit the stripped RHS on the last ':' into module and callable
+        auto command_defn = util::split(ep_def, '=', 1);
+        if (command_defn.size() != 2)
+        {
+            return make_unexpected(
+                fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
+                mamba_error_code::invalid_spec
+            );
+        }
+
+        // Step 2: strip whitespace/quotes from the module:callable side (conda#16340).
+        constexpr std::string_view entry_point_rhs_strip_chars = " \t\r\n\"'";
+        const auto module_func = util::strip(command_defn[1], entry_point_rhs_strip_chars);
+        // Step 3: rsplit the stripped RHS on the last ':' into module and callable.
+        auto cmd_mod_func = util::rsplit(module_func, ':', 1);
         if (cmd_mod_func.size() != 2)
         {
             return make_unexpected(
@@ -247,19 +265,10 @@ namespace mamba
             );
         }
 
-        auto command_module = util::rsplit(cmd_mod_func[0], "=", 1);
-        if (command_module.size() != 2)
-        {
-            return make_unexpected(
-                fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
-                mamba_error_code::invalid_spec
-            );
-        }
-
         python_entry_point_parsed result;
-        result.command = util::strip(command_module[0]);
-        result.module = util::strip(command_module[1]);
-        result.func = util::strip(cmd_mod_func[1]);
+        result.command = std::string(util::strip(command_defn[0]));
+        result.module = std::string(util::strip(cmd_mod_func[0]));
+        result.func = std::string(util::strip(cmd_mod_func[1]));
 
         std::vector<mamba_error> errors;
         auto record_error = [&](const tl::expected<void, mamba_error>& check)
@@ -280,7 +289,17 @@ namespace mamba
         }
         if (errors.size() > 1)
         {
-            return tl::unexpected(mamba_aggregated_error(std::move(errors)));
+            // Do not return mamba_aggregated_error here: expected_t<..., mamba_error> would
+            // slice it to a plain mamba_error that still carries error_code::aggregated.
+            // micromamba's main then static_casts that to mamba_aggregated_error and segfaults
+            // (mamba-org/mamba#4352).
+            std::string message = "Multiple errors occurred:\n";
+            for (const mamba_error& err : errors)
+            {
+                message += err.what();
+                message += '\n';
+            }
+            return make_unexpected(std::move(message), mamba_error_code::invalid_spec);
         }
 
         return result;

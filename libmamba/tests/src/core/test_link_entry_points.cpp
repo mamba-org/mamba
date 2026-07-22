@@ -24,6 +24,32 @@ namespace mamba
             REQUIRE(parsed->func == "main");
         }
 
+        TEST_CASE("parse_entry_point accepts quoted module:callable (findpython / conda#16339)")
+        {
+            // Some noarch packages ship entry points with quotes around the RHS, e.g.
+            // findpython-0.7.1-pyh332efcf_0's info/link.json.
+            const auto parsed = parse_entry_point(R"(findpython = "findpython.__main__:main")");
+            REQUIRE(parsed.has_value());
+            REQUIRE(parsed->command == "findpython");
+            REQUIRE(parsed->module == "findpython.__main__");
+            REQUIRE(parsed->func == "main");
+
+            const auto parsed_sq = parse_entry_point("cmd = 'pkg.mod:func'");
+            REQUIRE(parsed_sq.has_value());
+            REQUIRE(parsed_sq->command == "cmd");
+            REQUIRE(parsed_sq->module == "pkg.mod");
+            REQUIRE(parsed_sq->func == "func");
+        }
+
+        TEST_CASE("parse_entry_point multiple validation errors stay invalid_spec")
+        {
+            // Must not surface as error_code::aggregated via a sliced mamba_aggregated_error
+            // (that made micromamba main segfault on static_cast; mamba-org/mamba#4352).
+            const auto parsed = parse_entry_point(R"(bad/cmd = "..evil:also/bad")");
+            REQUIRE_FALSE(parsed.has_value());
+            REQUIRE(parsed.error().error_code() == mamba_error_code::invalid_spec);
+        }
+
         TEST_CASE("parse_entry_point rejects path traversal in command")
         {
             REQUIRE_FALSE(parse_entry_point("../../../tmp/PWN = innocuous_pkg.evil:main").has_value());

@@ -9,6 +9,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/operators.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
@@ -142,18 +143,22 @@ namespace mambapy
         py::class_<Database>(m, "Database")
             .def(
                 py::init(
-                    [](specs::ChannelResolveParams channel_params, MatchSpecParser matchspec_parser)
+                    [](specs::ChannelResolveParams channel_params,
+                       MatchSpecParser matchspec_parser,
+                       std::optional<std::uint64_t> exclude_newer_timestamp)
                     {
                         return Database(
                             channel_params,
                             Database::Settings{
                                 matchspec_parser,
+                                exclude_newer_timestamp,
                             }
                         );
                     }
                 ),
                 py::arg("channel_params"),
-                py::arg("matchspec_parser") = MatchSpecParser::Libsolv
+                py::arg("matchspec_parser") = MatchSpecParser::Libsolv,
+                py::arg("exclude_newer_timestamp") = py::none()
             )
             .def("set_logger", &Database::set_logger, py::call_guard<py::gil_scoped_acquire>())
             .def(

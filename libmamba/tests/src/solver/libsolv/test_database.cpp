@@ -5,6 +5,8 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <cstdint>
+#include <fstream>
 #include <functional>
 
 #include <catch2/catch_all.hpp>
@@ -189,6 +191,51 @@ namespace
             }
         }
 
+        SECTION("exclude_newer_timestamp filters packages from add_repo_from_packages")
+        {
+            const std::uint64_t cutoff = 2000;
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, /* exclude_newer_timestamp= */ cutoff }
+            );
+
+            auto old_pkg = specs::PackageInfo();
+            old_pkg.name = "old-pkg";
+            old_pkg.version = "1.0";
+            old_pkg.timestamp = 1000;
+
+            auto new_pkg = specs::PackageInfo();
+            new_pkg.name = "new-pkg";
+            new_pkg.version = "1.0";
+            new_pkg.timestamp = 3000;
+
+            auto pkgs = std::array{ old_pkg, new_pkg };
+            auto repo1 = db_filtered.add_repo_from_packages(pkgs, "repo1");
+            REQUIRE(repo1.package_count() == 1);
+
+            db_filtered.for_each_package_in_repo(
+                repo1,
+                [](const auto& p) { REQUIRE(p.name == "old-pkg"); }
+            );
+        }
+
+        SECTION("exclude_newer_timestamp normalizes millisecond timestamps")
+        {
+            const std::uint64_t cutoff = 2000000000;
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, /* exclude_newer_timestamp= */ cutoff }
+            );
+
+            auto ms_pkg = specs::PackageInfo();
+            ms_pkg.name = "ms-pkg";
+            ms_pkg.version = "1.0";
+            ms_pkg.timestamp = 1500000000000;  // 1.5e12 ms → 1.5e9 seconds, below cutoff
+
+            auto repo1 = db_filtered.add_repo_from_packages(std::array{ ms_pkg }, "repo1");
+            REQUIRE(repo1.package_count() == 1);
+        }
+
         SECTION("Add repo from repodata with no extra pip")
         {
             const auto repodata = mambatests::test_data_dir
@@ -216,6 +263,86 @@ namespace
                 }
             );
             REQUIRE(found_python);
+        }
+
+        SECTION("exclude_newer_timestamp filters packages from repodata JSON")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-numpy-linux-64.json";
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, /* exclude_newer_timestamp= */ std::uint64_t(1700000000) }
+            );
+            auto repo1 = db_filtered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() < 33);
+            REQUIRE(repo1->package_count() > 0);
+
+            auto db_unfiltered = libsolv::Database({}, { matchspec_parser });
+            auto unfiltered_repo = db_unfiltered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(unfiltered_repo.has_value());
+            REQUIRE(unfiltered_repo->package_count() > repo1->package_count());
+        }
+
+        SECTION("exclude_newer_timestamp prefers indexed_timestamp from repodata JSON")
+        {
+            auto tmp_dir = TemporaryDirectory();
+            const auto repodata = tmp_dir.path() / "repodata.json";
+            std::ofstream out_file(repodata.std_path());
+            out_file << R"({
+                "packages": {
+                    "excluded-pkg-1.0-bld.tar.bz2": {
+                        "name": "excluded-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1000,
+                        "indexed_timestamp": 3000
+                    },
+                    "included-pkg-1.0-bld.tar.bz2": {
+                        "name": "included-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000,
+                        "indexed_timestamp": 1000
+                    }
+                },
+                "packages.conda": {}
+            })";
+            out_file.close();
+
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, /* exclude_newer_timestamp= */ std::uint64_t(2000) }
+            );
+            auto repo1 = db_filtered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            db_filtered.for_each_package_in_repo(
+                *repo1,
+                [](const auto& p) { REQUIRE(p.name == "included-pkg"); }
+            );
         }
 
         SECTION("Add repo from repodata with extra pip")

@@ -133,8 +133,8 @@ namespace mamba::specs
         /**
          * Check if the MatchSpec matches the given package.
          *
-         * The check exclude anything related to the channel, du to the difficulties in
-         * comparing unresolved channels and the fact that this check can be also be done once
+         * The check excludes anything related to the channel, due to the difficulties in
+         * comparing unresolved channels and the fact that this check can also be done once
          * at a repository level when the user knows how packages are organised.
          *
          * This function is written as a generic template, to accommodate various uses: the fact

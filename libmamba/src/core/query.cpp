@@ -4,10 +4,12 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <sstream>
 #include <stack>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <fmt/chrono.h>
@@ -95,6 +97,36 @@ namespace mamba
             return out;
         };
 
+        // Find the latest package matching all specs in the group.
+        // Uses the first spec to find candidates via libsolv, then filters
+        // by all remaining specs using `contains_except_channel`.
+        auto database_latest_package_matching_all(
+            solver::libsolv::Database& database,
+            const std::vector<specs::MatchSpec>& specs
+        ) -> std::optional<specs::PackageInfo>
+        {
+            assert(!specs.empty());
+            auto out = std::optional<specs::PackageInfo>();
+            database.for_each_package_matching(
+                specs[0],
+                [&](auto pkg)
+                {
+                    if (std::all_of(
+                            specs.begin() + 1,
+                            specs.end(),
+                            [&](const auto& ms) { return ms.contains_except_channel(pkg); }
+                        ))
+                    {
+                        if (!out || PkgInfoCmp()(&*out, &pkg))
+                        {
+                            out = std::move(pkg);
+                        }
+                    }
+                }
+            );
+            return out;
+        };
+
         class PoolWalker
         {
         public:
@@ -147,17 +179,41 @@ namespace mamba
             {
                 return;
             }
+
+            // This is an approximation.
+            // Resolving all dependencies, even of a single Matchspec is not as simple
+            // as taking any package matching a dependency recursively.
+            // Package dependencies can appear multiple times, further reducing its valid set.
+            // We group dependencies by package name so that multiple constraints
+            // on the same package (e.g. "python" and "python 3.10.* *_cpython")
+            // are intersected rather than resolved independently.
+            // But to do this properly, we should instantiate a solver and resolve the spec.
+            // Note that the latter may be too heavy and therefore should be evaluated.
+            struct DepEntry
+            {
+                std::string_view dep_str;
+                specs::MatchSpec ms;
+            };
+
+            auto groups = std::unordered_map<std::string, std::vector<DepEntry>>();
             for (const auto& dep : m_graph.node(id).dependencies)
             {
-                // This is an approximation.
-                // Resolving all depenndencies, even of a single Matchspec isnot as simple
-                // as taking any package matching a dependency recursively.
-                // Package dependencies can appear multiple time, further reducing its valid set.
-                // To do this properly, we should instantiate a solver and resolve the spec.
-                const auto ms = specs::MatchSpec::parse(dep)
-                                    .or_else([](specs::ParseError&& err) { throw std::move(err); })
-                                    .value();
-                if (auto child = database_latest_package(m_database, ms))
+                auto ms = specs::MatchSpec::parse(dep)
+                              .or_else([](specs::ParseError&& err) { throw std::move(err); })
+                              .value();
+                groups[ms.name().to_string()].push_back({ dep, std::move(ms) });
+            }
+
+            for (auto& [_, entries] : groups)
+            {
+                auto specs = std::vector<specs::MatchSpec>();
+                specs.reserve(entries.size());
+                for (auto& entry : entries)
+                {
+                    specs.push_back(std::move(entry.ms));
+                }
+
+                if (auto child = database_latest_package_matching_all(m_database, specs))
                 {
                     if (auto it = m_visited.find(&(*child)); it != m_visited.cend())
                     {
@@ -171,17 +227,23 @@ namespace mamba
                         walk_impl(child_id, max_depth - 1);
                     }
                 }
-                else if (auto it = m_not_found.find(dep); it != m_not_found.end())
-                {
-                    m_graph.add_edge(id, it->second);
-                }
                 else
                 {
-                    auto dep_id = m_graph.add_node(
-                        specs::PackageInfo(util::concat(dep, " >>> NOT FOUND <<<"))
-                    );
-                    m_graph.add_edge(id, dep_id);
-                    m_not_found.emplace(dep, dep_id);
+                    for (const auto& entry : entries)
+                    {
+                        if (auto it = m_not_found.find(entry.dep_str); it != m_not_found.end())
+                        {
+                            m_graph.add_edge(id, it->second);
+                        }
+                        else
+                        {
+                            auto dep_id = m_graph.add_node(
+                                specs::PackageInfo(util::concat(entry.dep_str, " >>> NOT FOUND <<<"))
+                            );
+                            m_graph.add_edge(id, dep_id);
+                            m_not_found.emplace(entry.dep_str, dep_id);
+                        }
+                    }
                 }
             }
         }

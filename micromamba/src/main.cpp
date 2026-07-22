@@ -168,13 +168,20 @@ main(int argc, char** argv)
     }
     catch (const mamba::mamba_error& e)
     {
-        // We treat interruptions (ctrl-c) specially by not logging a critical error.s
+        // We treat interruptions (ctrl-c) specially by not logging a critical error.
         const bool is_interruption = [&]
         {
             if (e.error_code() == mamba::mamba_error_code::aggregated)
             {
-                const auto& aggregated_error = static_cast<const mamba::mamba_aggregated_error&>(e);
-                return aggregated_error.has_only_error(mamba::mamba_error_code::user_interrupted);
+                // Prefer dynamic_cast: a plain mamba_error can incorrectly carry
+                // error_code::aggregated after object slicing (mamba-org/mamba#4352).
+                if (const auto* aggregated_error = dynamic_cast<const mamba::mamba_aggregated_error*>(
+                        &e
+                    ))
+                {
+                    return aggregated_error->has_only_error(mamba::mamba_error_code::user_interrupted);
+                }
+                return false;
             }
             else
             {

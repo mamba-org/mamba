@@ -80,21 +80,29 @@ namespace mamba
             }
         };
 
+        void update_latest(std::optional<specs::PackageInfo>& out, specs::PackageInfo&& pkg)
+        {
+            if (!out || PkgInfoCmp()(&*out, &pkg))
+            {
+                out = std::move(pkg);
+            }
+        }
+
         auto database_latest_package(solver::libsolv::Database& database, specs::MatchSpec spec)
             -> std::optional<specs::PackageInfo>
         {
             auto out = std::optional<specs::PackageInfo>();
             database.for_each_package_matching(
                 spec,
-                [&](auto pkg)
-                {
-                    if (!out || PkgInfoCmp()(&*out, &pkg))
-                    {
-                        out = std::move(pkg);
-                    }
-                }
+                [&](auto pkg) { update_latest(out, std::move(pkg)); }
             );
             return out;
+        };
+
+        struct DepEntry
+        {
+            std::string_view dep_str;
+            specs::MatchSpec ms;
         };
 
         // Find the latest package matching all specs in the group.
@@ -102,25 +110,23 @@ namespace mamba
         // by all remaining specs using `contains_except_channel`.
         auto database_latest_package_matching_all(
             solver::libsolv::Database& database,
-            const std::vector<specs::MatchSpec>& specs
+            std::span<const DepEntry> entries
         ) -> std::optional<specs::PackageInfo>
         {
-            assert(!specs.empty());
+            assert(!entries.empty());
+
             auto out = std::optional<specs::PackageInfo>();
             database.for_each_package_matching(
-                specs[0],
+                entries.front().ms,
                 [&](auto pkg)
                 {
                     if (std::all_of(
-                            specs.begin() + 1,
-                            specs.end(),
-                            [&](const auto& ms) { return ms.contains_except_channel(pkg); }
+                            entries.begin() + 1,
+                            entries.end(),
+                            [&](const auto& entry) { return entry.ms.contains_except_channel(pkg); }
                         ))
                     {
-                        if (!out || PkgInfoCmp()(&*out, &pkg))
-                        {
-                            out = std::move(pkg);
-                        }
+                        update_latest(out, std::move(pkg));
                     }
                 }
             );
@@ -189,12 +195,6 @@ namespace mamba
             // are intersected rather than resolved independently.
             // But to do this properly, we should instantiate a solver and resolve the spec.
             // Note that the latter may be too heavy and therefore should be evaluated.
-            struct DepEntry
-            {
-                std::string_view dep_str;
-                specs::MatchSpec ms;
-            };
-
             auto groups = std::unordered_map<std::string, std::vector<DepEntry>>();
             for (const auto& dep : m_graph.node(id).dependencies)
             {
@@ -206,14 +206,7 @@ namespace mamba
 
             for (auto& [_, entries] : groups)
             {
-                auto specs = std::vector<specs::MatchSpec>();
-                specs.reserve(entries.size());
-                for (auto& entry : entries)
-                {
-                    specs.push_back(std::move(entry.ms));
-                }
-
-                if (auto child = database_latest_package_matching_all(m_database, specs))
+                if (auto child = database_latest_package_matching_all(m_database, entries))
                 {
                     if (auto it = m_visited.find(&(*child)); it != m_visited.cend())
                     {

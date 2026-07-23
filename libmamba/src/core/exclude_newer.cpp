@@ -12,6 +12,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <fmt/format.h>
+
 #include "mamba/core/detail/chrono_parse.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/exclude_newer.hpp"
@@ -53,19 +55,22 @@ namespace mamba
                                            "(e.g. P7D, PT24H, P1DT12H), a plain integer in seconds (e.g. 3600), a date "
                                            "(e.g. 2026-04-01), or a datetime (e.g. 2026-04-01T12:00:00Z)";
 
-            std::string message;
             if (package_name.empty())
             {
-                message = "Could not parse exclude_newer value '" + std::string(value) + "'; "
-                          + duration_hint;
+                throw mamba_error(
+                    fmt::format("Could not parse exclude_newer value '{}'; {}", value, duration_hint),
+                    mamba_error_code::incorrect_usage
+                );
             }
-            else
-            {
-                message = "Could not parse exclude_newer_package value for package '"
-                          + std::string(package_name) + "' ('" + std::string(value) + "'); "
-                          + duration_hint + ", or false";
-            }
-            throw mamba_error(std::move(message), mamba_error_code::incorrect_usage);
+            throw mamba_error(
+                fmt::format(
+                    "Could not parse exclude_newer_package value for package '{}' ('{}'); {}, or false",
+                    package_name,
+                    value,
+                    duration_hint
+                ),
+                mamba_error_code::incorrect_usage
+            );
         }
 
         /** Parse ``value`` as an unsigned integer that must consume the entire string. */

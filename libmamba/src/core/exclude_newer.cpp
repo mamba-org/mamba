@@ -266,7 +266,7 @@ namespace mamba
                 return std::nullopt;
             }
 
-            std::uint64_t total = 0;
+            std::chrono::seconds total{ 0 };
             const std::string input(value);
             const std::sregex_iterator end;
             for (std::sregex_iterator it(input.begin(), input.end(), compact_segment); it != end; ++it)
@@ -277,37 +277,45 @@ namespace mamba
                     return std::nullopt;
                 }
 
-                std::uint64_t multiplier = 0;
                 switch ((*it)[2].str().front())
                 {
                     case 'y':
-                        multiplier = seconds_per_year;
+                        total += std::chrono::duration_cast<std::chrono::seconds>(std::chrono::years{
+                            static_cast<std::chrono::years::rep>(*amount) });
                         break;
                     case 'M':
-                        multiplier = seconds_per_month;
+                        total += std::chrono::duration_cast<std::chrono::seconds>(
+                            std::chrono::months{ static_cast<std::chrono::months::rep>(*amount) }
+                        );
                         break;
                     case 'w':
-                        multiplier = seconds_per_week;
+                        total += std::chrono::duration_cast<std::chrono::seconds>(std::chrono::weeks{
+                            static_cast<std::chrono::weeks::rep>(*amount) });
                         break;
                     case 'd':
-                        multiplier = seconds_per_day;
+                        total += std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days{
+                            static_cast<std::chrono::days::rep>(*amount) });
                         break;
                     case 'h':
-                        multiplier = seconds_per_hour;
+                        total += std::chrono::duration_cast<std::chrono::seconds>(std::chrono::hours{
+                            static_cast<std::chrono::hours::rep>(*amount) });
                         break;
                     case 'm':
-                        multiplier = seconds_per_minute;
+                        total += std::chrono::duration_cast<std::chrono::seconds>(
+                            std::chrono::minutes{ static_cast<std::chrono::minutes::rep>(*amount) }
+                        );
                         break;
                     case 's':
-                        multiplier = 1;
+                        total += std::chrono::seconds{
+                            static_cast<std::chrono::seconds::rep>(*amount)
+                        };
                         break;
                     default:
                         return std::nullopt;
                 }
-                total += *amount * multiplier;
             }
 
-            return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
+            return total;
         }
     }  // namespace detail
 

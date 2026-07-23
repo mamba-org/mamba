@@ -25,6 +25,9 @@ namespace mamba::detail
      * When ``MAMBA_USE_HOWARD_HINNANT_DATE`` is set (libc++ lacks P0355;
      * https://github.com/llvm/llvm-project/issues/166051), ``date::from_stream`` is used.
      *
+     * TODO: Drop the Howard Hinnant ``date`` fallback once ``std::chrono::parse`` is
+     * available on all supported platforms (notably macOS/libc++).
+     *
      * Returns ``std::nullopt`` when parsing fails or trailing characters remain.
      */
     template <typename T>

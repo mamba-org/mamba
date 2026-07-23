@@ -854,6 +854,7 @@ namespace mamba
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,
+                    channel_context,
                     db,
                     file,
                     categories,
@@ -1047,8 +1048,7 @@ namespace mamba
                     {
                         env_name.set_cli_yaml_value(parse_result.name);
                     }
-                    else if (parse_result.name.size() != 0
-                             && parse_result.name != env_name.cli_value<std::string>())
+                    else if (parse_result.name.size() != 0 && parse_result.name != env_name.cli_value<std::string>())
                     {
                         LOG_WARNING << "YAML specs have different environment names. Using "
                                     << env_name.cli_value<std::string>();
@@ -1209,8 +1209,21 @@ namespace mamba
         {
             const auto ms = pkg.second.name + "==" + pkg.second.version + " ="
                             + pkg.second.build_string;
+            auto match_specs = specs::MatchSpec::parse(ms);
+            if (not match_specs)
+            {
+                throw mamba_error(
+                    fmt::format(
+                        "failed to parse specs '{}' : {}",
+                        ms,
+                        match_specs.error().what()
+                    ),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
             db.for_each_package_matching(
-                specs::MatchSpec::parse(ms).value(),
+                match_specs.value(),
                 [&](specs::PackageInfo&& pkg_info) { pkg.second = pkg_info; }
             );
         }
@@ -1254,15 +1267,18 @@ namespace mamba
 
             auto execute_transaction = [&](MTransaction& transaction)
             {
-                if (ctx.output_params.json)
-                {
-                    transaction.log_json();
-                }
-
                 auto prompt_entry = transaction.prompt(ctx, channel_context);
                 if (prompt_entry)
                 {
                     transaction.execute(ctx, channel_context, prefix_data);
+                    if (ctx.output_params.json)
+                    {
+                        transaction.log_json();
+                    }
+                }
+                else if (ctx.output_params.json)
+                {
+                    transaction.log_json();
                 }
                 return prompt_entry;
             };

@@ -732,10 +732,6 @@ namespace mamba
         const std::function<void()>& on_abort
     )
     {
-        if (ctx.output_params.json)
-        {
-            transaction.log_json();
-        }
         const auto should_execute = transaction.prompt(ctx, channel_context);
         if (should_execute)
         {
@@ -744,14 +740,25 @@ namespace mamba
                 before_execute();
             }
             transaction.execute(ctx, channel_context, prefix_data);
+            if (ctx.output_params.json)
+            {
+                transaction.log_json();
+            }
             if (after_execute)
             {
                 after_execute();
             }
         }
-        else if (on_abort)
+        else
         {
-            on_abort();
+            if (ctx.output_params.json)
+            {
+                transaction.log_json();
+            }
+            if (on_abort)
+            {
+                on_abort();
+            }
         }
         return should_execute;
     }

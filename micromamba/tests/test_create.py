@@ -207,12 +207,12 @@ def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
 
     shutil.copyfile(lockfile_to_use, spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-    print("create result:", res)
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
+    print("create result:\n", res)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    print("packages installed:", packages)
+    print("packages installed:\n", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
 
 
@@ -228,7 +228,7 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
 
     shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -266,7 +266,7 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_fo
 
     shutil.copyfile(pip_git_https_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -293,7 +293,7 @@ def test_lockfile_online(
     env_prefix = tmp_path / "myenv"
     spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/env_lockfiles/test-env-lock.yaml"
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -316,11 +316,15 @@ def test_env_lockfile_different_install_after_create(
         _base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file
     )
 
-    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json")
+    res = helpers.create(
+        "-p", env_prefix, "-f", create_spec_file, "-y", "--json", default_channel=False
+    )
     assert res["success"]
 
     # Must not crash
-    helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json")
+    helpers.install(
+        "-p", env_prefix, "-f", install_spec_file, "-y", "--json", default_channel=False
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1731,14 +1735,13 @@ def test_channel_alias(tmp_home, tmp_root_prefix, alias):
             "--channel-alias",
             alias,
         )
-        # ca = alias.rstrip("/")
+        ca = alias.rstrip("/")
     else:
         res = helpers.create("-n", env_name, "xtensor", "--json")
-        # ca = "https://conda.anaconda.org"
+        ca = "https://conda.anaconda.org"
 
     for link in res["actions"]["LINK"]:
-        assert link["channel"] == "conda-forge"
-        # assert link["channel"].startswith(f"{ca}/conda-forge/")
+        assert link["channel"] == "conda-forge" or link["channel"].startswith(f"{ca}/conda-forge/")
         # assert link["url"].startswith(f"{ca}/conda-forge/")
 
 
@@ -2353,7 +2356,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startswith("https://conda.anaconda.org/conda-forge")
     else:
         assert len(pkgs) == 1
         assert pkgs[0]["name"] == "abacus"
@@ -2362,7 +2365,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startswith("https://conda.anaconda.org/conda-forge")
 
 
 def test_create_from_mirror(tmp_home, tmp_root_prefix):

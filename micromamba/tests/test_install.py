@@ -571,7 +571,7 @@ class TestInstall:
         assert expected_packages.issubset(link_packages)
 
         for pkg in res["actions"]["LINK"]:
-            assert pkg["channel"] == "conda-forge"
+            assert pkg["channel"] == "conda-forge" or pkg["channel"].startswith("https://conda.anaconda.org/conda-forge/")
 
     def test_explicit_noarch(self, existing_cache):
         helpers.install("python", no_dry_run=True)

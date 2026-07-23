@@ -108,6 +108,8 @@ def test_proxy_install(
 
     res = helpers.install(*cmd, "--json", no_rc=False)
 
+    print(f"res = {res}")
+
     proxy.stop_proxy()
 
     with open(proxy.dump) as f:

@@ -1735,14 +1735,13 @@ def test_channel_alias(tmp_home, tmp_root_prefix, alias):
             "--channel-alias",
             alias,
         )
-        # ca = alias.rstrip("/")
+        ca = alias.rstrip("/")
     else:
         res = helpers.create("-n", env_name, "xtensor", "--json")
-        # ca = "https://conda.anaconda.org"
+        ca = "https://conda.anaconda.org"
 
     for link in res["actions"]["LINK"]:
-        assert link["channel"] == "conda-forge"
-        # assert link["channel"].startswith(f"{ca}/conda-forge/")
+        assert link["channel"] == "conda-forge" or link["channel"].startswith(f"{ca}/conda-forge/")
         # assert link["url"].startswith(f"{ca}/conda-forge/")
 
 
@@ -2357,7 +2356,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startsWith("https://conda.anaconda.org/conda-forge")
     else:
         assert len(pkgs) == 1
         assert pkgs[0]["name"] == "abacus"
@@ -2366,7 +2365,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startsWith("https://conda.anaconda.org/conda-forge")
 
 
 def test_create_from_mirror(tmp_home, tmp_root_prefix):

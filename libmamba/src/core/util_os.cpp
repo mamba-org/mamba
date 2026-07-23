@@ -155,13 +155,13 @@ namespace mamba
     namespace
     {
         // https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
-        static constexpr std::string_view windows_long_paths_doc_url = "https://learn.microsoft.com/en-us/windows/win32/fileio/"
-                                                                       "maximum-file-path-limitation?tabs=registry"
-                                                                       "#enable-long-paths-in-windows-10-version-1607-and-later";
+        constexpr std::string_view windows_long_paths_doc_url = "https://learn.microsoft.com/en-us/windows/win32/fileio/"
+                                                                "maximum-file-path-limitation?tabs=registry"
+                                                                "#enable-long-paths-in-windows-10-version-1607-and-later";
 
-        static constexpr auto file_system_registry_path = L"SYSTEM\\CurrentControlSet\\Control\\FileSystem";
-        static constexpr std::string_view file_system_registry_subkey = "SYSTEM\\CurrentControlSet\\Control\\FileSystem";
-        static constexpr auto long_path_windows_settings_namespace = L"http://schemas.microsoft.com/SMI/2016/WindowsSettings";
+        constexpr auto file_system_registry_path = L"SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+        constexpr std::string_view file_system_registry_subkey = "SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+        constexpr auto long_path_windows_settings_namespace = L"http://schemas.microsoft.com/SMI/2016/WindowsSettings";
 
         struct LongPathsSupportInfo
         {

@@ -175,6 +175,21 @@ namespace mamba
             return now - duration;
         }
 
+        template <typename Duration>
+        [[nodiscard]] constexpr std::uint64_t unit_seconds(Duration unit)
+        {
+            return static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::seconds>(unit).count()
+            );
+        }
+
+        constexpr std::uint64_t seconds_per_year = unit_seconds(std::chrono::years{ 1 });
+        constexpr std::uint64_t seconds_per_month = unit_seconds(std::chrono::months{ 1 });
+        constexpr std::uint64_t seconds_per_week = unit_seconds(std::chrono::weeks{ 1 });
+        constexpr std::uint64_t seconds_per_day = unit_seconds(std::chrono::days{ 1 });
+        constexpr std::uint64_t seconds_per_hour = unit_seconds(std::chrono::hours{ 1 });
+        constexpr std::uint64_t seconds_per_minute = unit_seconds(std::chrono::minutes{ 1 });
+
     }  // namespace
 
     namespace detail
@@ -192,13 +207,6 @@ namespace mamba
                 R"(^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$)",
                 std::regex_constants::icase,
             };
-
-            constexpr std::uint64_t seconds_per_minute = 60;
-            constexpr std::uint64_t seconds_per_hour = 3600;
-            constexpr std::uint64_t seconds_per_day = 86400;
-            constexpr std::uint64_t seconds_per_week = 604800;
-            constexpr std::uint64_t seconds_per_month = 30 * seconds_per_day;
-            constexpr std::uint64_t seconds_per_year = 365 * seconds_per_day;
 
             if (value.empty())
             {
@@ -252,13 +260,6 @@ namespace mamba
             // (n)y(n)M(n)w(n)d(n)h(n)m(n)s — lowercase units except M for months.
             static const std::regex compact_duration{ R"(^(\d+[yMwdhms])+$)" };
             static const std::regex compact_segment{ R"((\d+)([yMwdhms]))" };
-
-            constexpr std::uint64_t seconds_per_minute = 60;
-            constexpr std::uint64_t seconds_per_hour = 3600;
-            constexpr std::uint64_t seconds_per_day = 86400;
-            constexpr std::uint64_t seconds_per_week = 604800;
-            constexpr std::uint64_t seconds_per_month = 30 * seconds_per_day;
-            constexpr std::uint64_t seconds_per_year = 365 * seconds_per_day;
 
             if (value.empty() || !std::regex_match(value.begin(), value.end(), compact_duration))
             {

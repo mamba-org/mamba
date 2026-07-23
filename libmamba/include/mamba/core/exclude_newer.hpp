@@ -88,7 +88,7 @@ namespace mamba
     /**
      * Resolve raw per-package `exclude_newer` configuration values.
      *
-     * @param exclude_newer_package Map of package name to config value (duration, date, or
+     * @param exclude_newer_package Per-package name/value pairs (duration, date, or
      * `false`).
      * @param now_seconds Reference time for relative durations, in Unix seconds.
      *
@@ -118,19 +118,10 @@ namespace mamba
      * Resolve a global `exclude_newer` configuration value to an absolute Unix
      * timestamp cutoff in seconds.
      *
-     * The public API exposes `std::uint64_t` seconds for compatibility with repodata
-     * timestamps. Internally, date and datetime values are parsed with
-     * `std::chrono::parse` when the standard library provides it, otherwise with
-     * Howard Hinnant's `date` library until libc++ implements P0355
-     * (https://github.com/llvm/llvm-project/issues/166051). Duration strings
-     * (`7d`, `P7D`, plain seconds) use custom parsers because the standard library
-     * does not provide ISO 8601 duration parsing.
-     *
-     * Matches conda's `exclude_newer` semantics:
-     * - Durations (`7d`, `P7D`, plain seconds) resolve to `now - duration`
-     * - Date-only values (`YYYY-MM-DD`) resolve to the start of the next UTC day
-     * - Datetimes resolve to the given instant (naive values are UTC)
-     * - Zero durations (`0`, `0d`, `P0D`) resolve to `now`
+     * Durations (`7d`, `P7D`, plain seconds) resolve relative to `now_seconds`.
+     * Date-only values (`YYYY-MM-DD`) resolve to the start of the next UTC day.
+     * Datetimes resolve to the given instant (naive values are UTC). Zero durations
+     * (`0`, `0d`, `P0D`) resolve to `now_seconds`.
      *
      * @param value Raw configuration string.
      * @param now_seconds Reference time for relative durations, in Unix seconds.

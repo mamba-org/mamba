@@ -633,6 +633,20 @@ namespace mamba
             node[name] = values;
         }
 
+        template <>
+        inline void ConfigurableImpl<std::vector<std::pair<std::string, std::string>>>::dump_json(
+            nlohmann::json& node,
+            const std::string& name
+        ) const
+        {
+            nlohmann::json object = nlohmann::json::object();
+            for (const auto& [key, value] : m_value)
+            {
+                object[key] = value;
+            }
+            node[name] = object;
+        }
+
         template <class T>
         void ConfigurableImpl<T>::set_rc_value(const T& value, const std::string& source)
         {

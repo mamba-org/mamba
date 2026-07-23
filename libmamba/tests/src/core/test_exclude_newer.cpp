@@ -4,12 +4,32 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <chrono>
+
 #include <catch2/catch_all.hpp>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/exclude_newer.hpp"
 
 using namespace mamba;
+
+namespace
+{
+    template <typename Duration>
+    [[nodiscard]] constexpr std::uint64_t unit_seconds(Duration unit)
+    {
+        return static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::seconds>(unit).count()
+        );
+    }
+
+    constexpr std::uint64_t seconds_per_year = unit_seconds(std::chrono::years{ 1 });
+    constexpr std::uint64_t seconds_per_month = unit_seconds(std::chrono::months{ 1 });
+    constexpr std::uint64_t seconds_per_week = unit_seconds(std::chrono::weeks{ 1 });
+    constexpr std::uint64_t seconds_per_day = unit_seconds(std::chrono::days{ 1 });
+    constexpr std::uint64_t seconds_per_hour = unit_seconds(std::chrono::hours{ 1 });
+    constexpr std::uint64_t seconds_per_minute = unit_seconds(std::chrono::minutes{ 1 });
+}
 
 namespace
 {
@@ -41,28 +61,36 @@ namespace
 
         SECTION("compact durations resolve relative to now")
         {
-            REQUIRE(resolve_exclude_newer_cutoff("7d", now) == now - 7 * 86400);
-            REQUIRE(resolve_exclude_newer_cutoff("1w", now) == now - 604800);
-            REQUIRE(resolve_exclude_newer_cutoff("3d12h", now) == now - (3 * 86400 + 12 * 3600));
-            REQUIRE(resolve_exclude_newer_cutoff("1y", now) == now - 365 * 86400);
-            REQUIRE(resolve_exclude_newer_cutoff("6M", now) == now - 6 * 30 * 86400);
+            REQUIRE(resolve_exclude_newer_cutoff("7d", now) == now - 7 * seconds_per_day);
+            REQUIRE(resolve_exclude_newer_cutoff("1w", now) == now - seconds_per_week);
+            REQUIRE(
+                resolve_exclude_newer_cutoff("3d12h", now)
+                == now - (3 * seconds_per_day + 12 * seconds_per_hour)
+            );
+            REQUIRE(resolve_exclude_newer_cutoff("1y", now) == now - seconds_per_year);
+            REQUIRE(resolve_exclude_newer_cutoff("6M", now) == now - 6 * seconds_per_month);
             REQUIRE(
                 resolve_exclude_newer_cutoff("1y6M7d", now)
-                == now - (365 * 86400 + 6 * 30 * 86400 + 7 * 86400)
+                == now - (seconds_per_year + 6 * seconds_per_month + 7 * seconds_per_day)
             );
         }
 
         SECTION("ISO 8601 durations resolve relative to now")
         {
-            REQUIRE(resolve_exclude_newer_cutoff("P7D", now) == now - 7 * 86400);
-            REQUIRE(resolve_exclude_newer_cutoff("PT24H", now) == now - 24 * 3600);
-            REQUIRE(resolve_exclude_newer_cutoff("P1DT12H", now) == now - (86400 + 12 * 3600));
-            REQUIRE(resolve_exclude_newer_cutoff("P1Y", now) == now - 365 * 86400);
-            REQUIRE(resolve_exclude_newer_cutoff("P6M", now) == now - 6 * 30 * 86400);
-            REQUIRE(resolve_exclude_newer_cutoff("PT1M", now) == now - 60);
+            REQUIRE(resolve_exclude_newer_cutoff("P7D", now) == now - 7 * seconds_per_day);
+            REQUIRE(resolve_exclude_newer_cutoff("PT24H", now) == now - 24 * seconds_per_hour);
+            REQUIRE(
+                resolve_exclude_newer_cutoff("P1DT12H", now)
+                == now - (seconds_per_day + 12 * seconds_per_hour)
+            );
+            REQUIRE(resolve_exclude_newer_cutoff("P1Y", now) == now - seconds_per_year);
+            REQUIRE(resolve_exclude_newer_cutoff("P6M", now) == now - 6 * seconds_per_month);
+            REQUIRE(resolve_exclude_newer_cutoff("PT1M", now) == now - seconds_per_minute);
             REQUIRE(
                 resolve_exclude_newer_cutoff("P3Y6M4DT12H30M5S", now)
-                == now - (3 * 365 * 86400 + 6 * 30 * 86400 + 4 * 86400 + 12 * 3600 + 30 * 60 + 5)
+                == now
+                       - (3 * seconds_per_year + 6 * seconds_per_month + 4 * seconds_per_day
+                          + 12 * seconds_per_hour + 30 * seconds_per_minute + 5)
             );
         }
 
@@ -161,12 +189,12 @@ namespace
 
     TEST_CASE("parse_compact_duration_seconds")
     {
-        constexpr std::uint64_t y = 365 * 86400;
-        constexpr std::uint64_t mon = 30 * 86400;
-        constexpr std::uint64_t w = 604800;
-        constexpr std::uint64_t d = 86400;
-        constexpr std::uint64_t h = 3600;
-        constexpr std::uint64_t min = 60;
+        constexpr std::uint64_t y = seconds_per_year;
+        constexpr std::uint64_t mon = seconds_per_month;
+        constexpr std::uint64_t w = seconds_per_week;
+        constexpr std::uint64_t d = seconds_per_day;
+        constexpr std::uint64_t h = seconds_per_hour;
+        constexpr std::uint64_t min = seconds_per_minute;
 
         const auto sec = [](std::int64_t n) { return std::chrono::seconds{ n }; };
         const auto parse = [](std::string_view value)
@@ -261,7 +289,7 @@ namespace
         SECTION("package-specific durations override global semantics at resolve time")
         {
             const auto cutoffs = resolve_exclude_newer_package_cutoffs({ { "pandas", "7d" } }, now);
-            REQUIRE(cutoffs.at("pandas") == now - 7 * 86400);
+            REQUIRE(cutoffs.at("pandas") == now - 7 * seconds_per_day);
         }
     }
 

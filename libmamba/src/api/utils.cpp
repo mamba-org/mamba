@@ -528,7 +528,12 @@ namespace mamba
             const std::vector<std::pair<std::string, std::string>>& exclude_newer_package
         ) -> solver::libsolv::Database::Settings
         {
-            const auto now = static_cast<std::uint64_t>(std::time(nullptr));
+            const auto now = static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::now().time_since_epoch()
+                )
+                    .count()
+            );
             const auto matchspec_parser = experimental_matchspec_parsing
                                               ? solver::libsolv::MatchSpecParser::Mamba
                                               : solver::libsolv::MatchSpecParser::Libsolv;

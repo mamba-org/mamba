@@ -106,7 +106,10 @@ def test_proxy_install(
         # backends succeed revocation check in that case.
         cmd += ["--ssl-no-revoke"]
 
-    helpers.clean() # make sure we do not rely on package caches
+    # make sure we do not rely on package caches
+    helpers.remove("--all")
+    helpers.clean("--all")
+
     res = helpers.install(*cmd, "--json", no_rc=False)
 
     print(f"res = {res}")

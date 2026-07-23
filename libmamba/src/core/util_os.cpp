@@ -290,11 +290,11 @@ namespace mamba
 
         auto query_long_paths_support() -> LongPathsSupportInfo
         {
-            LongPathsSupportInfo info;
-            info.os_supports = windows_version_supports_long_paths();
-            info.registry_enabled = read_long_paths_registry_enabled();
-            info.manifest_long_path_aware = read_long_path_aware_manifest();
-            return info;
+            return LongPathsSupportInfo{
+                .os_supports = windows_version_supports_long_paths(),
+                .registry_enabled = read_long_paths_registry_enabled(),
+                .manifest_long_path_aware = read_long_path_aware_manifest(),
+            };
         }
 
         auto make_long_paths_support_diagnostic(const LongPathsSupportInfo& info) -> std::string
@@ -346,7 +346,7 @@ namespace mamba
                 );
             }
 
-            return util::join(" ", messages);
+            return util::join("\n", messages);
         }
 
         auto is_path_length_related_error(const std::error_code& ec) -> bool

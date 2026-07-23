@@ -148,6 +148,15 @@ namespace mamba
         m_valid_extracted_dir.erase(s.long_str());
     }
 
+    void PackageCacheData::remove_extracted_package(const specs::PackageInfo& s)
+    {
+        const auto folder = package_cache_folder_relative_path(s);
+        const fs::u8path pkg_name = specs::strip_archive_extension(s.filename);
+        fs::remove_all(m_path / folder / pkg_name);
+        fs::remove_all(m_path / pkg_name);
+        clear_query_cache(s);
+    }
+
     void PackageCacheData::check_writable()
     {
         fs::u8path magic_file = m_path / PACKAGE_CACHE_MAGIC_FILE;
@@ -656,9 +665,23 @@ namespace mamba
 
     void MultiPackageCache::clear_query_cache(const specs::PackageInfo& s)
     {
+        const std::string pkg = s.long_str();
+        m_cached_tarballs.erase(pkg);
+        m_cached_extracted_dirs.erase(pkg);
         for (auto& c : m_caches)
         {
             c.clear_query_cache(s);
         }
+    }
+
+    void MultiPackageCache::remove_extracted_package(const specs::PackageInfo& s)
+    {
+        for (auto& c : m_caches)
+        {
+            c.remove_extracted_package(s);
+        }
+        const std::string pkg = s.long_str();
+        m_cached_tarballs.erase(pkg);
+        m_cached_extracted_dirs.erase(pkg);
     }
 }  // namespace mamba

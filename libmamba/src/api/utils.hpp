@@ -129,7 +129,7 @@ namespace mamba
         ChannelContext& channel_context,
         bool experimental_matchspec_parsing,
         std::string_view exclude_newer = {},
-        const std::map<std::string, std::string>& exclude_newer_package = {}
+        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package = {}
     );
 
     /**

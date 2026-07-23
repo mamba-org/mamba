@@ -9,7 +9,6 @@
 
 #include <chrono>
 #include <cstdint>
-#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -94,7 +93,7 @@ namespace mamba
      * @throws mamba_error when a non-``false`` value cannot be parsed.
      */
     [[nodiscard]] auto resolve_exclude_newer_package_cutoffs(
-        const std::map<std::string, std::string>& exclude_newer_package,
+        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package,
         std::uint64_t now_seconds
     ) -> ExcludeNewerPackageCutoffs;
 
@@ -109,7 +108,7 @@ namespace mamba
      */
     [[nodiscard]] auto resolve_exclude_newer_policy(
         std::string_view exclude_newer,
-        const std::map<std::string, std::string>& exclude_newer_package,
+        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package,
         std::uint64_t now_seconds
     ) -> ExcludeNewerPolicy;
 

@@ -525,7 +525,7 @@ namespace mamba
         [[nodiscard]] auto make_database_settings(
             bool experimental_matchspec_parsing,
             std::string_view exclude_newer,
-            const std::map<std::string, std::string>& exclude_newer_package
+            const std::vector<std::pair<std::string, std::string>>& exclude_newer_package
         ) -> solver::libsolv::Database::Settings
         {
             const auto now = static_cast<std::uint64_t>(std::time(nullptr));
@@ -543,7 +543,7 @@ namespace mamba
         ChannelContext& channel_context,
         bool experimental_matchspec_parsing,
         std::string_view exclude_newer,
-        const std::map<std::string, std::string>& exclude_newer_package
+        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package
     )
     {
         solver::libsolv::Database db{

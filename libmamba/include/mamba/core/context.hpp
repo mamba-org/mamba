@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
@@ -143,7 +144,7 @@ namespace mamba
          *
          * See Configurable ``exclude_newer_package``.
          */
-        std::map<std::string, std::string> exclude_newer_package;
+        std::vector<std::pair<std::string, std::string>> exclude_newer_package;
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;

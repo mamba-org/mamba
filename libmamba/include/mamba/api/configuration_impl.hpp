@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <yaml-cpp/yaml.h>
@@ -195,6 +196,36 @@ namespace YAML
             }
 
             rhs = std::optional<T>(node.as<T>());
+            return true;
+        }
+    };
+
+    template <>
+    struct convert<std::vector<std::pair<std::string, std::string>>>
+    {
+        static Node encode(const std::vector<std::pair<std::string, std::string>>& rhs)
+        {
+            Node node;
+            node.SetStyle(YAML::EmitterStyle::Block);
+            for (const auto& [key, value] : rhs)
+            {
+                node[key] = value;
+            }
+            return node;
+        }
+
+        static bool decode(const Node& node, std::vector<std::pair<std::string, std::string>>& rhs)
+        {
+            if (!node.IsMap())
+            {
+                return false;
+            }
+            rhs.clear();
+            rhs.reserve(node.size());
+            for (const auto& entry : node)
+            {
+                rhs.emplace_back(entry.first.as<std::string>(), entry.second.Scalar());
+            }
             return true;
         }
     };

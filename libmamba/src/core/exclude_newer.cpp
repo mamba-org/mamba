@@ -368,7 +368,7 @@ namespace mamba
 
     /** Resolve each entry in ``exclude_newer_package`` to a cutoff or exemption. */
     auto resolve_exclude_newer_package_cutoffs(
-        const std::map<std::string, std::string>& exclude_newer_package,
+        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package,
         std::uint64_t now_seconds
     ) -> ExcludeNewerPackageCutoffs
     {
@@ -390,7 +390,7 @@ namespace mamba
 
     auto resolve_exclude_newer_policy(
         std::string_view exclude_newer,
-        const std::map<std::string, std::string>& exclude_newer_package,
+        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package,
         std::uint64_t now_seconds
     ) -> ExcludeNewerPolicy
     {

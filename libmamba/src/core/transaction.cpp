@@ -57,22 +57,6 @@ namespace mamba
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
-        // TODO duplicated function, consider moving it to Pool
-        auto database_has_package(solver::libsolv::Database& database, const specs::MatchSpec& spec)
-            -> bool
-        {
-            bool found = false;
-            database.for_each_package_matching(
-                spec,
-                [&](const auto&)
-                {
-                    found = true;
-                    return util::LoopControl::Break;
-                }
-            );
-            return found;
-        };
-
         auto explicit_spec(const specs::PackageInfo& pkg) -> specs::MatchSpec
         {
             auto out = specs::MatchSpec();
@@ -170,7 +154,7 @@ namespace mamba
         for (const auto& pkg : pkgs_to_remove)
         {
             auto spec = explicit_spec(pkg);
-            if (!database_has_package(database, spec))
+            if (!database.has_package(spec))
             {
                 not_found << "\n - " << spec.to_string();
             }

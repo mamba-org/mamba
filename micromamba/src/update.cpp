@@ -55,24 +55,6 @@ set_update_command(CLI::App* subcom, Configuration& config)
 }
 
 #ifdef BUILDING_MICROMAMBA
-namespace
-{
-    // TODO see same dup in transaction
-    auto database_has_package(solver::libsolv::Database& database, specs::MatchSpec spec) -> bool
-    {
-        bool found = false;
-        database.for_each_package_matching(
-            spec,
-            [&](const auto&)
-            {
-                found = true;
-                return util::LoopControl::Break;
-            }
-        );
-        return found;
-    };
-}
-
 int
 update_self(Configuration& config, const std::optional<std::string>& version)
 {
@@ -107,7 +89,7 @@ update_self(Configuration& config, const std::optional<std::string>& version)
 
     if (!latest_micromamba.has_value())
     {
-        if (database_has_package(database, specs::MatchSpec::parse("micromamba").value()))
+        if (database.has_package(specs::MatchSpec::parse("micromamba").value()))
         {
             Console::instance().print(
                 fmt::format("\nYour micromamba version ({}) is already up to date.", umamba::version())

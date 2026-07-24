@@ -432,4 +432,18 @@ namespace mamba::solver::libsolv
         );
         return out;
     }
+
+    auto Database::has_package(const specs::MatchSpec& spec) -> bool
+    {
+        bool found = false;
+        for_each_package_matching(
+            spec,
+            [&](const auto&)
+            {
+                found = true;
+                return util::LoopControl::Break;
+            }
+        );
+        return found;
+    };
 }

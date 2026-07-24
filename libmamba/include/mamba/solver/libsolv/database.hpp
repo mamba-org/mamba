@@ -153,6 +153,8 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto package_count() const -> std::size_t;
 
+        [[nodiscard]] auto has_package(const specs::MatchSpec& spec) -> bool;
+
         template <typename Func>
         void for_each_package_in_repo(RepoInfo repo, Func&&) const;
 

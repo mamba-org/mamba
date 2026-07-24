@@ -153,5 +153,29 @@ namespace mamba
 
             REQUIRE(cache.get_tarball_path(pkg_no_val) == pkgs_dir);
         }
+
+        SECTION("Hierarchical cache under a long path")
+        {
+            // Needs OS-level long paths and a longPathAware manifest for this process;
+            // otherwise create_directories may fail before cache logic is exercised.
+            constexpr std::size_t min_pkgs_dir_path_length = 300;
+            constexpr auto segment = "very_long_directory_name_segment";
+
+            fs::u8path long_pkgs_dir = temp_dir.path();
+            while ((long_pkgs_dir / segment / "pkgs").generic_string().size()
+                   <= min_pkgs_dir_path_length)
+            {
+                long_pkgs_dir /= segment;
+            }
+            long_pkgs_dir /= "pkgs";
+            fs::create_directories(long_pkgs_dir);
+
+            const fs::u8path long_hierarchical_dir = long_pkgs_dir / rel_path
+                                                     / "test-pkg-1.0.0-h123456_0";
+            write_repodata_record(long_hierarchical_dir / "info" / "repodata_record.json", pkg_info);
+
+            MultiPackageCache cache({ long_pkgs_dir }, params);
+            REQUIRE(cache.get_extracted_dir_path(pkg_info) == long_pkgs_dir / rel_path);
+        }
     }
 }  // namespace mamba

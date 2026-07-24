@@ -9,6 +9,7 @@
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -143,4 +144,18 @@ namespace mamba
             REQUIRE_FALSE(proxy_match_with_context("http://example.com/channel").has_value());
         }
     }
+
+#ifdef _WIN32
+    TEST_CASE("are_long_paths_enabled")
+    {
+        if (are_long_paths_enabled())
+        {
+            REQUIRE(long_paths_support_diagnostic().empty());
+        }
+        else
+        {
+            REQUIRE_FALSE(long_paths_support_diagnostic().empty());
+        }
+    }
+#endif
 }

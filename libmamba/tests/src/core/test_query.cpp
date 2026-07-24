@@ -336,3 +336,182 @@ TEST_CASE(
         REQUIRE(json_output["result"]["pkgs"][0]["python_site_packages_path"] == "Lib/site-packages");
     }
 }
+
+TEST_CASE("Query::depends constraint intersection", "[mamba::core][mamba::core::query]")
+{
+    auto& ctx = mambatests::context();
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+
+    SECTION("Unconstrained and constrained dep resolve to single package")
+    {
+        auto root = mkpkg("conda", "26.5.3", "py310ha69dea2_2");
+        root.dependencies = { "python", "python >=3.10,<3.11" };
+
+        auto packages = std::vector<specs::PackageInfo>{
+            root,
+            mkpkg("python", "3.10.20", "hac0b6dc_1_cpython"),
+            mkpkg("python", "3.14.6", "h156bc91_100_cp314"),
+        };
+
+        auto db = solver::libsolv::Database(channel_context.params());
+        db.add_repo_from_packages(packages, "test-repo");
+
+        auto result = Query::depends(db, "conda=26.5.3=py310ha69dea2_2", false);
+        auto json_output = result.json();
+
+        // Should resolve to exactly one python package (3.10.20), not two
+        auto pkgs = json_output["result"]["pkgs"];
+        int python_count = 0;
+        std::string resolved_version;
+        for (const auto& pkg : pkgs)
+        {
+            if (pkg.contains("name") && pkg["name"] == "python")
+            {
+                python_count++;
+                resolved_version = pkg["version"].get<std::string>();
+            }
+        }
+        REQUIRE(python_count == 1);
+        REQUIRE(resolved_version == "3.10.20");
+    }
+
+    SECTION("Unconstrained dep with build string constraint resolves correctly")
+    {
+        auto root = mkpkg("conda", "26.5.3", "py312h20c3967_2");
+        root.dependencies = { "python", "python 3.12.* *_cpython" };
+
+        auto packages = std::vector<specs::PackageInfo>{
+            root,
+            mkpkg("python", "3.12.5", "h1234567_0_cpython"),
+            mkpkg("python", "3.14.6", "habeac84_100_cp314"),
+        };
+
+        auto db = solver::libsolv::Database(channel_context.params());
+        db.add_repo_from_packages(packages, "test-repo");
+
+        auto result = Query::depends(db, "conda=26.5.3=py312h20c3967_2", false);
+        auto json_output = result.json();
+
+        // Should resolve to python 3.12.5, not 3.14.6
+        auto pkgs = json_output["result"]["pkgs"];
+        int python_count = 0;
+        std::string resolved_version;
+        for (const auto& pkg : pkgs)
+        {
+            if (pkg.contains("name") && pkg["name"] == "python")
+            {
+                python_count++;
+                resolved_version = pkg["version"].get<std::string>();
+            }
+        }
+        REQUIRE(python_count == 1);
+        REQUIRE(resolved_version == "3.12.5");
+    }
+
+    SECTION("Conflicting constraints result in NOT FOUND")
+    {
+        auto root = mkpkg("broken-pkg", "1.0.0");
+        root.dependencies = { "python >=3.10,<3.11", "python >=3.12" };
+
+        auto packages = std::vector<specs::PackageInfo>{
+            root,
+            mkpkg("python", "3.10.20", "hac0b6dc_1_cpython"),
+            mkpkg("python", "3.12.5", "h1234567_0"),
+        };
+
+        auto db = solver::libsolv::Database(channel_context.params());
+        db.add_repo_from_packages(packages, "test-repo");
+
+
+        auto result = Query::depends(db, "broken-pkg=1.0.0", false);
+        auto json_output = result.json();
+
+        // Should have NOT FOUND for python, no actual python package
+        auto pkgs = json_output["result"]["pkgs"];
+        bool found_python = false;
+        bool found_not_found = false;
+        for (const auto& pkg : pkgs)
+        {
+            if (pkg.contains("name") && pkg["name"] == "python")
+            {
+                found_python = true;
+            }
+            if (pkg.contains("name")
+                && pkg["name"].get<std::string>().find("NOT FOUND") != std::string::npos)
+            {
+                found_not_found = true;
+            }
+        }
+        REQUIRE_FALSE(found_python);
+        REQUIRE(found_not_found);
+    }
+
+    SECTION("Single unconstrained dep resolves to latest")
+    {
+        auto root = mkpkg("my-pkg", "1.0.0");
+        root.dependencies = { "numpy >=1.20", "numpy" };
+
+        auto packages = std::vector<specs::PackageInfo>{
+            root,
+            mkpkg("numpy", "1.21.0", "py310h20c3968_0"),
+            mkpkg("numpy", "1.24.0", "py310h20c3967_1"),
+        };
+
+        auto db = solver::libsolv::Database(channel_context.params());
+        db.add_repo_from_packages(packages, "test-repo");
+
+        auto result = Query::depends(db, "my-pkg=1.0.0", false);
+        auto json_output = result.json();
+
+        auto pkgs = json_output["result"]["pkgs"];
+        int numpy_count = 0;
+        std::string resolved_version;
+        for (const auto& pkg : pkgs)
+        {
+            if (pkg.contains("name") && pkg["name"] == "numpy")
+            {
+                numpy_count++;
+                resolved_version = pkg["version"].get<std::string>();
+            }
+        }
+        REQUIRE(numpy_count == 1);
+        REQUIRE(resolved_version == "1.24.0");
+    }
+
+    SECTION("Different packages are resolved independently")
+    {
+        auto root = mkpkg("my-pkg", "1.0.0");
+        root.dependencies = { "python >=3.12", "numpy >=1.20" };
+
+        auto packages = std::vector<specs::PackageInfo>{
+            root,
+            mkpkg("python", "3.12.5", "h1234567_0"),
+            mkpkg("numpy", "1.24.0", "py312h20c3967_0"),
+        };
+
+        auto db = solver::libsolv::Database(channel_context.params());
+        db.add_repo_from_packages(packages, "test-repo");
+
+        auto result = Query::depends(db, "my-pkg=1.0.0", false);
+        auto json_output = result.json();
+
+        auto pkgs = json_output["result"]["pkgs"];
+        bool found_python = false;
+        bool found_numpy = false;
+        for (const auto& pkg : pkgs)
+        {
+            if (pkg.contains("name") && pkg["name"] == "python")
+            {
+                found_python = true;
+                REQUIRE(pkg["version"].get<std::string>() == "3.12.5");
+            }
+            if (pkg.contains("name") && pkg["name"] == "numpy")
+            {
+                found_numpy = true;
+                REQUIRE(pkg["version"].get<std::string>() == "1.24.0");
+            }
+        }
+        REQUIRE(found_python);
+        REQUIRE(found_numpy);
+    }
+}

@@ -13,6 +13,7 @@
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/db_utils.hpp"
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util_os.hpp"
@@ -56,6 +57,7 @@ set_update_command(CLI::App* subcom, Configuration& config)
 #ifdef BUILDING_MICROMAMBA
 namespace
 {
+    // TODO see same dup in transaction
     auto database_has_package(solver::libsolv::Database& database, specs::MatchSpec spec) -> bool
     {
         bool found = false;
@@ -68,25 +70,6 @@ namespace
             }
         );
         return found;
-    };
-
-    auto database_latest_package(solver::libsolv::Database& database, specs::MatchSpec spec)
-        -> std::optional<specs::PackageInfo>
-    {
-        auto out = std::optional<specs::PackageInfo>();
-        database.for_each_package_matching(
-            spec,
-            [&](auto pkg)
-            {
-                if (!out
-                    || (specs::Version::parse(pkg.version).value_or(specs::Version())
-                        > specs::Version::parse(out->version).value_or(specs::Version())))
-                {
-                    out = std::move(pkg);
-                }
-            }
-        );
-        return out;
     };
 }
 

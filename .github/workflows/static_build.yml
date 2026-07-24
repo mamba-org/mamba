@@ -82,7 +82,7 @@ jobs:
           mv mamba/ micromamba-feedstock/source
           # Prevent irrelevant file permission error
           git -C micromamba-feedstock/ config --local --add safe.directory '*'
-      - uses: mamba-org/setup-micromamba@v3
+      - uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-name: mambabuild
           create-args: python boa
@@ -168,7 +168,7 @@ jobs:
           key: sccache-${{ github.job }}-win-${{ matrix.arch }}
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
-      - uses: mamba-org/setup-micromamba@v3
+      - uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-name: mambabuild
           init-shell: bash cmd.exe

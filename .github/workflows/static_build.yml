@@ -152,14 +152,20 @@ jobs:
           name: micromamba-${{ matrix.platform }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/artifacts/micromamba
   micromamba-static-win:
-    name: "win-64"
-    runs-on: windows-latest
+    name: "win-${{ matrix.arch }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, arch: "64" }
+          - { os: windows-11-arm, arch: arm64 }
     steps:
       - uses: actions/checkout@v7
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
-          key: sccache-${{ github.job }}-win-64
+          key: sccache-${{ github.job }}-win-${{ matrix.arch }}
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
       - uses: mamba-org/setup-micromamba@v3
@@ -220,7 +226,7 @@ jobs:
         run: sccache --show-stats
       - name: Archive-build artifact
         if: failure()
-        run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz ${{ github.workspace }}/build/
+        run: tar -czf ${{ github.workspace }}/micromamba-build-failed-win-${{ matrix.arch }}.tar.gz ${{ github.workspace }}/build/
 
       - name: Test basic commands
         run: |
@@ -234,10 +240,10 @@ jobs:
         uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: micromamba-build-failed-win-64
-          path: ${{ github.workspace }}/micromamba-build-failed-win-64.tar.gz
+          name: micromamba-build-failed-win-${{ matrix.arch }}
+          path: ${{ github.workspace }}/micromamba-build-failed-win-${{ matrix.arch }}.tar.gz
           retention-days: 7
       - uses: actions/upload-artifact@v7
         with:
-          name: micromamba-win-64
+          name: micromamba-win-${{ matrix.arch }}
           path: ${{ github.workspace }}/build/micromamba/micromamba.exe

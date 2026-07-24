@@ -168,6 +168,10 @@ jobs:
           key: sccache-${{ github.job }}-win-${{ matrix.arch }}
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          # Native ARM64 on windows-11-arm; x64 elsewhere. Default is x64 and
+          # linking ARM64 conda libs with an x64 linker fails with LNK4272.
+          arch: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
       - uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-name: mambabuild

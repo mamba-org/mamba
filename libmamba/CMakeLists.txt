@@ -14,11 +14,12 @@ include(CheckCXXSourceCompiles)
 # std::chrono::parse (P0355) is not yet available on all platforms (e.g. libc++ on macOS).
 # https://github.com/llvm/llvm-project/issues/166051
 if(NOT DEFINED MAMBA_HAVE_STD_CHRONO_PARSE)
+    # CMAKE_REQUIRED_FLAGS is a string (not a CMake list); list(APPEND) would inject ';'.
     set(CMAKE_REQUIRED_FLAGS_BACKUP "${CMAKE_REQUIRED_FLAGS}")
     if(MSVC)
-        list(APPEND CMAKE_REQUIRED_FLAGS "/std:c++20")
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} /std:c++20")
     else()
-        list(APPEND CMAKE_REQUIRED_FLAGS "-std=c++20")
+        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++20")
     endif()
     check_cxx_source_compiles(
         "

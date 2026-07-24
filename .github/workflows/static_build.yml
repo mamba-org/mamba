@@ -220,10 +220,13 @@ jobs:
           if %errorlevel% neq 0 exit /b %errorlevel%
           .\build\micromamba\micromamba.exe --help
           if %errorlevel% neq 0 exit /b %errorlevel%
+      # binutils is not yet distributed for win-arm64 on conda-forge.
       - name: Install mingw objdump
+        if: matrix.arch != 'arm64'
         shell: bash -l {0}
         run: micromamba install -n mambabuild -y -c conda-forge binutils
       - name: Check micromamba PE dependencies
+        if: matrix.arch != 'arm64'
         shell: bash -l {0}
         run: bash dev/check_micromamba_windows_dlls.sh build/micromamba/micromamba.exe
       - name: build cache statistics

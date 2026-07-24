@@ -47,7 +47,7 @@ jobs:
       - name: Checkout mamba repository
         uses: actions/checkout@v7
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v3
+        uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
@@ -121,7 +121,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v3
+        uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -181,7 +181,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v3
+        uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -240,7 +240,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v3
+        uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
@@ -320,7 +320,7 @@ jobs:
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
       - name: Create build environment
-        uses: mamba-org/setup-micromamba@v3
+        uses: mamba-org/setup-micromamba@v3.1.0
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env

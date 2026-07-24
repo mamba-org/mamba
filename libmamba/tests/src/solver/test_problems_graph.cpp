@@ -273,6 +273,46 @@ namespace
     }
 
     /**
+     * Many missing top-level packages plus some with broken transitive deps.
+     *
+     * Regression for problem-tree messaging aborting with
+     * "Name of new element (...) does not match name of list (...)" when explaining
+     * large unsatisfiable environments (e.g. win-arm64 missing conda-forge coverage).
+     */
+    auto create_many_missing_top_level(Context&, ChannelContext& channel_context)
+    {
+        return std::pair(
+            create_pkgs_database(
+                channel_context,
+                std::array{
+                    mkpkg("mitmproxy", "1.0.0", { "aioquic=1.2.0" }),
+                    mkpkg("sphinx-book-theme", "1.0.0", { "sphinx", "theme-dep-missing" }),
+                    mkpkg("sphinx", "1.0.0", { "requests" }),
+                    mkpkg("sphinx-copybutton", "1.0.0", { "sphinx" }),
+                    mkpkg("requests", "1.0.0", { "urllib3", "brotli-python" }),
+                    mkpkg("pre-commit", "1.0.0", { "python" }),
+                    mkpkg("python", "3.12.0"),
+                }
+            ),
+            Request{
+                {},
+                {
+                    Request::Install{ "doxygen"_ms },
+                    Request::Install{ "catch2"_ms },
+                    Request::Install{ "cmake"_ms },
+                    Request::Install{ "cxx-compiler"_ms },
+                    Request::Install{ "menuinst"_ms },
+                    Request::Install{ "pywin32"_ms },
+                    Request::Install{ "sphinx-book-theme"_ms },
+                    Request::Install{ "sphinx-copybutton"_ms },
+                    Request::Install{ "pre-commit"_ms },
+                    Request::Install{ "mitmproxy"_ms },
+                },
+            }
+        );
+    }
+
+    /**
      * Create a conflict due to a pin.
      */
     auto create_pin_conflict(Context&, ChannelContext& channel_context)
@@ -641,6 +681,7 @@ TEST_CASE("Create problem graph", "[mamba::solver]")
         std::pair{ "PubGrub example", &create_pubgrub },
         std::pair{ "Harder PubGrub example", &create_pubgrub_hard },
         std::pair{ "PubGrub example with missing packages", &create_pubgrub_missing },
+        std::pair{ "Many missing top-level packages", &create_many_missing_top_level },
         std::pair{ "Pin conflict", &create_pin_conflict },
         std::pair{ "PyTorch CPU", &create_pytorch_cpu },
         std::pair{ "PyTorch Cuda", &create_pytorch_cuda },

@@ -57,13 +57,12 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            solver::libsolv::Database db{
-                channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
+            auto db = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer,
+                ctx.exclude_newer_package
+            );
             add_logger_to_database(db);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);

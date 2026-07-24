@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
@@ -130,6 +131,20 @@ namespace mamba
 
         // solver options
         solver::Request::Flags solver_flags = {};
+
+        /**
+         * Exclude packages published more recently than this duration or date.
+         *
+         * See Configurable ``exclude_newer``; resolved into ``ExcludeNewerPolicy`` at solve time.
+         */
+        std::string exclude_newer;
+
+        /**
+         * Per-package overrides for ``exclude_newer`` (JSON dictionary on CLI / env vars).
+         *
+         * See Configurable ``exclude_newer_package``.
+         */
+        std::vector<std::pair<std::string, std::string>> exclude_newer_package;
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;

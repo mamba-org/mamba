@@ -25,6 +25,8 @@ dependencies:
   - spdlog >=1.16.0
   - yaml-cpp >=0.8.0
   - sel(win): winreg
+  # Replacement of `std::chrono::parse` (P0355R7) missing in libc++, see: https://github.com/llvm/llvm-project/issues/166051
+  - sel(osx): howardhinnant_date
   # libmamba test dependencies
   - catch2
   # micromamba dependencies

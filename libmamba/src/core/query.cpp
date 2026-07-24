@@ -19,6 +19,7 @@
 #include <fmt/ranges.h>
 
 #include "mamba/core/context.hpp"
+#include "mamba/core/db_utils.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/query.hpp"
 #include "mamba/solver/libsolv/database.hpp"
@@ -63,75 +64,6 @@ namespace mamba
         {
             return pkg.version.empty() ? pkg.name : fmt::format("{}[{}]", pkg.name, pkg.version);
         }
-
-        struct PkgInfoCmp
-        {
-            auto operator()(const specs::PackageInfo* lhs, const specs::PackageInfo* rhs) const -> bool
-            {
-                auto attrs = [](const auto& pkg)
-                {
-                    return std::tuple<decltype(pkg.name) const&, specs::Version>(
-                        pkg.name,
-                        // Failed parsing last
-                        specs::Version::parse(pkg.version).value_or(specs::Version())
-                    );
-                };
-                return attrs(*lhs) < attrs(*rhs);
-            }
-        };
-
-        void update_latest(std::optional<specs::PackageInfo>& out, specs::PackageInfo&& pkg)
-        {
-            if (!out || PkgInfoCmp()(&*out, &pkg))
-            {
-                out = std::move(pkg);
-            }
-        }
-
-        auto database_latest_package(solver::libsolv::Database& database, specs::MatchSpec spec)
-            -> std::optional<specs::PackageInfo>
-        {
-            auto out = std::optional<specs::PackageInfo>();
-            database.for_each_package_matching(
-                spec,
-                [&](auto pkg) { update_latest(out, std::move(pkg)); }
-            );
-            return out;
-        };
-
-        struct DepEntry
-        {
-            std::string_view dep_str;
-            specs::MatchSpec ms;
-        };
-
-        // Find the latest package matching all specs in the group.
-        // Uses the first spec to find candidates via libsolv, then filters
-        // by all remaining specs using `contains_except_channel`.
-        auto database_latest_package_matching_all(
-            solver::libsolv::Database& database,
-            std::span<const DepEntry> entries
-        ) -> std::optional<specs::PackageInfo>
-        {
-            assert(!entries.empty());
-
-            auto out = std::optional<specs::PackageInfo>();
-            database.for_each_package_matching(
-                entries.front().ms,
-                [&](auto pkg)
-                {
-                    if (std::all_of(
-                            entries.begin() + 1,
-                            entries.end(),
-                            [&](const auto& entry) { return entry.ms.contains_except_channel(pkg); }
-                        ))
-                    {
-                        update_latest(out, std::move(pkg));
-                    }
-                }
-            );
-            return out;
-        };
 
         class PoolWalker
         {

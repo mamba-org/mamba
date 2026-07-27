@@ -235,7 +235,8 @@ namespace mamba
         }
     }
 
-    auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>
+    auto parse_entry_point(const std::string& ep_def)
+        -> expected_t<python_entry_point_parsed, mamba_aggregated_error>
     {
         // def looks like: "wheel = wheel.cli:main"
         // Same approach as conda's parse_entry_point_def (conda/conda#16340):
@@ -243,32 +244,45 @@ namespace mamba
         //   2. strip whitespace and surrounding quotes from the RHS
         //      (some packages, e.g. findpython, ship `cmd = "mod:func"`)
         //   3. rsplit the stripped RHS on the last ':' into module and callable
-        auto command_defn = util::split(ep_def, '=', 1);
-        if (command_defn.size() != 2)
+        // Always return mamba_aggregated_error (even for a single failure) so the error is not
+        // sliced when stored in expected_t (mamba-org/mamba#4352).
+        auto make_parse_error = [&](std::vector<mamba_error>&& errors)
         {
-            return make_unexpected(
+            return tl::unexpected(
+                mamba_aggregated_error(std::move(errors), /*with_bug_report_info=*/false)
+            );
+        };
+
+        const auto [command, defn] = util::split_once(ep_def, '=');
+        if (!defn)
+        {
+            std::vector<mamba_error> errors;
+            errors.emplace_back(
                 fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
                 mamba_error_code::invalid_spec
             );
+            return make_parse_error(std::move(errors));
         }
 
         // Step 2: strip whitespace/quotes from the module:callable side (conda#16340).
         constexpr std::string_view entry_point_rhs_strip_chars = " \t\r\n\"'";
-        const auto module_func = util::strip(command_defn[1], entry_point_rhs_strip_chars);
+        const auto module_func = util::strip(*defn, entry_point_rhs_strip_chars);
         // Step 3: rsplit the stripped RHS on the last ':' into module and callable.
-        auto cmd_mod_func = util::rsplit(module_func, ':', 1);
-        if (cmd_mod_func.size() != 2)
+        const auto [module, func] = util::rsplit_once(module_func, ':');
+        if (!module)
         {
-            return make_unexpected(
+            std::vector<mamba_error> errors;
+            errors.emplace_back(
                 fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
                 mamba_error_code::invalid_spec
             );
+            return make_parse_error(std::move(errors));
         }
 
         python_entry_point_parsed result;
-        result.command = std::string(util::strip(command_defn[0]));
-        result.module = std::string(util::strip(cmd_mod_func[0]));
-        result.func = std::string(util::strip(cmd_mod_func[1]));
+        result.command = util::strip(command);
+        result.module = util::strip(*module);
+        result.func = util::strip(func);
 
         std::vector<mamba_error> errors;
         auto record_error = [&](const tl::expected<void, mamba_error>& check)
@@ -283,23 +297,9 @@ namespace mamba
         record_error(check_python_identifier_chain(result.module, "module"));
         record_error(check_python_identifier_chain(result.func, "callable"));
 
-        if (errors.size() == 1)
+        if (!errors.empty())
         {
-            return tl::unexpected(std::move(errors.front()));
-        }
-        if (errors.size() > 1)
-        {
-            // Do not return mamba_aggregated_error here: expected_t<..., mamba_error> would
-            // slice it to a plain mamba_error that still carries error_code::aggregated.
-            // micromamba's main then static_casts that to mamba_aggregated_error and segfaults
-            // (mamba-org/mamba#4352).
-            std::string message = "Multiple errors occurred:\n";
-            for (const mamba_error& err : errors)
-            {
-                message += err.what();
-                message += '\n';
-            }
-            return make_unexpected(std::move(message), mamba_error_code::invalid_spec);
+            return make_parse_error(std::move(errors));
         }
 
         return result;
@@ -1442,6 +1442,8 @@ namespace mamba
                     auto entry_point_parsed = parse_entry_point(ep_def);
                     if (!entry_point_parsed)
                     {
+                        // Contextual wrapper uses invalid_spec (not the aggregated error_code) so
+                        // we do not create a sliced plain mamba_error carrying aggregated.
                         throw mamba_error(
                             fmt::format(
                                 "Invalid noarch:python entry point '{}' in package '{}' ({}): {}\n"
@@ -1452,7 +1454,7 @@ namespace mamba
                                 m_pkg_info.build_string,
                                 entry_point_parsed.error().what()
                             ),
-                            entry_point_parsed.error().error_code()
+                            mamba_error_code::invalid_spec
                         );
                     }
                     auto entry_point_path = get_bin_directory_short_path()

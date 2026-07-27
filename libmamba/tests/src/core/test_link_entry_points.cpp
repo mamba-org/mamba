@@ -41,13 +41,15 @@ namespace mamba
             REQUIRE(parsed_sq->func == "func");
         }
 
-        TEST_CASE("parse_entry_point multiple validation errors stay invalid_spec")
+        TEST_CASE("parse_entry_point multiple validation errors return aggregated_error")
         {
-            // Must not surface as error_code::aggregated via a sliced mamba_aggregated_error
-            // (that made micromamba main segfault on static_cast; mamba-org/mamba#4352).
+            // Failures are returned as mamba_aggregated_error (not a sliced plain mamba_error
+            // that still carries error_code::aggregated; that made micromamba main segfault on
+            // static_cast; mamba-org/mamba#4352).
             const auto parsed = parse_entry_point(R"(bad/cmd = "..evil:also/bad")");
             REQUIRE_FALSE(parsed.has_value());
-            REQUIRE(parsed.error().error_code() == mamba_error_code::invalid_spec);
+            REQUIRE(parsed.error().error_code() == mamba_error_code::aggregated);
+            REQUIRE(parsed.error().has_only_error(mamba_error_code::invalid_spec));
         }
 
         TEST_CASE("parse_entry_point rejects path traversal in command")
@@ -80,11 +82,12 @@ namespace mamba
             REQUIRE_FALSE(parse_entry_point("no-colon = pkg.mod").has_value());
         }
 
-        TEST_CASE("parse_entry_point returns mamba_error")
+        TEST_CASE("parse_entry_point returns mamba_aggregated_error")
         {
             const auto parsed = parse_entry_point("../bin/pip = innocuous_pkg.evil:main");
             REQUIRE_FALSE(parsed.has_value());
-            REQUIRE(parsed.error().error_code() == mamba_error_code::invalid_spec);
+            REQUIRE(parsed.error().error_code() == mamba_error_code::aggregated);
+            REQUIRE(parsed.error().has_only_error(mamba_error_code::invalid_spec));
         }
     }
 }  // namespace mamba

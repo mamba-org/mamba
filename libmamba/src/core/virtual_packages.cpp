@@ -29,12 +29,35 @@ namespace mamba
 {
     namespace detail
     {
-        std::string glibc_version()
+        auto get_virtual_package_override(
+            std::string_view name,
+            const std::map<std::string, std::string>& overrides
+        ) -> std::optional<std::string>
         {
-            auto override_version = util::get_env("CONDA_OVERRIDE_GLIBC");
-            if (override_version)
+            // Environment variables take precedence over config (conda-compatible).
+            if (auto env_override = util::get_env("CONDA_OVERRIDE_" + util::to_upper(name)))
             {
-                return override_version.value();
+                return env_override;
+            }
+
+            for (const auto& [key, value] : overrides)
+            {
+                const auto normalized = util::starts_with(key, "__")
+                                            ? std::string_view(key).substr(2)
+                                            : std::string_view(key);
+                if (normalized == name)
+                {
+                    return value;
+                }
+            }
+            return std::nullopt;
+        }
+
+        std::string glibc_version(const std::map<std::string, std::string>& overrides)
+        {
+            if (auto override_version = get_virtual_package_override("glibc", overrides))
+            {
+                return std::move(override_version).value();
             }
 
             if (!util::on_linux)
@@ -57,16 +80,14 @@ namespace mamba
             return std::string(util::strip(version, "glibc "));
         }
 
-        std::string cuda_version()
+        std::string cuda_version(const std::map<std::string, std::string>& overrides)
         {
             LOG_DEBUG << "Loading CUDA virtual package";
 
-            auto override_version = util::get_env("CONDA_OVERRIDE_CUDA");
-            if (override_version)
+            if (auto override_version = get_virtual_package_override("cuda", overrides))
             {
-                LOG_DEBUG << "CUDA version set by `CONDA_OVERRIDE_CUDA`: "
-                          << override_version.value();
-                return override_version.value();
+                LOG_DEBUG << "CUDA version set by override: " << override_version.value();
+                return std::move(override_version).value();
             }
 
             std::string cuda_version;
@@ -305,12 +326,13 @@ namespace mamba
             return "x86_64";
         }
 
-        std::string get_archspec(const std::string& arch)
+        std::string
+        get_archspec(const std::string& arch, const std::map<std::string, std::string>& overrides)
         {
-            auto override_version = util::get_env("CONDA_OVERRIDE_ARCHSPEC");
-            if (override_version)
+            // For archspec, the override applies to the build string (conda-compatible).
+            if (auto override_build = get_virtual_package_override("archspec", overrides))
             {
-                return override_version.value();
+                return std::move(override_build).value();
             }
 
             if (arch == "64")
@@ -327,34 +349,41 @@ namespace mamba
             }
         }
 
-        [[nodiscard]] auto overridable_linux_version() -> tl::expected<std::string, util::OSError>
+        [[nodiscard]] auto
+        overridable_linux_version(const std::map<std::string, std::string>& overrides)
+            -> tl::expected<std::string, util::OSError>
         {
-            if (auto override_version = util::get_env("CONDA_OVERRIDE_LINUX"))
+            if (auto override_version = get_virtual_package_override("linux", overrides))
             {
                 return { std::move(override_version).value() };
             }
             return util::linux_version();
         }
 
-        [[nodiscard]] auto overridable_osx_version() -> tl::expected<std::string, util::OSError>
+        [[nodiscard]] auto
+        overridable_osx_version(const std::map<std::string, std::string>& overrides)
+            -> tl::expected<std::string, util::OSError>
         {
-            if (auto override_version = util::get_env("CONDA_OVERRIDE_OSX"))
+            if (auto override_version = get_virtual_package_override("osx", overrides))
             {
                 return { std::move(override_version).value() };
             }
             return util::osx_version();
         }
 
-        [[nodiscard]] auto overridable_windows_version() -> tl::expected<std::string, util::OSError>
+        [[nodiscard]] auto
+        overridable_windows_version(const std::map<std::string, std::string>& overrides)
+            -> tl::expected<std::string, util::OSError>
         {
-            if (auto override_version = util::get_env("CONDA_OVERRIDE_WIN"))
+            if (auto override_version = get_virtual_package_override("win", overrides))
             {
                 return { std::move(override_version).value() };
             }
             return util::windows_version();
         }
 
-        std::vector<specs::PackageInfo> dist_packages(const std::string& platform)
+        std::vector<specs::PackageInfo>
+        dist_packages(const std::string& platform, const std::map<std::string, std::string>& overrides)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
 
@@ -371,7 +400,7 @@ namespace mamba
 
             if (os == "win")
             {
-                auto result = overridable_windows_version();
+                auto result = overridable_windows_version(overrides);
                 if (result)
                 {
                     res.push_back(make_virtual_package("__win", platform, std::move(result).value()));
@@ -390,7 +419,7 @@ namespace mamba
             {
                 res.push_back(make_virtual_package("__unix", platform));
 
-                auto result = overridable_linux_version();
+                auto result = overridable_linux_version(overrides);
                 if (result)
                 {
                     res.push_back(make_virtual_package("__linux", platform, std::move(result).value()));
@@ -404,7 +433,7 @@ namespace mamba
                     LOG_DEBUG << std::move(result).error().message;
                 }
 
-                std::string libc_ver = detail::glibc_version();
+                std::string libc_ver = detail::glibc_version(overrides);
                 if (!libc_ver.empty())
                 {
                     res.push_back(make_virtual_package("__glibc", platform, libc_ver));
@@ -419,7 +448,7 @@ namespace mamba
             {
                 res.push_back(make_virtual_package("__unix", platform));
 
-                auto result = overridable_osx_version();
+                auto result = overridable_osx_version(overrides);
                 if (result)
                 {
                     res.push_back(make_virtual_package("__osx", platform, std::move(result).value()));
@@ -452,18 +481,23 @@ namespace mamba
                 res.push_back(make_virtual_package("__unix", platform));
             }
 
-            res.push_back(make_virtual_package("__archspec", platform, "1", get_archspec(arch)));
+            res.push_back(
+                make_virtual_package("__archspec", platform, "1", get_archspec(arch, overrides))
+            );
 
             return res;
         }
     }
 
-    std::vector<specs::PackageInfo> get_virtual_packages(const std::string& platform)
+    std::vector<specs::PackageInfo> get_virtual_packages(
+        const std::string& platform,
+        const std::map<std::string, std::string>& override_virtual_packages
+    )
     {
         LOG_DEBUG << "Loading virtual packages";
-        auto res = detail::dist_packages(platform);
+        auto res = detail::dist_packages(platform, override_virtual_packages);
 
-        auto cuda_ver = detail::cuda_version();
+        auto cuda_ver = detail::cuda_version(override_virtual_packages);
         if (!cuda_ver.empty())
         {
             res.push_back(detail::make_virtual_package("__cuda", platform, cuda_ver));

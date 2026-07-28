@@ -259,6 +259,11 @@ namespace mamba
 
         std::vector<std::string> pinned_packages = {};
 
+        // Keys are virtual package names without the `__` prefix (e.g. "cuda", "glibc").
+        // Names with a `__` prefix are also accepted and normalized on lookup.
+        // Environment variables `CONDA_OVERRIDE_<NAME>` take precedence over this map.
+        std::map<std::string, std::string> override_virtual_packages = {};
+
         bool use_only_tar_bz2 = false;
 
         bool repodata_use_zst = true;

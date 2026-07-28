@@ -118,7 +118,7 @@ namespace mamba
             {
                 util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
                 const auto& context = mambatests::context();
-                auto pkgs = get_virtual_packages(context.platform);
+                auto pkgs = get_virtual_packages(context.platform, context.override_virtual_packages);
                 size_t pkgs_count;
 
                 if (util::on_win)
@@ -140,7 +140,7 @@ namespace mamba
                 REQUIRE(pkgs.back().version == "9.0");
 
                 util::unset_env("CONDA_OVERRIDE_CUDA");
-                pkgs = get_virtual_packages(context.platform);
+                pkgs = get_virtual_packages(context.platform, context.override_virtual_packages);
 
                 if (!detail::cuda_version().empty())
                 {
@@ -150,6 +150,64 @@ namespace mamba
                 {
                     REQUIRE(pkgs.size() == pkgs_count - 1);
                 }
+            }
+
+            TEST_CASE("override_virtual_packages_from_config")
+            {
+                const std::map<std::string, std::string> overrides = {
+                    { "cuda", "13.1" }, { "glibc", "2.15" },         { "linux", "5.7" },
+                    { "osx", "12.1" },  { "archspec", "x86_64_v4" },
+                };
+
+                auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE(pkgs.size() == 5);
+                REQUIRE(pkgs[0].name == "__unix");
+                REQUIRE(pkgs[1].name == "__linux");
+                REQUIRE(pkgs[1].version == "5.7");
+                REQUIRE(pkgs[2].name == "__glibc");
+                REQUIRE(pkgs[2].version == "2.15");
+                REQUIRE(pkgs[3].name == "__archspec");
+                REQUIRE(pkgs[3].version == "1");
+                REQUIRE(pkgs[3].build_string == "x86_64_v4");
+                REQUIRE(pkgs[4].name == "__cuda");
+                REQUIRE(pkgs[4].version == "13.1");
+
+                pkgs = get_virtual_packages("osx-64", overrides);
+                REQUIRE(pkgs.size() == 4);
+                REQUIRE(pkgs[0].name == "__unix");
+                REQUIRE(pkgs[1].name == "__osx");
+                REQUIRE(pkgs[1].version == "12.1");
+                REQUIRE(pkgs[2].name == "__archspec");
+                REQUIRE(pkgs[2].build_string == "x86_64_v4");
+                REQUIRE(pkgs[3].name == "__cuda");
+                REQUIRE(pkgs[3].version == "13.1");
+            }
+
+            TEST_CASE("override_virtual_packages_dunder_prefix")
+            {
+                // Keys with `__` prefix are accepted and normalized (conda-compatible).
+                const std::map<std::string, std::string> overrides = {
+                    { "__cuda", "11.8" },
+                    { "__archspec", "x86_64_v2" },
+                };
+
+                auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE(pkgs.back().name == "__cuda");
+                REQUIRE(pkgs.back().version == "11.8");
+                REQUIRE(pkgs[pkgs.size() - 2].name == "__archspec");
+                REQUIRE(pkgs[pkgs.size() - 2].build_string == "x86_64_v2");
+            }
+
+            TEST_CASE("override_virtual_packages_env_over_config")
+            {
+                util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
+                const std::map<std::string, std::string> overrides = { { "cuda", "13.1" } };
+
+                auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE(pkgs.back().name == "__cuda");
+                REQUIRE(pkgs.back().version == "9.0");
+
+                util::unset_env("CONDA_OVERRIDE_CUDA");
             }
         }
     }

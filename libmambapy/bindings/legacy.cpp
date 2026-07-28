@@ -1747,7 +1747,8 @@ bind_submodule_impl(pybind11::module_ m)
 
     m.def(
         "get_virtual_packages",
-        [](Context& context) { return get_virtual_packages(context.platform); }
+        [](Context& context)
+        { return get_virtual_packages(context.platform, context.override_virtual_packages); }
     );
 
     m.def("cancel_json_output", [](Context&) { mambapy::singletons().console().cancel_json_print(); });

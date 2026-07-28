@@ -861,6 +861,23 @@ namespace mamba
                 REQUIRE(config.dump() == "proxy_servers:\n  http: foo\n  https: bar");
             }
 
+            TEST_CASE_METHOD(Configuration, "override_virtual_packages")
+            {
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "13.1"
+                        glibc: "2.15"
+                        archspec: "x86_64_v4")");
+                load_test_config(rc);
+                auto& actual = config.at("override_virtual_packages")
+                                   .value<std::map<std::string, std::string>>();
+                std::map<std::string, std::string> expected = { { "cuda", "13.1" },
+                                                                { "glibc", "2.15" },
+                                                                { "archspec", "x86_64_v4" } };
+                REQUIRE(actual == expected);
+                REQUIRE(ctx.override_virtual_packages == expected);
+            }
+
             TEST_CASE_METHOD(Configuration, "platform")
             {
                 mambatests::ScopedContextChange context_change{ ctx };

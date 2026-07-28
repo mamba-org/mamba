@@ -29,3 +29,22 @@ class TestVirtualPkgs:
         else:
             infos = info(env={**os.environ, "CONDA_SUBDIR": "linux-64"})
             assert "__linux=0=0" in infos
+
+    def test_override_virtual_packages_from_rc(self, tmp_home, tmp_root_prefix, tmp_path):
+        rc_file = tmp_path / ".mambarc"
+        rc_file.write_text(
+            """\
+channels:
+  - conda-forge
+override_virtual_packages:
+  cuda: "13.1"
+  glibc: "2.15"
+  archspec: "x86_64_v4"
+"""
+        )
+        infos = info("--rc-file", str(rc_file))
+
+        assert "__cuda=13.1=0" in infos
+        assert "__archspec=1=x86_64_v4" in infos
+        if platform.system() == "Linux":
+            assert "__glibc=2.15=0" in infos

@@ -246,22 +246,21 @@ namespace mamba
         //   3. rsplit the stripped RHS on the last ':' into module and callable
         // Always return mamba_aggregated_error (even for a single failure) so the error is not
         // sliced when stored in expected_t (mamba-org/mamba#4352).
-        auto make_parse_error = [&](std::vector<mamba_error>&& errors)
+        auto make_parse_error = [](auto&&... errs)
         {
-            return tl::unexpected(
-                mamba_aggregated_error(std::move(errors), /*with_bug_report_info=*/false)
-            );
+            return tl::unexpected(mamba_aggregated_error(
+                std::vector<mamba_error>{ std::forward<decltype(errs)>(errs)... },
+                /*with_bug_report_info=*/false
+            ));
         };
 
         const auto [command, defn] = util::split_once(ep_def, '=');
         if (!defn)
         {
-            std::vector<mamba_error> errors;
-            errors.emplace_back(
-                fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
-                mamba_error_code::invalid_spec
+            return make_parse_error(
+                mamba_error{ fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
+                             mamba_error_code::invalid_spec }
             );
-            return make_parse_error(std::move(errors));
         }
 
         // Step 2: strip whitespace/quotes from the module:callable side (conda#16340).
@@ -271,12 +270,10 @@ namespace mamba
         const auto [module, func] = util::rsplit_once(module_func, ':');
         if (!module)
         {
-            std::vector<mamba_error> errors;
-            errors.emplace_back(
-                fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
-                mamba_error_code::invalid_spec
+            return make_parse_error(
+                mamba_error{ fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
+                             mamba_error_code::invalid_spec }
             );
-            return make_parse_error(std::move(errors));
         }
 
         python_entry_point_parsed result;
@@ -299,7 +296,9 @@ namespace mamba
 
         if (!errors.empty())
         {
-            return make_parse_error(std::move(errors));
+            return tl::unexpected(
+                mamba_aggregated_error(std::move(errors), /*with_bug_report_info=*/false)
+            );
         }
 
         return result;

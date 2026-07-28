@@ -450,6 +450,36 @@ namespace mamba
             }
         }
 
+        TEST_CASE("create_cache_dir_preserves_existing_permissions")
+        {
+            // Multi-user shared caches are often pre-created and owned by another user. Only the
+            // owner can perform a change of permissions; create_cache_dir must not try to change an
+            // existing directory (see #3740, #4002).
+            const auto cache_path = fs::temp_directory_path() / "mamba-fs-cache-path-existing";
+            const auto cache_dir = cache_path / "cache";
+
+            mamba::on_scope_exit _([&] { fs::remove_all(cache_path); });
+
+            fs::create_directories(cache_dir);
+
+            // Distinctive mode without group write / setgid — would be changed if we always perform
+            // a change of permissions.
+            const auto distinctive = fs::perms::owner_all | fs::perms::group_read
+                                     | fs::perms::group_exec | fs::perms::others_read
+                                     | fs::perms::others_exec;
+            fs::permissions(cache_dir, distinctive, fs::perm_options::replace);
+
+            const auto perm_mask = fs::perms::owner_all | fs::perms::group_all
+                                   | fs::perms::others_all | fs::perms::set_gid;
+            const auto before = fs::status(cache_dir).permissions() & perm_mask;
+
+            REQUIRE_NOTHROW(create_cache_dir(cache_path));
+
+            const auto after = fs::status(cache_dir).permissions() & perm_mask;
+            REQUIRE(after == before);
+            REQUIRE((after & fs::perms::group_write) == fs::perms::none);
+        }
+
         TEST_CASE("path_has_prefix")
         {
             REQUIRE(fs::path_has_prefix("info/about.json", "info"));

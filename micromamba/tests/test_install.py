@@ -730,7 +730,8 @@ def test_python_site_packages_path_with_python_version(tmp_home, tmp_root_prefix
 
 def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):
     """
-    Test that python_abi is preserved when installing packages after python-freethreading.
+    Test that python_abi is preserved when installing packages after python-freethreading,
+    and that uninstalling python-freethreading allows switching back to GIL builds.
     This reproduces the issue from https://github.com/mamba-org/mamba/issues/4112
     """
     env_name = "test_python_abi_freethreading"
@@ -754,28 +755,61 @@ def test_python_abi_preserved_with_freethreading(tmp_home, tmp_root_prefix):
         f"Expected free-threaded python_abi build, got: {initial_python_abi_build}"
     )
 
-    # Install a package that might try to change python_abi (like matplotlib).
-    # This must error out because matplotlib requires a non-free-threaded python_abi.
-    # libsolv problem strings may not name the requested spec (e.g. on Windows).
-    with pytest.raises(subprocess.CalledProcessError):
-        helpers.install("-n", env_name, "--json", "matplotlib", no_dry_run=True)
+    # Install a package that has both GIL and free-threaded builds (matplotlib).
+    # Without pinning python_abi, the solver could switch to a GIL ABI to satisfy
+    # dependencies; with the pin it must keep the free-threaded ABI.
+    # Free-threaded matplotlib builds: conda-forge/matplotlib-feedstock#409
+    res_install = helpers.install("-n", env_name, "--json", "matplotlib", no_dry_run=True)
+    assert res_install["success"]
 
     # Verify python_abi is still the same (free-threaded)
     res_list_after = helpers.umamba_list("-n", env_name, "--json")
     python_abi_pkg_after = None
+    matplotlib_pkg = None
     for pkg in res_list_after:
         if pkg["name"] == "python_abi":
             python_abi_pkg_after = pkg
-            break
+        elif pkg["name"] == "matplotlib":
+            matplotlib_pkg = pkg
 
+    assert matplotlib_pkg is not None, "matplotlib should be installed"
     assert python_abi_pkg_after is not None, "python_abi should still be installed"
+    freethreaded_matplotlib_build = matplotlib_pkg["build_string"]
     final_python_abi_build = python_abi_pkg_after["build_string"]
 
     # The ABI should be preserved (same free-threaded build)
     assert final_python_abi_build == initial_python_abi_build, (
         f"python_abi changed from {initial_python_abi_build} to {final_python_abi_build}. "
         "This should not happen when python-freethreading is installed."
-        " Check whether matplotlib is now installable with a non-free-threaded python_abi."
+    )
+
+    # Uninstalling python-freethreading drops the free-threaded python_abi pin.
+    # Explicitly requesting the GIL python_abi then replaces python and matplotlib
+    # with non-free-threaded builds (a plain `install python` keeps the installed FT ones).
+    res_remove = helpers.remove("-n", env_name, "--json", "python-freethreading", no_dry_run=True)
+    assert res_remove["success"]
+
+    gil_abi_tag = re.search(r"(_cp\d+)t$", initial_python_abi_build).group(1)
+    res_switch = helpers.install(
+        "-n", env_name, "--json", f"python_abi=*=*{gil_abi_tag}", no_dry_run=True
+    )
+    assert res_switch["success"]
+
+    packages_gil = helpers.umamba_list("-n", env_name, "--json")
+    freethreading_pkg = next((p for p in packages_gil if p["name"] == "python-freethreading"), None)
+    assert freethreading_pkg is None, "python-freethreading should be removed"
+
+    python_abi_gil = next((p for p in packages_gil if p["name"] == "python_abi"), None)
+    assert python_abi_gil is not None, "python_abi should still be installed"
+    assert re.search(r"_cp\d+$", python_abi_gil["build_string"]), (
+        f"Expected non-free-threaded python_abi build, got: {python_abi_gil['build_string']}"
+    )
+
+    matplotlib_gil = next((p for p in packages_gil if p["name"] == "matplotlib"), None)
+    assert matplotlib_gil is not None, "matplotlib should still be installed"
+    assert matplotlib_gil["build_string"] != freethreaded_matplotlib_build, (
+        f"matplotlib build should change after leaving freethreading, "
+        f"still {matplotlib_gil['build_string']}"
     )
 
 

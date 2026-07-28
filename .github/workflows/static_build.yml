@@ -97,7 +97,7 @@ jobs:
           mv mamba/ micromamba-feedstock/source
           # Prevent irrelevant file permission error
           git -C micromamba-feedstock/ config --local --add safe.directory '*'
-      - uses: mamba-org/setup-micromamba@v3.1.0
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-name: mambabuild
           create-args: python boa
@@ -187,7 +187,7 @@ jobs:
           # Native ARM64 on windows-11-arm; x64 elsewhere. Default is x64 and
           # linking ARM64 conda libs with an x64 linker fails with LNK4272.
           arch: ${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}
-      - uses: mamba-org/setup-micromamba@v3.1.0
+      - uses: mamba-org/setup-micromamba@v3
         with:
           environment-name: mambabuild
           init-shell: bash cmd.exe

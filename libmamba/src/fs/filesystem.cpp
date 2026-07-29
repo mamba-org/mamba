@@ -12,7 +12,9 @@
 
 #ifndef _WIN32
 #include <fcntl.h>
+#include <pwd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 // We can use the presence of UTIME_OMIT to detect platforms that provide
 // utimensat.
 #if defined(UTIME_OMIT)
@@ -78,5 +80,14 @@ namespace mamba::fs
         auto new_time = fs::file_time_type::clock::now();
         std::filesystem::last_write_time(path, new_time, ec);
 #endif
+    }
+
+    bool has_permissions(const u8path& path, const fs::perms& perm)
+    {
+        // Get path permissions
+        auto p = std::filesystem::status(path).permissions();
+
+        // Path perms must include wanted perms
+        return perm == (p & perm);
     }
 }

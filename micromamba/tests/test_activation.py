@@ -30,7 +30,7 @@ suffixes = {
     "bash": ".sh",
     "zsh": ".sh",
     "tcsh": ".csh",
-    "xonsh": ".sh",  # TODO this is wrong? is this leading to some bugs in tests here?
+    "xonsh": ".sh",
     "fish": ".fish",
     "powershell": ".ps1",
     "nu": ".nu",

@@ -934,23 +934,17 @@ def test_activate_envs_dirs(
     assert any([env_name in p for p in dict_res.values()])
 
 
-def test_xonsh_help_and_version(tmp_home, tmp_path):
+def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path):
     if "xonsh" not in valid_interpreters:
         pytest.skip("xonsh not available")
 
     umamba = helpers.get_umamba()
 
-    root_prefix = tmp_path / "mamba_root"
-    root_prefix.mkdir()
-    run_dir = tmp_path / "rundir"
-    run_dir.mkdir()
-    os.environ["MAMBA_ROOT_PREFIX"] = str(root_prefix)
-
-    s = [f"{umamba} shell init -r {root_prefix} -s xonsh"]
-    call_interpreter(s, run_dir, "xonsh")
+    s = [f"{umamba} shell init -r {tmp_root_prefix} -s xonsh"]
+    call_interpreter(s, tmp_path, "xonsh")
 
     def call(s):
-        return call_interpreter(s, run_dir, "xonsh", interactive=True)
+        return call_interpreter(s, tmp_path, "xonsh", interactive=True)
 
     s = ["micromamba --help"]
     stdout, stderr = call(s)

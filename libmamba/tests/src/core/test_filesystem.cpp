@@ -477,7 +477,12 @@ namespace mamba
 
             const auto after = fs::status(cache_dir).permissions() & perm_mask;
             REQUIRE(after == before);
+#ifndef _WIN32
+            // Windows does not support Unix-style group permission bits; the reported
+            // permissions are derived from the read-only file attribute and always
+            // include group_write on writable files.
             REQUIRE((after & fs::perms::group_write) == fs::perms::none);
+#endif
         }
 
         TEST_CASE("path_has_prefix")

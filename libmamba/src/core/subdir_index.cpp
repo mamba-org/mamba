@@ -1123,7 +1123,7 @@ namespace mamba
     {
         const auto cache_dir = cache_path / "cache";
 
-        // Match conda's mkdir_p_sudo_safe: only set permissions when creating a new directory.
+        // Match conda's `mkdir_p_sudo_safe`: only set permissions when creating a new directory.
         // Existing shared caches are often owned by another user; only the owner can perform a
         // change of permissions, and failing hard breaks multi-user installs (#3740, #4002).
         const bool created = fs::create_directories(cache_dir);
@@ -1132,13 +1132,13 @@ namespace mamba
             return cache_dir.string();
         }
 
-        // Some filesystems don't support special permissions such as setgid on directories (e.g.
-        // NFS) and fail if we try to set the setgid bit on the cache directory.
+        // Some filesystems don't support special permissions such as `setgid` on directories (e.g.
+        // NFS) and fail if we try to set the `setgid` bit on the cache directory.
         //
-        // We want to set the setgid bit on the cache directory to preserve the permissions as much
-        // as possible if we can; hence we proceed in two steps to set the permissions by
+        // We want to set the `setgid` bit on the cache directory to preserve the permissions as
+        // much as possible if we can; hence we proceed in two steps to set the permissions by
         //   1. Setting the permissions without the setgid bit to the desired value.
-        //   2. Trying to set the setgid bit on the directory and report success or failure in log
+        //   2. Trying to set the `setgid` bit on the directory and report success or failure in log
         //   without raising an error or propagating an error which was raised.
         //
         // Permission changes may also fail when the process cannot perform a change of permissions

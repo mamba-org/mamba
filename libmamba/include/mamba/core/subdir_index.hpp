@@ -296,7 +296,7 @@ namespace mamba
     /**
      * Ensure a `cache` subdirectory exists under `cache_path`.
      *
-     * Permissions (`rwxrwxr-x`, plus setgid when supported) are applied only when the directory
+     * Permissions (`rwxrwxr-x`, plus `setgid` when supported) are applied only when the directory
      * is newly created. Existing directories are left untouched so shared multi-user package
      * caches owned by another user do not fail with "Operation not permitted" on change of
      * permissions.

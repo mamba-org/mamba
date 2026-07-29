@@ -41,7 +41,7 @@ namespace mamba::path
         fs::create_directory(path);
 
 #ifndef _WIN32
-        // Set permissions to 0o2775 in two steps: some filesystems reject setgid, and change of
+        // Set permissions to `0o2775` in two steps: some filesystems reject `setgid`, and change of
         // permissions may fail under MAC policies. Never treat permission failures as fatal (same
         // as conda).
         std::error_code ec;

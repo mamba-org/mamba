@@ -1,6 +1,7 @@
 import os
 import pathlib
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -29,7 +30,7 @@ suffixes = {
     "bash": ".sh",
     "zsh": ".sh",
     "tcsh": ".csh",
-    "xonsh": ".sh",
+    "xonsh": ".sh",  # TODO this is wrong? is this leading to some bugs in tests here?
     "fish": ".fish",
     "powershell": ".ps1",
     "nu": ".nu",
@@ -931,6 +932,36 @@ def test_activate_envs_dirs(
     res = helpers.shell("activate", env_name, "-s", interpreter)
     dict_res = env_to_dict(res, interpreter)
     assert any([env_name in p for p in dict_res.values()])
+
+
+def test_xonsh_help_and_version(tmp_home, tmp_path):
+    if "xonsh" not in valid_interpreters:
+        pytest.skip("xonsh not available")
+
+    umamba = helpers.get_umamba()
+
+    root_prefix = tmp_path / "mamba_root"
+    root_prefix.mkdir()
+    run_dir = tmp_path / "rundir"
+    run_dir.mkdir()
+    os.environ["MAMBA_ROOT_PREFIX"] = str(root_prefix)
+
+    s = [f"{umamba} shell init -r {root_prefix} -s xonsh"]
+    call_interpreter(s, run_dir, "xonsh")
+
+    def call(s):
+        return call_interpreter(s, run_dir, "xonsh", interactive=True)
+
+    s = ["micromamba --help"]
+    stdout, stderr = call(s)
+    assert not stderr, f"stderr was not empty: {stderr}"
+    assert "--help" in stdout
+    assert "Print this help message and exit" in stdout
+
+    s = ["micromamba --version"]
+    stdout, stderr = call(s)
+    assert not stderr, f"stderr was not empty: {stderr}"
+    assert re.search(r"\d+\.\d+\.\d+", stdout.strip()), f"not a version: {stdout}"
 
 
 @pytest.fixture

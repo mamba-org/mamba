@@ -20,7 +20,9 @@ _REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')
 def _parse_args(args=None):
     from argparse import ArgumentParser
     p = ArgumentParser(add_help=False)
-    p.add_argument('command')
+    p.add_argument('command', nargs='?')
+    p.add_argument('-h', '--help', dest='help', action='store_true', default=False)
+    p.add_argument('-v', '--version', dest='version', action='store_true', default=False)
     ns, _ = p.parse_known_args(args)
     if ns.command == 'activate':
         p.add_argument('env_name_or_prefix', default='base')

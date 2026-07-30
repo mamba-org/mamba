@@ -934,7 +934,8 @@ def test_activate_envs_dirs(
     assert any([env_name in p for p in dict_res.values()])
 
 
-def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("alias", ["micromamba", "mamba"])
+def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path, alias):
     if "xonsh" not in valid_interpreters:
         pytest.skip("xonsh not available")
 
@@ -946,19 +947,20 @@ def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path):
     def call(s):
         return call_interpreter(s, tmp_path, "xonsh", interactive=True)
 
-    s = ["micromamba --help"]
+    s = [f"{alias} --help"]
     stdout, stderr = call(s)
     assert not stderr, f"stderr was not empty: {stderr}"
     assert "--help" in stdout
     assert "Print this help message and exit" in stdout
 
-    s = ["micromamba --version"]
+    s = [f"{alias} --version"]
     stdout, stderr = call(s)
     assert not stderr, f"stderr was not empty: {stderr}"
     assert re.search(r"\d+\.\d+\.\d+", stdout.strip()), f"not a version: {stdout}"
 
 
-def test_xonsh_del_nonexistent_env_var(tmp_home, tmp_root_prefix, tmp_path):
+@pytest.mark.parametrize("alias", ["micromamba", "mamba"])
+def test_xonsh_del_nonexistent_env_var(tmp_home, tmp_root_prefix, tmp_path, alias):
     if "xonsh" not in valid_interpreters:
         pytest.skip("xonsh not available")
 
@@ -978,9 +980,9 @@ def test_xonsh_del_nonexistent_env_var(tmp_home, tmp_root_prefix, tmp_path):
 
     # activate → manually delete var → deactivate
     s = [
-        "micromamba activate test_unset_env",
+        f"{alias} activate test_unset_env",
         "del $MAMBA_UNSET_TEST",
-        "micromamba deactivate",
+        f"{alias} deactivate",
     ]
 
     try:

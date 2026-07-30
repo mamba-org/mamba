@@ -93,6 +93,7 @@ if 'CONDA_SHLVL' not in ${...}:
 
 
 aliases['micromamba'] = _micromamba_main
+aliases['mamba'] = _micromamba_main
 
 
 @contextual_command_completer

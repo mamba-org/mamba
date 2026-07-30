@@ -1123,7 +1123,7 @@ namespace mamba
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "del $" << uvar << "\n";
+            out << "try:\n  del $" << uvar << "\nexcept KeyError:\n  pass\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)

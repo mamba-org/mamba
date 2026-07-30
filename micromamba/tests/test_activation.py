@@ -958,6 +958,37 @@ def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path):
     assert re.search(r"\d+\.\d+\.\d+", stdout.strip()), f"not a version: {stdout}"
 
 
+def test_xonsh_del_nonexistent_env_var(tmp_home, tmp_root_prefix, tmp_path):
+    if "xonsh" not in valid_interpreters:
+        pytest.skip("xonsh not available")
+
+    umamba = helpers.get_umamba()
+
+    s = [f"{umamba} shell init -r {tmp_root_prefix} -s xonsh"]
+    call_interpreter(s, tmp_path, "xonsh")
+
+    def call(s):
+        return call_interpreter(s, tmp_path, "xonsh", interactive=True)
+
+    helpers.create("-n", "test_unset_env", "--offline", "--no-rc", no_dry_run=True)
+
+    prefix = tmp_root_prefix / "envs" / "test_unset_env"
+    state_file = prefix / "conda-meta" / "state"
+    state_file.write_text(helpers.json.dumps({"env_vars": {"MAMBA_UNSET_TEST": "hello"}}))
+
+    # activate → manually delete var → deactivate
+    s = [
+        "micromamba activate test_unset_env",
+        "del $MAMBA_UNSET_TEST",
+        "micromamba deactivate",
+    ]
+
+    try:
+        stdout, stderr = call(s)
+    except subprocess.CalledProcessError:
+        pytest.fail("deactivate crashed on del of non-existent env var")
+
+
 @pytest.fixture
 def tmp_umamba():
     mamba_exe = helpers.get_umamba()

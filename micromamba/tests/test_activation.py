@@ -990,6 +990,8 @@ def test_xonsh_del_nonexistent_env_var(tmp_home, tmp_root_prefix, tmp_path, alia
     except subprocess.CalledProcessError:
         pytest.fail("deactivate crashed on del of non-existent env var")
 
+    assert "does not contain any filesystem separator" not in stderr
+
 
 @pytest.fixture
 def tmp_umamba():

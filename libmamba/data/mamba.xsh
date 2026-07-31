@@ -46,9 +46,9 @@ def _raise_pipeline_error(pipeline):
 def _mamba_activate_handler(env_name_or_prefix=None):
     if env_name_or_prefix == 'base' or not env_name_or_prefix:
         env_name_or_prefix = $MAMBA_ROOT_PREFIX
-    __xonsh__.execer.exec($($MAMBA_EXE shell activate -s xonsh -p @(env_name_or_prefix)),
+    __xonsh__.execer.exec($($MAMBA_EXE shell activate -s xonsh @(env_name_or_prefix)),
                           glbs=__xonsh__.ctx,
-                          filename="$($MAMBA_EXE shell activate -s xonsh -p " + env_name_or_prefix + ")")
+                          filename="$($MAMBA_EXE shell activate -s xonsh " + env_name_or_prefix + ")")
 
 
 def _mamba_deactivate_handler():

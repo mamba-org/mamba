@@ -129,7 +129,7 @@ jobs:
       - name: Run libmamba Python bindings tests
         run: |
           # Only rerun flaky tests on the `main` branch
-          python -m pytest libmambapy/tests/test_shell.py::test_hook ^
+          python -m pytest libmambapy/tests/ ^
             -vv --durations=50 ^
             ${{ runner.debug == 'true' && '--capture=tee-sys' || '--exitfirst' }} ^
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
@@ -166,7 +166,7 @@ jobs:
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
           # Only rerun flaky tests on the `main` branch
-          python -m pytest micromamba/tests/ `
+          python -m pytest micromamba/tests/test_shell.py::test_hook  `
             -vv --durations=50 `
             ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} `
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

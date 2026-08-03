@@ -25,7 +25,7 @@ def skip_if_shell_incompat(shell_type):
     "shell_type",
     ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "nu"],
 )
-def test_hook(tmp_home, tmp_root_prefix, shell_type):
+def test_hook(tmp_home, tmp_root_prefix, shell_type, tmp_path):
     res = helpers.shell("hook", "-s", shell_type)
 
     mamba_exe = helpers.get_umamba()
@@ -48,6 +48,20 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
         assert res.count(mamba_exe_posix) == 5
     elif shell_type == "cmd.exe":
         assert res == ""
+        # assert (tmp_root_prefix / "condabin" / "mamba_hook.bat").is_file()
+        # assert (tmp_root_prefix / "Scripts" / "activate.bat").is_file()
+        # assert (tmp_root_prefix / "conda-meta").is_dir()
+        data = tmp_path / "data"
+        env = {
+            k: v for k, v in os.environ.items() if not k.startswith(("MAMBA_", "XDG_", "CONDA_"))
+        }
+        env["XDG_DATA_HOME"] = str(data)  # default prefix -> $XDG_DATA_HOME/mamba
+        env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
+        default_prefix = data / "mamba"
+        print("==========> default_prefix should be: ", default_prefix)
+        info = subprocess.run([mamba_exe, "info"], env=env, capture_output=True, text=True)
+        print("=================> INFO: ", info)
+
     elif shell_type == "tcsh":
         assert res.count(mamba_exe_posix) == 5
     elif shell_type == "nu":

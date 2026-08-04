@@ -64,15 +64,25 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type, tmp_path):
 
         res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
         print("=================> RES1: ", res)
+        assert res.returncode == 0
+
         hook = subprocess.run(
             [mamba_exe, "shell", "hook", "-s", "cmd.exe"], env=env, capture_output=True, text=True
         )
         print("=================> HOOK: ", hook)
         assert (default_prefix / "condabin").is_dir()
         assert (default_prefix / "Scripts").is_dir()
+        assert hook.returncode == 0
 
         res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
         print("=================> RES2: ", res)
+        assert res.returncode != 0
+
+        # Deleting the default prefix dir makes mamba work again
+        shutil.rmtree(default_prefix)
+        res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
+        print("=================> RES3 AFTER DEL MAMBA PREFIX DIR: ", res)
+        assert res.returncode == 0
 
     elif shell_type == "tcsh":
         assert res.count(mamba_exe_posix) == 5

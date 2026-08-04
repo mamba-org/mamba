@@ -405,7 +405,7 @@ namespace mamba::solver::libsolv
             // Detect that via the job select mask (stored in `target_id`), not by
             // probing `get_solvable(dep_id)`, which collides with string ids.
             // Returns true when the problem was handled as such a job.
-            auto try_add_root_locked_solvable = [&](const SolverProblem& problem) -> bool
+            const auto try_add_root_locked_solvable = [&](const SolverProblem& problem) -> bool
             {
                 if (!is_solvable_selection_job(problem))
                 {

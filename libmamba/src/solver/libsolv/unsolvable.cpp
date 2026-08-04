@@ -498,11 +498,6 @@ namespace mamba::solver::libsolv
                         {
                             break;
                         }
-                        if (!dep)
-                        {
-                            warn_unexpected_problem(problem);
-                            break;
-                        }
                         [[fallthrough]];
                     }
                     case SOLVER_RULE_PKG:

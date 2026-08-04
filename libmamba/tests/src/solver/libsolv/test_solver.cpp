@@ -1504,9 +1504,13 @@ namespace
         );
         db.remove_repo(early_repo);
 
+        // Enough packages so solvable indices exceed the early-interned string id of
+        // `"missing-pkg"` (string ids and solvable indices share `libsolv`'s `Id` space).
+        constexpr auto packages_to_collide_with_string_id = 300;
+
         auto pkgs = std::vector<specs::PackageInfo>{};
-        pkgs.reserve(512);
-        for (int i = 0; i < 300; ++i)
+        pkgs.reserve(packages_to_collide_with_string_id);
+        for (int i = 0; i < packages_to_collide_with_string_id; ++i)
         {
             pkgs.push_back(specs::PackageInfo("pkg" + std::to_string(i), "1.0", "h0", 0));
         }

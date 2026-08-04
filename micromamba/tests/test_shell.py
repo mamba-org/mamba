@@ -62,6 +62,18 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type, tmp_path):
         info = subprocess.run([mamba_exe, "info"], env=env, capture_output=True, text=True)
         print("=================> INFO: ", info)
 
+        res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
+        print("=================> RES1: ", res)
+        hook = subprocess.run(
+            [mamba_exe, "shell", "hook", "-s", "cmd.exe"], env=env, capture_output=True, text=True
+        )
+        print("=================> HOOK: ", hook)
+        assert (default_prefix / "condabin").is_dir()
+        assert (default_prefix / "Scripts").is_dir()
+
+        res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
+        print("=================> RES2: ", res)
+
     elif shell_type == "tcsh":
         assert res.count(mamba_exe_posix) == 5
     elif shell_type == "nu":

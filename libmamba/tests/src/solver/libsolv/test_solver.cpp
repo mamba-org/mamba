@@ -1476,20 +1476,22 @@ namespace
         "[mamba::solver][mamba::solver::libsolv]"
     )
     {
-        // Regression: pool_dependency_to_string used to return nullopt whenever
-        // get_solvable(dep_id) succeeded. String ids and solvable indices share libsolv's
-        // numeric Id space, so a missing-package install job whose name was interned early
-        // can collide and produce an empty explanation ("Could not solve...\n.").
-        // conda-libmamba-solver relies on "does not exist" in explain_problems to raise
-        // PackagesNotFoundError.
+        // Regression: `pool_dependency_to_string` used to return `nullopt` whenever
+        // `get_solvable(dep_id)` succeeded. String ids and solvable indices share
+        // `libsolv`'s numeric `Id` space, so a missing-package install job whose name
+        // was interned early can collide and produce an empty explanation
+        // (`"Could not solve...\n."`).
+        // `conda-libmamba-solver` relies on `"does not exist"` in `explain_problems`
+        // to raise `PackagesNotFoundError`.
         //
         // Force the collision: intern the missing name as a package, remove that repo
-        // (strings remain, solvables do not), then grow nsolvables past that string id.
+        // (strings remain, solvables do not), then grow `nsolvables` past that string id.
         const auto matchspec_parser = GENERATE(
             libsolv::MatchSpecParser::Libsolv,
             libsolv::MatchSpecParser::Mixed
-            // Mamba parser uses REL_NAMESPACE reldeps (high bit set), which cannot collide
-            // with solvable indices; Libsolv/Mixed simple names use plain string ids.
+            // `Mamba` parser uses `REL_NAMESPACE` reldeps (high bit set), which cannot
+            // collide with solvable indices. `Libsolv`/`Mixed` simple names use plain
+            // string ids.
         );
         CAPTURE(matchspec_parser);
 
@@ -1510,8 +1512,9 @@ namespace
         }
         db.add_repo_from_packages(pkgs, "repo", libsolv::PipAsPythonDependency::No);
 
-        // Mimic conda-libmamba-solver: virtual packages live in the installed repo and are
-        // also requested as Install jobs (not Database::add_virtual_packages locks).
+        // Mimic `conda-libmamba-solver`: virtual packages live in the installed repo and
+        // are also requested as `Install` jobs (not `Database::add_virtual_packages`
+        // locks).
         const auto installed = db.add_repo_from_packages(
             std::array{
                 specs::PackageInfo("__unix", "0", "0", 0),

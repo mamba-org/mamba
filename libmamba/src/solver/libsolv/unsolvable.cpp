@@ -103,10 +103,11 @@ namespace mamba::solver::libsolv
                 return std::nullopt;
             }
             // Reldeps and plain package-name string ids are both valid dependency ids.
-            // Do not gate on get_solvable(): string ids and solvable indices share the same
-            // numeric Id space in libsolv, so a legitimate dependency string id can coincide
-            // with a solvable index. Lock/verify jobs that pass a solvable id are detected
-            // via the job select mask (SOLVER_SOLVABLE) when building the problems graph.
+            // Do not gate on `get_solvable()`: string ids and solvable indices share the same
+            // numeric `Id` space in `libsolv`, so a legitimate dependency string id can
+            // coincide with a solvable index. Lock/verify jobs that pass a solvable id are
+            // detected via the job select mask (`SOLVER_SOLVABLE`) when building the problems
+            // graph.
             if (pool.view().get_dependency(id).has_value())
             {
                 return { pool.dependency_to_string(id) };
@@ -126,7 +127,7 @@ namespace mamba::solver::libsolv
             std::string description;
         };
 
-        /** Job rules store the libsolv job "how" flags in ``target_id``. */
+        /** Job rules store the `libsolv` job `"how"` flags in `target_id`. */
         auto is_solvable_selection_job(const SolverProblem& problem) -> bool
         {
             return (problem.target_id & SOLVER_SELECTMASK) == SOLVER_SOLVABLE;
@@ -400,9 +401,9 @@ namespace mamba::solver::libsolv
                 return pkg;
             };
 
-            // Lock/verify jobs use SOLVER_SOLVABLE; dep_id is then a solvable id.
-            // Detect that via the job select mask (stored in target_id), not by
-            // probing get_solvable(dep_id), which collides with string ids.
+            // Lock/verify jobs use `SOLVER_SOLVABLE`. `dep_id` is then a solvable id.
+            // Detect that via the job select mask (stored in `target_id`), not by
+            // probing `get_solvable(dep_id)`, which collides with string ids.
             // Returns true when the problem was handled as such a job.
             auto try_add_root_locked_solvable = [&](const SolverProblem& problem) -> bool
             {
@@ -491,7 +492,8 @@ namespace mamba::solver::libsolv
                     }
                     case SOLVER_RULE_JOB:
                     {
-                        // SOLVER_SOLVABLE lock/verify jobs, or fall through as a top-level dep.
+                        // Handle `SOLVER_SOLVABLE` lock/verify jobs.
+                        // Otherwise fall through as a top-level dependency.
                         if (try_add_root_locked_solvable(problem))
                         {
                             break;
@@ -526,8 +528,8 @@ namespace mamba::solver::libsolv
                     {
                         // A top level dependency does not exist.
                         // Could be a wrong name or missing channel.
-                        // SOLVER_SOLVABLE lock/verify jobs can also be classified as
-                        // JOB_UNSUPPORTED; handle them like SOLVER_RULE_JOB above.
+                        // `SOLVER_SOLVABLE` lock/verify jobs can also be classified as
+                        // `JOB_UNSUPPORTED`. Handle them like `SOLVER_RULE_JOB` above.
                         if (try_add_root_locked_solvable(problem))
                         {
                             break;

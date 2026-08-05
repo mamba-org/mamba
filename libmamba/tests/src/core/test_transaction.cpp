@@ -33,40 +33,6 @@ namespace mamba
 {
     namespace
     {
-        struct ScopedContextOverride
-        {
-            ScopedContextOverride(Context& ctx, const fs::u8path& prefix, const fs::u8path& pkgs_dir)
-            {
-                m_ctx = &ctx;
-                m_saved_prefix_params = ctx.prefix_params;
-                m_saved_pkgs_dirs = ctx.pkgs_dirs;
-                m_saved_prefix_data_interoperability = ctx.prefix_data_interoperability;
-                m_saved_extract_threads = ctx.threads_params.extract_threads;
-
-                ctx.prefix_params.target_prefix = prefix;
-                ctx.prefix_params.root_prefix = prefix;
-                ctx.prefix_params.conda_prefix = prefix;
-                ctx.prefix_params.relocate_prefix = prefix;
-                ctx.pkgs_dirs = { pkgs_dir };
-                ctx.prefix_data_interoperability = false;
-                ctx.threads_params.extract_threads = 1;
-            }
-
-            ~ScopedContextOverride()
-            {
-                m_ctx->prefix_params = m_saved_prefix_params;
-                m_ctx->pkgs_dirs = m_saved_pkgs_dirs;
-                m_ctx->prefix_data_interoperability = m_saved_prefix_data_interoperability;
-                m_ctx->threads_params.extract_threads = m_saved_extract_threads;
-            }
-
-            Context* m_ctx = nullptr;
-            PrefixParams m_saved_prefix_params;
-            std::vector<fs::u8path> m_saved_pkgs_dirs;
-            bool m_saved_prefix_data_interoperability = false;
-            int m_saved_extract_threads = 0;
-        };
-
         void write_text_file(const fs::u8path& path, std::string_view content)
         {
             fs::create_directories(path.parent_path());
@@ -345,7 +311,15 @@ namespace mamba
         const fs::u8path prefix = temp_dir.path() / "prefix";
         const fs::u8path pkgs_dir = temp_dir.path() / "pkgs";
         fs::create_directories(pkgs_dir);
-        ScopedContextOverride context_guard(ctx, prefix, pkgs_dir);
+        mambatests::ScopedContextChange context_change{ ctx };
+        context_change.set_target_prefix(prefix)
+            .set_root_prefix(prefix)
+            .set_pkgs_dirs({ pkgs_dir })
+            .set_prefix_data_interoperability(false)
+            .preserve(ctx.threads_params);
+        ctx.prefix_params.conda_prefix = prefix;
+        ctx.prefix_params.relocate_prefix = prefix;
+        ctx.threads_params.extract_threads = 1;
 
         auto pkg_a = make_test_package("pkg-a");
         auto pkg_b = make_test_package("pkg-b");

@@ -934,11 +934,12 @@ def test_activate_envs_dirs(
     assert any([env_name in p for p in dict_res.values()])
 
 
+@pytest.mark.skipif(
+    "xonsh" not in valid_interpreters,
+    reason="xonsh not available",
+)
 @pytest.mark.parametrize("alias", ["micromamba", "mamba"])
 def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path, alias):
-    if "xonsh" not in valid_interpreters:
-        pytest.skip("xonsh not available")
-
     umamba = helpers.get_umamba()
 
     s = [f"{umamba} shell init -r {tmp_root_prefix} -s xonsh"]
@@ -959,11 +960,12 @@ def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path, alias):
     assert re.search(r"\d+\.\d+\.\d+", stdout.strip()), f"not a version: {stdout}"
 
 
+@pytest.mark.skipif(
+    "xonsh" not in valid_interpreters,
+    reason="xonsh not available",
+)
 @pytest.mark.parametrize("alias", ["micromamba", "mamba"])
 def test_xonsh_del_nonexistent_env_var(tmp_home, tmp_root_prefix, tmp_path, alias):
-    if "xonsh" not in valid_interpreters:
-        pytest.skip("xonsh not available")
-
     umamba = helpers.get_umamba()
 
     s = [f"{umamba} shell init -r {tmp_root_prefix} -s xonsh"]

@@ -245,13 +245,13 @@ main(int argc, char** argv)
 
     catch (const std::exception& e)
     {
-        std::cerr << "micromamba: " << e.what() << std::endl;
+        LOG_CRITICAL << e.what();
         return EXIT_FAILURE;
     }
 
     catch (...)
     {
-        std::cerr << "micromamba: unknown error" << std::endl;
+        LOG_CRITICAL << "Unhandled non-standard exception";
         return EXIT_FAILURE;
     }
 }

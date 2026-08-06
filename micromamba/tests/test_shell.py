@@ -30,7 +30,8 @@ def test_hook_cmd_exe(tmp_home, tmp_root_prefix, tmp_path):
     assert res == ""
     assert (tmp_root_prefix / "condabin" / "mamba_hook.bat").is_file()
     assert (tmp_root_prefix / "Scripts" / "activate.bat").is_file()
-    assert (tmp_root_prefix / "conda-meta").is_dir()
+    assert not (tmp_root_prefix / "conda-meta").is_dir()
+
     data = tmp_path / "data"
     env = {k: v for k, v in os.environ.items() if not k.startswith(("MAMBA_", "XDG_", "CONDA_"))}
     env["XDG_DATA_HOME"] = str(data)  # default prefix -> $XDG_DATA_HOME/mamba

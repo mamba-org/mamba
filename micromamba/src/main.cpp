@@ -16,6 +16,7 @@
 #endif
 
 #include <algorithm>
+#include <iostream>
 
 #include <CLI/CLI.hpp>
 
@@ -243,15 +244,19 @@ main(int argc, char** argv)
         return return_value;
     }
 
+    // TODO Find a better way to print the error
+    // (considering `--json` and `--quiet` cases,
+    // as `Console` destructor handling json case is not called
+    // if throw happens before its instantiation - i.e in `Context` instantiation for example)
     catch (const std::exception& e)
     {
-        LOG_CRITICAL << e.what();
+        std::cerr << e.what() << std::endl;
         return EXIT_FAILURE;
     }
 
     catch (...)
     {
-        LOG_CRITICAL << "Unhandled non-standard exception";
+        std::cerr << "Unhandled non-standard exception" << std::endl;
         return EXIT_FAILURE;
     }
 }

@@ -800,6 +800,16 @@ namespace mamba
     {
         const ShellInitPathsWindowsCmd paths{ root_prefix };
 
+        // The default root prefix is validated on the next invocation, so it must
+        // be a valid conda prefix (pkgs/conda-meta/envs) from the start. It used
+        // to contain only the hook scripts -> every following run aborted silently.
+        std::error_code ec [[maybe_unused]];
+        fs::create_directories(root_prefix / "conda-meta", ec);
+        if (ec)
+        {
+            LOG_ERROR << "Failed to create directory '" << (root_prefix / "conda-meta").string()
+                      << "' : " << ec.message();
+        }
         for (const auto& directory : paths.every_generated_directories_paths())
         {
             // Maybe the prefix isn't writable. No big deal, just keep going.

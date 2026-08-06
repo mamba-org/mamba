@@ -744,8 +744,6 @@ namespace mamba
             // We unconditionally name the subfolder "mamba" for compatibility between ``mamba``
             // and ``micromamba``, as well as consistency with ``MAMBA_`` environment variables.
             const fs::u8path default_root_prefix_v2 = fs::u8path(util::user_data_dir()) / "mamba";
-            std::cout << "default_root_prefix_v2 is: " << default_root_prefix_v2.string()
-                      << std::endl;
 
             auto result = validate_existing_root_prefix(default_root_prefix_v1)
                               .or_else([&default_root_prefix_v2](const auto& /* error */)

@@ -30,19 +30,19 @@ def test_hook_cmd_exe(tmp_home, tmp_root_prefix, tmp_path):
     assert res == ""
     assert (tmp_root_prefix / "condabin" / "mamba_hook.bat").is_file()
     assert (tmp_root_prefix / "Scripts" / "activate.bat").is_file()
-    assert not (tmp_root_prefix / "conda-meta").is_dir()
+    assert (tmp_root_prefix / "conda-meta").is_dir()
 
     data = tmp_path / "data"
     env = {k: v for k, v in os.environ.items() if not k.startswith(("MAMBA_", "XDG_", "CONDA_"))}
     env["XDG_DATA_HOME"] = str(data)  # default prefix -> $XDG_DATA_HOME/mamba
     env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
     default_prefix = data / "mamba"
-    print("==========> default_prefix should be: ", default_prefix)
-    info = subprocess.run([mamba_exe, "info"], env=env, capture_output=True, text=True)
-    print("=================> INFO: ", info)
+    # print("==========> default_prefix should be: ", default_prefix)
+    # info = subprocess.run([mamba_exe, "info"], env=env, capture_output=True, text=True)
+    # print("=================> INFO: ", info)
 
     res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
-    print("=================> RES1: ", res)
+    # print("=================> RES1: ", res)
     assert res.returncode == 0
 
     hook = subprocess.run(
@@ -51,17 +51,18 @@ def test_hook_cmd_exe(tmp_home, tmp_root_prefix, tmp_path):
     print("=================> HOOK: ", hook)
     assert (default_prefix / "condabin").is_dir()
     assert (default_prefix / "Scripts").is_dir()
+    assert (default_prefix / "conda-meta").is_dir()
     assert hook.returncode == 0
 
     res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
     print("=================> RES2: ", res)
-    assert res.returncode != 0
-
-    # Deleting the default prefix dir makes mamba work again
-    shutil.rmtree(default_prefix)
-    res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
-    print("=================> RES3 AFTER DEL MAMBA PREFIX DIR: ", res)
     assert res.returncode == 0
+
+    # # Deleting the default prefix dir makes mamba work again
+    # shutil.rmtree(default_prefix)
+    # res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
+    # print("=================> RES3 AFTER DEL MAMBA PREFIX DIR: ", res)
+    # assert res.returncode == 0
 
 
 @pytest.mark.parametrize(

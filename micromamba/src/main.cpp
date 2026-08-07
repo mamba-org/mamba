@@ -84,6 +84,27 @@ decide_log_handler(const ContextOptions& options) -> mamba::logging::AnyLogHandl
     return mamba::logging::spdlogimpl::LogHandler_spdlog{};
 }
 
+void
+report_error(int argc, char** argv, const std::string& message)
+{
+    const auto options = decide_preconfig_context_options(argc, argv);
+    if (options.output_params and options.output_params->json)
+    {
+        nlohmann::json output{
+            { "success", false },
+            { "log_history",
+              nlohmann::json::array(
+                  { { { "message", message }, { "level", "critical" }, { "source", "libmamba" } } }
+              ) }
+        };
+        std::cout << output.dump(4) << std::endl;
+    }
+    else if (not options.output_params or not options.output_params->quiet)
+    {
+        std::cerr << message << std::endl;
+    }
+}
+
 int
 main(int argc, char** argv)
 {
@@ -244,19 +265,17 @@ main(int argc, char** argv)
         return return_value;
     }
 
-    // TODO Find a better way to print the error
-    // (considering `--json` and `--quiet` cases,
-    // as `Console` destructor handling json case is not called
-    // if throw happens before its instantiation - i.e in `Context` instantiation for example)
+    // Handle errors printing - specifically for `--json` and `--quiet` options
+    // as `Console` is unreachable here
     catch (const std::exception& e)
     {
-        std::cerr << e.what() << std::endl;
+        report_error(argc, argv, e.what());
         return EXIT_FAILURE;
     }
 
     catch (...)
     {
-        std::cerr << "Unhandled non-standard exception" << std::endl;
+        report_error(argc, argv, "Unhandled non-standard exception");
         return EXIT_FAILURE;
     }
 }

@@ -70,10 +70,20 @@ namespace mamba
                     request.jobs.emplace_back(Request::UpdateAll{ /* .clean_dependencies= */ false });
                 }
 
-                // Install everything else
+                // Specs passed with `update --all`:
+                // - Update jobs constrain already-installed packages without globally pinning them
+                // - Install jobs add packages that are not yet in the prefix
                 for (auto& ms : parsed_specs)
                 {
-                    request.jobs.emplace_back(Request::Install{ std::move(ms) });
+                    const auto& match_spec_name = ms.name().to_string();
+                    if (prefix_data.records().contains(match_spec_name))
+                    {
+                        request.jobs.emplace_back(Request::Update{ std::move(ms) });
+                    }
+                    else
+                    {
+                        request.jobs.emplace_back(Request::Install{ std::move(ms) });
+                    }
                 }
             }
             else

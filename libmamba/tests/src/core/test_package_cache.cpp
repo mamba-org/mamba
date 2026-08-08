@@ -177,5 +177,21 @@ namespace mamba
             MultiPackageCache cache({ long_pkgs_dir }, params);
             REQUIRE(cache.get_extracted_dir_path(pkg_info) == long_pkgs_dir / rel_path);
         }
+
+        SECTION("Stale negative cache is cleared and package is found")
+        {
+            MultiPackageCache cache({ pkgs_dir }, params);
+
+            // Negative lookup is cached before the extracted directory exists
+            REQUIRE(cache.get_extracted_dir_path(pkg_info).empty());
+
+            write_repodata_record(hierarchical_dir / "info" / "repodata_record.json", pkg_info);
+
+            // Without clearing the query cache, the negative result is reused
+            REQUIRE(cache.get_extracted_dir_path(pkg_info).empty());
+
+            cache.clear_query_cache(pkg_info);
+            REQUIRE(cache.get_extracted_dir_path(pkg_info) == pkgs_dir / rel_path);
+        }
     }
 }  // namespace mamba

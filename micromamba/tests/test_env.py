@@ -163,6 +163,30 @@ def test_env_export_from_history(json_flag, export_env):
     assert [micromamba_spec_prefix] == ret["dependencies"]
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+@pytest.mark.parametrize("json_flag", [None, "--json"])
+def test_env_export_from_history_comma_range_spec(tmp_home, tmp_root_prefix, tmp_path, json_flag):
+    """Regression test for https://github.com/mamba-org/mamba/issues/4374
+
+    Comma-range MatchSpecs stringify with embedded quotes
+    (e.g. ``ripgrep[version=\">=14,<20\"]``). JSON export must escape those
+    quotes instead of hand-building invalid JSON.
+    """
+    env_prefix = tmp_path / "env-export-from-history-comma-range"
+    spec = 'ripgrep[version=">=14,<20"]'
+
+    res = helpers.create("-p", env_prefix, spec, "--json", "--yes", no_dry_run=True)
+    assert res["success"]
+
+    flags = filter(None, [json_flag])
+    # Must succeed and return parseable JSON/YAML (previously --json raised parse_error)
+    output = helpers.run_env("export", "-p", env_prefix, "--from-history", *flags)
+
+    ret = output if json_flag else yaml.safe_load(output)
+    assert Path(ret["prefix"]) == env_prefix.resolve()
+    assert 'ripgrep[version=">=14,<20"]' in ret["dependencies"]
+
+
 @pytest.mark.parametrize("channel_subdir_flag", [None, "--channel-subdir"])
 @pytest.mark.parametrize("md5_flag", [None, "--md5", "--no-md5"])
 @pytest.mark.parametrize("explicit_flag", [None, "--explicit"])

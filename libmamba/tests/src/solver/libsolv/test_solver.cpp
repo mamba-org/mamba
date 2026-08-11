@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <string>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -1468,5 +1469,86 @@ namespace
         const auto& unsolvable = std::get<libsolv::UnSolvable>(outcome.value());
         const auto explanation = unsolvable.explain_problems(db, {});
         REQUIRE(util::contains(explanation, "matplotlib"));
+    }
+
+    TEST_CASE(
+        "Explain missing package when dependency string id collides with a solvable id",
+        "[mamba::solver][mamba::solver::libsolv]"
+    )
+    {
+        // Regression: `pool_dependency_to_string` used to return `nullopt` whenever
+        // `get_solvable(dep_id)` succeeded. String ids and solvable indices share
+        // `libsolv`'s numeric `Id` space, so a missing-package install job whose name
+        // was interned early can collide and produce an empty explanation
+        // (`"Could not solve...\n."`).
+        // `conda-libmamba-solver` relies on `"does not exist"` in `explain_problems`
+        // to raise `PackagesNotFoundError`.
+        //
+        // Force the collision: intern the missing name as a package, remove that repo
+        // (strings remain, solvables do not), then grow `nsolvables` past that string id.
+        const auto matchspec_parser = GENERATE(
+            libsolv::MatchSpecParser::Libsolv,
+            libsolv::MatchSpecParser::Mixed
+            // `Mamba` parser uses `REL_NAMESPACE` reldeps (high bit set), which cannot
+            // collide with solvable indices. `Libsolv`/`Mixed` simple names use plain
+            // string ids.
+        );
+        CAPTURE(matchspec_parser);
+
+        auto db = libsolv::Database({}, { matchspec_parser });
+
+        auto early_repo = db.add_repo_from_packages(
+            std::array{ specs::PackageInfo("missing-pkg", "1.0", "h0", 0) },
+            "early",
+            libsolv::PipAsPythonDependency::No
+        );
+        db.remove_repo(early_repo);
+
+        // Enough packages so solvable indices exceed the early-interned string id of
+        // `"missing-pkg"` (string ids and solvable indices share `libsolv`'s `Id` space).
+        constexpr auto packages_to_collide_with_string_id = 300;
+
+        auto pkgs = std::vector<specs::PackageInfo>{};
+        pkgs.reserve(packages_to_collide_with_string_id);
+        for (int i = 0; i < packages_to_collide_with_string_id; ++i)
+        {
+            pkgs.push_back(specs::PackageInfo("pkg" + std::to_string(i), "1.0", "h0", 0));
+        }
+        db.add_repo_from_packages(pkgs, "repo", libsolv::PipAsPythonDependency::No);
+
+        // Mimic `conda-libmamba-solver`: virtual packages live in the installed repo and
+        // are also requested as `Install` jobs (not `Database::add_virtual_packages`
+        // locks).
+        const auto installed = db.add_repo_from_packages(
+            std::array{
+                specs::PackageInfo("__unix", "0", "0", 0),
+                specs::PackageInfo("__linux", "6.0", "0", 0),
+                specs::PackageInfo("__glibc", "2.39", "0", 0),
+            },
+            "installed",
+            libsolv::PipAsPythonDependency::No
+        );
+        db.set_installed_repo(installed);
+
+        auto request = Request{
+            /* .flags= */ {},
+            /* .jobs= */
+            {
+                Request::Install{ "__unix==0=0"_ms },
+                Request::Install{ "__linux==6.0=0"_ms },
+                Request::Install{ "__glibc==2.39=0"_ms },
+                Request::Install{ "missing-pkg"_ms },
+            },
+        };
+        const auto outcome = libsolv::Solver().solve(db, request, matchspec_parser);
+
+        REQUIRE(outcome.has_value());
+        REQUIRE(std::holds_alternative<libsolv::UnSolvable>(outcome.value()));
+
+        const auto& unsolvable = std::get<libsolv::UnSolvable>(outcome.value());
+        REQUIRE(util::contains(unsolvable.problems_to_str(db), "unsupported request"));
+        const auto explanation = unsolvable.explain_problems(db, {});
+        REQUIRE(util::contains(explanation, "missing-pkg"));
+        REQUIRE(util::contains(explanation, "does not exist (perhaps a typo or a missing channel)."));
     }
 }

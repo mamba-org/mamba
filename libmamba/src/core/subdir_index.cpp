@@ -1122,23 +1122,44 @@ namespace mamba
     auto create_cache_dir(const fs::u8path& cache_path) -> std::string
     {
         const auto cache_dir = cache_path / "cache";
-        fs::create_directories(cache_dir);
 
-        // Some filesystems don't support special permissions such as setgid on directories (e.g.
-        // NFS). and fail if we try to set the setgid bit on the cache directory.
+        // Match conda's `mkdir_p_sudo_safe`: only set permissions when creating a new directory.
+        // Existing shared caches are often owned by another user; only the owner can perform a
+        // change of permissions, and failing hard breaks multi-user installs (#3740, #4002).
+        const bool created = fs::create_directories(cache_dir);
+        if (!created)
+        {
+            return cache_dir.string();
+        }
+
+        // Some filesystems don't support special permissions such as `setgid` on directories (e.g.
+        // NFS) and fail if we try to set the `setgid` bit on the cache directory.
         //
-        // We want to set the setgid bit on the cache directory to preserve the permissions as much
-        // as possible if we can; hence we proceed in two steps to set the permissions by
-        //   1. Setting the permissions without the setgid bit to the desired value without.
-        //   2. Trying to set the setgid bit on the directory and report success or failure in log
+        // We want to set the `setgid` bit on the cache directory to preserve the permissions as
+        // much as possible if we can; hence we proceed in two steps to set the permissions by
+        //   1. Setting the permissions without the setgid bit to the desired value.
+        //   2. Trying to set the `setgid` bit on the directory and report success or failure in log
         //   without raising an error or propagating an error which was raised.
-
-        const auto permissions = fs::perms::owner_all | fs::perms::group_all
-                                 | fs::perms::others_read | fs::perms::others_exec;
-        fs::permissions(cache_dir, permissions, fs::perm_options::replace);
-        LOG_TRACE << "Set permissions on cache directory " << cache_dir << " to 'rwxrwxr-x'";
+        //
+        // Permission changes may also fail when the process cannot perform a change of permissions
+        // (e.g. MAC policies). Never treat that as fatal: the directory exists and may still be
+        // usable.
 
         std::error_code ec;
+        const auto permissions = fs::perms::owner_all | fs::perms::group_all
+                                 | fs::perms::others_read | fs::perms::others_exec;
+        fs::permissions(cache_dir, permissions, fs::perm_options::replace, ec);
+
+        if (ec)
+        {
+            LOG_TRACE << "Could not set permissions on cache directory " << cache_dir
+                      << "\nReason:" << ec.message() << "; ignoring and continuing";
+            return cache_dir.string();
+        }
+
+        LOG_TRACE << "Set permissions on cache directory " << cache_dir << " to 'rwxrwxr-x'";
+
+        ec.clear();
         fs::permissions(cache_dir, fs::perms::set_gid, fs::perm_options::add, ec);
 
         if (!ec)

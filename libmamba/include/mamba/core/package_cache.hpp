@@ -108,6 +108,7 @@ namespace mamba
         Writable is_writable();
         fs::u8path path() const;
         void clear_query_cache(const specs::PackageInfo& s);
+        void remove_extracted_package(const specs::PackageInfo& s);
 
         bool has_valid_tarball(const specs::PackageInfo& s, const ValidationParams& params);
         bool has_valid_extracted_dir(const specs::PackageInfo& s, const ValidationParams& params);
@@ -138,6 +139,7 @@ namespace mamba
         std::vector<PackageCacheData*> writable_caches();
 
         void clear_query_cache(const specs::PackageInfo& s);
+        void remove_extracted_package(const specs::PackageInfo& s);
 
     private:
 

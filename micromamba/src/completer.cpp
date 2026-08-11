@@ -134,7 +134,6 @@ add_activate_completion(
 
     // Mock functions just for completion
     CLI::App* activate_subcom = app->add_subcommand("activate");
-    app->add_subcommand("deactivate");
     activate_subcom->callback(
         [app, &completer_args, &completed, &config]()
         {

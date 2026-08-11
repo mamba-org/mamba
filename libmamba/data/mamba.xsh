@@ -20,7 +20,9 @@ _REACTIVATE_COMMANDS = ('install', 'update', 'upgrade', 'remove', 'uninstall')
 def _parse_args(args=None):
     from argparse import ArgumentParser
     p = ArgumentParser(add_help=False)
-    p.add_argument('command')
+    p.add_argument('command', nargs='?')
+    p.add_argument('-h', '--help', dest='help', action='store_true', default=False)
+    p.add_argument('-v', '--version', dest='version', action='store_true', default=False)
     ns, _ = p.parse_known_args(args)
     if ns.command == 'activate':
         p.add_argument('env_name_or_prefix', default='base')
@@ -44,9 +46,9 @@ def _raise_pipeline_error(pipeline):
 def _mamba_activate_handler(env_name_or_prefix=None):
     if env_name_or_prefix == 'base' or not env_name_or_prefix:
         env_name_or_prefix = $MAMBA_ROOT_PREFIX
-    __xonsh__.execer.exec($($MAMBA_EXE shell activate -s xonsh -p @(env_name_or_prefix)),
+    __xonsh__.execer.exec($($MAMBA_EXE shell activate -s xonsh @(env_name_or_prefix)),
                           glbs=__xonsh__.ctx,
-                          filename="$($MAMBA_EXE shell activate -s xonsh -p " + env_name_or_prefix + ")")
+                          filename="$($MAMBA_EXE shell activate -s xonsh " + env_name_or_prefix + ")")
 
 
 def _mamba_deactivate_handler():
@@ -91,6 +93,7 @@ if 'CONDA_SHLVL' not in ${...}:
 
 
 aliases['micromamba'] = _micromamba_main
+aliases['mamba'] = _micromamba_main
 
 
 @contextual_command_completer

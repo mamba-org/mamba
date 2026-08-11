@@ -1,3 +1,69 @@
+## libmambapy 2.9.0 (August 07, 2026)
+
+Enhancements:
+
+- feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+CI fixes and doc:
+
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
+## libmambapy 2.9.0.rc1 (August 05, 2026)
+
+Enhancements:
+
+- feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+CI fixes and doc:
+
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
+## libmambapy 2.9.0.rc0 (July 31, 2026)
+
+Enhancements:
+
+- feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+CI fixes and doc:
+
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
 ## libmambapy 2.8.1 (June 08, 2026)
 
 Maintenance:

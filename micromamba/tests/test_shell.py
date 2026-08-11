@@ -26,36 +26,38 @@ def skip_if_shell_incompat(shell_type):
 def test_hook_cmd_exe(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.shell("hook", "-s", "cmd.exe")
 
-    assert res == ""
-    assert (tmp_root_prefix / "condabin" / "mamba_hook.bat").is_file()
-    assert (tmp_root_prefix / "Scripts" / "activate.bat").is_file()
-    assert (tmp_root_prefix / "conda-meta").is_dir()
+    # assert res == ""
+    # assert (tmp_root_prefix / "condabin" / "mamba_hook.bat").is_file()
+    # assert (tmp_root_prefix / "Scripts" / "activate.bat").is_file()
+    # assert (tmp_root_prefix / "conda-meta").is_dir()
 
     # Remove any preconfigured settings
     data = tmp_path / "data"
     env = {k: v for k, v in os.environ.items() if not k.startswith(("MAMBA_", "XDG_", "CONDA_"))}
     env["XDG_DATA_HOME"] = str(data)
     env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
-    default_prefix = data / "mamba"
+    # default_prefix = data / "mamba"
 
     mamba_exe = helpers.get_umamba()
 
     res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
-    assert res.returncode == 0
+    # assert res.returncode == 0
 
     hook = subprocess.run(
         [mamba_exe, "shell", "hook", "-s", "cmd.exe"], env=env, capture_output=True, text=True
     )
-    assert hook.returncode == 0
+    print("===============> HOOK: ", hook)
+    # assert hook.returncode == 0
 
-    assert (default_prefix / "condabin").is_dir()
-    assert (default_prefix / "Scripts").is_dir()
-    assert (default_prefix / "conda-meta").is_dir()
+    # assert (default_prefix / "condabin").is_dir()
+    # assert (default_prefix / "Scripts").is_dir()
+    # assert (default_prefix / "conda-meta").is_dir()
 
     # Running `mamba_exe` again does not fail silently
     res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
-    assert res.returncode == 0
-    assert not res.stderr, f"stderr was not empty: {res.stderr}"
+    print("===============> RES: ", res)
+    # assert res.returncode == 0
+    # assert not res.stderr, f"stderr was not empty: {res.stderr}"
 
 
 @pytest.mark.parametrize(

@@ -25,6 +25,11 @@ namespace mamba
 
     std::string cut_repo_name(std::string_view reponame);
 
+    namespace logging
+    {
+        auto to_json(const logging::LogRecord& record) -> nlohmann::json;
+    }
+
     namespace printers
     {
         struct FormattedString

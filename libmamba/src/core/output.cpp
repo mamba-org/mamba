@@ -275,11 +275,10 @@ namespace mamba
      * Console *
      ***********/
 
-
-    namespace
+    // TODO Think about moving the json machinery somewhere independent from `Console`?
+    // maybe `logging.{hpp, cpp}`? or some other new files which would include `logging.hpp`
+    namespace logging
     {
-        std::unique_ptr<logging::LogHandler_History> log_history_handler;
-
         auto to_json(const logging::LogRecord& record) -> nlohmann::json
         {
             nlohmann::json result = { { "message", record.message },
@@ -291,6 +290,11 @@ namespace mamba
             }
             return result;
         }
+    }
+
+    namespace
+    {
+        std::unique_ptr<logging::LogHandler_History> log_history_handler;
 
         auto capture_log_history_as_json() -> nlohmann::json
         {

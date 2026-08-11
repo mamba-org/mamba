@@ -85,17 +85,26 @@ decide_log_handler(const ContextOptions& options) -> mamba::logging::AnyLogHandl
 }
 
 void
-report_error(int argc, char** argv, const std::string& message)
+report_error(const ContextOptions& options, const std::string& message, const bool constructed_console)
 {
-    const auto options = decide_preconfig_context_options(argc, argv);
-    if (options.output_params and options.output_params->json)
+    if (Console::is_available())
     {
+        LOG_CRITICAL << message;
+    }
+    // `constructed_console` is used to avoid printing 2 json objects
+    else if (options.output_params and options.output_params->json and not constructed_console)
+    {
+        const auto log_record = logging::LogRecord{
+            .message = message,
+            .level = log_level::critical,
+            .source = log_source::libmamba,
+            .location = std::source_location::current(),
+        };
+        const nlohmann::json record_json = logging::to_json(log_record);
+
         nlohmann::json output{
             { "success", false },
-            { "log_history",
-              nlohmann::json::array(
-                  { { { "message", message }, { "level", "critical" }, { "source", "libmamba" } } }
-              ) }
+            { "log_history", nlohmann::json::array({ record_json }) },
         };
         std::cout << output.dump(4) << std::endl;
     }
@@ -108,12 +117,14 @@ report_error(int argc, char** argv, const std::string& message)
 int
 main(int argc, char** argv)
 {
+    bool constructed_console = false;
+    const auto pre_config_options = decide_preconfig_context_options(argc, argv);
     try
     {
         mamba::MainExecutor scoped_threads;
-        const auto pre_config_options = decide_preconfig_context_options(argc, argv);
         mamba::Context ctx{ pre_config_options, decide_log_handler(pre_config_options) };
         mamba::Console console{ ctx };
+        constructed_console = true;  // TODO think of a more elegant way for this
         mamba::Configuration config{ ctx };
 
         init_console();
@@ -269,13 +280,13 @@ main(int argc, char** argv)
     // as `Console` is unreachable here
     catch (const std::exception& e)
     {
-        report_error(argc, argv, e.what());
+        report_error(pre_config_options, e.what(), constructed_console);
         return EXIT_FAILURE;
     }
 
     catch (...)
     {
-        report_error(argc, argv, "Unhandled non-standard exception");
+        report_error(pre_config_options, "Unhandled non-standard exception", constructed_console);
         return EXIT_FAILURE;
     }
 }

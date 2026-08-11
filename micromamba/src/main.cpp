@@ -126,7 +126,7 @@ namespace
     bool constructed_console = false;
     std::optional<ContextOptions> pre_config_options;
 
-    [[noreturn]] void terminate_handler() noexcept
+    [[noreturn]] void mamba_terminate_handler() noexcept
     {
         try
         {
@@ -156,7 +156,7 @@ int
 main(int argc, char** argv)
 {
     pre_config_options = decide_preconfig_context_options(argc, argv);
-    std::set_terminate(terminate_handler);
+    std::set_terminate(mamba_terminate_handler);
 
     mamba::MainExecutor scoped_threads;
     mamba::Context ctx{ pre_config_options.value(), decide_log_handler(pre_config_options.value()) };

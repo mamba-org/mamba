@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include <fmt/format.h>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/env.hpp"
@@ -151,30 +153,23 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                     }
                     else
                     {
-                        std::string dep;
-                        if (channel_subdir)
-                        {
-                            // If the size is not one, it's a custom multi channel
-                            dep += (chans.size() == 1) ? chans.front().display_name() : v.channel;
-                            dep += "/";
-                            dep += v.platform;
-                            dep += "::";
-                        }
-                        dep += v.name;
-                        dep += "=";
-                        dep += v.version;
-                        if (!no_build)
-                        {
-                            dep += "=";
-                            dep += v.build_string;
-                        }
-                        if (no_md5 == -1)
-                        {
-                            dep += "[md5=";
-                            dep += v.md5;
-                            dep += "]";
-                        }
-                        deps_json.push_back(std::move(dep));
+                        // If the size is not one, it's a custom multi channel
+                        deps_json.push_back(
+                            fmt::format(
+                                "{}{}={}{}{}",
+                                channel_subdir
+                                    ? fmt::format(
+                                          "{}/{}::",
+                                          (chans.size() == 1) ? chans.front().display_name() : v.channel,
+                                          v.platform
+                                      )
+                                    : "",
+                                v.name,
+                                v.version,
+                                !no_build ? fmt::format("={}", v.build_string) : "",
+                                no_md5 == -1 ? fmt::format("[md5={}]", v.md5) : ""
+                            )
+                        );
                     }
 
                     for (const auto& chan : chans)

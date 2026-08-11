@@ -173,8 +173,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, arch: "64" }
-          - { os: windows-11-arm, arch: arm64 }
+          - { os: "windows-latest", arch: "64" }
+          - { os: "windows-11-arm", arch: "arm64" }
     steps:
       - uses: actions/checkout@v7
       - uses: hendrikmuhs/ccache-action@main

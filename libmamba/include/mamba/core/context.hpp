@@ -10,6 +10,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
@@ -262,7 +263,7 @@ namespace mamba
         // Keys are virtual package names without the `__` prefix (e.g. "cuda", "glibc").
         // Names with a `__` prefix are also accepted and normalized on lookup.
         // Environment variables `CONDA_OVERRIDE_<NAME>` take precedence over this map.
-        std::map<std::string, std::string> override_virtual_packages = {};
+        std::unordered_map<std::string, std::string> override_virtual_packages = {};
 
         bool use_only_tar_bz2 = false;
 

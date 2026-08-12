@@ -16,9 +16,11 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <optional>
 
 #include <CLI/CLI.hpp>
 
@@ -123,7 +125,7 @@ report_error(
 
 namespace
 {
-    bool constructed_console = false;
+    std::atomic<bool> constructed_console{ false };
     std::optional<ContextOptions> pre_config_options;
 
     [[noreturn]] void mamba_terminate_handler() noexcept

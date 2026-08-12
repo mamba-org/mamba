@@ -130,6 +130,7 @@ namespace
 
     [[noreturn]] void mamba_terminate_handler() noexcept
     {
+        const bool constructed_console_on_termination = constructed_console;
         try
         {
             if (const auto exception = std::current_exception())
@@ -138,16 +139,24 @@ namespace
             }
             else
             {
-                report_error(pre_config_options, "Unexpected error  - aborting", constructed_console);
+                report_error(
+                    pre_config_options,
+                    "Unexpected error  - aborting",
+                    constructed_console_on_termination
+                );
             }
         }
         catch (const std::exception& e)
         {
-            report_error(pre_config_options, e.what(), constructed_console);
+            report_error(pre_config_options, e.what(), constructed_console_on_termination);
         }
         catch (...)
         {
-            report_error(pre_config_options, "Unhandled error - aborting", constructed_console);
+            report_error(
+                pre_config_options,
+                "Unhandled error - aborting",
+                constructed_console_on_termination
+            );
         }
         logging::flush_logs();
         std::abort();

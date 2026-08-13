@@ -119,7 +119,7 @@ report_error(
     }
     else if (not options or not options->output_params or not options->output_params->quiet)
     {
-        std::cerr << message << std::endl;
+        std::cerr << "critical: " << message << std::endl;
     }
 }
 
@@ -172,7 +172,7 @@ main(int argc, char** argv)
     mamba::MainExecutor scoped_threads;
     mamba::Context ctx{ pre_config_options.value(), decide_log_handler(pre_config_options.value()) };
     mamba::Console console{ ctx };
-    constructed_console = true;  // TODO think of a more elegant way for this
+    constructed_console = true;  // TODO: think of a more elegant way for this
     mamba::Configuration config{ ctx };
 
     init_console();

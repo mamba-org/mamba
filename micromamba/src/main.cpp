@@ -98,10 +98,12 @@ report_error(
     if (Console::is_available())
     {
         LOG_CRITICAL << message;
+        return;
     }
+
     // `constructed_console` is used to avoid printing 2 json objects
-    else if (options and options->output_params and options->output_params->json
-             and not constructed_console)
+    if (options and options->output_params and options->output_params->json
+        and not constructed_console)
     {
         const auto log_record = logging::LogRecord{
             .message = message,
@@ -116,8 +118,10 @@ report_error(
             { "log_history", nlohmann::json::array({ record_json }) },
         };
         std::cout << output.dump(4) << std::endl;
+        return;
     }
-    else if (not options or not options->output_params or not options->output_params->quiet)
+
+    if (not options or not options->output_params or not options->output_params->quiet)
     {
         std::cerr << "critical: " << message << std::endl;
     }

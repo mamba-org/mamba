@@ -275,7 +275,7 @@ namespace mamba
      * Console *
      ***********/
 
-    // TODO Think about moving the json machinery somewhere independent from `Console`?
+    // TODO: Think about moving the json machinery somewhere independent from `Console`?
     // Maybe a bridge between the logging system and some json library
     // (as `logging.{hpp, cpp}` is not pulling `nlohmann_json`)
     namespace logging

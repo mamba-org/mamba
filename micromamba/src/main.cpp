@@ -107,8 +107,9 @@ report_error(
     // we should use `cerr` (last `if` branch) and not create another json
     // object (already one dumped in `Console` destructor, if `--json` is given).
     // `cerr` is also used in the following cases: no `--json` and no `--quiet`.
-    // Otherwise, we must create a json object (unique in this case)
-    // containing the error (and be consistent with `--json` output)
+    // In the opposite case, when `Console` has not been created and logging macros
+    // are not yet usable, we must still create a json object (unique in this case)
+    // containing the error (and be consistent with `--json` output).
     if (options and options->output_params and options->output_params->json
         and not constructed_console)
     {
@@ -183,7 +184,7 @@ main(int argc, char** argv)
     mamba::MainExecutor scoped_threads;
     mamba::Context ctx{ pre_config_options.value(), decide_log_handler(pre_config_options.value()) };
     mamba::Console console{ ctx };
-    // TODO: think of a more elegant way for this
+    // TODO: think of a more elegant way to track Console's lifetime stages.
     // See comments and discussion in https://github.com/mamba-org/mamba/pull/4370
     constructed_console = true;
     mamba::Configuration config{ ctx };

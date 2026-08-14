@@ -882,7 +882,7 @@ namespace mamba
 
             TEST_CASE_METHOD(Configuration, "override_virtual_packages_dunder_keys")
             {
-                // conda accepts both `cuda` and `__cuda` as keys.
+                // Accepts both `cuda` and `__cuda` as keys as conda does.
                 std::string rc = unindent(R"(
                     override_virtual_packages:
                         __cuda: "11.8"

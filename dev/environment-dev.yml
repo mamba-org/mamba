@@ -71,3 +71,5 @@ dependencies:
   - sphinx-book-theme
   - myst-parser
   - sphinx-copybutton
+  # For conda parity tests
+  - conda

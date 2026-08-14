@@ -34,7 +34,7 @@ namespace mamba
 
     std::vector<specs::PackageInfo> get_virtual_packages(
         const std::string& platform,
-        const override_virtual_packages_map& override_virtual_packages = {}
+        const override_virtual_packages_map& override_virtual_packages
     );
 
     namespace detail
@@ -44,7 +44,7 @@ namespace mamba
         get_virtual_package_override(std::string_view name, const override_virtual_packages_map& overrides)
             -> std::optional<std::string>;
 
-        std::string cuda_version(const override_virtual_packages_map& override_virtual_packages = {});
+        std::string cuda_version(const override_virtual_packages_map& override_virtual_packages);
 
         auto make_virtual_package(
             std::string name,
@@ -55,7 +55,7 @@ namespace mamba
 
         std::vector<specs::PackageInfo> dist_packages(
             const std::string& platform,
-            const override_virtual_packages_map& override_virtual_packages = {}
+            const override_virtual_packages_map& override_virtual_packages
         );
     }
 }

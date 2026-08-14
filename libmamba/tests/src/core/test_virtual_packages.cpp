@@ -45,7 +45,8 @@ namespace mamba
                 mambatests::ScopedContextChange context_change{ ctx };
                 context_change.preserve(ctx.platform);
 
-                auto pkgs = detail::dist_packages(ctx.platform);
+                const override_virtual_packages_map no_overrides{};
+                auto pkgs = detail::dist_packages(ctx.platform, no_overrides);
 
                 if (util::on_win)
                 {
@@ -75,7 +76,7 @@ namespace mamba
 #endif
 
                 util::set_env("CONDA_OVERRIDE_OSX", "12.1");
-                pkgs = detail::dist_packages("osx-arm");
+                pkgs = detail::dist_packages("osx-arm", no_overrides);
                 REQUIRE(pkgs.size() == 3);
                 REQUIRE(pkgs[0].name == "__unix");
                 REQUIRE(pkgs[1].name == "__osx");
@@ -86,7 +87,7 @@ namespace mamba
                 util::unset_env("CONDA_OVERRIDE_OSX");
                 util::set_env("CONDA_OVERRIDE_LINUX", "5.7");
                 util::set_env("CONDA_OVERRIDE_GLIBC", "2.15");
-                pkgs = detail::dist_packages("linux-32");
+                pkgs = detail::dist_packages("linux-32", no_overrides);
                 REQUIRE(pkgs.size() == 4);
                 REQUIRE(pkgs[0].name == "__unix");
                 REQUIRE(pkgs[1].name == "__linux");
@@ -98,17 +99,17 @@ namespace mamba
                 util::unset_env("CONDA_OVERRIDE_GLIBC");
                 util::unset_env("CONDA_OVERRIDE_LINUX");
 
-                pkgs = detail::dist_packages("lin-850");
+                pkgs = detail::dist_packages("lin-850", no_overrides);
                 REQUIRE(pkgs.size() == 1);
                 REQUIRE(pkgs[0].name == "__archspec");
                 REQUIRE(pkgs[0].build_string == "850");
                 util::unset_env("CONDA_SUBDIR");
 
-                pkgs = detail::dist_packages("linux");
+                pkgs = detail::dist_packages("linux", no_overrides);
                 REQUIRE(pkgs.size() == 0);
 
                 // Test emscripten platform
-                pkgs = detail::dist_packages("emscripten-wasm32");
+                pkgs = detail::dist_packages("emscripten-wasm32", no_overrides);
                 REQUIRE(pkgs.size() == 2);
                 REQUIRE(pkgs[0].name == "__unix");
                 REQUIRE(pkgs[1].name == "__archspec");
@@ -118,7 +119,6 @@ namespace mamba
             TEST_CASE("get_virtual_packages")
             {
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
-                const override_virtual_packages_map no_overrides;
 
                 // Use a fixed platform to isolate from shared context state.
                 // Use "linux-64" with explicit overrides so dist_packages returns

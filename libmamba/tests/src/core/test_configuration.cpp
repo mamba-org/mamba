@@ -931,6 +931,37 @@ namespace mamba
                 REQUIRE(require_virtual_package(pkgs, "__archspec").build_string == "x86_64");
             }
 
+            TEST_CASE_METHOD(Configuration, "conda_parity_empty_rc_cuda_suppresses_package")
+            {
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "")");
+                load_test_config(rc);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                const auto it = std::ranges::find_if(
+                    pkgs,
+                    [](const auto& pkg) { return pkg.name == "__cuda"; }
+                );
+                REQUIRE(it == pkgs.end());
+            }
+
+            TEST_CASE_METHOD(Configuration, "conda_parity_empty_env_overrides_rc")
+            {
+                util::set_env("CONDA_OVERRIDE_CUDA", "");
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "13.1")");
+                load_test_config(rc);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                const auto it = std::ranges::find_if(
+                    pkgs,
+                    [](const auto& pkg) { return pkg.name == "__cuda"; }
+                );
+                REQUIRE(it == pkgs.end());
+            }
+
             TEST_CASE_METHOD(Configuration, "platform")
             {
                 mambatests::ScopedContextChange context_change{ ctx };

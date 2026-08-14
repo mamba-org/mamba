@@ -4,6 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
+#include <ranges>
+#include <string_view>
+
 #include <catch2/catch_all.hpp>
 
 #include "mamba/core/context.hpp"
@@ -21,6 +25,25 @@ namespace mamba
 
         namespace
         {
+            auto
+            has_virtual_package(const std::vector<specs::PackageInfo>& pkgs, std::string_view name)
+                -> bool
+            {
+                return std::ranges::any_of(pkgs, [&](const auto& pkg) { return pkg.name == name; });
+            }
+
+            auto
+            require_virtual_package(const std::vector<specs::PackageInfo>& pkgs, std::string_view name)
+                -> const specs::PackageInfo&
+            {
+                const auto it = std::ranges::find_if(
+                    pkgs,
+                    [&](const auto& pkg) { return pkg.name == name; }
+                );
+                REQUIRE(it != pkgs.end());
+                return *it;
+            }
+
             TEST_CASE("make_virtual_package")
             {
                 const auto& context = mambatests::context();
@@ -209,6 +232,94 @@ namespace mamba
                 auto pkgs = get_virtual_packages("linux-64", overrides);
                 REQUIRE(pkgs.back().name == "__cuda");
                 REQUIRE(pkgs.back().version == "9.0");
+            }
+
+            // Mirrors conda/tests/plugins/test_virtual_packages.py override behavior.
+            TEST_CASE("conda_parity_override_from_config_when_env_unset")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                const override_virtual_packages_map overrides = { { "cuda", "overridden" } };
+
+                const auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "overridden");
+            }
+
+            TEST_CASE("conda_parity_env_override_takes_precedence_over_config")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                util::set_env("CONDA_OVERRIDE_CUDA", "priority_override");
+                const override_virtual_packages_map overrides = { { "cuda", "overridden" } };
+
+                const auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "priority_override");
+            }
+
+            TEST_CASE("conda_parity_cuda_override")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                const auto override_value = GENERATE(as<std::string>{}, "4.5", "");
+                util::set_env("CONDA_OVERRIDE_CUDA", override_value);
+
+                const auto pkgs = get_virtual_packages("linux-64", {});
+                if (override_value.empty())
+                {
+                    REQUIRE_FALSE(has_virtual_package(pkgs, "__cuda"));
+                }
+                else
+                {
+                    REQUIRE(require_virtual_package(pkgs, "__cuda").version == override_value);
+                }
+            }
+
+            TEST_CASE("conda_parity_glibc_override")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                const auto override_value = GENERATE(as<std::string>{}, "1.0", "");
+                util::set_env("CONDA_OVERRIDE_GLIBC", override_value);
+
+                const auto pkgs = get_virtual_packages("linux-64", {});
+                REQUIRE(has_virtual_package(pkgs, "__glibc") == !override_value.empty());
+                if (!override_value.empty())
+                {
+                    REQUIRE(require_virtual_package(pkgs, "__glibc").version == override_value);
+                }
+            }
+
+            TEST_CASE("conda_parity_linux_empty_override_keeps_package")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                util::set_env("CONDA_OVERRIDE_LINUX", "");
+
+                const auto pkgs = get_virtual_packages("linux-64", {});
+                REQUIRE(has_virtual_package(pkgs, "__linux"));
+            }
+
+            TEST_CASE("conda_parity_dunder_config_keys")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                const override_virtual_packages_map overrides = { { "__cuda", "11.8" } };
+
+                const auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "11.8");
+            }
+
+            TEST_CASE("conda_parity_empty_config_cuda_suppresses_package")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                const override_virtual_packages_map overrides = { { "cuda", "" } };
+
+                const auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE_FALSE(has_virtual_package(pkgs, "__cuda"));
+            }
+
+            TEST_CASE("conda_parity_empty_env_overrides_config")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                util::set_env("CONDA_OVERRIDE_CUDA", "");
+                const override_virtual_packages_map overrides = { { "cuda", "13.1" } };
+
+                const auto pkgs = get_virtual_packages("linux-64", overrides);
+                REQUIRE_FALSE(has_virtual_package(pkgs, "__cuda"));
             }
         }
     }

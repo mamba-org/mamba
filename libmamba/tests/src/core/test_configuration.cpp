@@ -880,6 +880,24 @@ namespace mamba
                 REQUIRE(ctx.override_virtual_packages == expected);
             }
 
+            TEST_CASE_METHOD(Configuration, "override_virtual_packages_dunder_keys")
+            {
+                // conda accepts both `cuda` and `__cuda` as keys.
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        __cuda: "11.8"
+                        __glibc: "2.17")");
+                load_test_config(rc);
+                auto& actual = config.at("override_virtual_packages")
+                                   .value<override_virtual_packages_map>();
+                override_virtual_packages_map expected = {
+                    { "__cuda", "11.8" },
+                    { "__glibc", "2.17" },
+                };
+                REQUIRE(actual == expected);
+                REQUIRE(ctx.override_virtual_packages == expected);
+            }
+
             TEST_CASE_METHOD(Configuration, "platform")
             {
                 mambatests::ScopedContextChange context_change{ ctx };

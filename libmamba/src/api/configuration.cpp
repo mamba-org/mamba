@@ -1602,13 +1602,14 @@ namespace mamba
                    .set_rc_configurable()
                    .description("Override values for virtual packages")
                    .long_description(unindent(R"(
-                        A dictionary of virtual package overrides. Keys are virtual package names
-                        without the leading `__` (e.g. `cuda`, `glibc`, `archspec`), though names
-                        with `__` are also accepted. Values override the detected version (or the
-                        build string for `archspec`).
+                        A dictionary of virtual package overrides, matching conda's
+                        `override_virtual_packages` setting. Keys are virtual package names
+                        without the leading `__` (e.g. `cuda`, `glibc`, `archspec`); names
+                        with a `__` prefix are also accepted. Values override the detected
+                        version (or the build string for `archspec`).
 
-                        Environment variables of the form `CONDA_OVERRIDE_<NAME>` take precedence
-                        over this setting.
+                        Environment variables of the form `CONDA_OVERRIDE_<NAME>` take
+                        precedence over this setting, as in conda.
 
                         Example:
                           override_virtual_packages:

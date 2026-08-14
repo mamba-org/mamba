@@ -12,6 +12,7 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
@@ -135,6 +136,18 @@ namespace mamba
 
         namespace
         {
+            auto
+            require_virtual_package(const std::vector<specs::PackageInfo>& pkgs, std::string_view name)
+                -> const specs::PackageInfo&
+            {
+                const auto it = std::ranges::find_if(
+                    pkgs,
+                    [&](const auto& pkg) { return pkg.name == name; }
+                );
+                REQUIRE(it != pkgs.end());
+                return *it;
+            }
+
             TEST_CASE_METHOD(Configuration, "target_prefix_options")
             {
                 REQUIRE((!MAMBA_ALLOW_EXISTING_PREFIX) == 0);
@@ -878,24 +891,44 @@ namespace mamba
                 };
                 REQUIRE(actual == expected);
                 REQUIRE(ctx.override_virtual_packages == expected);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "13.1");
+                REQUIRE(require_virtual_package(pkgs, "__glibc").version == "2.15");
+                REQUIRE(require_virtual_package(pkgs, "__archspec").build_string == "x86_64_v4");
             }
 
             TEST_CASE_METHOD(Configuration, "override_virtual_packages_dunder_keys")
             {
-                // Accepts both `cuda` and `__cuda` as keys as conda does.
                 std::string rc = unindent(R"(
                     override_virtual_packages:
                         __cuda: "11.8"
-                        __glibc: "2.17")");
+                        __glibc: "2.17"
+                        __archspec: "x86_64_v2")");
                 load_test_config(rc);
-                auto& actual = config.at("override_virtual_packages")
-                                   .value<override_virtual_packages_map>();
-                override_virtual_packages_map expected = {
-                    { "__cuda", "11.8" },
-                    { "__glibc", "2.17" },
-                };
-                REQUIRE(actual == expected);
-                REQUIRE(ctx.override_virtual_packages == expected);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "11.8");
+                REQUIRE(require_virtual_package(pkgs, "__glibc").version == "2.17");
+                REQUIRE(require_virtual_package(pkgs, "__archspec").build_string == "x86_64_v2");
+            }
+
+            TEST_CASE_METHOD(Configuration, "override_virtual_packages_env_takes_precedence")
+            {
+                util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
+                util::set_env("CONDA_OVERRIDE_GLIBC", "2.12");
+                util::set_env("CONDA_OVERRIDE_ARCHSPEC", "x86_64");
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "13.1"
+                        glibc: "2.15"
+                        archspec: "x86_64_v4")");
+                load_test_config(rc);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "9.0");
+                REQUIRE(require_virtual_package(pkgs, "__glibc").version == "2.12");
+                REQUIRE(require_virtual_package(pkgs, "__archspec").build_string == "x86_64");
             }
 
             TEST_CASE_METHOD(Configuration, "platform")

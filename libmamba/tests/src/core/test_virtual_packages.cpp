@@ -186,7 +186,7 @@ namespace mamba
             {
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
 
-                // Keys with `__` prefix are accepted and normalized (conda-compatible).
+                // Keys with `__` prefix are accepted and applied.
                 const override_virtual_packages_map overrides = {
                     { "__cuda", "11.8" },
                     { "__archspec", "x86_64_v2" },

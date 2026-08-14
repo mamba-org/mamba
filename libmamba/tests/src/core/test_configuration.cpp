@@ -870,8 +870,8 @@ namespace mamba
                         archspec: "x86_64_v4")");
                 load_test_config(rc);
                 auto& actual = config.at("override_virtual_packages")
-                                   .value<std::unordered_map<std::string, std::string>>();
-                std::unordered_map<std::string, std::string> expected = {
+                                   .value<override_virtual_packages_map>();
+                override_virtual_packages_map expected = {
                     { "cuda", "13.1" },
                     { "glibc", "2.15" },
                     { "archspec", "x86_64_v4" },

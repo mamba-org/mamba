@@ -118,13 +118,13 @@ namespace mamba
             TEST_CASE("get_virtual_packages")
             {
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
-                const std::unordered_map<std::string, std::string> no_overrides;
+                const override_virtual_packages_map no_overrides;
 
                 // Use a fixed platform to isolate from shared context state.
                 // Use "linux-64" with explicit overrides so dist_packages returns
                 // a deterministic set regardless of host OS.
                 const std::string platform = "linux-64";
-                const std::unordered_map<std::string, std::string> overrides = {
+                const override_virtual_packages_map overrides = {
                     { "linux", "5.15" },
                     { "glibc", "2.35" },
                     { "archspec", "x86_64_v3" },
@@ -153,7 +153,7 @@ namespace mamba
             {
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
 
-                const std::unordered_map<std::string, std::string> overrides = {
+                const override_virtual_packages_map overrides = {
                     { "cuda", "13.1" }, { "glibc", "2.15" },         { "linux", "5.7" },
                     { "osx", "12.1" },  { "archspec", "x86_64_v4" },
                 };
@@ -187,7 +187,7 @@ namespace mamba
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
 
                 // Keys with `__` prefix are accepted and normalized (conda-compatible).
-                const std::unordered_map<std::string, std::string> overrides = {
+                const override_virtual_packages_map overrides = {
                     { "__cuda", "11.8" },
                     { "__archspec", "x86_64_v2" },
                 };
@@ -204,7 +204,7 @@ namespace mamba
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
 
                 util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
-                const std::unordered_map<std::string, std::string> overrides = { { "cuda", "13.1" } };
+                const override_virtual_packages_map overrides = { { "cuda", "13.1" } };
 
                 auto pkgs = get_virtual_packages("linux-64", overrides);
                 REQUIRE(pkgs.back().name == "__cuda");

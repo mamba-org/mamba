@@ -29,10 +29,9 @@ namespace mamba
 {
     namespace detail
     {
-        auto get_virtual_package_override(
-            std::string_view name,
-            const std::unordered_map<std::string, std::string>& overrides
-        ) -> std::optional<std::string>
+        auto
+        get_virtual_package_override(std::string_view name, const override_virtual_packages_map& overrides)
+            -> std::optional<std::string>
         {
             // Environment variables take precedence over config (conda-compatible).
             if (auto env_override = util::get_env("CONDA_OVERRIDE_" + util::to_upper(name)))
@@ -40,7 +39,7 @@ namespace mamba
                 return env_override;
             }
 
-            if (const auto it = overrides.find(std::string{ name }); it != overrides.end())
+            if (const auto it = overrides.find(name); it != overrides.end())
             {
                 return it->second;
             }
@@ -51,7 +50,7 @@ namespace mamba
             return std::nullopt;
         }
 
-        std::string glibc_version(const std::unordered_map<std::string, std::string>& overrides)
+        std::string glibc_version(const override_virtual_packages_map& overrides)
         {
             if (auto override_version = get_virtual_package_override("glibc", overrides))
             {
@@ -78,7 +77,7 @@ namespace mamba
             return std::string(util::strip(version, "glibc "));
         }
 
-        std::string cuda_version(const std::unordered_map<std::string, std::string>& overrides)
+        std::string cuda_version(const override_virtual_packages_map& overrides)
         {
             LOG_DEBUG << "Loading CUDA virtual package";
 
@@ -325,7 +324,7 @@ namespace mamba
         }
 
         std::string
-        get_archspec(const std::string& arch, const std::unordered_map<std::string, std::string>& overrides)
+        get_archspec(const std::string& arch, const override_virtual_packages_map& overrides)
         {
             // For archspec, the override applies to the build string (conda-compatible).
             if (auto override_build = get_virtual_package_override("archspec", overrides))
@@ -347,8 +346,7 @@ namespace mamba
             }
         }
 
-        [[nodiscard]] auto
-        overridable_linux_version(const std::unordered_map<std::string, std::string>& overrides)
+        [[nodiscard]] auto overridable_linux_version(const override_virtual_packages_map& overrides)
             -> tl::expected<std::string, util::OSError>
         {
             if (auto override_version = get_virtual_package_override("linux", overrides))
@@ -358,8 +356,7 @@ namespace mamba
             return util::linux_version();
         }
 
-        [[nodiscard]] auto
-        overridable_osx_version(const std::unordered_map<std::string, std::string>& overrides)
+        [[nodiscard]] auto overridable_osx_version(const override_virtual_packages_map& overrides)
             -> tl::expected<std::string, util::OSError>
         {
             if (auto override_version = get_virtual_package_override("osx", overrides))
@@ -369,8 +366,7 @@ namespace mamba
             return util::osx_version();
         }
 
-        [[nodiscard]] auto
-        overridable_windows_version(const std::unordered_map<std::string, std::string>& overrides)
+        [[nodiscard]] auto overridable_windows_version(const override_virtual_packages_map& overrides)
             -> tl::expected<std::string, util::OSError>
         {
             if (auto override_version = get_virtual_package_override("win", overrides))
@@ -380,10 +376,8 @@ namespace mamba
             return util::windows_version();
         }
 
-        std::vector<specs::PackageInfo> dist_packages(
-            const std::string& platform,
-            const std::unordered_map<std::string, std::string>& overrides
-        )
+        std::vector<specs::PackageInfo>
+        dist_packages(const std::string& platform, const override_virtual_packages_map& overrides)
         {
             LOG_DEBUG << "Loading distribution virtual packages";
 
@@ -491,7 +485,7 @@ namespace mamba
 
     std::vector<specs::PackageInfo> get_virtual_packages(
         const std::string& platform,
-        const std::unordered_map<std::string, std::string>& override_virtual_packages
+        const override_virtual_packages_map& override_virtual_packages
     )
     {
         LOG_DEBUG << "Loading virtual packages";

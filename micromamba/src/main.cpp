@@ -95,13 +95,20 @@ report_error(
     const bool constructed_console
 )
 {
+    // Classic case, nothing is destroyed/lost
     if (Console::is_available())
     {
         LOG_CRITICAL << message;
         return;
     }
 
-    // `constructed_console` is used to avoid printing 2 json objects
+    // If `Console` was constructed and then destroyed
+    // (i.e `not Console::is_available()` and `constructed_console`),
+    // we should use `cerr` (last `if` branch) and not create another json
+    // object (already one dumped in `Console` destructor, if `--json` is given).
+    // `cerr` is also used in the following cases: no `--json` and no `--quiet`.
+    // Otherwise, we must create a json object (unique in this case)
+    // containing the error (and be consistent with `--json` output)
     if (options and options->output_params and options->output_params->json
         and not constructed_console)
     {

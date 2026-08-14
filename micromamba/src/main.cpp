@@ -183,7 +183,9 @@ main(int argc, char** argv)
     mamba::MainExecutor scoped_threads;
     mamba::Context ctx{ pre_config_options.value(), decide_log_handler(pre_config_options.value()) };
     mamba::Console console{ ctx };
-    constructed_console = true;  // TODO: think of a more elegant way for this
+    // TODO: think of a more elegant way for this
+    // See comments and discussion in https://github.com/mamba-org/mamba/pull/4370
+    constructed_console = true;
     mamba::Configuration config{ ctx };
 
     init_console();

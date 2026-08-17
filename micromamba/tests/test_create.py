@@ -11,8 +11,6 @@ import yaml
 
 from . import helpers
 
-from memory_profiler import memory_usage
-
 __this_dir__ = Path(__file__).parent.resolve()
 
 
@@ -2833,6 +2831,7 @@ def test_create_with_empty_lines_and_comments(tmp_home, tmp_root_prefix, tmp_pat
     # Non-regression test for:
     #  - https://github.com/mamba-org/mamba/issues/3289
     #  - https://github.com/mamba-org/mamba/issues/3659
+    memory_usage = pytest.importorskip("memory_profiler").memory_usage
     memory_limit = 150  # in MB
 
     def memory_intensive_operation():

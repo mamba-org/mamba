@@ -9,6 +9,8 @@ from .helpers import create, random_string, remove
 
 if sys.platform.startswith("win"):
     import menuinst
+
+    pytest.importorskip("win32com.client")
     import win32com.client
 
 

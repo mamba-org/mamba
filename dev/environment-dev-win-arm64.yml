@@ -1,0 +1,54 @@
+# Minimal development/CI environment for Windows ARM64.
+#
+# Many packages in environment-dev.yml are not yet built for win-arm64 on
+# conda-forge (including cxx-compiler and several test extras).
+# Python 3.14 is currently the version available on this platform; see
+# conda-forge/mamba-feedstock#393.
+channels:
+  - conda-forge
+dependencies:
+  # libmamba build dependencies
+  # cxx-compiler is not published for win-arm64; vs2022_win-arm64 activates
+  # the Visual Studio ARM64 toolchain (CI also uses ilammy/msvc-dev-cmd).
+  - vs2022_win-arm64
+  - cmake >=3.16
+  - ninja
+  # libmamba dependencies
+  - cpp-expected
+  - fmt >=12.0.0
+  # As of libarchive 3.8, builds of libarchive for different licenses
+  # are available. We use the LGPL version here.
+  - libarchive>=3.8 lgpl_*
+  - libcurl >=7.86
+  - libsodium
+  - libsolv >=0.7.18
+  - libmsgpack-c
+  - nlohmann_json
+  - reproc-cpp >=14.2.4.post0
+  - simdjson >=3.3.0
+  - spdlog >=1.16.0
+  - yaml-cpp >=0.8.0
+  - winreg
+  # libmamba test dependencies
+  - catch2
+  # micromamba dependencies
+  - cli11 >=2.2
+  # Python / test dependencies available on win-arm64
+  - python=3.14
+  - pip
+  - pytest >=7.3.0
+  - pytest-asyncio
+  - pytest-timeout
+  - pytest-rerunfailures
+  - pytest-cov
+  - requests
+  - menuinst
+  - conda-package-handling
+  - securesystemslib
+  - pyyaml
+  - packaging
+  # libmambapy build dependencies
+  - scikit-build-core
+  - pybind11>=3.0.0
+  - setuptools
+  - python-build

@@ -4,10 +4,11 @@ import sys
 from pathlib import Path
 
 import pytest
-from xprocess import ProcessStarter
 
 from .helpers import create as umamba_create
 from .helpers import login, logout, random_string
+
+ProcessStarter = pytest.importorskip("xprocess").ProcessStarter
 
 
 __this_dir__ = Path(__file__).resolve().parent

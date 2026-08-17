@@ -7,7 +7,6 @@ import zipfile
 from pathlib import Path
 
 import pytest
-import zstandard
 from conda_package_handling import api as cph
 
 from . import helpers
@@ -139,6 +138,7 @@ def test_extract_compress(cph_test_file: Path, tmp_path: Path):
 
 
 def test_transmute(cph_test_file: Path, tmp_path: Path):
+    zstandard = pytest.importorskip("zstandard")
     (tmp_path / "cph").mkdir(parents=True)
     (tmp_path / "mm").mkdir(parents=True)
 

@@ -19,7 +19,10 @@ def mitmdump_exe():
     If the executable is provided in a conda environment, this fixture needs to be called
     before ``tmp_root_prefix`` and the like, as they will clean the ``PATH``.
     """
-    return Path(shutil.which("mitmdump")).resolve()
+    exe = shutil.which("mitmdump")
+    if exe is None:
+        pytest.skip("mitmdump is not available")
+    return Path(exe).resolve()
 
 
 class MitmProxy:

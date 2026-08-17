@@ -5,6 +5,8 @@ dependencies:
   # libmamba build dependencies
   # Workaround `mamba-org/mamba#4043`
   - sel(linux): sysroot_linux-64==2.17
+  # Pin below 2.0.0: compilers 2.0.0 no longer sets CC/CXX
+  # See: conda-forge/compilers-feedstock#78.
   - cxx-compiler <2
   - cmake >=3.16
   - pkg-config # Used by some CMake dependencies

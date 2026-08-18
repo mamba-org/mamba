@@ -612,19 +612,11 @@ namespace mamba::download
         if (colon_idx != std::string_view::npos)
         {
             std::string_view key = header.substr(0, colon_idx);
-            colon_idx++;
-            // remove spaces
-            while (std::isspace(header[colon_idx]))
-            {
-                ++colon_idx;
-            }
-
-            // remove \r\n header ending
-            const auto header_end = header.find_first_of("\r\n");
-            std::string_view value = header.substr(
-                colon_idx,
-                (header_end > colon_idx) ? header_end - colon_idx : 0
-            );
+            // Servers such as GHCR send empty values ("Content-Disposition: \r\n").
+            // Indexing past the end here aborts debug libstdc++ (_GLIBCXX_ASSERTIONS).
+            std::string_view remainder = util::lstrip(header.substr(colon_idx + 1));
+            const auto header_end = remainder.find_first_of("\r\n");
+            std::string_view value = remainder.substr(0, header_end);
 
             // http headers are case insensitive!
             const std::string lkey = util::to_lower(key);

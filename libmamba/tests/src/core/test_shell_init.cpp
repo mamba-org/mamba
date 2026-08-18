@@ -4,10 +4,10 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <sys/wait.h>
-#include <unistd.h>
 #if __linux__
 #include <sys/prctl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #endif
 
 #include <catch2/catch_all.hpp>

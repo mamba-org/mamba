@@ -68,10 +68,21 @@ namespace mamba
                     REQUIRE(pkgs[1].name == "__osx");
                     CHECK(Version::parse(pkgs[1].version).value() > Version());
                 }
-#if __x86_64__ || defined(_WIN64)
                 REQUIRE(pkgs.back().name == "__archspec");
-                REQUIRE(pkgs.back().build_string.find("x86_64") == 0);
-#endif
+                // `_WIN64` is defined on both x64 and ARM64 Windows; inspect the
+                // platform instead of that macro.
+                if (ctx.platform == "linux-64" || ctx.platform == "osx-64" || ctx.platform == "win-64")
+                {
+                    REQUIRE(pkgs.back().build_string.find("x86_64") == 0);
+                }
+                else if (ctx.platform == "linux-aarch64")
+                {
+                    REQUIRE(pkgs.back().build_string == "aarch64");
+                }
+                else if (ctx.platform == "osx-arm64" || ctx.platform == "win-arm64")
+                {
+                    REQUIRE(pkgs.back().build_string == "arm64");
+                }
 
                 util::set_env("CONDA_OVERRIDE_OSX", "12.1");
                 pkgs = detail::dist_packages("osx-arm");

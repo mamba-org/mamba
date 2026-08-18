@@ -1,3 +1,5 @@
+#include <cerrno>
+#include <cstring>
 #include <iostream>
 #include <regex>
 #include <vector>
@@ -10,8 +12,11 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 #if defined(__APPLE__)
+#include <fcntl.h>
 #include <libproc.h>
 #include <mach-o/dyld.h>
+#include <spawn.h>
+#include <sys/wait.h>
 #endif
 #include <inttypes.h>
 #include <limits.h>
@@ -46,6 +51,10 @@
 
 #ifdef _WIN32
 static_assert(std::is_same_v<mamba::DWORD, ::DWORD>);
+#endif
+
+#if defined(__APPLE__)
+extern "C" char** environ;
 #endif
 
 namespace mamba
@@ -745,8 +754,64 @@ namespace mamba
 
     void codesign(const fs::u8path& path, bool verbose)
     {
+#if defined(__APPLE__)
+        // Do not use reproc here. It forks and then fcntl/closes every FD up to
+        // RLIMIT_NOFILE; on GitHub Actions that limit is huge, the child aborts,
+        // and the parent sees EINVAL. conda and rattler just posix_spawn codesign
+        // with the inherited environment.
+        const std::string path_str = path.string();
+        char* argv[] = {
+            const_cast<char*>("/usr/bin/codesign"),
+            const_cast<char*>("-s"),
+            const_cast<char*>("-"),
+            const_cast<char*>("-f"),
+            const_cast<char*>(path_str.c_str()),
+            nullptr,
+        };
+
+        posix_spawn_file_actions_t file_actions;
+        int rc = posix_spawn_file_actions_init(&file_actions);
+        if (rc != 0)
+        {
+            throw std::runtime_error(
+                std::string("Could not codesign executable: ") + std::strerror(rc)
+            );
+        }
+
+        int devnull = -1;
+        if (!verbose)
+        {
+            devnull = ::open("/dev/null", O_RDWR | O_CLOEXEC);
+            if (devnull >= 0)
+            {
+                posix_spawn_file_actions_adddup2(&file_actions, devnull, STDOUT_FILENO);
+                posix_spawn_file_actions_adddup2(&file_actions, devnull, STDERR_FILENO);
+            }
+        }
+
+        pid_t pid = 0;
+        rc = posix_spawn(&pid, argv[0], &file_actions, nullptr, argv, ::environ);
+        posix_spawn_file_actions_destroy(&file_actions);
+        if (devnull >= 0)
+        {
+            ::close(devnull);
+        }
+        if (rc != 0)
+        {
+            throw std::runtime_error(
+                std::string("Could not codesign executable: ") + std::strerror(rc)
+            );
+        }
+
+        int wstatus = 0;
+        if (waitpid(pid, &wstatus, 0) < 0)
+        {
+            throw std::runtime_error(
+                std::string("Could not codesign executable: ") + std::strerror(errno)
+            );
+        }
+#else
         reproc::options options;
-        options.env.behavior = reproc::env::empty;
         if (!verbose)
         {
             reproc::redirect silence;
@@ -761,5 +826,6 @@ namespace mamba
         {
             throw std::runtime_error(std::string("Could not codesign executable: ") + ec.message());
         }
+#endif
     }
 }

@@ -21,89 +21,6 @@ namespace mamba
 {
     namespace
     {
-        //         TEST_CASE("guess_shell with SHELL env var")
-        //         {
-        //             const auto restore = mambatests::EnvironmentCleaner();
-        //
-        //             SECTION("bash")
-        //             {
-        //                 util::set_env("SHELL", "/bin/bash");
-        //                 REQUIRE(guess_shell() == "bash");
-        //             }
-        //
-        //             SECTION("zsh")
-        //             {
-        //                 util::set_env("SHELL", "/usr/bin/zsh");
-        //                 REQUIRE(guess_shell() == "zsh");
-        //             }
-        //
-        //             SECTION("csh")
-        //             {
-        //                 util::set_env("SHELL", "/bin/csh");
-        //                 REQUIRE(guess_shell() == "csh");
-        //             }
-        //
-        //             SECTION("dash")
-        //             {
-        //                 util::set_env("SHELL", "/bin/dash");
-        //                 REQUIRE(guess_shell() == "dash");
-        //             }
-        //
-        //             SECTION("nu")
-        //             {
-        //                 util::set_env("SHELL", "/usr/bin/nu");
-        //                 REQUIRE(guess_shell() == "nu");
-        //             }
-        //
-        //             SECTION("nushell")
-        //             {
-        //                 util::set_env("SHELL", "/usr/bin/nushell");
-        //                 REQUIRE(guess_shell() == "nushell");
-        //             }
-        //
-        //             SECTION("xonsh")
-        //             {
-        //                 util::set_env("SHELL", "/usr/bin/xonsh");
-        //                 REQUIRE(guess_shell() == "xonsh");
-        //             }
-        //
-        //             SECTION("cmd.exe")
-        //             {
-        //                 util::set_env("SHELL", "/usr/bin/cmd.exe");
-        //                 REQUIRE(guess_shell() == "cmd.exe");
-        //             }
-        //
-        //             SECTION("pwsh")
-        //             {
-        //                 util::set_env("SHELL", "/usr/bin/pwsh");
-        //                 REQUIRE(guess_shell() == "pwsh");
-        //             }
-        //
-        //             SECTION("fish")
-        //             {
-        //                 util::set_env("SHELL", "/usr/bin/fish");
-        //                 REQUIRE(guess_shell() == "fish");
-        //             }
-        //
-        //             SECTION("sh")
-        //             {
-        //                 util::set_env("SHELL", "/bin/sh");
-        //                 REQUIRE(guess_shell() == "sh");
-        //             }
-        //
-        //             SECTION("bash without path prefix")
-        //             {
-        //                 util::set_env("SHELL", "bash");
-        //                 REQUIRE(guess_shell() == "bash");
-        //             }
-        //
-        //             SECTION("nu without path prefix")
-        //             {
-        //                 util::set_env("SHELL", "nu");
-        //                 REQUIRE(guess_shell() == "nu");
-        //             }
-        //         }
-
 #if __linux__
         void assert_guess_shell_with_parent_name(const char* parent_name, const std::string& expected)
         {
@@ -163,6 +80,90 @@ namespace mamba
             SECTION("Parent named nu_server")
             {
                 assert_guess_shell_with_parent_name("nu_server", "");
+            }
+        }
+
+        TEST_CASE("guess_shell with SHELL env var as fallback")
+        {
+            const auto restore = mambatests::EnvironmentCleaner();
+            util::unset_env("SHELL");
+
+            SECTION("bash")
+            {
+                util::set_env("SHELL", "/bin/bash");
+                assert_guess_shell_with_parent_name("mamba-test", "bash");
+            }
+
+            SECTION("zsh")
+            {
+                util::set_env("SHELL", "/usr/bin/zsh");
+                assert_guess_shell_with_parent_name("mamba-test", "zsh");
+            }
+
+            SECTION("csh")
+            {
+                util::set_env("SHELL", "/bin/csh");
+                assert_guess_shell_with_parent_name("mamba-test", "csh");
+            }
+
+            SECTION("dash")
+            {
+                util::set_env("SHELL", "/bin/dash");
+                assert_guess_shell_with_parent_name("mamba-test", "dash");
+            }
+
+            SECTION("nu")
+            {
+                util::set_env("SHELL", "/usr/bin/nu");
+                assert_guess_shell_with_parent_name("mamba-test", "nu");
+            }
+
+            SECTION("nushell")
+            {
+                util::set_env("SHELL", "/usr/bin/nushell");
+                assert_guess_shell_with_parent_name("mamba-test", "nushell");
+            }
+
+            SECTION("xonsh")
+            {
+                util::set_env("SHELL", "/usr/bin/xonsh");
+                assert_guess_shell_with_parent_name("mamba-test", "xonsh");
+            }
+
+            SECTION("cmd.exe")
+            {
+                util::set_env("SHELL", "/usr/bin/cmd.exe");
+                assert_guess_shell_with_parent_name("mamba-test", "cmd.exe");
+            }
+
+            SECTION("pwsh")
+            {
+                util::set_env("SHELL", "/usr/bin/pwsh");
+                assert_guess_shell_with_parent_name("mamba-test", "pwsh");
+            }
+
+            SECTION("fish")
+            {
+                util::set_env("SHELL", "/usr/bin/fish");
+                assert_guess_shell_with_parent_name("mamba-test", "fish");
+            }
+
+            SECTION("sh")
+            {
+                util::set_env("SHELL", "/bin/sh");
+                assert_guess_shell_with_parent_name("mamba-test", "sh");
+            }
+
+            SECTION("bash without path prefix")
+            {
+                util::set_env("SHELL", "bash");
+                assert_guess_shell_with_parent_name("mamba-test", "bash");
+            }
+
+            SECTION("nu without path prefix")
+            {
+                util::set_env("SHELL", "nu");
+                assert_guess_shell_with_parent_name("mamba-test", "nu");
             }
         }
 #endif

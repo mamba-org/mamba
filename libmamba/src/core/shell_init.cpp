@@ -103,12 +103,24 @@ namespace mamba
             return "fish";
         }
 
-        LOG_DEBUG << "Couldn't guess shell, returning empty.";
+        LOG_DEBUG << "Couldn't guess shell from process, returning empty.";
         return "";
     }
 
     std::string guess_shell()
     {
+        const std::string parent_process_name = get_process_name_by_pid(getppid());
+
+        LOG_DEBUG << "Guessing shell. Parent process name: " << parent_process_name;
+
+        auto guessed_shell = guess_shell_from_parent_process_name(parent_process_name);
+
+        if (!guessed_shell.empty())
+        {
+            return guessed_shell;
+        }
+
+        // Fallback:
         // Get `SHELL` environment variable if set
         // Standard values are assumed to be `/bin/{shell_type}` or `/usr/bin/{shell_type}`
         if (util::get_env("SHELL").has_value())
@@ -116,11 +128,8 @@ namespace mamba
             return util::split(util::get_env("SHELL").value(), "/").back();
         }
 
-        const std::string parent_process_name = get_process_name_by_pid(getppid());
-
-        LOG_DEBUG << "Guessing shell. Parent process name: " << parent_process_name;
-
-        return guess_shell_from_parent_process_name(parent_process_name);
+        LOG_DEBUG << "Couldn't guess shell, returning empty.";
+        return "";
     }
 
     namespace  // Windows-specific but must be available for cli on all platforms

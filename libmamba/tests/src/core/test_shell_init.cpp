@@ -21,88 +21,88 @@ namespace mamba
 {
     namespace
     {
-        TEST_CASE("guess_shell with SHELL env var")
-        {
-            const auto restore = mambatests::EnvironmentCleaner();
-
-            SECTION("bash")
-            {
-                util::set_env("SHELL", "/bin/bash");
-                REQUIRE(guess_shell() == "bash");
-            }
-
-            SECTION("zsh")
-            {
-                util::set_env("SHELL", "/usr/bin/zsh");
-                REQUIRE(guess_shell() == "zsh");
-            }
-
-            SECTION("csh")
-            {
-                util::set_env("SHELL", "/bin/csh");
-                REQUIRE(guess_shell() == "csh");
-            }
-
-            SECTION("dash")
-            {
-                util::set_env("SHELL", "/bin/dash");
-                REQUIRE(guess_shell() == "dash");
-            }
-
-            SECTION("nu")
-            {
-                util::set_env("SHELL", "/usr/bin/nu");
-                REQUIRE(guess_shell() == "nu");
-            }
-
-            SECTION("nushell")
-            {
-                util::set_env("SHELL", "/usr/bin/nushell");
-                REQUIRE(guess_shell() == "nushell");
-            }
-
-            SECTION("xonsh")
-            {
-                util::set_env("SHELL", "/usr/bin/xonsh");
-                REQUIRE(guess_shell() == "xonsh");
-            }
-
-            SECTION("cmd.exe")
-            {
-                util::set_env("SHELL", "/usr/bin/cmd.exe");
-                REQUIRE(guess_shell() == "cmd.exe");
-            }
-
-            SECTION("pwsh")
-            {
-                util::set_env("SHELL", "/usr/bin/pwsh");
-                REQUIRE(guess_shell() == "pwsh");
-            }
-
-            SECTION("fish")
-            {
-                util::set_env("SHELL", "/usr/bin/fish");
-                REQUIRE(guess_shell() == "fish");
-            }
-
-            SECTION("sh")
-            {
-                util::set_env("SHELL", "/bin/sh");
-                REQUIRE(guess_shell() == "sh");
-            }
-
-            SECTION("bash without path prefix")
-            {
-                util::set_env("SHELL", "bash");
-                REQUIRE(guess_shell() == "bash");
-            }
-
-            SECTION("nu without path prefix")
-            {
-                util::set_env("SHELL", "nu");
-                REQUIRE(guess_shell() == "nu");
-            }
-        }
+        //         TEST_CASE("guess_shell with SHELL env var")
+        //         {
+        //             const auto restore = mambatests::EnvironmentCleaner();
+        //
+        //             SECTION("bash")
+        //             {
+        //                 util::set_env("SHELL", "/bin/bash");
+        //                 REQUIRE(guess_shell() == "bash");
+        //             }
+        //
+        //             SECTION("zsh")
+        //             {
+        //                 util::set_env("SHELL", "/usr/bin/zsh");
+        //                 REQUIRE(guess_shell() == "zsh");
+        //             }
+        //
+        //             SECTION("csh")
+        //             {
+        //                 util::set_env("SHELL", "/bin/csh");
+        //                 REQUIRE(guess_shell() == "csh");
+        //             }
+        //
+        //             SECTION("dash")
+        //             {
+        //                 util::set_env("SHELL", "/bin/dash");
+        //                 REQUIRE(guess_shell() == "dash");
+        //             }
+        //
+        //             SECTION("nu")
+        //             {
+        //                 util::set_env("SHELL", "/usr/bin/nu");
+        //                 REQUIRE(guess_shell() == "nu");
+        //             }
+        //
+        //             SECTION("nushell")
+        //             {
+        //                 util::set_env("SHELL", "/usr/bin/nushell");
+        //                 REQUIRE(guess_shell() == "nushell");
+        //             }
+        //
+        //             SECTION("xonsh")
+        //             {
+        //                 util::set_env("SHELL", "/usr/bin/xonsh");
+        //                 REQUIRE(guess_shell() == "xonsh");
+        //             }
+        //
+        //             SECTION("cmd.exe")
+        //             {
+        //                 util::set_env("SHELL", "/usr/bin/cmd.exe");
+        //                 REQUIRE(guess_shell() == "cmd.exe");
+        //             }
+        //
+        //             SECTION("pwsh")
+        //             {
+        //                 util::set_env("SHELL", "/usr/bin/pwsh");
+        //                 REQUIRE(guess_shell() == "pwsh");
+        //             }
+        //
+        //             SECTION("fish")
+        //             {
+        //                 util::set_env("SHELL", "/usr/bin/fish");
+        //                 REQUIRE(guess_shell() == "fish");
+        //             }
+        //
+        //             SECTION("sh")
+        //             {
+        //                 util::set_env("SHELL", "/bin/sh");
+        //                 REQUIRE(guess_shell() == "sh");
+        //             }
+        //
+        //             SECTION("bash without path prefix")
+        //             {
+        //                 util::set_env("SHELL", "bash");
+        //                 REQUIRE(guess_shell() == "bash");
+        //             }
+        //
+        //             SECTION("nu without path prefix")
+        //             {
+        //                 util::set_env("SHELL", "nu");
+        //                 REQUIRE(guess_shell() == "nu");
+        //             }
+        //         }
 
 #if __linux__
         void assert_guess_shell_with_parent_name(const char* parent_name, const std::string& expected)

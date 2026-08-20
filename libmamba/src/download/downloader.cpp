@@ -613,7 +613,8 @@ namespace mamba::download
         {
             std::string_view key = header.substr(0, colon_idx);
             // Servers such as GHCR send empty values ("Content-Disposition: \r\n").
-            // Indexing past the end here aborts debug libstdc++ (_GLIBCXX_ASSERTIONS).
+            // Indexing past the end here aborts in debug builds which use
+            // `GLIBCXX_ASSERTIONS` from `libstdc++` (default from GCC 15).
             std::string_view remainder = util::lstrip(header.substr(colon_idx + 1));
             const auto header_end = remainder.find_first_of("\r\n");
             std::string_view value = remainder.substr(0, header_end);

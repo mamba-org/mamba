@@ -62,7 +62,7 @@ def test_hook_cmd_exe(tmp_home, tmp_root_prefix, tmp_path):
 def test_hook_pwsh(tmp_home, tmp_root_prefix, tmp_path):
     res = helpers.shell("hook", "-s", "powershell")
 
-    print("RES first hook: ", res)
+    # print("RES first hook: ", res)
     assert res, "shell hook output was empty"
     assert not (tmp_root_prefix / "condabin").is_dir()
     assert not (tmp_root_prefix / "Scripts").is_dir()
@@ -73,29 +73,31 @@ def test_hook_pwsh(tmp_home, tmp_root_prefix, tmp_path):
     env = {k: v for k, v in os.environ.items() if not k.startswith(("MAMBA_", "XDG_", "CONDA_"))}
     env["XDG_DATA_HOME"] = str(data)
     env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
-    # default_prefix = data / "mamba"
+    default_prefix = data / "mamba"
 
     mamba_exe = helpers.get_umamba()
 
     res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
-    print("RES first umamba: ", res)
-    # assert res.returncode == 0
+    # print("RES first umamba: ", res)
+    assert res.returncode == 0
+    assert not res.stderr, f"mamba exe stderr was not empty: {res.stderr}"
 
     hook = subprocess.run(
         [mamba_exe, "shell", "hook", "-s", "powershell"], env=env, capture_output=True, text=True
     )
-    print("======> HOOK: ", hook)
-    # assert hook.returncode == 0
+    # print("======> HOOK: ", hook)
+    assert hook.returncode == 0
+    assert not hook.stderr, f"shell hook stderr was not empty: {hook.stderr}"
 
-    # assert (default_prefix / "condabin").is_dir()
-    # assert (default_prefix / "Scripts").is_dir()
-    # assert (default_prefix / "conda-meta").is_dir()
+    assert not (default_prefix / "condabin").is_dir()
+    assert not (default_prefix / "Scripts").is_dir()
+    assert not (default_prefix / "conda-meta").is_dir()
 
     # Running `mamba_exe` again does not fail silently
     res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
-    print("======> res mamba exe again: ", res)
-    # assert res.returncode == 0
-    # assert not res.stderr, f"stderr was not empty: {res.stderr}"
+    # print("======> res mamba exe again: ", res)
+    assert res.returncode == 0
+    assert not res.stderr, f"mamba exe stderr was not empty: {res.stderr}"
 
 
 @pytest.mark.parametrize(

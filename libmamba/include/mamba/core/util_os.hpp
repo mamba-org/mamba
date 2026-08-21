@@ -79,7 +79,9 @@ namespace mamba
     int get_console_width();
     int get_console_height();
 
+#if defined(__APPLE__)
     void codesign(const fs::u8path& path, bool verbose = false);
+#endif
 }
 
 #endif

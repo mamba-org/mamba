@@ -38,7 +38,6 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <reproc++/run.hpp>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
@@ -752,9 +751,9 @@ namespace mamba
 #endif
     }
 
+#if defined(__APPLE__)
     void codesign(const fs::u8path& path, bool verbose)
     {
-#if defined(__APPLE__)
         // Do not use reproc here. It forks and then fcntl/closes every FD up to
         // RLIMIT_NOFILE; on GitHub Actions that limit is huge, the child aborts,
         // and the parent sees EINVAL. conda and rattler just posix_spawn codesign
@@ -856,25 +855,6 @@ namespace mamba
                 mamba_error_code::internal_failure
             );
         }
-#else
-        reproc::options options;
-        if (!verbose)
-        {
-            reproc::redirect silence;
-            silence.type = reproc::redirect::discard;
-            options.redirect.out = silence;
-            options.redirect.err = silence;
-        }
-
-        const std::vector<std::string> cmd = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
-        auto [status, ec] = reproc::run(cmd, options);
-        if (ec)
-        {
-            throw mamba_error(
-                std::string("Could not codesign executable: ") + ec.message(),
-                mamba_error_code::internal_failure
-            );
-        }
-#endif
     }
+#endif
 }

@@ -1,5 +1,3 @@
-#include <cerrno>
-#include <cstring>
 #include <iostream>
 #include <regex>
 #include <vector>
@@ -12,6 +10,9 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 #if defined(__APPLE__)
+#include <cerrno>
+#include <cstring>
+
 #include <fcntl.h>
 #include <libproc.h>
 #include <mach-o/dyld.h>

@@ -789,8 +789,20 @@ namespace mamba
             devnull = ::open("/dev/null", O_RDWR | O_CLOEXEC);
             if (devnull >= 0)
             {
-                posix_spawn_file_actions_adddup2(&file_actions, devnull, STDOUT_FILENO);
-                posix_spawn_file_actions_adddup2(&file_actions, devnull, STDERR_FILENO);
+                rc = posix_spawn_file_actions_adddup2(&file_actions, devnull, STDOUT_FILENO);
+                if (rc == 0)
+                {
+                    rc = posix_spawn_file_actions_adddup2(&file_actions, devnull, STDERR_FILENO);
+                }
+                if (rc != 0)
+                {
+                    posix_spawn_file_actions_destroy(&file_actions);
+                    ::close(devnull);
+                    throw mamba_error(
+                        std::string("Could not redirect codesign stdout/stderr: ") + std::strerror(rc),
+                        mamba_error_code::internal_failure
+                    );
+                }
             }
         }
 

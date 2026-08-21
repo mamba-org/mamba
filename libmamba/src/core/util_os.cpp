@@ -752,9 +752,9 @@ namespace mamba
 #endif
     }
 
-#if defined(__APPLE__)
-    void codesign(const fs::u8path& path, bool verbose)
+    void codesign([[maybe_unused]] const fs::u8path& path, [[maybe_unused]] bool verbose)
     {
+#if defined(__APPLE__)
         // Do not use reproc here. It forks and then fcntl/closes every FD up to
         // RLIMIT_NOFILE; on GitHub Actions that limit is huge, the child aborts,
         // and the parent sees EINVAL. conda and rattler just posix_spawn codesign
@@ -856,6 +856,6 @@ namespace mamba
                 mamba_error_code::internal_failure
             );
         }
-    }
 #endif
+    }
 }

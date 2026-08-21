@@ -755,12 +755,12 @@ namespace mamba
     void codesign([[maybe_unused]] const fs::u8path& path, [[maybe_unused]] bool verbose)
     {
 #if defined(__APPLE__)
-        // Do not use reproc here. It forks and then fcntl/closes every FD up to
-        // RLIMIT_NOFILE; on GitHub Actions that limit is huge, the child aborts,
-        // and the parent sees EINVAL. conda and rattler just posix_spawn codesign
+        // Do not use `reproc` here. It forks and then `fcntl`/closes every FD up to
+        // `RLIMIT_NOFILE`; on GitHub Actions that limit is huge, the child aborts,
+        // and the parent sees `EINVAL`. `conda` and `rattler` just `posix_spawn` `codesign`
         // with the inherited environment.
 
-        // Ad-hoc sign: /usr/bin/codesign -s - -f <path>
+        // Ad-hoc sign: `/usr/bin/codesign -s - -f <path>`
         const std::string path_str = path.string();
         char* argv[] = {
             const_cast<char*>("/usr/bin/codesign"),
@@ -782,7 +782,7 @@ namespace mamba
             );
         }
 
-        // Quiet mode: redirect the child's stdout and stderr to /dev/null.
+        // Quiet mode: redirect the child's `stdout` and `stderr` to `/dev/null`.
         int devnull = -1;
         if (!verbose)
         {
@@ -806,7 +806,7 @@ namespace mamba
             }
         }
 
-        // Spawn codesign with the inherited environment, then drop parent-side FDs.
+        // Spawn `codesign` with the inherited environment, then drop parent-side FDs.
         pid_t pid = 0;
         rc = posix_spawn(&pid, argv[0], &file_actions, nullptr, argv, ::environ);
         posix_spawn_file_actions_destroy(&file_actions);
@@ -822,7 +822,7 @@ namespace mamba
             );
         }
 
-        // Block until codesign exits and report a non-zero exit or signal.
+        // Block until `codesign` exits and report a non-zero exit or signal.
         int wstatus = 0;
         if (waitpid(pid, &wstatus, 0) < 0)
         {

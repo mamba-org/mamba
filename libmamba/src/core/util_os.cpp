@@ -776,8 +776,9 @@ namespace mamba
         int rc = posix_spawn_file_actions_init(&file_actions);
         if (rc != 0)
         {
-            throw std::runtime_error(
-                std::string("Could not codesign executable: ") + std::strerror(rc)
+            throw mamba_error(
+                std::string("Could not initialize codesign spawn file actions: ") + std::strerror(rc),
+                mamba_error_code::internal_failure
             );
         }
 
@@ -803,8 +804,9 @@ namespace mamba
         }
         if (rc != 0)
         {
-            throw std::runtime_error(
-                std::string("Could not codesign executable: ") + std::strerror(rc)
+            throw mamba_error(
+                std::string("Could not spawn /usr/bin/codesign: ") + std::strerror(rc),
+                mamba_error_code::internal_failure
             );
         }
 
@@ -812,8 +814,9 @@ namespace mamba
         int wstatus = 0;
         if (waitpid(pid, &wstatus, 0) < 0)
         {
-            throw std::runtime_error(
-                std::string("Could not codesign executable: ") + std::strerror(errno)
+            throw mamba_error(
+                std::string("Could not wait for codesign process: ") + std::strerror(errno),
+                mamba_error_code::internal_failure
             );
         }
 #else
@@ -830,7 +833,10 @@ namespace mamba
         auto [status, ec] = reproc::run(cmd, options);
         if (ec)
         {
-            throw std::runtime_error(std::string("Could not codesign executable: ") + ec.message());
+            throw mamba_error(
+                std::string("Could not codesign executable: ") + ec.message(),
+                mamba_error_code::internal_failure
+            );
         }
 #endif
     }

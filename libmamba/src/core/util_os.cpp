@@ -822,12 +822,37 @@ namespace mamba
             );
         }
 
-        // Block until codesign exits.
+        // Block until codesign exits and report a non-zero exit or signal.
         int wstatus = 0;
         if (waitpid(pid, &wstatus, 0) < 0)
         {
             throw mamba_error(
                 std::string("Could not wait for codesign process: ") + std::strerror(errno),
+                mamba_error_code::internal_failure
+            );
+        }
+        if (WIFEXITED(wstatus))
+        {
+            const int exit_status = WEXITSTATUS(wstatus);
+            if (exit_status != 0)
+            {
+                throw mamba_error(
+                    std::string("codesign failed with exit status ") + std::to_string(exit_status),
+                    mamba_error_code::internal_failure
+                );
+            }
+        }
+        else if (WIFSIGNALED(wstatus))
+        {
+            throw mamba_error(
+                std::string("codesign terminated by signal ") + std::to_string(WTERMSIG(wstatus)),
+                mamba_error_code::internal_failure
+            );
+        }
+        else
+        {
+            throw mamba_error(
+                "codesign ended with unexpected wait status",
                 mamba_error_code::internal_failure
             );
         }

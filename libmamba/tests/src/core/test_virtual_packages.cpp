@@ -200,6 +200,7 @@ namespace mamba
                 REQUIRE(pkgs[1].name == "__osx");
                 REQUIRE(pkgs[1].version == "12.1");
                 REQUIRE(pkgs[2].name == "__archspec");
+                REQUIRE(pkgs[2].version == "1");
                 REQUIRE(pkgs[2].build_string == "x86_64_v4");
                 REQUIRE(pkgs[3].name == "__cuda");
                 REQUIRE(pkgs[3].version == "13.1");

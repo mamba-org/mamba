@@ -17,6 +17,7 @@
 #include "mamba/util/environment.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 
 namespace mamba
 {
@@ -25,23 +26,13 @@ namespace mamba
 
         namespace
         {
+            using mambatests::require_virtual_package;
+
             auto
             has_virtual_package(const std::vector<specs::PackageInfo>& pkgs, std::string_view name)
                 -> bool
             {
                 return std::ranges::any_of(pkgs, [&](const auto& pkg) { return pkg.name == name; });
-            }
-
-            auto
-            require_virtual_package(const std::vector<specs::PackageInfo>& pkgs, std::string_view name)
-                -> const specs::PackageInfo&
-            {
-                const auto it = std::ranges::find_if(
-                    pkgs,
-                    [&](const auto& pkg) { return pkg.name == name; }
-                );
-                REQUIRE(it != pkgs.end());
-                return *it;
             }
 
             TEST_CASE("make_virtual_package")

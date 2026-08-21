@@ -18,6 +18,7 @@
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 
 namespace mamba
 {
@@ -136,17 +137,7 @@ namespace mamba
 
         namespace
         {
-            auto
-            require_virtual_package(const std::vector<specs::PackageInfo>& pkgs, std::string_view name)
-                -> const specs::PackageInfo&
-            {
-                const auto it = std::ranges::find_if(
-                    pkgs,
-                    [&](const auto& pkg) { return pkg.name == name; }
-                );
-                REQUIRE(it != pkgs.end());
-                return *it;
-            }
+            using mambatests::require_virtual_package;
 
             TEST_CASE_METHOD(Configuration, "target_prefix_options")
             {

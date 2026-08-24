@@ -24,13 +24,15 @@ def skip_if_shell_incompat(shell_type):
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
 @pytest.mark.parametrize(
-    ("shell", "expect_prefix_dirs"),
+    ("shell", "expect_prefix_dirs", "expect_hook_stderr"),
     [
-        ("cmd.exe", True),
-        ("powershell", False),
+        ("cmd.exe", True, True),
+        ("powershell", False, False),
     ],
 )
-def test_hook_shell(tmp_home, tmp_root_prefix, tmp_path, shell, expect_prefix_dirs):
+def test_hook_shell(
+    tmp_home, tmp_root_prefix, tmp_path, shell, expect_prefix_dirs, expect_hook_stderr
+):
     res = helpers.shell("hook", "-s", shell)
 
     if shell == "cmd.exe":
@@ -61,7 +63,7 @@ def test_hook_shell(tmp_home, tmp_root_prefix, tmp_path, shell, expect_prefix_di
         [mamba_exe, "shell", "hook", "-s", shell], env=env, capture_output=True, text=True
     )
     assert hook.returncode == 0
-    assert not hook.stderr, f"shell hook stderr was not empty: {hook.stderr}"
+    assert hook.stderr is expect_hook_stderr
 
     assert (default_prefix / "condabin").is_dir() is expect_prefix_dirs
     assert (default_prefix / "Scripts").is_dir() is expect_prefix_dirs

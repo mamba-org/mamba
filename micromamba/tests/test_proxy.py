@@ -21,6 +21,8 @@ def mitmdump_exe():
     """
     exe = shutil.which("mitmdump")
     if exe is None:
+        # mitmproxy is not published for win-arm64 (blocked by cryptography /
+        # bcrypt). Tracked in https://github.com/mamba-org/mamba/issues/4393
         pytest.skip("mitmdump is not available")
     return Path(exe).resolve()
 

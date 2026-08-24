@@ -10,6 +10,9 @@ from .helpers import create, random_string, remove
 if sys.platform.startswith("win"):
     import menuinst
 
+    # pywin32 is omitted from the win-arm64 CI environment; packages needed to
+    # use environment-dev.yml on that platform are tracked in
+    # https://github.com/mamba-org/mamba/issues/4393
     pytest.importorskip("win32com.client")
     import win32com.client
 

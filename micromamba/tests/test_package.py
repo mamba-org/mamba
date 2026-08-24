@@ -138,6 +138,9 @@ def test_extract_compress(cph_test_file: Path, tmp_path: Path):
 
 
 def test_transmute(cph_test_file: Path, tmp_path: Path):
+    # zstandard is omitted from the win-arm64 CI environment; packages needed
+    # to use environment-dev.yml on that platform are tracked in
+    # https://github.com/mamba-org/mamba/issues/4393
     zstandard = pytest.importorskip("zstandard")
     (tmp_path / "cph").mkdir(parents=True)
     (tmp_path / "mm").mkdir(parents=True)

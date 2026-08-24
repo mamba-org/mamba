@@ -4,12 +4,16 @@
 # conda-forge (including cxx-compiler and several test extras).
 # Python 3.14 is currently the version available on this platform; see
 # conda-forge/mamba-feedstock#393.
+#
+# Drop this file once the missing packages are published:
+# https://github.com/mamba-org/mamba/issues/4393
 channels:
   - conda-forge
 dependencies:
   # libmamba build dependencies
   # cxx-compiler is not published for win-arm64; vs2022_win-arm64 activates
   # the Visual Studio ARM64 toolchain (CI also uses ilammy/msvc-dev-cmd).
+  # See https://github.com/mamba-org/mamba/issues/4393
   - vs2022_win-arm64
   - cmake >=3.16
   - ninja
@@ -33,7 +37,11 @@ dependencies:
   - catch2
   # micromamba dependencies
   - cli11 >=2.2
-  # Python / test dependencies available on win-arm64
+  # Python / test dependencies available on win-arm64.
+  # Omitted vs environment-dev.yml until they (or their deps) are published:
+  # mitmproxy, bcrypt, pytest-xprocess, memory_profiler, pywin32,
+  # conda-content-trust, cryptography, mypy, pre-commit, and the Sphinx stack.
+  # Tests that need those packages skip; see https://github.com/mamba-org/mamba/issues/4393
   - python=3.14
   - pip
   - pytest >=7.3.0

@@ -32,6 +32,8 @@ jobs:
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v3
         with:
+          # win-arm64 uses a reduced env until missing conda-forge packages land:
+          # https://github.com/mamba-org/mamba/issues/4393
           environment-file: ${{ inputs.os == 'windows-11-arm' && './dev/environment-dev-win-arm64.yml' || './dev/environment-dev.yml' }}
           environment-name: build_env
           cache-environment: true

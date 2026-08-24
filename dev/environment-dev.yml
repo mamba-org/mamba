@@ -1,5 +1,5 @@
 # Windows ARM64 uses a reduced subset (many packages are not on conda-forge yet):
-# see environment-dev-win-arm64.yml.
+# see environment-dev-win-arm64.yml and https://github.com/mamba-org/mamba/issues/4393.
 channels:
   - conda-forge
 dependencies:

@@ -8,6 +8,9 @@ import pytest
 from .helpers import create as umamba_create
 from .helpers import login, logout, random_string
 
+# pytest-xprocess is omitted from the win-arm64 CI environment; packages needed
+# to use environment-dev.yml on that platform are tracked in
+# https://github.com/mamba-org/mamba/issues/4393
 ProcessStarter = pytest.importorskip("xprocess").ProcessStarter
 
 

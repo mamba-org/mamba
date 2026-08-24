@@ -51,6 +51,21 @@ namespace
         }
     }
 
+    TEST_CASE("set_env empty value is distinct from unset")
+    {
+        const auto restore = mambatests::EnvironmentCleaner();
+
+        const auto key = to_utf8_std_string(u8"VAR_THAT_DOES_NOT_EXIST_EMPTY");
+        REQUIRE_FALSE(get_env(key).has_value());
+
+        set_env(key, "");
+        REQUIRE(get_env(key).has_value());
+        REQUIRE(get_env(key)->empty());
+
+        unset_env(key);
+        REQUIRE_FALSE(get_env(key).has_value());
+    }
+
     TEST_CASE("unset_env", "[mamba::util]")
     {
         const auto restore = mambatests::EnvironmentCleaner();

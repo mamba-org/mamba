@@ -25,6 +25,8 @@ namespace mamba::util
 
     /**
      * Set an environment variable encoded in UTF8.
+     *
+     * An empty value is distinct from unsetting the variable.
      */
     void set_env(const std::string& key, const std::string& value);
 

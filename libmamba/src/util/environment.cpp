@@ -24,63 +24,54 @@ namespace mamba::util
     namespace
     {
 
-        // See:
-        // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getenv-s-wgetenv-s?view=msvc-170
+        // CRT and Win32 environment APIs are not thread-safe.
         std::mutex env_mutex = {};
 
     }
 
     auto get_env(const std::string& key) -> std::optional<std::string>
     {
-        const auto on_failed = [&](auto error_code)
-        {
-            throw std::runtime_error(
-                fmt::format(R"(Failed to acquire environment variable "{}" : errcode = {})", key, error_code)
-
-            );
-        };
-
-        std::scoped_lock ready_to_execute{ env_mutex };  // Calls to getenv_s kinds of
-                                                         // functions are not thread-safe, this
-                                                         // is to prevent related issues.
+        std::scoped_lock ready_to_execute{ env_mutex };  // Environment APIs are not thread-safe.
 
         const std::wstring unicode_key = utf8_to_windows_encoding(key);
 
-        std::size_t required_size = 0;
-        auto error_code = ::_wgetenv_s(&required_size, nullptr, 0, unicode_key.c_str());
-        if (error_code != 0)
+        // Use the Win32 API rather than `_wgetenv_s`: the CRT cannot represent empty values
+        // (`_wputenv_s(name, L"")` deletes the variable), so empty and unset would collapse.
+        ::SetLastError(ERROR_SUCCESS);
+        const DWORD needed = ::GetEnvironmentVariableW(unicode_key.c_str(), nullptr, 0);
+        if (needed == 0)
         {
-            on_failed(error_code);
+            if (::GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+            {
+                return {};
+            }
+            return std::string{};
         }
 
-        if (required_size == 0)  // The value doesn't exist.
+        std::wstring value(needed, L'\0');
+        ::SetLastError(ERROR_SUCCESS);
+        const DWORD nchars = ::GetEnvironmentVariableW(unicode_key.c_str(), value.data(), needed);
+        if (nchars == 0)
         {
-            return {};
+            if (::GetLastError() == ERROR_ENVVAR_NOT_FOUND)
+            {
+                return {};
+            }
+            return std::string{};
         }
 
-        std::wstring value(required_size, L'?');  // Note: The required size implies a `\0`
-                                                  // but basic_string doesn't.
-        error_code = ::_wgetenv_s(&required_size, value.data(), value.size(), unicode_key.c_str());
-        if (error_code != 0)
-        {
-            on_failed(error_code);
-        }
-
-        value.pop_back();  // Remove the `\0` that was written in, otherwise any future
-                           // concatenation will fail.
+        value.resize(nchars);
         return { windows_encoding_to_utf8(value) };
     }
 
     void set_env(const std::string& key, const std::string& value)
     {
-        std::scoped_lock ready_to_execute{ env_mutex };  // Calls to getenv_s kinds of
-                                                         // functions are not thread-safe, this
-                                                         // is to prevent related issues.
+        std::scoped_lock ready_to_execute{ env_mutex };  // Environment APIs are not thread-safe.
 
         const std::wstring unicode_key = utf8_to_windows_encoding(key);
         const std::wstring unicode_value = utf8_to_windows_encoding(value);
-        const auto res = ::_wputenv_s(unicode_key.c_str(), unicode_value.c_str());
-        if (res != 0)
+
+        const auto on_failed = [&]()
         {
             throw std::runtime_error(
                 fmt::format(
@@ -90,12 +81,42 @@ namespace mamba::util
                     ::GetLastError()
                 )
             );
+        };
+
+        if (value.empty())
+        {
+            // `_wputenv_s` deletes the variable when the value is empty. Clear the CRT copy
+            // first, then store "" in the Win32 environment so empty stays distinct from unset.
+            if (::_wputenv_s(unicode_key.c_str(), L"") != 0)
+            {
+                on_failed();
+            }
+            if (::SetEnvironmentVariableW(unicode_key.c_str(), L"") == 0)
+            {
+                on_failed();
+            }
+            return;
+        }
+
+        if (::_wputenv_s(unicode_key.c_str(), unicode_value.c_str()) != 0)
+        {
+            on_failed();
         }
     }
 
     void unset_env(const std::string& key)
     {
-        set_env(key, "");
+        std::scoped_lock ready_to_execute{ env_mutex };  // Environment APIs are not thread-safe.
+
+        const std::wstring unicode_key = utf8_to_windows_encoding(key);
+        if (::_wputenv_s(unicode_key.c_str(), L"") != 0)
+        {
+            throw std::runtime_error(
+                fmt::format(R"(Could not unset environment variable "{}" : {})", key, ::GetLastError())
+            );
+        }
+        // Drop a Win32-only empty value that `_wputenv_s` cannot see.
+        ::SetEnvironmentVariableW(unicode_key.c_str(), nullptr);
     }
 
     namespace

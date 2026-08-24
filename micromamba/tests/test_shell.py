@@ -63,7 +63,7 @@ def test_hook_shell(
         [mamba_exe, "shell", "hook", "-s", shell], env=env, capture_output=True, text=True
     )
     assert hook.returncode == 0
-    assert hook.stderr is expect_hook_stderr
+    assert bool(hook.stderr) is expect_hook_stderr
 
     assert (default_prefix / "condabin").is_dir() is expect_prefix_dirs
     assert (default_prefix / "Scripts").is_dir() is expect_prefix_dirs

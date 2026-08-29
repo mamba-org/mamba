@@ -182,7 +182,90 @@ jobs:
         shell: bash -elo pipefail {0}
         run: |
           cmake --install build/ --prefix local/
-      - name: mamba python based tests with pwsh
+      - name: Native Windows ARM64 package lifecycle
+        if: inputs.os == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          $env:PYTHONIOENCODING='UTF-8'
+          $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
+          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\mamba.exe'
+          $env:MAMBA_TEST_SHELL_TYPE='powershell'
+          Remove-Item -Path "env:CONDARC"
+          $nativePrefix = Join-Path -Path $pwd -ChildPath 'win-arm64-native'
+          $nativeClone = Join-Path -Path $pwd -ChildPath 'win-arm64-native-clone'
+          & $env:TEST_MAMBA_EXE create `
+            --prefix $nativePrefix `
+            --channel conda-forge `
+            --platform win-arm64 `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & $env:TEST_MAMBA_EXE update `
+            --prefix $nativePrefix `
+            --channel conda-forge `
+            --platform win-arm64 `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $nativeListJson = & $env:TEST_MAMBA_EXE list --prefix $nativePrefix --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $nativePackages = $nativeListJson | ConvertFrom-Json
+          $nativeZlib = @(
+            $nativePackages.packages |
+              Where-Object { $_.name -eq 'zlib' -and $_.platform -eq 'win-arm64' }
+          )
+          if ($nativeZlib.Count -ne 1) {
+            throw 'Native environment does not contain exactly one win-arm64 zlib package'
+          }
+
+          & $env:TEST_MAMBA_EXE create `
+            --prefix $nativeClone `
+            --clone $nativePrefix `
+            --platform win-arm64 `
+            --yes --no-rc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $cloneListJson = & $env:TEST_MAMBA_EXE list --prefix $nativeClone --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $clonePackages = $cloneListJson | ConvertFrom-Json
+          $cloneZlib = @(
+            $clonePackages.packages |
+              Where-Object { $_.name -eq 'zlib' -and $_.platform -eq 'win-arm64' }
+          )
+          if ($cloneZlib.Count -ne 1) {
+            throw 'Cloned environment does not preserve its win-arm64 zlib package'
+          }
+
+          & $env:TEST_MAMBA_EXE remove `
+            --prefix $nativeClone `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $removedListJson = & $env:TEST_MAMBA_EXE list --prefix $nativeClone --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $removedPackages = $removedListJson | ConvertFrom-Json
+          if ('zlib' -in $removedPackages.packages.name) {
+            throw 'Native package removal left zlib installed'
+          }
+
+          & $env:TEST_MAMBA_EXE install `
+            --prefix $nativeClone `
+            --channel conda-forge `
+            --platform win-arm64 `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $installedListJson = & $env:TEST_MAMBA_EXE list --prefix $nativeClone --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $installedPackages = $installedListJson | ConvertFrom-Json
+          $installedZlib = @(
+            $installedPackages.packages |
+              Where-Object { $_.name -eq 'zlib' -and $_.platform -eq 'win-arm64' }
+          )
+          if ($installedZlib.Count -ne 1) {
+            throw 'Native package installation did not restore win-arm64 zlib'
+          }
+      - name: ${{ inputs.os == 'windows-11-arm' && 'Mamba Python tests against win-64 package inventory' || 'Mamba Python tests' }}
         shell: pwsh
         run: |
           $env:PYTHONIOENCODING='UTF-8'
@@ -193,5 +276,6 @@ jobs:
           # Only rerun flaky tests on the `main` branch
           python -m pytest micromamba/tests/ `
             -vv --durations=50 `
+            ${{ inputs.os == 'windows-11-arm' && '--test-target-platform win-64' || '' }} `
             ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} `
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

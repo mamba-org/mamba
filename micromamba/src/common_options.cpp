@@ -353,6 +353,14 @@ init_link_options(CLI::App* subcom, Configuration& config)
 }
 
 void
+init_platform_options(CLI::App* subcom, Configuration& config)
+{
+    auto& platform = config.at("platform");
+    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
+        ->option_text("PLATFORM");
+}
+
+void
 init_install_options(CLI::App* subcom, Configuration& config)
 {
     using string_list = std::vector<std::string>;
@@ -472,9 +480,7 @@ init_install_options(CLI::App* subcom, Configuration& config)
         repo_parsing.description()
     );
 
-    auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
-        ->option_text("PLATFORM");
+    init_platform_options(subcom, config);
 
     auto& no_deps = config.at("no_deps");
     subcom->add_flag("--no-deps", no_deps.get_cli_config<bool>(), no_deps.description());

@@ -344,6 +344,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
     init_general_options(update_subcom, config);
     init_prefix_options(update_subcom, config);
     init_link_options(update_subcom, config);
+    init_platform_options(update_subcom, config);
 
     auto& file_specs = config.at("file_specs");
     update_subcom

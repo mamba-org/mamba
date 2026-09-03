@@ -185,6 +185,37 @@ TEST_CASE("load_channels", "[mamba::api][channel_loader]")
     REQUIRE(database.repo_count() == 0);
 }
 
+TEST_CASE("load_channels skips mirrored channels not in channels", "[mamba::api][channel_loader]")
+{
+    Context& ctx = mambatests::context();
+    mambatests::ScopedContextChange context_change{ ctx };
+    context_change.preserve(ctx.channels)
+        .preserve(ctx.mirrored_channels)
+        .preserve(ctx.pkgs_dirs)
+        .preserve(ctx.offline)
+        .preserve(ctx.remote_fetch_params)
+        .preserve(ctx.channel_alias);
+
+    ctx.channels = {};
+    ctx.mirrored_channels = { { "conda-forge", { "https://conda.anaconda.org/conda-forge" } } };
+    ctx.pkgs_dirs = {};
+    ctx.offline = true;
+
+    auto channel_context = ChannelContext::make_conda_compatible(ctx);
+    solver::libsolv::Database database(channel_context.params());
+    const auto tmp_dir = TemporaryDirectory();
+    auto package_caches = MultiPackageCache({ tmp_dir.path() }, ValidationParams{});
+
+    auto result = load_channels(ctx, channel_context, database, package_caches);
+
+    // Mirrored channels not explicitly listed in ctx.channels must not be
+    // loaded into the solver. Regression test for mirrored channels being
+    // processed in a separate first pass that assigned them higher priority
+    // than channels listed in ctx.channels.
+    REQUIRE(result.has_value());
+    REQUIRE(database.repo_count() == 0);
+}
+
 TEST_CASE("load_channels with root_packages", "[mamba::core][mamba::api::channel_loader]")
 {
     auto& ctx = mambatests::context();

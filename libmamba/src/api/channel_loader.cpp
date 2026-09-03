@@ -242,37 +242,20 @@ namespace mamba
             int max_prio = static_cast<int>(ctx.channels.size());
             specs::CondaURL previous_channel_url;
 
-            // Process mirrored channels: create channel objects, configure mirrors, and initialize
-            // subdirs for each platform.
-            for (const auto& mirror : ctx.mirrored_channels)
-            {
-                for (const specs::Channel& channel :
-                     channel_context.make_channel(mirror.first, mirror.second))
-                {
-                    create_mirrors(channel, ctx.mirrors);
-                    create_subdirs(
-                        ctx,
-                        channel_context,
-                        channel,
-                        package_caches,
-                        subdirs,
-                        error_list,
-                        priorities,
-                        max_prio,
-                        previous_channel_url
-                    );
-                }
-            }
-
-            // Process regular (non-mirrored) channels.
+            // Process all channels in the order they appear in ctx.channels,
+            // expanding mirrored channels inline so that priority assignment
+            // follows the configured channel order. Previously, mirrored
+            // channels were processed in a separate first pass, causing them
+            // to always receive a higher priority than regular channels
+            // regardless of their position in the channels list.
             for (const auto& location : ctx.channels)
             {
-                if (ctx.mirrored_channels.contains(location))
-                {
-                    continue;
-                }
+                const auto mirror = ctx.mirrored_channels.find(location);
+                const auto& channels = (mirror != ctx.mirrored_channels.end())
+                                           ? channel_context.make_channel(mirror->first, mirror->second)
+                                           : channel_context.make_channel(location);
 
-                for (const specs::Channel& channel : channel_context.make_channel(location))
+                for (const specs::Channel& channel : channels)
                 {
                     if (channel.is_package())
                     {

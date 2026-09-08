@@ -1179,7 +1179,6 @@ namespace mamba
         {
             LOG_TRACE << "soft-linked '" << src.string() << "'" << std::endl
                       << " --> '" << dst.string() << "'";
-            // TODO should we use copy instead?
             fs::copy_symlink(src, dst);
             // we need to wait until all files are linked to compute the SHA256 sum!
             // otherwise the file that's pointed to might not be linked yet.

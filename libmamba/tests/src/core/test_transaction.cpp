@@ -5,7 +5,6 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <fstream>
-#include <iostream>
 #include <stack>
 #include <string>
 
@@ -162,11 +161,12 @@ namespace mamba
         void link_package_to_prefix(
             const specs::PackageInfo& pkg,
             const fs::u8path& pkgs_dir,
-            const fs::u8path& prefix
+            const fs::u8path& prefix,
+            LinkParams link_params = { .compile_pyc = false }
         )
         {
             fs::create_directories(prefix / "conda-meta");
-            auto tx_context = make_transaction_context(prefix);
+            auto tx_context = make_transaction_context(prefix, link_params);
             LinkPackage linker(pkg, pkgs_dir, &tx_context);
             REQUIRE(linker.execute());
         }
@@ -197,6 +197,41 @@ namespace mamba
                 unlinked_packages.top().undo();
                 unlinked_packages.pop();
             }
+        }
+
+        struct LinkResult
+        {
+            fs::u8path src_path;
+            fs::u8path dst_path;
+        };
+
+        LinkResult create_and_link(
+            const TemporaryDirectory& temp_dir,
+            const std::string& pkg_name,
+            const std::string& content,
+            bool no_link,
+            bool always_softlink
+        )
+        {
+            const fs::u8path prefix = temp_dir.path() / "prefix";
+            const fs::u8path pkgs_dir = temp_dir.path() / "pkgs";
+            fs::create_directories(pkgs_dir);
+
+            auto pkg = make_test_package(pkg_name);
+            const std::string rel_file = "share/" + pkg_name + "/config.txt";
+            create_extracted_package(
+                pkgs_dir,
+                pkg,
+                rel_file,
+                content,
+                /* include_file= */ true,
+                no_link
+            );
+
+            LinkParams link_params{ .always_softlink = always_softlink, .compile_pyc = false };
+            link_package_to_prefix(pkg, pkgs_dir, prefix, link_params);
+
+            return { pkgs_dir / pkg.str() / rel_file, prefix / rel_file };
         }
     }
 
@@ -385,32 +420,15 @@ namespace mamba
         SECTION("normal file is hardlinked by default")
         {
             TemporaryDirectory temp_dir;
-            const fs::u8path prefix = temp_dir.path() / "prefix";
-            const fs::u8path pkgs_dir = temp_dir.path() / "pkgs";
-            fs::create_directories(pkgs_dir);
-
-            auto pkg = make_test_package("pkg-hard");
-            const std::string rel_file = "share/pkg-hard/config.txt";
-            create_extracted_package(
-                pkgs_dir,
-                pkg,
-                rel_file,
+            auto [src_path, dst_path] = create_and_link(
+                temp_dir,
+                "pkg-hard",
                 "config data - hard\n",
-                /* include_file= */ true,
-                /* no_link= */ false
+                false,
+                false
             );
 
-            // Link with always_softlink=false
-            LinkParams link_params{ .always_softlink = false, .compile_pyc = false };
-            auto tx_context = make_transaction_context(prefix, link_params);
-            fs::create_directories(prefix / "conda-meta");
-            LinkPackage linker(pkg, pkgs_dir, &tx_context);
-            REQUIRE(linker.execute());
-
-            auto src_path = pkgs_dir / pkg.str() / rel_file;
-            auto dst_path = prefix / rel_file;
-
-            // always_softlink = false, no_link=false => hardlink
+            // `always_softlink` = false, `no_link`=false => hardlink
             REQUIRE(fs::exists(dst_path));
             REQUIRE(src_path != dst_path);
 
@@ -422,33 +440,13 @@ namespace mamba
         SECTION("normal file is symlinked with --always-softlink")
         {
             TemporaryDirectory temp_dir;
-            const fs::u8path prefix = temp_dir.path() / "prefix";
-            const fs::u8path pkgs_dir = temp_dir.path() / "pkgs";
-            fs::create_directories(pkgs_dir);
-
-            auto pkg = make_test_package("pkg-soft");
-            const std::string rel_file = "share/pkg-soft/config.txt";
-            create_extracted_package(
-                pkgs_dir,
-                pkg,
-                rel_file,
+            auto [src_path, dst_path] = create_and_link(
+                temp_dir,
+                "pkg-soft",
                 "config data - soft\n",
-                /* include_file= */ true,
-                /* no_link= */ false
+                false,
+                true
             );
-
-            // Link with always_softlink=true
-            LinkParams link_params{ .always_softlink = true, .compile_pyc = false };
-            auto tx_context = make_transaction_context(prefix, link_params);
-            fs::create_directories(prefix / "conda-meta");
-            LinkPackage linker(pkg, pkgs_dir, &tx_context);
-            REQUIRE(linker.execute());
-            // TODO use this instead?
-            // link_package_to_prefix(pkg, pkgs_dir, prefix);
-            // REQUIRE(prefix_has_package_file(prefix, pkg, rel_file));
-
-            auto src_path = pkgs_dir / pkg.str() / rel_file;
-            auto dst_path = prefix / rel_file;
 
             REQUIRE(fs::exists(dst_path));
             REQUIRE(src_path != dst_path);
@@ -457,8 +455,8 @@ namespace mamba
             REQUIRE(fs::is_symlink(dst_path));
 
             // Symlink target must point to the source in the cache
-            auto dst_path_sl = fs::read_symlink(dst_path);
-            REQUIRE(dst_path_sl == src_path);
+            auto link_target = fs::read_symlink(dst_path);
+            REQUIRE(link_target == src_path);
         }
 
         SECTION("no_link file is always copied regardless of --always-softlink")
@@ -466,32 +464,13 @@ namespace mamba
             auto always_softlink = GENERATE(true, false);
 
             TemporaryDirectory temp_dir;
-            const fs::u8path prefix = temp_dir.path() / "prefix";
-            const fs::u8path pkgs_dir = temp_dir.path() / "pkgs";
-            fs::create_directories(pkgs_dir);
-
-            auto pkg = make_test_package("pkg-nolink");
-            const std::string rel_file = "share/pkg-nolink/config.txt";
-            create_extracted_package(
-                pkgs_dir,
-                pkg,
-                rel_file,
+            auto [src_path, dst_path] = create_and_link(
+                temp_dir,
+                "pkg-nolink",
                 "config data - no_link\n",
-                /* include_file= */ true,
-                /* no_link= */ true
+                true,
+                always_softlink
             );
-
-            LinkParams link_params{ .always_softlink = always_softlink, .compile_pyc = false };
-            auto tx_context = make_transaction_context(prefix, link_params);
-            fs::create_directories(prefix / "conda-meta");
-            LinkPackage linker(pkg, pkgs_dir, &tx_context);
-            REQUIRE(linker.execute());
-            // TODO use this instead?
-            // link_package_to_prefix(pkg, pkgs_dir, prefix);
-            // REQUIRE(prefix_has_package_file(prefix, pkg, rel_file));
-
-            auto src_path = pkgs_dir / pkg.str() / rel_file;
-            auto dst_path = prefix / rel_file;
 
             REQUIRE(fs::exists(dst_path));
             REQUIRE(src_path != dst_path);

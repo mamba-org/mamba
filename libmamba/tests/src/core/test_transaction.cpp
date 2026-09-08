@@ -480,7 +480,7 @@ namespace mamba
             REQUIRE_FALSE(fs::equivalent(src_path, dst_path));  // not hardlink
 
             // Content must match
-            std::ifstream in(dst_path);
+            std::ifstream in(dst_path.std_path());
             std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
             REQUIRE(content == "config data - no_link\n");
         }

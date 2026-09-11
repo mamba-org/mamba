@@ -2254,7 +2254,7 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
                     {"id": "sys-exec"},
                     {
                         "id": "additional-deps",
-                        "additional_dependencies": ["psutil", "python=3.11"],
+                        "additional_dependencies": ["psutil", "python=3.14"],
                     },
                 ],
             }

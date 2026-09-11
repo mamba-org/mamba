@@ -21,7 +21,9 @@ namespace mamba
     const fs::u8path& proc_dir();
     LockFile lock_proc_dir();
 
-    void daemonize();
+#ifndef _WIN32
+    auto daemonize() -> std::optional<int>;
+#endif
 
     class ScopedProcFile
     {

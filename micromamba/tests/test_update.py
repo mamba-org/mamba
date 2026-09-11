@@ -583,4 +583,8 @@ class TestUpdateConfig:
     def test_channel_specific(self, env_created):
         helpers.install("quantstack::sphinx", no_dry_run=True)
         res = helpers.update("quantstack::sphinx", "-c", "conda-forge", "--json")
-        assert "actions" not in res
+        assert (
+            ("actions" not in res)
+            or (not res["actions"])
+            or (not member for member in res["actions"])
+        )

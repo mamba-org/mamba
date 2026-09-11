@@ -151,6 +151,17 @@ function(mamba_target_add_compile_warnings target)
         set(warnings ${clang_warnings})
     else()
         set(warnings ${gcc_warnings})
+        # GCC 13+ false positives on std::variant of types containing std::string (libstdc++
+        # basic_string inlined through variant). Triggered by copying
+        # mamba::specs::AuthenticationInfo (variant of BasicHTTPAuthentication, BearerToken, and
+        # CondaToken) via AuthenticationDataBase. Keep the warning, do not fail the build. See GCC
+        # PR 105329 / PR 109561. Drop this once GCC no longer emits the false positive.
+        if(
+            CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+            AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13
+        )
+            list(APPEND warnings -Wno-error=maybe-uninitialized)
+        endif()
     endif()
 
     get_target_property(type ${target} TYPE)

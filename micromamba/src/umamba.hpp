@@ -91,4 +91,20 @@ get_completions(CLI::App* app, mamba::Configuration& config, int argc, char** ar
 void
 set_auth_command(CLI::App* subcom);
 
+namespace umamba
+{
+    /// @returns An exit code to return from `main()` IFF a sub-command
+    ///          has been executed and requested the program to exit with that code.
+    auto get_requested_exit_code() -> std::optional<int>;
+
+    /// Requests `main()` to exit with the specified exit code if possible.
+    auto request_exit_code(int exit_code) -> void;
+
+    /// Current application name ("micromamba" or "mamba")
+    auto app_name() -> std::string;
+
+    /// Current application name ("micromamba" or "mamba") with a version number.
+    auto app_name_with_version() -> std::string;
+}
+
 #endif

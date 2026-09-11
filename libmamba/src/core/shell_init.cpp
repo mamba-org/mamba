@@ -54,59 +54,73 @@ namespace mamba
         );
     }
 
-    std::string guess_shell()
+    std::string guess_shell_from_parent_process_name(const std::string& parent_process_name)
     {
-        std::string parent_process_name = get_process_name_by_pid(getppid());
-
-        LOG_DEBUG << "Guessing shell. Parent process name: " << parent_process_name;
-
-        std::string parent_process_name_lower = util::to_lower(parent_process_name);
-
-        if (util::contains(parent_process_name_lower, "bash"))
+        const std::string pp_name_lower = util::to_lower(parent_process_name);
+        if (util::contains(pp_name_lower, "bash"))
         {
             return "bash";
         }
-        if (util::contains(parent_process_name_lower, "zsh"))
+        if (util::contains(pp_name_lower, "zsh"))
         {
             return "zsh";
         }
-        if (util::contains(parent_process_name_lower, "csh"))
+        if (util::contains(pp_name_lower, "csh"))
         {
             return "csh";
         }
-        if (util::contains(parent_process_name_lower, "dash"))
+        if (util::contains(pp_name_lower, "dash"))
         {
             return "dash";
         }
-        if (util::contains(parent_process_name, "nu"))
+        // Search for nu or nushell as whole words,
+        // otherwise we could have false positives
+        // like in a process name containing `nu` (e.g: linux)
+        if (std::regex_search(pp_name_lower, std::regex(R"(\bnu(?:shell)?\b)")))
         {
             return "nu";
         }
-
         // xonsh in unix, Python in macOS
-        if (util::contains(parent_process_name_lower, "python"))
+        if (util::contains(pp_name_lower, "python"))
         {
             Console::stream() << "Your parent process name is " << parent_process_name
                               << ".\nIf your shell is xonsh, please use \"-s xonsh\".";
         }
-        if (util::contains(parent_process_name_lower, "xonsh"))
+        if (util::contains(pp_name_lower, "xonsh"))
         {
             return "xonsh";
         }
-        if (util::contains(parent_process_name_lower, "cmd.exe"))
+        if (util::contains(pp_name_lower, "cmd.exe"))
         {
             return "cmd.exe";
         }
-        if (util::contains(parent_process_name_lower, "powershell")
-            || util::contains(parent_process_name_lower, "pwsh"))
+        if (util::contains(pp_name_lower, "powershell") || util::contains(pp_name_lower, "pwsh"))
         {
             return "powershell";
         }
-        if (util::contains(parent_process_name_lower, "fish"))
+        if (util::contains(pp_name_lower, "fish"))
         {
             return "fish";
         }
 
+        LOG_DEBUG << "Couldn't guess shell from process, returning empty.";
+        return "";
+    }
+
+    std::string guess_shell()
+    {
+        const std::string parent_process_name = get_process_name_by_pid(getppid());
+
+        LOG_DEBUG << "Guessing shell. Parent process name: " << parent_process_name;
+
+        auto guessed_shell = guess_shell_from_parent_process_name(parent_process_name);
+
+        if (!guessed_shell.empty())
+        {
+            return guessed_shell;
+        }
+
+        // Fallback:
         // Get `SHELL` environment variable if set
         // Standard values are assumed to be `/bin/{shell_type}` or `/usr/bin/{shell_type}`
         if (util::get_env("SHELL").has_value())
@@ -114,6 +128,7 @@ namespace mamba
             return util::split(util::get_env("SHELL").value(), "/").back();
         }
 
+        LOG_DEBUG << "Couldn't guess shell, returning empty.";
         return "";
     }
 

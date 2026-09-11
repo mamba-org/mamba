@@ -4,10 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <format>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/version.hpp"
 
 #include "common_options.hpp"
@@ -16,10 +19,31 @@
 
 using namespace mamba;  // NOLINT(build/namespaces)
 
-namespace
+namespace umamba
 {
+    std::optional<int> requested_exit_code;
+
+    auto request_exit_code(int exit_code) -> void
+    {
+        requested_exit_code = exit_code;
+    }
+
+    auto get_requested_exit_code() -> std::optional<int>
+    {
+        return requested_exit_code;
+    }
+
+    auto app_name() -> std::string
+    {
+        return mamba::get_self_exe_path().stem().string();
+    }
+
+    auto app_name_with_version() -> std::string
+    {
+        return std::format("{} v{}", umamba::app_name(), umamba::version());
+    }
+
     // Collect names and aliases of all subcommands registered in the CLI app.
-    // Used as candidates for suggesting correction for a mistyped subcommand.
     auto subcommand_names(const CLI::App* app) -> std::vector<std::string>
     {
         std::vector<std::string> names;
@@ -34,7 +58,6 @@ namespace
         return names;
     }
 
-    // Descend from CLI app through the chain of parsed subcommands to the deepest one.
     auto deepest_parsed_app(const CLI::App* app) -> const CLI::App*
     {
         const auto parsed = app->get_subcommands();
@@ -45,7 +68,6 @@ namespace
         return deepest_parsed_app(parsed.back());
     }
 
-    // Mirror Conda's behavior of single best suggestion for a subcommand when the user mistypes it.
     auto command_suggestion(const CLI::App* app, const CLI::Error& e) -> std::string
     {
         if (dynamic_cast<const CLI::ExtrasError*>(&e) == nullptr)
@@ -55,8 +77,6 @@ namespace
 
         const CLI::App* parsed_app = deepest_parsed_app(app);
 
-        // The first leftover argument that is not an option is the token we treat as a mistyped
-        // command.
         std::string offending;
         for (const auto& arg : parsed_app->remaining(false))
         {
@@ -71,8 +91,6 @@ namespace
             return {};
         }
 
-        // Rank the candidate commands like Conda does and return the best match if it is above the
-        // cutoff.
         const auto matches = util::closest_matches(offending, subcommand_names(parsed_app), 0.6, 1);
         if (matches.empty())
         {
@@ -82,8 +100,6 @@ namespace
         return "Did you mean '" + matches.front() + "'?";
     }
 
-    // CLI11 failure message that appends hint for mistyped subcommand. Falls back to default CLI11
-    // message otherwise.
     auto failure_message_with_suggestion(const CLI::App* app, const CLI::Error& e) -> std::string
     {
         std::string base = CLI::FailureMessage::simple(app, e);
@@ -119,20 +135,20 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     context.command_params.caller_version = umamba::version();
 
-    auto print_version = [&](int /*count*/)
+    auto print_version = [&]() -> std::string
     {
         if (config.context().output_params.json)
         {
             Console::instance().set_json_output("/version"_json_pointer, umamba::version());
+            return "";
         }
         else
         {
-            std::cout << umamba::version() << std::endl;
-            exit(0);
+            return umamba::version();
         }
     };
 
-    com->add_flag_function("--version", print_version);
+    com->set_version_flag("--version", print_version);
 
     CLI::App* shell_subcom = com->add_subcommand("shell", "Generate shell init scripts");
     set_shell_command(shell_subcom, config);

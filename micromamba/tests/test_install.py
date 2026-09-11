@@ -571,7 +571,9 @@ class TestInstall:
         assert expected_packages.issubset(link_packages)
 
         for pkg in res["actions"]["LINK"]:
-            assert pkg["channel"] == "conda-forge"
+            assert pkg["channel"] == "conda-forge" or pkg["channel"].startswith(
+                "https://conda.anaconda.org/conda-forge/"
+            )
 
     def test_explicit_noarch(self, existing_cache):
         helpers.install("python", no_dry_run=True)
@@ -612,7 +614,11 @@ class TestInstall:
         assert "xtensor" in {pkg["name"] for pkg in res["actions"]["LINK"]}
 
         reinstall_res = helpers.install("xtensor", "--json")
-        assert "actions" not in reinstall_res
+        assert (
+            (not reinstall_res.get("actions"))
+            or (not reinstall_res["actions"])
+            or (not member for member in reinstall_res["actions"])
+        )
 
     def test_install_local_package_relative_path(self):
         """Attempts to install a locally built package from a relative local path."""

@@ -58,6 +58,7 @@ namespace mamba
             -> const channel_list&;
 
         [[nodiscard]] auto params() const -> const specs::ChannelResolveParams&;
+        [[nodiscard]] auto zst_channels() const -> const std::vector<Channel>&;
 
         [[nodiscard]] auto has_zst(const Channel& chan) const -> bool;
 

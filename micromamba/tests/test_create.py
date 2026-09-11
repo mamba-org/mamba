@@ -195,25 +195,64 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
     assert json_res["success"]
 
 
+def check_channels_from_lockfile(
+    json_packages, lockfile_format, expected_valid_channels=["conda-forge"], exclude_packages=[]
+):
+    expected_valid_channels_urls = []
+
+    # TODO: handle other formats once they support channels from lockfiles
+    if lockfile_format == lockfile_format_mambajs:
+        expected_valid_channels_urls = [
+            # NOTE: these urls must be in sync with the json lockfiles in ./env_lockfiles/
+            "https://prefix.dev/conda-forge",
+            "https://repo.prefix.dev/conda-forge",
+            "https://prefix.dev/emscripten-forge-dev",
+            "https://repo.prefix.dev/emscripten-forge-dev",
+            "https://pypi.org/",  # for now we ignore pypi packages having no known url
+        ]
+
+    for package in json_packages:
+        name = package["name"]
+        if name in exclude_packages:
+            continue
+        channel = package["channel"]
+        assert channel in expected_valid_channels or channel in expected_valid_channels_urls, (
+            f"unexpected package `{name}`'s channel name : '{channel}' (expected channels: {expected_valid_channels} or {expected_valid_channels_urls})\npackages: {json.dumps(json_packages, indent=2)}"
+        )
+        if expected_valid_channels_urls:
+            url = package["url"]
+            if not url and channel in [
+                "https://pypi.org/",
+                "pypi",
+            ]:  # for now we ignore pypi packages having no known url
+                # skip
+                continue
+
+            assert any(
+                url.startswith(channel_url) for channel_url in expected_valid_channels_urls
+            ), (
+                f"package `{name}`'s url not starting with expected channel url : '{url}' (expected channel urls: {expected_valid_channels_urls})\npackages: {json.dumps(json_packages, indent=2)}"
+            )
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
 def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
 
     lockfile_to_use = lockfile_path(lockfile_format)
-    print("lockfile_to_use = ", lockfile_to_use)
 
     spec_file = tmp_path / lockfile_name("env-lock", lockfile_format)
 
     shutil.copyfile(lockfile_to_use, spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-    print("create result:", res)
-    assert res["success"]
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
+    assert res["success"], f"output: \n{json.dumps(res, indent=2)}"
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    print("packages installed:", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+
+    check_channels_from_lockfile(packages, lockfile_format)
 
 
 @pytest.mark.skipif(
@@ -228,7 +267,7 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
 
     shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -248,6 +287,8 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
     # Test pkg url ending with `.tar.bz2`
     assert any(package["name"] == "xz" and package["version"] == "5.2.6" for package in packages)
 
+    check_channels_from_lockfile(packages, lockfile_format, ["conda-forge", "pypi"])
+
 
 # TODO: Remove this test once this is fixed:
 # https://github.com/dateutil/dateutil/issues/1419
@@ -266,7 +307,7 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_fo
 
     shutil.copyfile(pip_git_https_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -293,7 +334,7 @@ def test_lockfile_online(
     env_prefix = tmp_path / "myenv"
     spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/env_lockfiles/test-env-lock.yaml"
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -316,11 +357,15 @@ def test_env_lockfile_different_install_after_create(
         _base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file
     )
 
-    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json")
+    res = helpers.create(
+        "-p", env_prefix, "-f", create_spec_file, "-y", "--json", default_channel=False
+    )
     assert res["success"]
 
     # Must not crash
-    helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json")
+    helpers.install(
+        "-p", env_prefix, "-f", install_spec_file, "-y", "--json", default_channel=False
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -1731,14 +1776,13 @@ def test_channel_alias(tmp_home, tmp_root_prefix, alias):
             "--channel-alias",
             alias,
         )
-        # ca = alias.rstrip("/")
+        ca = alias.rstrip("/")
     else:
         res = helpers.create("-n", env_name, "xtensor", "--json")
-        # ca = "https://conda.anaconda.org"
+        ca = "https://conda.anaconda.org"
 
     for link in res["actions"]["LINK"]:
-        assert link["channel"] == "conda-forge"
-        # assert link["channel"].startswith(f"{ca}/conda-forge/")
+        assert link["channel"] == "conda-forge" or link["channel"].startswith(f"{ca}/conda-forge/")
         # assert link["url"].startswith(f"{ca}/conda-forge/")
 
 
@@ -2353,7 +2397,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startswith("https://conda.anaconda.org/conda-forge")
     else:
         assert len(pkgs) == 1
         assert pkgs[0]["name"] == "abacus"
@@ -2362,7 +2406,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startswith("https://conda.anaconda.org/conda-forge")
 
 
 def test_create_from_mirror(tmp_home, tmp_root_prefix):
@@ -2386,7 +2430,7 @@ def test_create_from_mirror(tmp_home, tmp_root_prefix):
 
     assert any(
         package["name"] == "cpp-tabulate"
-        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["channel"].startswith("https://repo.prefix.dev/emscripten-forge-dev")
         and package["subdir"] == "emscripten-wasm32"
         for package in res["actions"]["LINK"]
     )
@@ -2421,7 +2465,7 @@ def test_create_from_mirror_with_prefix(tmp_home, tmp_root_prefix, tmp_path):
 
     assert any(
         package["name"] == "cpp-tabulate"
-        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["channel"].startswith("https://repo.prefix.dev/emscripten-forge-dev")
         and package["subdir"] == "emscripten-wasm32"
         for package in res["actions"]["LINK"]
     )

@@ -2,11 +2,13 @@ channels:
   - conda-forge
 dependencies:
   # libmamba build dependencies
-  # Workaround `mamba-org/mamba#4043`
+  # Version of sysroot used globally for Linux (except riscv64)
+  # See: https://github.com/conda-forge/conda-forge-pinning-feedstock/blob/e7a00c91ec5446a771385d0ea5b0b6f0d64ffd59/recipe/conda_build_config.yaml#L19-L21
   - sel(linux): sysroot_linux-64==2.17
-  # Pin below 2.0.0: compilers 2.0.0 no longer sets CC/CXX
-  # See: conda-forge/compilers-feedstock#78.
-  - cxx-compiler <2
+  # compilers >=2.0 install unprefixed compilers on PATH and no longer set CC/CXX.
+  # See: https://github.com/conda-forge/compilers-feedstock/pull/78
+  # See: https://github.com/conda-forge/conda-forge.github.io/pull/2595
+  - cxx-compiler
   - cmake >=3.16
   - pkg-config # Used by some CMake dependencies
   - ninja

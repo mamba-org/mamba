@@ -736,6 +736,7 @@ namespace mamba
         {
             transaction.log_json();
         }
+
         const auto should_execute = transaction.prompt(ctx, channel_context);
         if (should_execute)
         {
@@ -753,6 +754,7 @@ namespace mamba
         {
             on_abort();
         }
+
         return should_execute;
     }
 

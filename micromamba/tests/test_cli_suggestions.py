@@ -25,7 +25,7 @@ def run_umamba(*args):
 SUGGESTION_CASES = [
     # Missing / extra / substituted character
     ("instal", "install"),
-    ("install", "install"),
+    ("intsall", "install"),
     ("lst", "list"),
     ("uninstal", "uninstall"),
     ("creat", "create"),
@@ -36,7 +36,7 @@ SUGGESTION_CASES = [
     ("inof", "info"),
     ("ifno", "info"),
     ("rnu", "run"),
-    ("activate", "activate"),
+    ("actiavte", "activate"),
     ("reqoquery", "repoquery"),
     # Truncated command
     ("activ", "activate"),

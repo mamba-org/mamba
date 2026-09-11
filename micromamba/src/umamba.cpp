@@ -9,8 +9,8 @@
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
-#include "mamba/util/string.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/version.hpp"
 
 #include "common_options.hpp"
@@ -228,5 +228,5 @@ set_umamba_command(CLI::App* com, mamba::Configuration& config)
 
     com->require_subcommand(/* min */ 0, /* max */ 1);
 
-    com->failure_message(&failure_message_with_suggestion);
+    com->failure_message(&umamba::failure_message_with_suggestion);
 }

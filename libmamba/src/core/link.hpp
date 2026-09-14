@@ -12,6 +12,8 @@
 #include <tuple>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -89,8 +91,31 @@ namespace mamba
             TransactionContext* context
         );
 
+        /** Full link: prepare + link files + finalize (for tests and single-package callers). */
         bool execute();
+
+        /** Serial: pre-link scripts, read paths, create parent directories. */
+        bool prepare();
+
+        /** Link all files for this package (intra-package LPT + dynamic workers). */
+        void link_files();
+
+        /** Link a single file by index into ``paths_data`` (for a global cross-package queue). */
+        void link_file_at(std::size_t index);
+
+        /** Mark that file linking completed (used by the cross-package parallel helper). */
+        void mark_files_linked();
+
+        bool files_linked() const;
+
+        /** Serial: softlink SHA fixups, entry points, post-link, conda-meta. */
+        bool finalize();
+
         bool undo();
+
+        const specs::PackageInfo& package_info() const;
+        const std::vector<PathData>& paths_data() const;
+        static std::uint64_t estimated_link_cost(const PathData& path);
 
     private:
 
@@ -110,7 +135,20 @@ namespace mamba
         fs::u8path m_source;
         util::synchronized_value<std::vector<std::string>> m_clobber_warnings;
         TransactionContext* m_context;
+
+        std::vector<PathData> m_paths_data;
+        nlohmann::json m_index_json;
+        std::vector<std::tuple<std::string, std::string>> m_linked;
+        int m_noarch_type = 0;  // NoarchType in link.cpp
+        bool m_prepared = false;
+        bool m_files_linked = false;
     };
+
+    /**
+     * Link files for many prepared packages with a shared LPT + dynamic worker pool.
+     * Pre-/post-link scripts and conda-meta remain the caller's responsibility (serial).
+     */
+    void link_packages_files_parallel(std::vector<LinkPackage>& packages, std::size_t link_threads);
 
 }  // namespace mamba
 

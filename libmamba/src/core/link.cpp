@@ -6,8 +6,8 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cctype>
-#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <iostream>
@@ -22,11 +22,17 @@
 #include <unordered_set>
 #include <vector>
 
+#if !defined(_WIN32)
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 #include <fmt/format.h>
 #include <reproc++/reproc.hpp>
 #include <reproc++/run.hpp>
 
-#include "./link.hpp"
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
@@ -34,11 +40,13 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/cryptography.hpp"
+#include "mamba/util/encoding.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 
+#include "./link.hpp"
 #include "./transaction_context.hpp"
 
 #ifdef __APPLE__
@@ -776,6 +784,18 @@ namespace mamba
             LOG_DEBUG << "Error when removing file '" << dst.string() << "' will be ignored";
         }
 
+        // Release any cross-package clobber claim so a later relink can rewrite the path.
+        {
+            const std::string rel = fs::relative(dst, target_prefix).generic_string();
+            auto registry = m_context->clobber_registry().synchronize();
+            registry->erase(rel);
+            // Also erase the short path from conda-meta if it differed (noarch resolution).
+            if (path_data.contains("_path"))
+            {
+                registry->erase(path_data["_path"].get<std::string>());
+            }
+        }
+
         // TODO what do we do with empty directories?
         // remove empty parent path
         auto parent_path = dst.parent_path();
@@ -925,19 +945,226 @@ namespace mamba
 
     namespace
     {
-        auto elapsed_ms(std::chrono::steady_clock::time_point start) -> std::int64_t
-        {
-            return std::chrono::duration_cast<std::chrono::milliseconds>(
-                       std::chrono::steady_clock::now() - start
-            )
-                .count();
-        }
-
         auto sha256_hex(std::string_view data) -> std::string
         {
             thread_local util::Sha256Hasher hasher;
             return hasher.str_hex_str(data);
         }
+
+        constexpr std::size_t large_prefix_rewrite_threshold = 256u * 1024u;
+
+#if !defined(_WIN32)
+        struct MappedFile
+        {
+            const char* data = nullptr;
+            std::size_t size = 0;
+            bool needs_unmap = false;
+            bool valid = false;
+
+            ~MappedFile()
+            {
+                if (needs_unmap && data != nullptr && size > 0)
+                {
+                    ::munmap(const_cast<char*>(data), size);
+                }
+            }
+
+            MappedFile() = default;
+            MappedFile(const MappedFile&) = delete;
+            MappedFile& operator=(const MappedFile&) = delete;
+
+            MappedFile(MappedFile&& other) noexcept
+                : data(other.data)
+                , size(other.size)
+                , needs_unmap(other.needs_unmap)
+                , valid(other.valid)
+            {
+                other.data = nullptr;
+                other.size = 0;
+                other.needs_unmap = false;
+                other.valid = false;
+            }
+
+            MappedFile& operator=(MappedFile&& other) noexcept
+            {
+                if (this != &other)
+                {
+                    if (needs_unmap && data != nullptr && size > 0)
+                    {
+                        ::munmap(const_cast<char*>(data), size);
+                    }
+                    data = other.data;
+                    size = other.size;
+                    needs_unmap = other.needs_unmap;
+                    valid = other.valid;
+                    other.data = nullptr;
+                    other.size = 0;
+                    other.needs_unmap = false;
+                    other.valid = false;
+                }
+                return *this;
+            }
+
+            explicit operator bool() const
+            {
+                return valid;
+            }
+        };
+
+        /** Memory-map ``path`` read-only. Empty files succeed with ``data == nullptr``. */
+        auto mmap_file_readonly(const fs::u8path& path) -> MappedFile
+        {
+            const int fd = ::open(path.string().c_str(), O_RDONLY | O_CLOEXEC);
+            if (fd < 0)
+            {
+                return {};
+            }
+            struct ::stat st{};
+            if (::fstat(fd, &st) != 0 || st.st_size < 0)
+            {
+                ::close(fd);
+                return {};
+            }
+            const auto size = static_cast<std::size_t>(st.st_size);
+            if (size == 0)
+            {
+                ::close(fd);
+                MappedFile empty;
+                empty.valid = true;
+                return empty;
+            }
+            void* mapped = ::mmap(nullptr, size, PROT_READ, MAP_PRIVATE, fd, 0);
+            ::close(fd);
+            if (mapped == MAP_FAILED)
+            {
+                return {};
+            }
+            MappedFile result;
+            result.data = static_cast<const char*>(mapped);
+            result.size = size;
+            result.needs_unmap = true;
+            result.valid = true;
+            return result;
+        }
+
+        /**
+         * Stream prefix replacement from an already-mapped source into ``dst``, hashing as we go.
+         * Handles text and binary (null-padded) replacement without holding a second full copy.
+         */
+        auto stream_prefix_replace_from_memory(
+            std::string_view source,
+            const std::string& placeholder,
+            const std::string& new_prefix,
+            FileMode file_mode,
+            const fs::u8path& dst,
+            bool* binary_changed
+        ) -> std::string
+        {
+            std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
+            util::Sha256Digester digester;
+            digester.digest_start();
+
+            auto write_and_hash = [&](std::string_view chunk)
+            {
+                if (chunk.empty())
+                {
+                    return;
+                }
+                fo.write(chunk.data(), static_cast<std::streamsize>(chunk.size()));
+                auto* iter = reinterpret_cast<const std::byte*>(chunk.data());
+                auto remaining = chunk.size();
+                while (remaining > 0)
+                {
+                    const auto taken = std::min(remaining, util::Sha256Digester::digest_size);
+                    digester.digest_update(iter, taken);
+                    remaining -= taken;
+                    iter += taken;
+                }
+            };
+
+            auto write_with_text_replacements = [&](std::string_view region)
+            {
+                std::size_t cursor = 0;
+                std::size_t pos = region.find(placeholder);
+                while (pos != std::string_view::npos)
+                {
+                    write_and_hash(region.substr(cursor, pos - cursor));
+                    write_and_hash(new_prefix);
+                    cursor = pos + placeholder.size();
+                    pos = region.find(placeholder, cursor);
+                }
+                write_and_hash(region.substr(cursor));
+            };
+
+            if (file_mode != FileMode::BINARY)
+            {
+                std::size_t body_offset = 0;
+                if constexpr (!util::on_win)
+                {
+                    if (source.size() >= 2 && source[0] == '#' && source[1] == '!')
+                    {
+                        const std::size_t end_of_line = source.find_first_of('\n');
+                        std::string first_line(source.substr(0, end_of_line));
+                        util::replace_all(first_line, placeholder, new_prefix);
+                        if (first_line.size() > MAX_SHEBANG_LENGTH)
+                        {
+                            first_line = replace_long_shebang(first_line);
+                        }
+                        write_and_hash(first_line);
+                        if (end_of_line != std::string_view::npos)
+                        {
+                            write_and_hash(source.substr(end_of_line, 1));
+                            body_offset = end_of_line + 1;
+                        }
+                        else
+                        {
+                            body_offset = source.size();
+                        }
+                    }
+                }
+                write_with_text_replacements(source.substr(body_offset));
+            }
+            else
+            {
+                const std::size_t padding_size = (placeholder.size() > new_prefix.size())
+                                                     ? placeholder.size() - new_prefix.size()
+                                                     : 0;
+                const std::string padding(padding_size, '\0');
+
+                std::size_t cursor = 0;
+                std::size_t pos = source.find(placeholder);
+                while (pos != std::string_view::npos)
+                {
+                    if (binary_changed != nullptr)
+                    {
+                        *binary_changed = true;
+                    }
+                    write_and_hash(source.substr(cursor, pos - cursor));
+
+                    std::size_t end = pos + placeholder.size();
+                    while (end < source.size() && source[end] != '\0')
+                    {
+                        ++end;
+                    }
+                    const auto suffix = source.substr(
+                        pos + placeholder.size(),
+                        end - (pos + placeholder.size())
+                    );
+                    const std::string replacement = util::concat(new_prefix, std::string(suffix), padding);
+                    write_and_hash(replacement);
+
+                    cursor = end;
+                    pos = source.find(placeholder, cursor);
+                }
+                write_and_hash(source.substr(cursor));
+            }
+
+            fo.close();
+            std::array<std::byte, util::Sha256Digester::bytes_size> hash{};
+            digester.digest_finalize_to(hash.data());
+            return util::bytes_to_hex_str(hash.data(), hash.data() + hash.size());
+        }
+#endif
 
         auto destination_relative_path(
             const PathData& path_data,
@@ -989,6 +1216,37 @@ namespace mamba
         fs::u8path src = m_source / subtarget;
 
         std::error_code ec;
+        bool claimed_first = false;
+        {
+            auto registry = m_context->clobber_registry().synchronize();
+            auto [it, inserted] = registry->emplace(rel_dst.string(), m_pkg_info.str());
+            claimed_first = inserted;
+            (void) it;
+        }
+
+        if (!claimed_first)
+        {
+            // Another package in this transaction already claimed the path — first writer wins
+            // while the file is still present. If the file is gone (e.g. after unlink), take over.
+            if (lexists(dst, ec) && !ec)
+            {
+                m_clobber_warnings->push_back(rel_dst.string());
+                try
+                {
+                    return std::make_tuple(validation::sha256sum(dst), rel_dst.generic_string());
+                }
+                catch (...)
+                {
+                    std::string empty_sha = MAMBA_EMPTY_SHA;
+                    return std::make_tuple(std::move(empty_sha), rel_dst.generic_string());
+                }
+            }
+            {
+                auto registry = m_context->clobber_registry().synchronize();
+                (*registry)[rel_dst.string()] = m_pkg_info.str();
+            }
+        }
+
         if (lexists(dst, ec) && !ec)
         {
             // Sometimes we might want to raise here ...
@@ -1037,6 +1295,42 @@ namespace mamba
 #endif
             LOG_TRACE << "Copying file & replace prefix " << src << " -> " << dst;
             // TODO windows does something else here
+
+#if !defined(_WIN32)
+            // Large files: mmap + stream rewrite/hash to avoid a second full-buffer copy.
+            // Keep the buffered path for small files and for macOS codesign (needs re-hash on
+            // disk).
+            const bool try_stream = path_data.size_in_bytes >= large_prefix_rewrite_threshold
+#if defined(__APPLE__)
+                                    && m_pkg_info.platform != "osx-arm64"
+#endif
+                ;
+            if (try_stream)
+            {
+                MappedFile mapped = mmap_file_readonly(src);
+                if (mapped)
+                {
+                    bool binary_changed_stream = false;
+                    const std::string_view view(mapped.data, mapped.size);
+                    std::string hash = stream_prefix_replace_from_memory(
+                        view,
+                        path_data.prefix_placeholder,
+                        new_prefix,
+                        path_data.file_mode,
+                        dst,
+                        path_data.file_mode == FileMode::BINARY ? &binary_changed_stream : nullptr
+                    );
+                    std::error_code lec;
+                    fs::permissions(dst, fs::status(src).permissions(), lec);
+                    if (lec)
+                    {
+                        LOG_WARNING << "Could not set permissions on [" << dst
+                                    << "]: " << lec.message();
+                    }
+                    return std::tuple(std::move(hash), rel_dst.generic_string());
+                }
+            }
+#endif
 
             std::string buffer;
             if (path_data.file_mode != FileMode::BINARY)
@@ -1301,10 +1595,28 @@ namespace mamba
         PYTHON
     };
 
-    bool LinkPackage::execute()
+    auto LinkPackage::paths_data() const -> const std::vector<PathData>&
     {
-        const auto pkg_start = std::chrono::steady_clock::now();
-        nlohmann::json index_json, out_json;
+        return m_paths_data;
+    }
+
+    auto LinkPackage::package_info() const -> const specs::PackageInfo&
+    {
+        return m_pkg_info;
+    }
+
+    auto LinkPackage::estimated_link_cost(const PathData& p) -> std::uint64_t
+    {
+        if (p.prefix_placeholder.empty())
+        {
+            return 1;
+        }
+        const std::uint64_t size = p.size_in_bytes == 0 ? 4096ull : p.size_in_bytes;
+        return size * (p.file_mode == FileMode::BINARY ? 8ull : 4ull);
+    }
+
+    bool LinkPackage::prepare()
+    {
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
 
         run_script(
@@ -1316,105 +1628,127 @@ namespace mamba
             "",
             false
         );
-        const auto pre_link_ms = elapsed_ms(pkg_start);
 
         LOG_TRACE << "Opening: " << m_source / "info" / "paths.json";
-        auto paths_data = read_paths(m_source);
+        m_paths_data = read_paths(m_source);
 
         LOG_TRACE << "Opening: " << m_source / "info" / "repodata_record.json";
-
         std::ifstream repodata_f = open_ifstream(m_source / "info" / "repodata_record.json");
-        repodata_f >> index_json;
+        repodata_f >> m_index_json;
 
-        std::string f_name = m_pkg_info.str();
+        LOG_DEBUG << "Linking package '" << m_pkg_info.str() << "' from '" << m_source.string()
+                  << "'";
 
-        LOG_DEBUG << "Linking package '" << f_name << "' from '" << m_source.string() << "'";
-
-        // handle noarch packages
-        NoarchType noarch_type = NoarchType::NOT_A_NOARCH;
-        if (index_json.find("noarch") != index_json.end()
-            && index_json["noarch"].type() != nlohmann::json::value_t::null)
+        m_noarch_type = static_cast<int>(NoarchType::NOT_A_NOARCH);
+        if (m_index_json.find("noarch") != m_index_json.end()
+            && m_index_json["noarch"].type() != nlohmann::json::value_t::null)
         {
-            if (index_json["noarch"].type() == nlohmann::json::value_t::boolean)
+            if (m_index_json["noarch"].type() == nlohmann::json::value_t::boolean)
             {
-                if (index_json["noarch"].get<bool>())
+                if (m_index_json["noarch"].get<bool>())
                 {
-                    noarch_type = NoarchType::GENERIC_V1;
+                    m_noarch_type = static_cast<int>(NoarchType::GENERIC_V1);
                 }
             }
             else
             {
-                std::string na_t(index_json["noarch"].get<std::string>());
+                std::string na_t(m_index_json["noarch"].get<std::string>());
                 if (na_t == "python")
                 {
-                    noarch_type = NoarchType::PYTHON;
+                    m_noarch_type = static_cast<int>(NoarchType::PYTHON);
                 }
                 else if (na_t == "generic")
                 {
-                    noarch_type = NoarchType::GENERIC_V2;
+                    m_noarch_type = static_cast<int>(NoarchType::GENERIC_V2);
                 }
             }
         }
 
-        const bool noarch_python = noarch_type == NoarchType::PYTHON;
+        const bool noarch_python = m_noarch_type == static_cast<int>(NoarchType::PYTHON);
+        create_parent_directories(m_paths_data, noarch_python);
+        m_linked.assign(m_paths_data.size(), {});
+        m_prepared = true;
+        m_files_linked = false;
+        return true;
+    }
 
-        const auto dirs_start = std::chrono::steady_clock::now();
-        create_parent_directories(paths_data, noarch_python);
-        const auto dirs_ms = elapsed_ms(dirs_start);
+    void LinkPackage::link_file_at(std::size_t index)
+    {
+        assert(m_prepared);
+        assert(index < m_paths_data.size());
+        const bool noarch_python = m_noarch_type == static_cast<int>(NoarchType::PYTHON);
+        interruption_point();
+        m_linked[index] = link_path(m_paths_data[index], noarch_python);
+    }
 
-        std::vector<std::string> files_record;
-        files_record.reserve(paths_data.size());
+    void LinkPackage::mark_files_linked()
+    {
+        m_files_linked = true;
+    }
 
-        nlohmann::json paths_json = nlohmann::json::object();
-        paths_json["paths"] = nlohmann::json::array();
-        paths_json["paths_version"] = 1;
+    bool LinkPackage::files_linked() const
+    {
+        return m_files_linked;
+    }
 
-        std::vector<std::tuple<std::string, std::string>> linked(paths_data.size());
+    void LinkPackage::link_files()
+    {
+        assert(m_prepared);
         const auto n_link_threads = normalize_to_affinity_concurrency(
             static_cast<std::ptrdiff_t>(m_context->transaction_params().threads_params.link_threads)
         );
 
-        std::vector<std::size_t> indices(paths_data.size());
-        std::iota(indices.begin(), indices.end(), std::size_t{ 0 });
+        std::vector<std::size_t> order(m_paths_data.size());
+        std::iota(order.begin(), order.end(), std::size_t{ 0 });
+        std::stable_sort(
+            order.begin(),
+            order.end(),
+            [&](std::size_t a, std::size_t b)
+            { return estimated_link_cost(m_paths_data[a]) > estimated_link_cost(m_paths_data[b]); }
+        );
 
-        const auto files_start = std::chrono::steady_clock::now();
-        auto link_one = [&](std::size_t i)
+        if (n_link_threads <= 1 || order.size() <= 1)
         {
-            interruption_point();
-            linked[i] = link_path(paths_data[i], noarch_python);
-        };
-
-        // Prefer std::for_each; parallelize by partitioning over std::jthread workers.
-        // std::execution::par is not used: on libstdc++ it requires linking TBB.
-        if (n_link_threads <= 1 || indices.size() <= 1)
-        {
-            std::for_each(indices.begin(), indices.end(), link_one);
+            for (const std::size_t i : order)
+            {
+                link_file_at(i);
+            }
         }
         else
         {
-            const std::size_t n_items = indices.size();
+            const std::size_t n_items = order.size();
             const std::size_t n_workers = std::min(n_link_threads, n_items);
+            std::atomic<std::size_t> next{ 0 };
+            std::atomic<bool> stop{ false };
             util::synchronized_value<std::exception_ptr> first_exception;
             {
                 std::vector<std::jthread> workers;
                 workers.reserve(n_workers);
                 for (std::size_t t = 0; t < n_workers; ++t)
                 {
-                    const std::size_t begin = t * n_items / n_workers;
-                    const std::size_t end = (t + 1) * n_items / n_workers;
                     workers.emplace_back(
-                        [&, begin, end]()
+                        [&]()
                         {
                             try
                             {
-                                std::for_each(
-                                    indices.begin() + static_cast<std::ptrdiff_t>(begin),
-                                    indices.begin() + static_cast<std::ptrdiff_t>(end),
-                                    link_one
-                                );
+                                while (!stop.load(std::memory_order_relaxed))
+                                {
+                                    const auto k = next.fetch_add(1, std::memory_order_relaxed);
+                                    if (k >= n_items)
+                                    {
+                                        break;
+                                    }
+                                    if (is_sig_interrupted())
+                                    {
+                                        stop.store(true, std::memory_order_relaxed);
+                                        break;
+                                    }
+                                    link_file_at(order[k]);
+                                }
                             }
                             catch (...)
                             {
+                                stop.store(true, std::memory_order_relaxed);
                                 auto exception = first_exception.synchronize();
                                 if (!*exception)
                                 {
@@ -1432,7 +1766,135 @@ namespace mamba
             }
             interruption_point();
         }
-        const auto files_ms = elapsed_ms(files_start);
+        m_files_linked = true;
+    }
+
+    void link_packages_files_parallel(std::vector<LinkPackage>& packages, std::size_t link_threads)
+    {
+        struct Job
+        {
+            std::size_t pkg_index;
+            std::size_t path_index;
+            std::uint64_t cost;
+        };
+
+        std::vector<Job> jobs;
+        for (std::size_t p = 0; p < packages.size(); ++p)
+        {
+            const auto& paths = packages[p].paths_data();
+            jobs.reserve(jobs.size() + paths.size());
+            for (std::size_t i = 0; i < paths.size(); ++i)
+            {
+                jobs.push_back(Job{ p, i, LinkPackage::estimated_link_cost(paths[i]) });
+            }
+        }
+
+        if (jobs.empty())
+        {
+            for (auto& pkg : packages)
+            {
+                pkg.mark_files_linked();
+            }
+            return;
+        }
+
+        std::stable_sort(
+            jobs.begin(),
+            jobs.end(),
+            [](const Job& a, const Job& b) { return a.cost > b.cost; }
+        );
+
+        const auto n_link_threads = normalize_to_affinity_concurrency(
+            static_cast<std::ptrdiff_t>(link_threads)
+        );
+
+        auto run_one = [&](const Job& job) { packages[job.pkg_index].link_file_at(job.path_index); };
+
+        if (n_link_threads <= 1 || jobs.size() <= 1)
+        {
+            for (const auto& job : jobs)
+            {
+                run_one(job);
+            }
+        }
+        else
+        {
+            const std::size_t n_items = jobs.size();
+            const std::size_t n_workers = std::min(n_link_threads, n_items);
+            std::atomic<std::size_t> next{ 0 };
+            std::atomic<bool> stop{ false };
+            util::synchronized_value<std::exception_ptr> first_exception;
+            {
+                std::vector<std::jthread> workers;
+                workers.reserve(n_workers);
+                for (std::size_t t = 0; t < n_workers; ++t)
+                {
+                    workers.emplace_back(
+                        [&]()
+                        {
+                            try
+                            {
+                                while (!stop.load(std::memory_order_relaxed))
+                                {
+                                    const auto k = next.fetch_add(1, std::memory_order_relaxed);
+                                    if (k >= n_items)
+                                    {
+                                        break;
+                                    }
+                                    if (is_sig_interrupted())
+                                    {
+                                        stop.store(true, std::memory_order_relaxed);
+                                        break;
+                                    }
+                                    run_one(jobs[k]);
+                                }
+                            }
+                            catch (...)
+                            {
+                                stop.store(true, std::memory_order_relaxed);
+                                auto exception = first_exception.synchronize();
+                                if (!*exception)
+                                {
+                                    *exception = std::current_exception();
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+
+            if (auto exception = first_exception.value())
+            {
+                std::rethrow_exception(exception);
+            }
+            interruption_point();
+        }
+
+        if (!is_sig_interrupted())
+        {
+            for (auto& pkg : packages)
+            {
+                pkg.mark_files_linked();
+            }
+        }
+    }
+
+    bool LinkPackage::finalize()
+    {
+        assert(m_prepared);
+        assert(m_files_linked);
+
+        const auto& paths_data = m_paths_data;
+        const auto& linked = m_linked;
+        const auto noarch_type = static_cast<NoarchType>(m_noarch_type);
+        const std::string f_name = m_pkg_info.str();
+
+        std::vector<std::string> files_record;
+        files_record.reserve(paths_data.size());
+
+        nlohmann::json paths_json = nlohmann::json::object();
+        paths_json["paths"] = nlohmann::json::array();
+        paths_json["paths_version"] = 1;
 
         for (std::size_t i = 0; i < paths_data.size(); ++i)
         {
@@ -1467,7 +1929,6 @@ namespace mamba
 
             if (path.size_in_bytes != 0)
             {
-                // note: in conda this is the size in bytes _before_ prefix replacement
                 json_record["size_in_bytes"] = path.size_in_bytes;
             }
 
@@ -1493,7 +1954,6 @@ namespace mamba
             }
         }
 
-        const auto softlink_start = std::chrono::steady_clock::now();
         for (std::size_t i = 0; i < paths_data.size(); ++i)
         {
             if (paths_data[i].path_type != PathType::SOFTLINK)
@@ -1501,7 +1961,6 @@ namespace mamba
                 continue;
             }
 
-            // Avoid recomputing the costly sha256 sum when the target was linked in this package.
             std::error_code ec;
             auto points_to = fs::canonical(prefix / files_record[i], ec);
             bool found = false;
@@ -1533,17 +1992,14 @@ namespace mamba
                 }
                 else
                 {
-                    // for broken symlinks (that don't yet point anywhere valid) we record the
-                    // sha256 for an empty string
                     paths_json["paths"][i]["sha256_in_prefix"] = MAMBA_EMPTY_SHA;
                 }
             }
         }
-        const auto softlink_ms = elapsed_ms(softlink_start);
 
         LOG_DEBUG << paths_data.size() << " files linked";
 
-        out_json = index_json;
+        nlohmann::json out_json = m_index_json;
         out_json["paths_data"] = paths_json;
         out_json["files"] = files_record;
 
@@ -1558,8 +2014,6 @@ namespace mamba
         out_json["requested_spec"] = requested_spec != nullptr ? requested_spec->to_string() : "";
         out_json["package_tarball_full_path"] = m_source.string() + ".tar.bz2";
         out_json["extracted_package_dir"] = m_source.string();
-
-        // TODO find out what `1` means
         out_json["link"] = { { "source", m_source.string() }, { "type", 1 } };
 
         if (noarch_type == NoarchType::PYTHON)
@@ -1600,13 +2054,10 @@ namespace mamba
             {
                 for (auto& ep : link_json["noarch"]["entry_points"])
                 {
-                    // install entry points
                     const auto ep_def = ep.get<std::string>();
                     auto entry_point_parsed = parse_entry_point(ep_def);
                     if (!entry_point_parsed)
                     {
-                        // Contextual wrapper uses invalid_spec (not the aggregated error_code) so
-                        // we do not create a sliced plain mamba_error carrying aggregated.
                         throw mamba_error(
                             fmt::format(
                                 "Invalid noarch:python entry point '{}' in package '{}' ({}): {}\n"
@@ -1644,7 +2095,6 @@ namespace mamba
             }
         }
 
-        // Create all start menu shortcuts if prefix name doesn't start with underscore
         if (util::on_win && m_context->transaction_params().shortcuts
             && m_context->prefix_params().target_prefix.filename().string()[0] != '_')
         {
@@ -1660,7 +2110,6 @@ namespace mamba
             }
         }
 
-        const auto post_link_start = std::chrono::steady_clock::now();
         run_script(
             m_context->transaction_params(),
             m_context->prefix_params(),
@@ -1670,7 +2119,6 @@ namespace mamba
             "",
             true
         );
-        const auto post_link_ms = elapsed_ms(post_link_start);
 
         fs::u8path prefix_meta = m_context->prefix_params().target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))
@@ -1681,10 +2129,8 @@ namespace mamba
         LOG_DEBUG << "Finalizing linking";
         auto meta = prefix_meta / (f_name + ".json");
         LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
-        const auto meta_start = std::chrono::steady_clock::now();
         std::ofstream out_file = open_ofstream(meta);
         out_file << out_json.dump(4);
-        const auto meta_ms = elapsed_ms(meta_start);
 
         {
             const auto warnings = m_clobber_warnings.synchronize();
@@ -1696,13 +2142,14 @@ namespace mamba
             }
         }
 
-        LOG_INFO << "Link timing for " << f_name << ": " << paths_data.size() << " files, "
-                 << n_link_threads << " threads; total=" << elapsed_ms(pkg_start)
-                 << "ms (pre-link=" << pre_link_ms << "ms, dirs=" << dirs_ms
-                 << "ms, files=" << files_ms << "ms, softlinks=" << softlink_ms
-                 << "ms, post-link=" << post_link_ms << "ms, conda-meta=" << meta_ms << "ms)";
-
         return true;
+    }
+
+    bool LinkPackage::execute()
+    {
+        prepare();
+        link_files();
+        return finalize();
     }
 
     bool LinkPackage::undo()

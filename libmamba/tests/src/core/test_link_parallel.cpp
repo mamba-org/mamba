@@ -15,6 +15,7 @@
 #include "mamba/core/package_paths.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
 
 #include "core/link.hpp"
@@ -200,8 +201,13 @@ namespace mamba
             }
 
             // Prefix placeholder was rewritten to the target prefix.
+            // On Windows, prefix replacement normalizes path separators to '/'.
             const auto rewritten = read_contents(prefix / "lib" / "data" / "prefix_file.txt");
-            REQUIRE(rewritten.find(prefix.string()) != std::string::npos);
+            std::string expected_prefix = prefix.string();
+#ifdef _WIN32
+            util::replace_all(expected_prefix, "\\", "/");
+#endif
+            REQUIRE(rewritten.find(expected_prefix) != std::string::npos);
             REQUIRE(
                 rewritten.find(std::string(PREFIX_PLACEHOLDER_1) + PREFIX_PLACEHOLDER_2)
                 == std::string::npos
@@ -261,11 +267,17 @@ namespace mamba
 
         TEST_CASE("large_prefix_rewrite_matches_small_path")
         {
+#if defined(_WIN32)
+            // Windows only rewrites binary prefix placeholders for pyzzer entrypoints.
+            SKIP("Binary prefix rewrite is Unix-only outside pyzzer entrypoints");
+#else
             (void) mambatests::context();
 
             const auto tmp_dir = TemporaryDirectory();
             const fs::u8path cache_dir = tmp_dir.path() / "cache";
             const fs::u8path prefix = tmp_dir.path() / "prefix";
+            // Shorter than the placeholder so binary null-padding preserves file size.
+            const fs::u8path relocate_prefix = "/tmp/mamba-lpr";
             fs::create_directories(prefix / "conda-meta");
 
             specs::PackageInfo pkg("test_large_prefix");
@@ -277,6 +289,8 @@ namespace mamba
             fs::create_directories(pkg_source / "lib");
 
             const std::string placeholder = std::string(PREFIX_PLACEHOLDER_1) + PREFIX_PLACEHOLDER_2;
+            REQUIRE(relocate_prefix.string().size() < placeholder.size());
+
             // Above the 256 KiB streaming threshold.
             constexpr std::size_t payload_size = 300u * 1024u;
             std::string payload(payload_size, 'x');
@@ -313,7 +327,29 @@ namespace mamba
                 out << R"({ "name": "test_large_prefix", "version": "1.0", "build": "0", "noarch": null })";
             }
 
-            auto tx = make_tx_context(prefix, /*link_threads=*/1);
+            TransactionParams tx_params{
+                .is_mamba_exe = false,
+                .json_output = false,
+                .verbosity = 0,
+                .shortcuts = false,
+                .envs_dirs = {},
+                .platform = "linux-64",
+                .prefix_params =
+                    PrefixParams{
+                        .target_prefix = prefix,
+                        .root_prefix = prefix,
+                        .conda_prefix = prefix,
+                        .relocate_prefix = relocate_prefix,
+                    },
+                .link_params = make_link_params(),
+                .threads_params =
+                    ThreadsParams{
+                        .download_threads = 1,
+                        .extract_threads = 1,
+                        .link_threads = 1,
+                    },
+            };
+            auto tx = TransactionContext(tx_params, { "", "" }, "", {});
             LinkPackage link_pkg(pkg, cache_dir, &tx);
             REQUIRE(link_pkg.execute());
 
@@ -323,10 +359,11 @@ namespace mamba
 
             const auto rewritten = read_contents(prefix / rel, std::ios::in | std::ios::binary);
             REQUIRE(rewritten.find(placeholder) == std::string::npos);
-            REQUIRE(rewritten.find(prefix.string()) != std::string::npos);
+            REQUIRE(rewritten.find(relocate_prefix.string()) != std::string::npos);
             REQUIRE(sha_in_prefix == validation::sha256sum(prefix / rel));
             // Length preserved via null padding when new prefix is shorter than placeholder.
             REQUIRE(rewritten.size() == payload.size());
+#endif
         }
 
         TEST_CASE("cross_package_parallel_link_disjoint_paths")

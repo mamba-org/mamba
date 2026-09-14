@@ -786,13 +786,12 @@ namespace mamba
 
         // Release any cross-package clobber claim so a later relink can rewrite the path.
         {
-            const std::string rel = fs::relative(dst, target_prefix).generic_string();
             auto registry = m_context->clobber_registry().synchronize();
-            registry->erase(rel);
+            registry->erase(fs::relative(dst, target_prefix).generic_string());
             // Also erase the short path from conda-meta if it differed (noarch resolution).
             if (path_data.contains("_path"))
             {
-                registry->erase(path_data["_path"].get<std::string>());
+                registry->erase(fs::u8path(path_data["_path"].get<std::string>()).generic_string());
             }
         }
 
@@ -1214,12 +1213,13 @@ namespace mamba
         }
 
         fs::u8path src = m_source / subtarget;
+        const std::string clobber_key = rel_dst.generic_string();
 
         std::error_code ec;
         bool claimed_first = false;
         {
             auto registry = m_context->clobber_registry().synchronize();
-            auto [it, inserted] = registry->emplace(rel_dst.string(), m_pkg_info.str());
+            auto [it, inserted] = registry->emplace(clobber_key, m_pkg_info.str());
             claimed_first = inserted;
             (void) it;
         }
@@ -1230,27 +1230,27 @@ namespace mamba
             // while the file is still present. If the file is gone (e.g. after unlink), take over.
             if (lexists(dst, ec) && !ec)
             {
-                m_clobber_warnings->push_back(rel_dst.string());
+                m_clobber_warnings->push_back(clobber_key);
                 try
                 {
-                    return std::make_tuple(validation::sha256sum(dst), rel_dst.generic_string());
+                    return std::make_tuple(validation::sha256sum(dst), clobber_key);
                 }
                 catch (...)
                 {
                     std::string empty_sha = MAMBA_EMPTY_SHA;
-                    return std::make_tuple(std::move(empty_sha), rel_dst.generic_string());
+                    return std::make_tuple(std::move(empty_sha), clobber_key);
                 }
             }
             {
                 auto registry = m_context->clobber_registry().synchronize();
-                (*registry)[rel_dst.string()] = m_pkg_info.str();
+                (*registry)[clobber_key] = m_pkg_info.str();
             }
         }
 
         if (lexists(dst, ec) && !ec)
         {
             // Sometimes we might want to raise here ...
-            m_clobber_warnings->push_back(rel_dst.string());
+            m_clobber_warnings->push_back(clobber_key);
 #ifdef _WIN32
             // Try to compute SHA256 of existing file, but if it fails (e.g., file is locked
             // or from a pip package), fall back to removing it like on other platforms

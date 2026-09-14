@@ -1722,7 +1722,8 @@ namespace mamba
             std::atomic<bool> stop{ false };
             util::synchronized_value<std::exception_ptr> first_exception;
             {
-                std::vector<std::jthread> workers;
+                // Use std::thread (not jthread): Apple libc++ does not provide std::jthread yet.
+                std::vector<std::thread> workers;
                 workers.reserve(n_workers);
                 for (std::size_t t = 0; t < n_workers; ++t)
                 {
@@ -1757,6 +1758,10 @@ namespace mamba
                             }
                         }
                     );
+                }
+                for (auto& worker : workers)
+                {
+                    worker.join();
                 }
             }
 
@@ -1825,7 +1830,8 @@ namespace mamba
             std::atomic<bool> stop{ false };
             util::synchronized_value<std::exception_ptr> first_exception;
             {
-                std::vector<std::jthread> workers;
+                // Use std::thread (not jthread): Apple libc++ does not provide std::jthread yet.
+                std::vector<std::thread> workers;
                 workers.reserve(n_workers);
                 for (std::size_t t = 0; t < n_workers; ++t)
                 {
@@ -1860,6 +1866,10 @@ namespace mamba
                             }
                         }
                     );
+                }
+                for (auto& worker : workers)
+                {
+                    worker.join();
                 }
             }
 

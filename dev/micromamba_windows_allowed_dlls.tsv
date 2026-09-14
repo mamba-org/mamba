@@ -27,6 +27,6 @@ api-ms-win-crt-string-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: C string and memory
 api-ms-win-crt-time-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: time and date (time, localtime, strftime, …).
 api-ms-win-crt-utility-l1-1-0.dll	UCRT (ucrt)	UCRT forwarder: utility routines (qsort, bsearch, system, …).
 MSVCP140.dll	MSVC runtime (vc14_runtime)	Microsoft C++ standard library runtime (/MD builds).
-MSVCP140_ATOMIC_WAIT.dll	MSVC runtime (vc14_runtime)	MSVC atomic wait/notify helpers (pulled in by std::atomic / std::jthread on recent MSVC x64 toolsets).
+MSVCP140_ATOMIC_WAIT.dll	MSVC runtime (vc14_runtime)	MSVC atomic wait/notify helpers (pulled in by std::atomic on recent MSVC x64 toolsets).
 VCRUNTIME140.dll	MSVC runtime (vc14_runtime)	Microsoft C runtime helpers (exceptions, EH scaffolding).
 VCRUNTIME140_1.dll	MSVC runtime (vc14_runtime)	Additional MSVC C++ exception-handling support on x64.

@@ -101,34 +101,18 @@ for dll in "${actual[@]}"; do
     [[ -z "${allow_name[$dll]:-}" ]] && unexpected+=("$dll")
 done
 
-missing=()
-for dll in "${expected[@]}"; do
-    found=0
-    for a in "${actual[@]}"; do
-        [[ "$a" == "$dll" ]] && found=1 && break
-    done
-    (("$found" == 0)) && missing+=("$dll")
-done
-
-if ((${#unexpected[@]} > 0)) || ((${#missing[@]} > 0)); then
+# Allowlist = permitted imports (not a required exact set). Some MSVC runtime
+# DLLs (e.g. msvcp140_atomic_wait.dll) appear only on certain arches/toolsets.
+if ((${#unexpected[@]} > 0)); then
     echo "error: PE DLL imports do not match the allowlist in ${ALLOWLIST##*/}" >&2
-    if ((${#unexpected[@]} > 0)); then
-        echo >&2
-        echo "Unexpected imports (link statically or update the allowlist):" >&2
-        for dll in "${unexpected[@]}"; do
-            echo "  $dll" >&2
-        done
-    fi
-    if ((${#missing[@]} > 0)); then
-        echo >&2
-        echo "Missing expected imports:" >&2
-        for dll in "${missing[@]}"; do
-            printf '  %-40s  [%s] %s\n' "$dll" "${allow_category[$dll]}" "${allow_description[$dll]}" >&2
-        done
-    fi
+    echo >&2
+    echo "Unexpected imports (link statically or update the allowlist):" >&2
+    for dll in "${unexpected[@]}"; do
+        echo "  $dll" >&2
+    done
     echo >&2
     echo "Documented allowlist: $ALLOWLIST" >&2
     exit 1
 fi
 
-echo "OK: PE imports match the ${#expected[@]} allowed DLLs documented in ${ALLOWLIST##*/}."
+echo "OK: all ${#actual[@]} PE imports are in the allowlist (${#expected[@]} permitted) documented in ${ALLOWLIST##*/}."

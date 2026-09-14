@@ -77,7 +77,8 @@ namespace mamba
             const specs::PackageInfo& pkg,
             const std::string& rel_file,
             std::string_view content,
-            bool include_file = true
+            bool include_file = true,
+            bool no_link = false
         )
         {
             const std::string pkg_dir_name = std::string(specs::strip_archive_extension(pkg.filename));
@@ -100,6 +101,7 @@ namespace mamba
                             { "path_type", "hardlink" },
                             { "sha256", validation::sha256sum(file_path) },
                             { "size_in_bytes", fs::file_size(file_path) },
+                            { "no_link", no_link },
                         },
                     }
                 );
@@ -113,6 +115,7 @@ namespace mamba
                             { "path_type", "hardlink" },
                             { "sha256", std::string(64, '0') },
                             { "size_in_bytes", 42 },
+                            { "no_link", no_link },
                         },
                     }
                 );
@@ -130,7 +133,10 @@ namespace mamba
             write_repodata_record(extract_dir, pkg);
         }
 
-        TransactionContext make_transaction_context(const fs::u8path& prefix)
+        TransactionContext make_transaction_context(
+            const fs::u8path& prefix,
+            LinkParams link_params = { .compile_pyc = false }
+        )
         {
             TransactionParams tx_params{
                 .is_mamba_exe = false,
@@ -146,7 +152,7 @@ namespace mamba
                         .conda_prefix = prefix,
                         .relocate_prefix = prefix,
                     },
-                .link_params = { .compile_pyc = false },
+                .link_params = link_params,
                 .threads_params = {},
             };
             return TransactionContext(tx_params, { "", "" }, "", {});
@@ -155,11 +161,12 @@ namespace mamba
         void link_package_to_prefix(
             const specs::PackageInfo& pkg,
             const fs::u8path& pkgs_dir,
-            const fs::u8path& prefix
+            const fs::u8path& prefix,
+            LinkParams link_params = { .compile_pyc = false }
         )
         {
             fs::create_directories(prefix / "conda-meta");
-            auto tx_context = make_transaction_context(prefix);
+            auto tx_context = make_transaction_context(prefix, link_params);
             LinkPackage linker(pkg, pkgs_dir, &tx_context);
             REQUIRE(linker.execute());
         }
@@ -190,6 +197,41 @@ namespace mamba
                 unlinked_packages.top().undo();
                 unlinked_packages.pop();
             }
+        }
+
+        struct LinkResult
+        {
+            fs::u8path src_path;
+            fs::u8path dst_path;
+        };
+
+        LinkResult create_and_link(
+            const TemporaryDirectory& temp_dir,
+            const std::string& pkg_name,
+            const std::string& content,
+            bool no_link,
+            bool always_softlink
+        )
+        {
+            const fs::u8path prefix = temp_dir.path() / "prefix";
+            const fs::u8path pkgs_dir = temp_dir.path() / "pkgs";
+            fs::create_directories(pkgs_dir);
+
+            auto pkg = make_test_package(pkg_name);
+            const std::string rel_file = "share/" + pkg_name + "/config.txt";
+            create_extracted_package(
+                pkgs_dir,
+                pkg,
+                rel_file,
+                content,
+                /* include_file= */ true,
+                no_link
+            );
+
+            LinkParams link_params{ .always_softlink = always_softlink, .compile_pyc = false };
+            link_package_to_prefix(pkg, pkgs_dir, prefix, link_params);
+
+            return { pkgs_dir / pkg.str() / rel_file, prefix / rel_file };
         }
     }
 
@@ -371,5 +413,76 @@ namespace mamba
 
         REQUIRE(unlinker.undo());
         REQUIRE(prefix_has_package_file(prefix, pkg, rel_file));
+    }
+
+    TEST_CASE("link type execution", "[mamba::core][link]")
+    {
+        SECTION("normal file is hardlinked by default")
+        {
+            TemporaryDirectory temp_dir;
+            auto [src_path, dst_path] = create_and_link(
+                temp_dir,
+                "pkg-hard",
+                "config data - hard\n",
+                false,
+                false
+            );
+
+            // `always_softlink` = false, `no_link`=false => hardlink
+            REQUIRE(fs::exists(dst_path));
+            REQUIRE(src_path != dst_path);
+
+            REQUIRE_FALSE(fs::is_symlink(dst_path));
+            // Check resolution to the same file system entity
+            REQUIRE(fs::equivalent(src_path, dst_path));
+        }
+
+        SECTION("normal file is symlinked with --always-softlink")
+        {
+            TemporaryDirectory temp_dir;
+            auto [src_path, dst_path] = create_and_link(
+                temp_dir,
+                "pkg-soft",
+                "config data - soft\n",
+                false,
+                true
+            );
+
+            REQUIRE(fs::exists(dst_path));
+            REQUIRE(src_path != dst_path);
+
+            // File must be a symlink
+            REQUIRE(fs::is_symlink(dst_path));
+
+            // Symlink target must point to the source in the cache
+            auto link_target = fs::read_symlink(dst_path);
+            REQUIRE(link_target == src_path);
+        }
+
+        SECTION("no_link file is always copied regardless of --always-softlink")
+        {
+            auto always_softlink = GENERATE(true, false);
+
+            TemporaryDirectory temp_dir;
+            auto [src_path, dst_path] = create_and_link(
+                temp_dir,
+                "pkg-nolink",
+                "config data - no_link\n",
+                true,
+                always_softlink
+            );
+
+            REQUIRE(fs::exists(dst_path));
+            REQUIRE(src_path != dst_path);
+
+            // no_link forces copy
+            REQUIRE_FALSE(fs::is_symlink(dst_path));            // not symlink
+            REQUIRE_FALSE(fs::equivalent(src_path, dst_path));  // not hardlink
+
+            // Content must match
+            std::ifstream in(dst_path.std_path());
+            std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            REQUIRE(content == "config data - no_link\n");
+        }
     }
 }  // namespace mamba

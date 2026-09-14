@@ -1130,7 +1130,7 @@ namespace mamba
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
             bool copy = path_data.no_link || m_context->link_params().always_copy;
-            bool softlink = m_context->link_params().always_softlink;
+            bool softlink = m_context->link_params().always_softlink && !path_data.no_link;
 
             if (!copy && !softlink)
             {
@@ -1164,6 +1164,12 @@ namespace mamba
             }
             if (copy)
             {
+                if (path_data.no_link && m_context->link_params().always_softlink)
+                {
+                    LOG_WARNING
+                        << "File '" << subtarget
+                        << "' is marked as `no_link`, ignoring --always-softlink and forcing copy.";
+                }
                 fs::copy(src, dst);
                 LOG_TRACE << "copied '" << src.string() << "'" << std::endl
                           << " --> '" << dst.string() << "'";

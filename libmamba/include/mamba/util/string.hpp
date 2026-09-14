@@ -375,6 +375,32 @@ namespace mamba::util
     ) -> typename Range::value_type;
     ;
 
+    /**
+     * Compute the similarity ratio between two strings, as Python difflib does.
+     *
+     * This reproduces ``difflib.SequenceMatcher(None, a, b).ratio()``.
+     * The Ratcliff/Obershelp measure ``2 * M / T`` is computed,
+     * where ``T`` is the total number of elements in both sequences,
+     * and ``M`` is the number of matches. The result lies in ``[0, 1]``. Identical
+     * sequences have a ratio of 1.0, and sequences with no common elements have a ratio of 0.0.
+     */
+    [[nodiscard]] auto similarity_ratio(std::string_view a, std::string_view b) -> double;
+
+    /**
+     * Return the candidate strings that are "closest" to @p input, best match first.
+     *
+     * This mirrors ``difflib.get_close_matches`` : a candidate is considered when its
+     * @ref similarity_ratio with @p input is greater than or equal to @p cutoff. Matches are
+     * sorted by decreasing similarity ratio, breaking ties by the larger candidate string first.
+     * At most @p max_results are returned.
+     */
+    [[nodiscard]] auto closest_matches(
+        std::string_view input,
+        const std::vector<std::string>& candidates,
+        double cutoff = 0.6,
+        std::size_t max_results = 3
+    ) -> std::vector<std::string>;
+
     /************************
      *  Implementation misc *
      ************************/

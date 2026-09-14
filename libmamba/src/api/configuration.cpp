@@ -2297,7 +2297,7 @@ namespace mamba
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
             print_dump(*this, dump_opts);
-            exit(0);
+            throw mamba_early_exit_request{};
         }
 
         m_context.set_log_level(m_context.output_params.logging_level);

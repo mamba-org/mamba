@@ -605,5 +605,179 @@ namespace
             REQUIRE(concat_dedup_splits("test/chan", "chan/foo", "//") == "test/chan//chan/foo");
             REQUIRE(concat_dedup_splits("test/chan", "chan/foo", '/') == "test/chan/foo");
         }
+
+        TEST_CASE("similarity_ratio")
+        {
+            SECTION("Identical and empty strings have ratio one")
+            {
+                REQUIRE(similarity_ratio("", "") == Catch::Approx(1.0));
+                REQUIRE(similarity_ratio("install", "install") == Catch::Approx(1.0));
+            }
+
+            SECTION("No common characters have ratio zero")
+            {
+                REQUIRE(similarity_ratio("abc", "xyz") == Catch::Approx(0.0));
+                REQUIRE(similarity_ratio("install", "remove") == Catch::Approx(0.0));
+            }
+
+            SECTION("Symmetry: ratio is the same regardless of order")
+            {
+                REQUIRE(
+                    similarity_ratio("repoquery", "reqoquery")
+                    == Catch::Approx(similarity_ratio("reqoquery", "repoquery"))
+                );
+            }
+
+            SECTION("Known difflib reference values")
+            {
+                REQUIRE(similarity_ratio("instal", "install") == Catch::Approx(0.923077).epsilon(1e-4));
+                REQUIRE(similarity_ratio("lsit", "list") == Catch::Approx(0.75));
+                REQUIRE(similarity_ratio("inof", "info") == Catch::Approx(0.75));
+                REQUIRE(similarity_ratio("ifno", "info") == Catch::Approx(0.75));
+                REQUIRE(similarity_ratio("rnu", "run") == Catch::Approx(0.666667).epsilon(1e-4));
+                REQUIRE(similarity_ratio("activ", "activate") == Catch::Approx(0.769231).epsilon(1e-4));
+                REQUIRE(
+                    similarity_ratio("reqoquery", "repoquery") == Catch::Approx(0.888889).epsilon(1e-4)
+                );
+                REQUIRE(
+                    similarity_ratio("whoneds", "whoneeds") == Catch::Approx(0.933333).epsilon(1e-4)
+                );
+                REQUIRE(similarity_ratio("kitten", "sitting") == Catch::Approx(0.615385).epsilon(1e-4));
+                REQUIRE(similarity_ratio("ab", "abcdef") == Catch::Approx(0.5));
+            }
+
+            SECTION("Case Sensitivity: comparison is byte-exact")
+            {
+                REQUIRE(similarity_ratio("List", "list") == Catch::Approx(0.75));
+            }
+
+            SECTION("Ratio is bounded between 0 and 1")
+            {
+                constexpr std::array<std::string_view, 6> words = { "install", "lst", "repoquery",
+                                                                    "",        "x",   "activate" };
+                for (const auto& w1 : words)
+                {
+                    for (const auto& w2 : words)
+                    {
+                        const double ratio = similarity_ratio(w1, w2);
+                        REQUIRE(ratio >= 0.0);
+                        REQUIRE(ratio <= 1.0);
+                    }
+                }
+            }
+        }
+
+        TEST_CASE("closest_matches")
+        {
+            const std::vector<std::string> commands = {
+                "activate",  "auth",    "clean",  "config",  "create", "env",
+                "info",      "install", "list",   "package", "ps",     "remove",
+                "repoquery", "run",     "search", "shell",   "update",
+            };
+
+            SECTION("A close typo returns the intended command first")
+            {
+                // difflib.get_close_matches("instal", commands) == ["install", "list"].
+                const auto matches = closest_matches("instal", commands);
+                REQUIRE(matches.size() == 2);
+                REQUIRE(matches.front() == "install");
+                REQUIRE(matches[1] == "list");
+            }
+
+            SECTION("Transpositions are matched (parity with conda/difflib)")
+            {
+                REQUIRE(closest_matches("lsit", commands).front() == "list");
+                REQUIRE(closest_matches("lnfo", commands).front() == "info");
+                REQUIRE(closest_matches("ifno", commands).front() == "info");
+                REQUIRE(closest_matches("rnu", commands).front() == "run");
+            }
+
+            SECTION("Truncated prefixes are matched")
+            {
+                // "active" -> "activate" has ratio 0.77>= 0.6.
+                REQUIRE(closest_matches("active", commands).front() == "activate");
+            }
+
+            SECTION("repoquery -> repoquery")
+            {
+                const auto matches = closest_matches("Repoquery", commands);
+                REQUIRE_FALSE(matches.empty());
+                REQUIRE(matches.front() == "repoquery");
+            }
+
+            SECTION("Upper-case letters are treated as distinct")
+            {
+                REQUIRE(
+                    similarity_ratio("Repoquery", "repoquery") == Catch::Approx(0.888889).epsilon(1e-4)
+                );
+                REQUIRE(closest_matches("Install", commands).front() == "install");
+            }
+
+            SECTION("An exact match returns itself first")
+            {
+                REQUIRE(closest_matches("list", commands).front() == "list");
+            }
+
+            SECTION("Nonsense below the cutoff yields no suggestion")
+            {
+                REQUIRE(closest_matches("zzzzzzzz", commands).empty());
+
+                // Short, dissimilar tokens that Levenshtein would wrongly match are rejected.
+                REQUIRE(closest_matches("xq", commands).empty());
+                REQUIRE(closest_matches("qwerty", commands).empty());
+            }
+
+            SECTION("Results are ordered by decreasing ratio")
+            {
+                const auto matches = closest_matches("instal", commands, 0.6, 5);
+                REQUIRE(matches.size() >= 2);
+                std::vector<double> ratios;
+                ratios.reserve(matches.size());
+                for (const auto& m : matches)
+                {
+                    ratios.push_back(similarity_ratio(m, "instal"));
+                }
+                REQUIRE(std::is_sorted(ratios.begin(), ratios.end(), std::greater<>{}));
+            }
+
+            SECTION("max_results caps the number of suggestions")
+            {
+                // A permissive cutoff matches several commands;
+                const auto matches = closest_matches("in", commands, 0.1, 100);
+                REQUIRE(matches.size() > 2);
+                // max_results caps the number of suggestions returned.
+                const auto matches_capped = closest_matches("in", commands, 0.1, 2);
+                REQUIRE(matches_capped.size() <= 2);
+            }
+
+            SECTION("The cutoff controls how permissive matching is")
+            {
+                // With the default cutoff, "in" only matches "info" (difflib parity).
+                const auto strict = closest_matches("in", commands);
+                REQUIRE(strict.size() == 1);
+                REQUIRE(strict.front() == "info");
+
+                // A very low cutoff lets many more candidates through.
+                const auto loose = closest_matches("in", commands, 0.1, 100);
+                REQUIRE(loose.size() > strict.size());
+            }
+
+            SECTION("Ties are broken by the larger candidate string (difflib nlargest parity)")
+            {
+                // "ybc" has ratio 2/3 with both "abc" and "xbc"; difflib's nlargest breaks the
+                // tie in favour of the lexicographically larger candidate.
+                const std::vector<std::string> tie_cands = { "abc", "xbc" };
+
+                const auto matches = closest_matches("ybc", tie_cands, 0.6, 2);
+                REQUIRE(matches.size() == 2);
+                REQUIRE(matches[0] == "xbc");
+                REQUIRE(matches[1] == "abc");
+            }
+
+            SECTION("Empty candidate list yields no matches")
+            {
+                REQUIRE(closest_matches("list", {}).empty());
+            }
+        }
     }
 }  // namespace mamba

@@ -10,6 +10,7 @@
 #include <cwchar>
 #include <cwctype>
 #include <iterator>
+#include <ranges>
 #include <stdexcept>
 
 #include "mamba/util/string.hpp"
@@ -988,5 +989,123 @@ namespace mamba::util
             return 1;
         }
 
+    }
+
+    /**************************************
+     *  Implementation of match / suggestion functions  *
+     **************************************/
+
+    namespace
+    {
+        // Total number of matched characters between strings `a` and `b`.
+        // Following Python's difflib.SequenceMatcher algorithm :
+        // Find the longest common contiguous block, then recurse on the left and right of the
+        // block.
+        auto ratcliff_obershelp_matches(std::string_view a, std::string_view b) -> std::size_t
+        {
+            if (a.empty() || b.empty())
+            {
+                return 0;
+            }
+
+            // Longest matching block via difflib DP.
+            std::size_t best_a = 0;
+            std::size_t best_b = 0;
+            std::size_t best_size = 0;
+            std::vector<std::size_t> j2len(b.size(), 0);
+            for (std::size_t i = 0; i < a.size(); ++i)
+            {
+                std::vector<std::size_t> new_j2len(b.size(), 0);
+                for (std::size_t j = 0; j < b.size(); ++j)
+                {
+                    if (a[i] != b[j])
+                    {
+                        continue;
+                    }
+                    const std::size_t k = (j == 0 ? 0 : j2len[j - 1]) + 1;
+                    new_j2len[j] = k;
+                    if (k > best_size)
+                    {
+                        best_a = i - k + 1;
+                        best_b = j - k + 1;
+                        best_size = k;
+                    }
+                }
+                j2len = std::move(new_j2len);
+            }
+
+            if (best_size == 0)
+            {
+                return 0;
+            }
+
+            const std::size_t left = ratcliff_obershelp_matches(
+                a.substr(0, best_a),
+                b.substr(0, best_b)
+            );
+            const std::size_t right = ratcliff_obershelp_matches(
+                a.substr(best_a + best_size),
+                b.substr(best_b + best_size)
+            );
+            return best_size + left + right;
+        }
+    }
+
+    auto similarity_ratio(std::string_view a, std::string_view b) -> double
+    {
+        const std::size_t total = a.size() + b.size();
+        if (total == 0)
+        {
+            return 1.0;
+        }
+        const std::size_t matches = ratcliff_obershelp_matches(a, b);
+        return (2.0 * static_cast<double>(matches)) / static_cast<double>(total);
+    }
+
+    auto closest_matches(
+        std::string_view input,
+        const std::vector<std::string>& candidates,
+        double cutoff,
+        std::size_t max_results
+    ) -> std::vector<std::string>
+    {
+        struct Scored
+        {
+            double ratio;
+            const std::string* value;
+        };
+
+        // Mirror difflib.get_close_matches() implementation.
+        namespace views = std::ranges::views;
+
+        auto scored_view = candidates
+                           | views::transform(
+                               [&](const std::string& candidate) -> Scored
+                               { return { similarity_ratio(input, candidate), &candidate }; }
+                           )
+                           | views::filter([cutoff](const Scored& s) { return s.ratio >= cutoff; });
+
+        // TODO(C++23): std::ranges::to<std::vector>
+        auto scored = std::vector<Scored>(scored_view.begin(), scored_view.end());
+
+        // difflib returns the n largest (ratio, candidate) pairs, so ties
+        // are broken by the larger candidate string.
+        std::stable_sort(
+            scored.begin(),
+            scored.end(),
+            [](const Scored& a, const Scored& b)
+            {
+                if (a.ratio != b.ratio)
+                {
+                    return a.ratio > b.ratio;
+                }
+                return *a.value > *b.value;
+            }
+        );
+
+        auto results_view = scored | views::take(max_results)
+                            | views::transform([](const Scored& s) { return *s.value; });
+        // TODO(C++23): std::ranges::to<std::vector>
+        return std::vector<std::string>(results_view.begin(), results_view.end());
     }
 }

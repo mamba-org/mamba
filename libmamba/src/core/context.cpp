@@ -321,6 +321,8 @@ namespace mamba
         PRINT_CTX(out, auto_activate_base);
         PRINT_CTX(out, validation_params.extra_safety_checks);
         PRINT_CTX(out, threads_params.download_threads);
+        PRINT_CTX(out, threads_params.extract_threads);
+        PRINT_CTX(out, threads_params.link_threads);
         PRINT_CTX(out, output_params.verbosity);
         PRINT_CTX(out, channel_alias);
         out << "channel_priority: " << static_cast<int>(channel_priority) << '\n';

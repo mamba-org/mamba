@@ -1065,19 +1065,23 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             py::init(
                 [](decltype(ThreadsParams::download_threads) download_threads,
-                   decltype(ThreadsParams::extract_threads) extract_threads) -> ThreadsParams
+                   decltype(ThreadsParams::extract_threads) extract_threads,
+                   decltype(ThreadsParams::link_threads) link_threads) -> ThreadsParams
                 {
                     return {
                         .download_threads = std::move(download_threads),
                         .extract_threads = std::move(extract_threads),
+                        .link_threads = std::move(link_threads),
                     };
                 }
             ),
             py::arg("download_threads") = default_threads_params.download_threads,
-            py::arg("extract_threads") = default_threads_params.extract_threads
+            py::arg("extract_threads") = default_threads_params.extract_threads,
+            py::arg("link_threads") = default_threads_params.link_threads
         )
         .def_readwrite("download_threads", &ThreadsParams::download_threads)
-        .def_readwrite("extract_threads", &ThreadsParams::extract_threads);
+        .def_readwrite("extract_threads", &ThreadsParams::extract_threads)
+        .def_readwrite("link_threads", &ThreadsParams::link_threads);
 
     static const auto default_command_params = CommandParams{};
     pyCommandParams

@@ -7,13 +7,19 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
+#include <cstdint>
+#include <exception>
 #include <iostream>
 #include <iterator>
+#include <numeric>
 #include <regex>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <fmt/format.h>
@@ -24,8 +30,10 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/cryptography.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
@@ -401,7 +409,7 @@ namespace mamba
 
         if (fs::exists(script_path))
         {
-            m_clobber_warnings.push_back(fs::relative(script_path, target_prefix).string());
+            m_clobber_warnings->push_back(fs::relative(script_path, target_prefix).string());
             fs::remove(script_path);
         }
         if (!fs::is_directory(script_path.parent_path()))
@@ -427,7 +435,7 @@ namespace mamba
 #ifdef _WIN32
         if (fs::exists(script_exe_path))
         {
-            m_clobber_warnings.push_back(fs::relative(script_exe_path, target_prefix).string());
+            m_clobber_warnings->push_back(fs::relative(script_exe_path, target_prefix).string());
             fs::remove(script_exe_path);
         }
 
@@ -489,7 +497,7 @@ namespace mamba
         // target_full_path: the location of the new entry point file being created
         if (fs::exists(target_full_path))
         {
-            m_clobber_warnings.push_back(target_full_path.string());
+            m_clobber_warnings->push_back(target_full_path.string());
         }
 
         if (!fs::is_directory(target_full_path.parent_path()))
@@ -915,6 +923,36 @@ namespace mamba
         return lp.execute();
     }
 
+    namespace
+    {
+        auto elapsed_ms(std::chrono::steady_clock::time_point start) -> std::int64_t
+        {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                       std::chrono::steady_clock::now() - start
+            )
+                .count();
+        }
+
+        auto sha256_hex(std::string_view data) -> std::string
+        {
+            thread_local util::Sha256Hasher hasher;
+            return hasher.str_hex_str(data);
+        }
+
+        auto destination_relative_path(
+            const PathData& path_data,
+            bool noarch_python,
+            const fs::u8path& site_packages_path
+        ) -> fs::u8path
+        {
+            if (noarch_python)
+            {
+                return get_python_noarch_target_path(path_data.path, site_packages_path);
+            }
+            return path_data.path;
+        }
+    }
+
     LinkPackage::LinkPackage(
         const specs::PackageInfo& pkg_info,
         const fs::u8path& cache_path,
@@ -949,16 +987,12 @@ namespace mamba
         }
 
         fs::u8path src = m_source / subtarget;
-        if (!fs::exists(dst.parent_path()))
-        {
-            fs::create_directories(dst.parent_path());
-        }
 
         std::error_code ec;
         if (lexists(dst, ec) && !ec)
         {
             // Sometimes we might want to raise here ...
-            m_clobber_warnings.push_back(rel_dst.string());
+            m_clobber_warnings->push_back(rel_dst.string());
 #ifdef _WIN32
             // Try to compute SHA256 of existing file, but if it fails (e.g., file is locked
             // or from a pip package), fall back to removing it like on other platforms
@@ -1122,9 +1156,10 @@ namespace mamba
             if (binary_changed && m_pkg_info.platform == "osx-arm64")
             {
                 codesign(dst, m_context->transaction_params().verbosity > 1);
+                return std::tuple(validation::sha256sum(dst), rel_dst.generic_string());
             }
 #endif
-            return std::tuple(validation::sha256sum(dst), rel_dst.generic_string());
+            return std::tuple(sha256_hex(buffer), rel_dst.generic_string());
         }
 
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
@@ -1216,6 +1251,48 @@ namespace mamba
         return pyc_files;
     }
 
+    void
+    LinkPackage::create_parent_directories(const std::vector<PathData>& paths_data, bool noarch_python)
+    {
+        const auto& prefix = m_context->prefix_params().target_prefix;
+        const auto& site_packages = m_context->python_params().site_packages_path;
+
+        std::unordered_set<std::string> seen;
+        std::vector<fs::u8path> dirs;
+        dirs.reserve(paths_data.size());
+
+        for (const auto& path : paths_data)
+        {
+            const fs::u8path rel_dst = destination_relative_path(path, noarch_python, site_packages);
+            fs::u8path parent = (prefix / rel_dst).parent_path();
+            if (parent.empty() || parent == prefix)
+            {
+                continue;
+            }
+            if (seen.insert(parent.string()).second)
+            {
+                dirs.push_back(std::move(parent));
+            }
+        }
+
+        std::sort(
+            dirs.begin(),
+            dirs.end(),
+            [](const fs::u8path& a, const fs::u8path& b)
+            { return a.string().size() < b.string().size(); }
+        );
+
+        for (const auto& dir : dirs)
+        {
+            std::error_code ec;
+            fs::create_directories(dir, ec);
+            if (ec)
+            {
+                LOG_WARNING << "Could not create directory " << dir << ": " << ec.message();
+            }
+        }
+    }
+
     enum class NoarchType
     {
         NOT_A_NOARCH,
@@ -1226,6 +1303,7 @@ namespace mamba
 
     bool LinkPackage::execute()
     {
+        const auto pkg_start = std::chrono::steady_clock::now();
         nlohmann::json index_json, out_json;
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
 
@@ -1238,6 +1316,7 @@ namespace mamba
             "",
             false
         );
+        const auto pre_link_ms = elapsed_ms(pkg_start);
 
         LOG_TRACE << "Opening: " << m_source / "info" / "paths.json";
         auto paths_data = read_paths(m_source);
@@ -1277,20 +1356,93 @@ namespace mamba
             }
         }
 
+        const bool noarch_python = noarch_type == NoarchType::PYTHON;
+
+        const auto dirs_start = std::chrono::steady_clock::now();
+        create_parent_directories(paths_data, noarch_python);
+        const auto dirs_ms = elapsed_ms(dirs_start);
+
         std::vector<std::string> files_record;
+        files_record.reserve(paths_data.size());
 
         nlohmann::json paths_json = nlohmann::json::object();
         paths_json["paths"] = nlohmann::json::array();
         paths_json["paths_version"] = 1;
 
-        for (auto& path : paths_data)
+        std::vector<std::tuple<std::string, std::string>> linked(paths_data.size());
+        const auto n_link_threads = normalize_to_affinity_concurrency(
+            static_cast<std::ptrdiff_t>(m_context->transaction_params().threads_params.link_threads)
+        );
+
+        std::vector<std::size_t> indices(paths_data.size());
+        std::iota(indices.begin(), indices.end(), std::size_t{ 0 });
+
+        const auto files_start = std::chrono::steady_clock::now();
+        auto link_one = [&](std::size_t i)
         {
-            auto [sha256_in_prefix, final_path] = link_path(path, noarch_type == NoarchType::PYTHON);
+            interruption_point();
+            linked[i] = link_path(paths_data[i], noarch_python);
+        };
+
+        // Prefer std::for_each; parallelize by partitioning over std::jthread workers.
+        // std::execution::par is not used: on libstdc++ it requires linking TBB.
+        if (n_link_threads <= 1 || indices.size() <= 1)
+        {
+            std::for_each(indices.begin(), indices.end(), link_one);
+        }
+        else
+        {
+            const std::size_t n_items = indices.size();
+            const std::size_t n_workers = std::min(n_link_threads, n_items);
+            util::synchronized_value<std::exception_ptr> first_exception;
+            {
+                std::vector<std::jthread> workers;
+                workers.reserve(n_workers);
+                for (std::size_t t = 0; t < n_workers; ++t)
+                {
+                    const std::size_t begin = t * n_items / n_workers;
+                    const std::size_t end = (t + 1) * n_items / n_workers;
+                    workers.emplace_back(
+                        [&, begin, end]()
+                        {
+                            try
+                            {
+                                std::for_each(
+                                    indices.begin() + static_cast<std::ptrdiff_t>(begin),
+                                    indices.begin() + static_cast<std::ptrdiff_t>(end),
+                                    link_one
+                                );
+                            }
+                            catch (...)
+                            {
+                                auto exception = first_exception.synchronize();
+                                if (!*exception)
+                                {
+                                    *exception = std::current_exception();
+                                }
+                            }
+                        }
+                    );
+                }
+            }
+
+            if (auto exception = first_exception.value())
+            {
+                std::rethrow_exception(exception);
+            }
+            interruption_point();
+        }
+        const auto files_ms = elapsed_ms(files_start);
+
+        for (std::size_t i = 0; i < paths_data.size(); ++i)
+        {
+            const auto& [sha256_in_prefix, final_path] = linked[i];
             files_record.push_back(final_path);
 
             nlohmann::json json_record = { { "_path", final_path },
                                            { "sha256_in_prefix", sha256_in_prefix } };
 
+            const auto& path = paths_data[i];
             if (!path.sha256.empty())
             {
                 json_record["sha256"] = path.sha256;
@@ -1322,66 +1474,72 @@ namespace mamba
             paths_json["paths"].push_back(json_record);
         }
 
+        const auto& prefix = m_context->prefix_params().target_prefix;
+        std::unordered_map<std::string, std::string> sha_by_abs_path;
+        sha_by_abs_path.reserve(paths_data.size());
         for (std::size_t i = 0; i < paths_data.size(); ++i)
         {
-            auto& path = paths_data[i];
-            if (path.path_type == PathType::SOFTLINK)
+            if (paths_data[i].path_type == PathType::SOFTLINK)
             {
-                // here we try to avoid recomputing the costly sha256 sum
-                std::error_code ec;
-                auto points_to = fs::canonical(
-                    m_context->prefix_params().target_prefix / files_record[i],
-                    ec
+                continue;
+            }
+            const auto& rec = paths_json["paths"][i];
+            if (rec.contains("sha256_in_prefix"))
+            {
+                sha_by_abs_path.emplace(
+                    (prefix / files_record[i]).string(),
+                    rec["sha256_in_prefix"].get<std::string>()
                 );
-                bool found = false;
-                if (!ec)
-                {
-                    for (std::size_t pix = 0; pix < files_record.size(); ++pix)
-                    {
-                        if ((m_context->prefix_params().target_prefix / files_record[pix])
-                            == points_to)
-                        {
-                            if (paths_json["paths"][pix].contains("sha256_in_prefix"))
-                            {
-                                LOG_TRACE << "Found symlink and target " << files_record[i]
-                                          << " -> " << files_record[pix];
-                                // use already computed value
-                                paths_json["paths"][i]["sha256_in_prefix"] = paths_json["paths"][pix]
-                                                                                       ["sha256_in_prefix"];
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (!found)
-                {
-                    bool exists = fs::exists(
-                        m_context->prefix_params().target_prefix / files_record[i],
-                        ec
-                    );
-                    if (ec)
-                    {
-                        LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
-                                    << ec.message();
-                        exists = false;
-                    }
+            }
+        }
 
-                    if (exists)
-                    {
-                        paths_json["paths"][i]["sha256_in_prefix"] = validation::sha256sum(
-                            m_context->prefix_params().target_prefix / files_record[i]
-                        );
-                    }
-                    else
-                    {
-                        // for broken symlinks (that don't yet point anywhere valid) we record the
-                        // sha256 for an empty string
-                        paths_json["paths"][i]["sha256_in_prefix"] = MAMBA_EMPTY_SHA;
-                    }
+        const auto softlink_start = std::chrono::steady_clock::now();
+        for (std::size_t i = 0; i < paths_data.size(); ++i)
+        {
+            if (paths_data[i].path_type != PathType::SOFTLINK)
+            {
+                continue;
+            }
+
+            // Avoid recomputing the costly sha256 sum when the target was linked in this package.
+            std::error_code ec;
+            auto points_to = fs::canonical(prefix / files_record[i], ec);
+            bool found = false;
+            if (!ec)
+            {
+                if (auto it = sha_by_abs_path.find(points_to.string()); it != sha_by_abs_path.end())
+                {
+                    LOG_TRACE << "Found symlink and target " << files_record[i] << " -> "
+                              << points_to;
+                    paths_json["paths"][i]["sha256_in_prefix"] = it->second;
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                bool exists = fs::exists(prefix / files_record[i], ec);
+                if (ec)
+                {
+                    LOG_WARNING << "Could not check existence for " << files_record[i] << ": "
+                                << ec.message();
+                    exists = false;
+                }
+
+                if (exists)
+                {
+                    paths_json["paths"][i]["sha256_in_prefix"] = validation::sha256sum(
+                        prefix / files_record[i]
+                    );
+                }
+                else
+                {
+                    // for broken symlinks (that don't yet point anywhere valid) we record the
+                    // sha256 for an empty string
+                    paths_json["paths"][i]["sha256_in_prefix"] = MAMBA_EMPTY_SHA;
                 }
             }
         }
+        const auto softlink_ms = elapsed_ms(softlink_start);
 
         LOG_DEBUG << paths_data.size() << " files linked";
 
@@ -1502,6 +1660,7 @@ namespace mamba
             }
         }
 
+        const auto post_link_start = std::chrono::steady_clock::now();
         run_script(
             m_context->transaction_params(),
             m_context->prefix_params(),
@@ -1511,6 +1670,7 @@ namespace mamba
             "",
             true
         );
+        const auto post_link_ms = elapsed_ms(post_link_start);
 
         fs::u8path prefix_meta = m_context->prefix_params().target_prefix / "conda-meta";
         if (!fs::exists(prefix_meta))
@@ -1521,15 +1681,26 @@ namespace mamba
         LOG_DEBUG << "Finalizing linking";
         auto meta = prefix_meta / (f_name + ".json");
         LOG_TRACE << "Adding package to prefix metadata at '" << meta.string() << "'";
+        const auto meta_start = std::chrono::steady_clock::now();
         std::ofstream out_file = open_ofstream(meta);
         out_file << out_json.dump(4);
+        const auto meta_ms = elapsed_ms(meta_start);
 
-        if (!m_clobber_warnings.empty())
         {
-            LOG_WARNING << "[" << f_name
-                        << "] The following files were already present in the environment:\n- "
-                        << util::join("\n- ", m_clobber_warnings);
+            const auto warnings = m_clobber_warnings.synchronize();
+            if (!warnings->empty())
+            {
+                LOG_WARNING << "[" << f_name
+                            << "] The following files were already present in the environment:\n- "
+                            << util::join("\n- ", *warnings);
+            }
         }
+
+        LOG_INFO << "Link timing for " << f_name << ": " << paths_data.size() << " files, "
+                 << n_link_threads << " threads; total=" << elapsed_ms(pkg_start)
+                 << "ms (pre-link=" << pre_link_ms << "ms, dirs=" << dirs_ms
+                 << "ms, files=" << files_ms << "ms, softlinks=" << softlink_ms
+                 << "ms, post-link=" << post_link_ms << "ms, conda-meta=" << meta_ms << "ms)";
 
         return true;
     }

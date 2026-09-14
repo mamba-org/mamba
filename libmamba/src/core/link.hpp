@@ -17,6 +17,7 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 #include "./transaction_context.hpp"
 
@@ -94,6 +95,7 @@ namespace mamba
     private:
 
         std::tuple<std::string, std::string> link_path(const PathData& path_data, bool noarch_python);
+        void create_parent_directories(const std::vector<PathData>& paths_data, bool noarch_python);
         std::vector<fs::u8path> compile_pyc_files(const std::vector<fs::u8path>& py_files);
         auto
         create_python_entry_point(const fs::u8path& path, const python_entry_point_parsed& entry_point);
@@ -106,7 +108,7 @@ namespace mamba
         specs::PackageInfo m_pkg_info;
         fs::u8path m_cache_path;
         fs::u8path m_source;
-        std::vector<std::string> m_clobber_warnings;
+        util::synchronized_value<std::vector<std::string>> m_clobber_warnings;
         TransactionContext* m_context;
     };
 

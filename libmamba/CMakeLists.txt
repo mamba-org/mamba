@@ -9,33 +9,14 @@ cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(libmamba)
 
-include(CheckCXXSourceCompiles)
-
-# std::chrono::parse (P0355) is not yet available on all platforms (e.g. libc++ on macOS).
+# std::chrono::parse (P0355) is not yet available on libc++ (macOS).
 # https://github.com/llvm/llvm-project/issues/166051
-if(NOT DEFINED MAMBA_HAVE_STD_CHRONO_PARSE)
-    # CMAKE_REQUIRED_FLAGS is a string (not a CMake list); list(APPEND) would inject ';'.
-    set(CMAKE_REQUIRED_FLAGS_BACKUP "${CMAKE_REQUIRED_FLAGS}")
-    if(MSVC)
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} /std:c++20")
-    else()
-        set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -std=c++20")
-    endif()
-    check_cxx_source_compiles(
-        "
-#include <chrono>
-#include <sstream>
-int main()
-{
-    std::istringstream is{ \"2020-01-01\" };
-    std::chrono::sys_days d{};
-    is >> std::chrono::parse( \"%F\", d );
-    return is.fail() ? 1 : 0;
-}
-"
-        MAMBA_HAVE_STD_CHRONO_PARSE
-    )
-    set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS_BACKUP}")
+
+# TODO: drop Howard Hinnant fallback once libc++ implements P0355.
+if(APPLE)
+    set(MAMBA_HAVE_STD_CHRONO_PARSE FALSE)
+else()
+    set(MAMBA_HAVE_STD_CHRONO_PARSE TRUE)
 endif()
 
 if(MAMBA_HAVE_STD_CHRONO_PARSE)

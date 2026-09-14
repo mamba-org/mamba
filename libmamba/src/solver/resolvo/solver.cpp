@@ -1,0 +1,190 @@
+// Copyright (c) 2026, QuantStack and Mamba Contributors
+//
+// Distributed under the terms of the BSD 3-Clause License.
+//
+// The full license is in the file LICENSE, distributed with this software.
+
+#include "mamba/solver/resolvo/database.hpp"
+#include "mamba/solver/resolvo/solver.hpp"
+#include "mamba/util/string.hpp"
+#include "mamba/util/variant_cmp.hpp"
+
+namespace mamba::solver::resolvo
+{
+    namespace
+    {
+        /**
+         * An arbitrary comparison function to get determinist output.
+         */
+        auto make_request_cmp()
+        {
+            return util::make_variant_cmp(
+                /** index_cmp= */
+                [](auto lhs, auto rhs) { return lhs < rhs; },
+                /** alternative_cmp= */
+                [](const auto& lhs, const auto& rhs)
+                {
+                    using Itm = std::decay_t<decltype(lhs)>;
+                    if constexpr (!std::is_same_v<Itm, Request::UpdateAll>)
+                    {
+                        return lhs.spec.name().to_string() < rhs.spec.name().to_string();
+                    }
+                    return false;
+                }
+            );
+        }
+
+        auto request_to_requirements(const Request& request, Database& database)
+            -> std::vector<::resolvo::VersionSetId>
+        {
+            std::vector<::resolvo::VersionSetId> requirements;
+            requirements.reserve(request.jobs.size());
+
+            for (const auto& job : request.jobs)
+            {
+                std::visit(
+                    [&](const auto& j)
+                    {
+                        using T = std::decay_t<decltype(j)>;
+                        if constexpr (std::is_same_v<T, Request::Install>)
+                        {
+                            requirements.push_back(
+                                database.alloc_version_set(j.spec.name().to_string())
+                            );
+                        }
+                    },
+                    job
+                );
+            }
+            return requirements;
+        }
+
+        auto request_to_constraints(const Request& request, Database& database)
+            -> std::vector<::resolvo::VersionSetId>
+        {
+            std::vector<::resolvo::VersionSetId> constraints;
+            constraints.reserve(request.jobs.size());
+
+            for (const auto& job : request.jobs)
+            {
+                std::visit(
+                    [&](const auto& j)
+                    {
+                        using T = std::decay_t<decltype(j)>;
+                        if constexpr (std::is_same_v<T, Request::Remove>)
+                        {
+                            constraints.push_back(
+                                database.alloc_version_set(j.spec.name().to_string())
+                            );
+                        }
+                    },
+                    job
+                );
+            }
+            return constraints;
+        }
+
+        auto result_to_solution(
+            const ::resolvo::Vector<::resolvo::SolvableId>& result,
+            Database& database,
+            const Request&
+        ) -> Solution
+        {
+            Solution solution;
+            solution.actions.reserve(result.size());
+
+            for (const auto& solvable_id : result)
+            {
+                const auto& solvable = database.solvable_pool[solvable_id];
+                if (util::starts_with(solvable.name, "__"))
+                {
+                    continue;
+                }
+                // Preserve full package metadata (url, filename, platform, hashes, etc.)
+                // so downstream transaction/cache logic behaves exactly like libsolv.
+                specs::PackageInfo pkg = solvable;
+
+                solution.actions.emplace_back(Solution::Install{ std::move(pkg) });
+            }
+
+            return solution;
+        }
+    }
+
+    auto Solver::solve_impl(Database& database, const Request& request) -> expected_t<Outcome>
+    {
+        auto requirements = request_to_requirements(request, database);
+        auto constraints = request_to_constraints(request, database);
+        ::resolvo::Vector<::resolvo::SolvableId> result;
+
+        ::resolvo::Vector<::resolvo::VersionSetId> constr_vec;
+        for (const auto& constr : constraints)
+        {
+            constr_vec.push_back(constr);
+        }
+
+#ifdef LIBMAMBA_RESOLVO_HAS_CONDITIONS
+        ::resolvo::Vector<::resolvo::VersionSetId> req_vec;
+        for (const auto& req : requirements)
+        {
+            req_vec.push_back(req);
+        }
+
+        ::resolvo::Vector<::resolvo::ConditionalRequirement> req_conditional;
+        for (const auto& req : req_vec)
+        {
+            req_conditional.push_back(::resolvo::ConditionalRequirement(::resolvo::Requirement(req)));
+        }
+
+        ::resolvo::Problem problem = {
+            .requirements = req_conditional,
+            .constraints = constr_vec,
+            .soft_requirements = {},
+        };
+#else
+        ::resolvo::Vector<::resolvo::Requirement> req_vec;
+        for (const auto& req : requirements)
+        {
+            req_vec.push_back(::resolvo::cbindgen_private::resolvo_requirement_single(req));
+        }
+
+        ::resolvo::Problem problem = {
+            .requirements = req_vec,
+            .constraints = constr_vec,
+            .soft_requirements = {},
+        };
+#endif
+
+        ::resolvo::String reason = ::resolvo::solve(database, problem, result);
+
+        if (reason != "")
+        {
+            // Get the length from a string view of the reason
+            std::string_view reason_str_view = reason;
+            std::string reason_str(reason.data(), reason_str_view.size());
+            return make_unexpected(reason_str, mamba_error_code::satisfiablitity_error);
+        }
+
+        return Outcome{ result_to_solution(result, database, request) };
+    }
+
+    auto Solver::solve(Database& database, Request&& request) -> expected_t<Outcome>
+    {
+        if (request.flags.order_request)
+        {
+            std::sort(request.jobs.begin(), request.jobs.end(), make_request_cmp());
+        }
+        return solve_impl(database, request);
+    }
+
+    auto Solver::solve(Database& database, const Request& request) -> expected_t<Outcome>
+    {
+        if (request.flags.order_request)
+        {
+            auto sorted_request = request;
+            std::sort(sorted_request.jobs.begin(), sorted_request.jobs.end(), make_request_cmp());
+            return solve_impl(database, sorted_request);
+        }
+        return solve_impl(database, request);
+    }
+}

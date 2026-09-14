@@ -44,7 +44,6 @@
 namespace mamba
 {
     std::vector<std::string> extract_package_names_from_specs(const std::vector<std::string>& specs);
-    std::vector<std::string> read_explicit_urls(const fs::u8path& path);
     void add_python_related_roots_if_python_requested(std::vector<std::string>& root_packages);
     std::pair<solver::libsolv::Database, MultiPackageCache> prepare_solver_context(
         Context& ctx,
@@ -864,6 +863,8 @@ TEST_CASE("Sharded repodata - solve pyjs-obspy env specs on emscripten", "[mamba
 TEST_CASE("Sharded repodata - solve omni env specs", "[mamba::core][sharded][.integration]")
 {
     // Non-regression for https://github.com/mamba-org/mamba/issues/4277
+    // Large classic env file (omni.env.txt): sharded loading and root expansion must remain
+    // solvable when mixing flat bioconda subdirs with sharded conda-forge.
     auto& ctx = mambatests::context();
     mambatests::ScopedContextChange context_change{ ctx };
     context_change.set_channels({ "conda-forge", "bioconda" })
@@ -987,7 +988,7 @@ TEST_CASE("Sharded repodata - minrk gist downgrade non-regression", "[mamba::cor
     auto channel_context = ChannelContext::make_conda_compatible(ctx);
     init_channels(ctx, channel_context);
 
-    const auto explicit_urls = read_explicit_urls(
+    const auto explicit_urls = mambatests::read_explicit_urls(
         mambatests::test_data_dir / "env_file/minrk_environment.py-3.9-linux-64.lock"
     );
     REQUIRE(explicit_urls.size() >= 150);

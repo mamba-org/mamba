@@ -80,7 +80,7 @@ namespace mamba::logging::testing
             stats->current_params = std::move(params);
         }
 
-        auto stop_log_handling(stop_reason) -> void
+        auto stop_log_handling() -> void
         {
             ++pimpl->stats->stop_count;
         }
@@ -178,7 +178,7 @@ namespace mamba::logging::testing
 
         // clang-format off
             auto start_log_handling(LoggingParams, const std::vector<log_source>&) -> void {}
-            auto stop_log_handling(stop_reason) -> void {}
+            auto stop_log_handling() -> void {}
             auto set_log_level(log_level) -> void {}
             auto set_params(LoggingParams) -> void {}
             auto log(LogRecord) -> void {}
@@ -211,7 +211,6 @@ namespace mamba::logging::testing
         std::string format_log_message_backtrace_without_guard = "test log in backtrace without guards {}";
         log_level level = log_level::warn;
         std::size_t backtrace_size = 5;
-        stop_reason last_stop_reason = stop_reason::program_exit;
         std::vector<log_source> log_sources = testing_log_sources();
     };
 
@@ -225,7 +224,7 @@ namespace mamba::logging::testing
         }
 
         // clear previous log handler if any
-        stop_logging(stop_reason::manual_stop);
+        stop_logging();
 
         testing::Stats stats;
 
@@ -236,7 +235,7 @@ namespace mamba::logging::testing
             REQUIRE(get_log_handler().has_value());
             ++stats.start_count;
 
-            auto original_handler = stop_logging(stop_reason::manual_stop);
+            auto original_handler = stop_logging();
             REQUIRE(original_handler.has_value());
             REQUIRE(not get_log_handler().has_value());
             ++stats.stop_count;
@@ -375,7 +374,7 @@ namespace mamba::logging::testing
         }
 
         ++stats.stop_count;
-        return { .stats = std::move(stats), .handler = stop_logging(options.last_stop_reason) };
+        return { .stats = std::move(stats), .handler = stop_logging() };
     }
 
     // This generator must be kept in sync with testing::test_classic_inline_logging_api_usage()

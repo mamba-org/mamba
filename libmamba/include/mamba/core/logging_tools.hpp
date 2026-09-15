@@ -239,7 +239,7 @@ namespace mamba::logging
         */
         ///@{
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
-        auto stop_log_handling(stop_reason reason) -> void;
+        auto stop_log_handling() -> void;
 
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;
@@ -356,7 +356,7 @@ namespace mamba::logging
         */
         ///@{
         auto start_log_handling(LoggingParams params, const std::vector<log_source>&) -> void;
-        auto stop_log_handling(stop_reason reason) -> void;
+        auto stop_log_handling() -> void;
 
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;
@@ -435,7 +435,7 @@ namespace mamba::logging
         pimpl->data.unsafe_get().backtrace.set_max_trace(params.log_backtrace);
     }
 
-    inline auto LogHandler_History::stop_log_handling(stop_reason) -> void
+    inline auto LogHandler_History::stop_log_handling() -> void
     {
         if (options.clear_on_stop)
         {
@@ -601,7 +601,7 @@ namespace mamba::logging
     }
 
     template <OutputStream T>
-    inline auto LogHandler_Stream<T>::stop_log_handling(stop_reason) -> void
+    inline auto LogHandler_Stream<T>::stop_log_handling() -> void
     {
         assert(out);
         assert(pimpl);

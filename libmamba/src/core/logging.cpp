@@ -69,7 +69,7 @@ namespace mamba::logging
             std::call_once(flag, [&]{
                 // We dont want to propagate the error if any, just log it and continue;
                 // we dont need the resulting value if any.
-                [[maybe_unused]] auto result = safe_invoke([this] { this->stop_log_handling(stop_reason::program_exit); })
+                [[maybe_unused]] auto result = safe_invoke([this] { this->stop_log_handling(); })
                     .map_error([](const mamba_error& error){
                             // Here with report the error in the standard output to avoid any logging
                             // implementation.
@@ -91,13 +91,12 @@ namespace mamba::logging
         auto change_log_handler(
             AnyLogHandler new_handler,
             std::optional<LoggingParams> maybe_new_params,
-            stop_reason reason,
             std::vector<log_source> sources
         ) -> AnyLogHandler
         {
             if (details::current_log_handler)
             {
-                details::current_log_handler.stop_log_handling(reason);
+                details::current_log_handler.stop_log_handling();
             }
 
             auto previous_handler = std::exchange(details::current_log_handler, std::move(new_handler));
@@ -114,14 +113,14 @@ namespace mamba::logging
 
     }
 
-    auto stop_logging(stop_reason reason) -> AnyLogHandler
+    auto stop_logging() -> AnyLogHandler
     {
         if (not details::current_log_handler)
         {
             // No installed log-handler: do nothing.
             return {};
         }
-        return change_log_handler({}, {}, reason, {});
+        return change_log_handler({}, {}, {});
     }
 
     auto set_log_handler(
@@ -133,7 +132,6 @@ namespace mamba::logging
         return change_log_handler(
             std::move(new_handler),
             std::move(maybe_new_params),
-            stop_reason::manual_stop,
             std::move(new_log_sources)
         );
     }

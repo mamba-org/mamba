@@ -14,19 +14,19 @@ project(libmamba)
 
 # TODO: drop Howard Hinnant fallback once libc++ implements P0355.
 if(APPLE)
-    set(MAMBA_HAVE_STD_CHRONO_PARSE FALSE)
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE ON)
 else()
-    set(MAMBA_HAVE_STD_CHRONO_PARSE TRUE)
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE OFF)
 endif()
 
-if(MAMBA_HAVE_STD_CHRONO_PARSE)
-    message(STATUS "libmamba: using std::chrono::parse for date/datetime parsing")
-else()
+if(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
     find_package(date CONFIG REQUIRED)
     message(
         STATUS
             "libmamba: using Howard Hinnant date for date/datetime parsing (std::chrono::parse unavailable)"
     )
+else()
+    message(STATUS "libmamba: using std::chrono::parse for date/datetime parsing")
 endif()
 
 set(LIBMAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -758,8 +758,8 @@ macro(libmamba_create_target target_name linkage output_name)
         target_link_libraries(${target_name} PUBLIC Threads::Threads)
     endif()
 
-    if(NOT MAMBA_HAVE_STD_CHRONO_PARSE)
-        target_compile_definitions(${target_name} PUBLIC MAMBA_USE_HOWARD_HINNANT_DATE)
+    if(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
+        target_compile_definitions(${target_name} PUBLIC LIBMAMBA_USE_HOWARD_HINNANT_DATE)
         target_link_libraries(${target_name} PUBLIC date::date date::date-tz)
     endif()
 
@@ -838,12 +838,6 @@ install(
     PATTERN "*.hpp"
     PATTERN "*.h"
 )
-
-if(NOT MAMBA_HAVE_STD_CHRONO_PARSE)
-    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE ON)
-else()
-    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE OFF)
-endif()
 
 # Configure 'mambaConfig.cmake' for a build tree
 set(MAMBA_CONFIG_CODE "####### Expanded from \@MAMBA_CONFIG_CODE\@ #######\n")

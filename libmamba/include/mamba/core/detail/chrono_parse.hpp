@@ -12,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-#if defined(MAMBA_USE_HOWARD_HINNANT_DATE)
+#if defined(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
 #include <date/date.h>
 #include <date/tz.h>
 #endif
@@ -22,7 +22,7 @@ namespace mamba::detail
     /**
      * Parse ``value`` with ``std::chrono::parse`` or ``date::from_stream`` using ``fmt``.
      *
-     * When ``MAMBA_USE_HOWARD_HINNANT_DATE`` is set (libc++ lacks P0355;
+     * When ``LIBMAMBA_USE_HOWARD_HINNANT_DATE`` is set (libc++ lacks P0355;
      * https://github.com/llvm/llvm-project/issues/166051), ``date::from_stream`` is used.
      *
      * TODO: Drop the Howard Hinnant ``date`` fallback once ``std::chrono::parse`` is
@@ -35,7 +35,7 @@ namespace mamba::detail
     {
         std::istringstream stream{ std::string(value) };
         T out{};
-#if defined(MAMBA_USE_HOWARD_HINNANT_DATE)
+#if defined(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
         date::from_stream(stream, fmt, out);
 #else
         stream >> std::chrono::parse(fmt, out);

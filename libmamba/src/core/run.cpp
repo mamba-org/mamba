@@ -468,7 +468,7 @@ namespace mamba
 
             if (lec)
             {
-                std::cerr << ec.message() << '\n';
+                std::cerr << lec.message() << " ; error code " << lec.value() << '\n';
                 return 1;
             }
 

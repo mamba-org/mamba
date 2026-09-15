@@ -75,7 +75,7 @@ namespace mamba::logging::spdlogimpl
         */
         ///@{
         auto start_log_handling(LoggingParams params, std::vector<log_source> sources) -> void;
-        auto stop_log_handling(stop_reason reason) -> void;
+        auto stop_log_handling() -> void;
 
         auto set_log_level(log_level new_level) -> void;
         auto set_params(LoggingParams new_params) -> void;

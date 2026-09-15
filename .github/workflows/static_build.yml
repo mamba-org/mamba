@@ -93,7 +93,8 @@ jobs:
         run: |
           cd micromamba-feedstock/
           grep -q howardhinnant_date-static recipe/meta.yaml && exit 0
-          sed -i '' -e '/lz4-c-static/a\' -e '    - howardhinnant_date-static' recipe/meta.yaml
+          # BSD sed requires the `a` text on the next script line (not a second -e).
+          sed -i '' $'/lz4-c-static/a\\\n    - howardhinnant_date-static\n' recipe/meta.yaml
       - name: Checkout mamba branch
         uses: actions/checkout@v7
         with:

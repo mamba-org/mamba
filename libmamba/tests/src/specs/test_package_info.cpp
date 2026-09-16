@@ -232,6 +232,16 @@ namespace
 
             REQUIRE(j.get<PackageInfo>() == pkg);
 
+            SECTION("urls fallback")
+            {
+                static constexpr auto package_url =
+                    "https://downloads.example.org/foo-4.0-mybld.conda";
+                j.erase("url");
+                j["urls"] = nl::json::array({ package_url });
+
+                REQUIRE(j.get<PackageInfo>().package_url == package_url);
+            }
+
             SECTION("noarch")
             {
                 j["noarch"] = "Python";

@@ -90,6 +90,7 @@ set(
     src/core/test_channel_context.cpp
     src/core/test_channel_loader.cpp
     src/core/test_channels_hook.cpp
+    src/core/test_chrono_parse.cpp
     src/core/test_clean.cpp
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp

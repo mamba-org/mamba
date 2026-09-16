@@ -9,6 +9,26 @@ cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(libmamba)
 
+# std::chrono::parse (P0355) is not yet available on libc++ (macOS).
+# https://github.com/llvm/llvm-project/issues/166051
+
+# TODO: drop Howard Hinnant fallback once libc++ implements P0355.
+if(APPLE)
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE ON)
+else()
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE OFF)
+endif()
+
+if(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
+    find_package(date CONFIG REQUIRED)
+    message(
+        STATUS
+            "libmamba: using Howard Hinnant date for date/datetime parsing (std::chrono::parse unavailable)"
+    )
+else()
+    message(STATUS "libmamba: using std::chrono::parse for date/datetime parsing")
+endif()
+
 set(LIBMAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(LIBMAMBA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(LIBMAMBA_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
@@ -381,6 +401,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context_params.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/db_utils.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/detail/chrono_parse.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
@@ -735,6 +756,11 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(Threads REQUIRED)
 
         target_link_libraries(${target_name} PUBLIC Threads::Threads)
+    endif()
+
+    if(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
+        target_compile_definitions(${target_name} PUBLIC LIBMAMBA_USE_HOWARD_HINNANT_DATE)
+        target_link_libraries(${target_name} PUBLIC date::date date::date-tz)
     endif()
 
     list(APPEND libmamba_targets ${target_name})

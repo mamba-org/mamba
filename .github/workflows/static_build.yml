@@ -85,6 +85,16 @@ jobs:
               )
           )
           PY
+      # TODO: drop this once `howardhinnant_date-static` is in micromamba-feedstock after this
+      # PR is released. The cloned feedstock still targets published tarballs, so CI injects
+      # the host dependency until that lands.
+      - name: Add howardhinnant_date-static host dependency for osx
+        if: ${{ matrix.platform == 'osx' }}
+        run: |
+          cd micromamba-feedstock/
+          grep -q howardhinnant_date-static recipe/meta.yaml && exit 0
+          # BSD sed requires the `a` text on the next script line (not a second -e).
+          sed -i '' $'/lz4-c-static/a\\\n    - howardhinnant_date-static\n' recipe/meta.yaml
       - name: Checkout mamba branch
         uses: actions/checkout@v7
         with:

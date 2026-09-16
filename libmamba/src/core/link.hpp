@@ -12,11 +12,14 @@
 #include <tuple>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/package_paths.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "mamba/util/build.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 #include "./transaction_context.hpp"
 
@@ -88,12 +91,36 @@ namespace mamba
             TransactionContext* context
         );
 
+        /** Full link: prepare + link files + finalize (for tests and single-package callers). */
         bool execute();
+
+        /** Serial: pre-link scripts, read paths, create parent directories. */
+        bool prepare();
+
+        /** Link all files for this package (intra-package LPT + dynamic workers). */
+        void link_files();
+
+        /** Link a single file by index into ``paths_data`` (for a global cross-package queue). */
+        void link_file_at(std::size_t index);
+
+        /** Mark that file linking completed (used by the cross-package parallel helper). */
+        void mark_files_linked();
+
+        bool files_linked() const;
+
+        /** Serial: softlink SHA fixups, entry points, post-link, conda-meta. */
+        bool finalize();
+
         bool undo();
+
+        const specs::PackageInfo& package_info() const;
+        const std::vector<PathData>& paths_data() const;
+        static std::uint64_t estimated_link_cost(const PathData& path);
 
     private:
 
         std::tuple<std::string, std::string> link_path(const PathData& path_data, bool noarch_python);
+        void create_parent_directories(const std::vector<PathData>& paths_data, bool noarch_python);
         std::vector<fs::u8path> compile_pyc_files(const std::vector<fs::u8path>& py_files);
         auto
         create_python_entry_point(const fs::u8path& path, const python_entry_point_parsed& entry_point);
@@ -106,9 +133,22 @@ namespace mamba
         specs::PackageInfo m_pkg_info;
         fs::u8path m_cache_path;
         fs::u8path m_source;
-        std::vector<std::string> m_clobber_warnings;
+        util::synchronized_value<std::vector<std::string>> m_clobber_warnings;
         TransactionContext* m_context;
+
+        std::vector<PathData> m_paths_data;
+        nlohmann::json m_index_json;
+        std::vector<std::tuple<std::string, std::string>> m_linked;
+        int m_noarch_type = 0;  // NoarchType in link.cpp
+        bool m_prepared = false;
+        bool m_files_linked = false;
     };
+
+    /**
+     * Link files for many prepared packages with a shared LPT + dynamic worker pool.
+     * Pre-/post-link scripts and conda-meta remain the caller's responsibility (serial).
+     */
+    void link_packages_files_parallel(std::vector<LinkPackage>& packages, std::size_t link_threads);
 
 }  // namespace mamba
 

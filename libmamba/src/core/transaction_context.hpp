@@ -8,6 +8,7 @@
 #define MAMBA_CORE_TRANSACTION_CONTEXT
 
 #include <string>
+#include <unordered_map>
 
 #include <reproc++/reproc.hpp>
 
@@ -16,6 +17,7 @@
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
+#include "mamba/util/synchronized_value.hpp"
 
 namespace mamba
 {
@@ -44,6 +46,9 @@ namespace mamba
             fs::u8path site_packages_path;
         };
 
+        /** Relative destination path -> first package that claimed it during linking. */
+        using ClobberRegistry = util::synchronized_value<std::unordered_map<std::string, std::string>>;
+
         TransactionContext(
             TransactionParams transaction_params,
             std::pair<std::string, std::string> py_versions,
@@ -66,6 +71,9 @@ namespace mamba
 
         const std::vector<specs::MatchSpec>& requested_specs() const;
 
+        ClobberRegistry& clobber_registry();
+        const ClobberRegistry& clobber_registry() const;
+
     private:
 
         bool start_pyc_compilation_process();
@@ -73,6 +81,7 @@ namespace mamba
         TransactionParams m_transaction_params;
         PythonParams m_python_params;
         std::vector<specs::MatchSpec> m_requested_specs;
+        ClobberRegistry m_clobber_registry;
 
         std::unique_ptr<reproc::process> m_pyc_process = nullptr;
         std::unique_ptr<TemporaryFile> m_pyc_script_file = nullptr;

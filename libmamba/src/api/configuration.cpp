@@ -1760,6 +1760,22 @@ namespace mamba
                         If set to 0, the number of threads is chosen automatically as the
                         minimum between 10 and the number of CPUs available to the process)")));
 
+        insert(Configurable("link_threads", &m_context.threads_params.link_threads)
+                   .group("Extract, Link & Install")
+                   .set_rc_configurable()
+                   .set_env_var_names()
+                   .description("Defines the number of threads for linking files within a package")
+                   .long_description(unindent(R"(
+                        Defines the number of threads used to link files of a single package
+                        into the target prefix. Pre- and post-link scripts still run serially.
+                        Positive values give the exact number of threads.
+                        Negative values are interpreted as (available CPUs for this process
+                        minus the absolute value).
+                        If set to 0, the number of threads is chosen automatically as the
+                        minimum between 10 and the number of logical CPUs available to the
+                        process (via the process affinity mask).
+                        Set to 1 to restore sequential per-file linking.)")));
+
         insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()

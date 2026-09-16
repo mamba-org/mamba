@@ -804,6 +804,8 @@ namespace mamba
             m_history_entry.unlink_dists.push_back(pkg.long_str());
         }
 
+        std::vector<LinkPackage> to_link;
+
         for (const specs::PackageInfo& pkg : m_solution.packages_to_install())
         {
             if (is_sig_interrupted())
@@ -830,21 +832,91 @@ namespace mamba
 
             Console::stream() << "Linking " << pkg.str();
             const fs::u8path cache_path(resolve_extracted_cache_path(pkg, m_multi_cache, ctx));
-            LinkPackage lp(pkg, cache_path, &transaction_context);
+            to_link.emplace_back(pkg, cache_path, &transaction_context);
+        }
+
+        // Phase 1 (serial, install order): pre-link scripts + directory preparation.
+        for (auto& lp : to_link)
+        {
+            if (is_sig_interrupted())
+            {
+                break;
+            }
             try
             {
-                lp.execute();
+                lp.prepare();
             }
             catch (const mamba_error& e)
             {
+                rethrow_transaction_cancelled_after_rollback(
+                    rollback,
+                    ctx,
+                    lp.package_info(),
+                    "linking",
+                    e
+                );
+            }
+            catch (...)
+            {
+                handle_unexpected_package_execute_exception(rollback, ctx, lp.package_info(), "linking");
+            }
+        }
+
+        // Phase 2: link files across packages with a shared LPT + dynamic worker pool.
+        if (!is_sig_interrupted() && !to_link.empty())
+        {
+            try
+            {
+                link_packages_files_parallel(
+                    to_link,
+                    static_cast<std::size_t>(
+                        transaction_context.transaction_params().threads_params.link_threads
+                    )
+                );
+            }
+            catch (const mamba_error& e)
+            {
+                const auto& pkg = to_link.front().package_info();
                 rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, "linking", e);
             }
             catch (...)
             {
+                const auto& pkg = to_link.front().package_info();
                 handle_unexpected_package_execute_exception(rollback, ctx, pkg, "linking");
             }
+        }
+
+        // Phase 3 (serial, install order): softlink fixups, post-link, conda-meta.
+        for (auto& lp : to_link)
+        {
+            if (is_sig_interrupted())
+            {
+                break;
+            }
+            if (!lp.files_linked())
+            {
+                continue;
+            }
+            try
+            {
+                lp.finalize();
+            }
+            catch (const mamba_error& e)
+            {
+                rethrow_transaction_cancelled_after_rollback(
+                    rollback,
+                    ctx,
+                    lp.package_info(),
+                    "linking",
+                    e
+                );
+            }
+            catch (...)
+            {
+                handle_unexpected_package_execute_exception(rollback, ctx, lp.package_info(), "linking");
+            }
             rollback.record(lp);
-            m_history_entry.link_dists.push_back(pkg.long_str());
+            m_history_entry.link_dists.push_back(lp.package_info().long_str());
         }
 
         if (is_sig_interrupted())

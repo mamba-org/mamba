@@ -45,6 +45,8 @@ namespace mamba
     {
         std::size_t download_threads{ 5 };
         int extract_threads{ 0 };
+        /** Threads used to link files within a package. Same semantics as ``extract_threads``. */
+        int link_threads{ 0 };
     };
 
     struct TransactionParams

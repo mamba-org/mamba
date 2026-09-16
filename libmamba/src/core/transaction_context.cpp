@@ -341,6 +341,16 @@ namespace mamba
         return m_requested_specs;
     }
 
+    auto TransactionContext::clobber_registry() -> ClobberRegistry&
+    {
+        return m_clobber_registry;
+    }
+
+    auto TransactionContext::clobber_registry() const -> const ClobberRegistry&
+    {
+        return m_clobber_registry;
+    }
+
     bool TransactionContext::start_pyc_compilation_process()
     {
         // TODO for now, we are sure that the TransactionContext is ready

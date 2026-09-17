@@ -615,7 +615,7 @@ namespace
                     {
                         REQUIRE(
                             p.package_url
-                            == "https://repo.anaconda.com/repo/main/linux-64/bzip2-1.0.8-hd590300_5.conda"
+                            == "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hd590300_5.conda"
                         );
                     }
                 }

@@ -253,7 +253,7 @@ namespace
         SECTION("unset policy is empty")
         {
             const ExcludeNewerPolicy unset{};
-            REQUIRE(unset.empty());
+            REQUIRE(unset.no_cutoffs());
         }
 
         SECTION("unknown packages use the global cutoff")

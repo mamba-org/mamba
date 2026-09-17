@@ -62,7 +62,7 @@ namespace mamba
         ExcludeNewerPackageCutoffs per_package_cutoff = {};
 
         /** Return whether no cutoff is configured. */
-        [[nodiscard]] auto empty() const -> bool
+        [[nodiscard]] auto no_cutoffs() const -> bool
         {
             return !global_cutoff.has_value() && per_package_cutoff.empty();
         }

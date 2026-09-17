@@ -1727,10 +1727,11 @@ namespace mamba
                    .long_description(unindent(R"(
                         Exclude packages with a policy timestamp newer than the cutoff.
                         Accepts durations (e.g. 7d, 3d12h, 1w, P7D), ISO datetimes
-                        (e.g. 2026-04-01T12:00:00Z), or date-only values (e.g. 2026-04-01,
-                        interpreted as the start of the next UTC day). Plain integers are
-                        treated as durations in seconds. Supply 0 for no delay, using the
-                        current time as the cutoff.)")));
+                        (e.g. 2026-04-01T12:00:00Z), or date-only values (e.g. 2026-04-01).
+                        Date-only values follow conda's exclude-newer convention: the given
+                        calendar day is included, so the cutoff is the start of the next UTC
+                        day. Plain integers are treated as durations in seconds. Supply 0
+                        for no delay, using the current time as the cutoff.)")));
 
         insert(Configurable("exclude_newer_package", &m_context.exclude_newer_params.exclude_newer_package)
                    .group("Solver")

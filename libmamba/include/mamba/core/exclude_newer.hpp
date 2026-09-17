@@ -134,9 +134,10 @@ namespace mamba
      * timestamp cutoff in seconds.
      *
      * Durations (`7d`, `P7D`, plain seconds) resolve relative to `now_seconds`.
-     * Date-only values (`YYYY-MM-DD`) resolve to the start of the next UTC day.
-     * Datetimes resolve to the given instant (naive values are UTC). Zero durations
-     * (`0`, `0d`, `P0D`) resolve to `now_seconds`.
+     * Date-only values (`YYYY-MM-DD`) follow conda's `--exclude-newer` convention:
+     * the given calendar day is included, so the exclusive cutoff is 00:00:00 UTC of
+     * the following day (not an ISO 8601 rule). Datetimes resolve to the given instant
+     * (naive values are UTC). Zero durations (`0`, `0d`, `P0D`) resolve to `now_seconds`.
      *
      * @param value Raw configuration string.
      * @param now_seconds Reference time for relative durations, in Unix seconds.

@@ -118,7 +118,9 @@ namespace mamba
         /**
          * Parse a date-only value (``YYYY-MM-DD``) to the start of the next UTC day.
          *
-         * Matches conda's exclusive upper-bound semantics for date-only ``exclude_newer``.
+         * This is conda's date-only ``--exclude-newer`` convention, not an ISO 8601 rule:
+         * the given calendar day is included, so the exclusive cutoff is 00:00:00 UTC of
+         * the following day. See https://github.com/conda/conda/issues/15759.
          */
         [[nodiscard]] auto parse_date_only(std::string_view value) -> std::optional<CutoffInstant>
         {

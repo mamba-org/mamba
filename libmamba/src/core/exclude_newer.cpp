@@ -124,11 +124,6 @@ namespace mamba
          */
         [[nodiscard]] auto parse_date_only(std::string_view value) -> std::optional<CutoffInstant>
         {
-            if (value.size() != 10)
-            {
-                return std::nullopt;
-            }
-
             const auto day = detail::parse_chrono<std::chrono::sys_days>(value, "%F");
             if (!day)
             {
@@ -145,12 +140,6 @@ namespace mamba
          */
         [[nodiscard]] auto parse_datetime(std::string_view value) -> std::optional<CutoffInstant>
         {
-            if (value.size() < 19 || value[4] != '-' || value[7] != '-' || value[10] != 'T'
-                || value[13] != ':' || value[16] != ':')
-            {
-                return std::nullopt;
-            }
-
             if (auto instant = detail::parse_chrono<SysTime>(value, "%FT%T%Ez"))
             {
                 return CutoffInstant{ instant->time_since_epoch() };

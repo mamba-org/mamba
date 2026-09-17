@@ -190,7 +190,7 @@ namespace mamba
         {
             // For a definition of the ISO 8601 duration format, see:
             // https://docs.digi.com/resources/documentation/digidocs/90001488-13/reference/r_iso_8601_duration_format.htm
-            // but mind the missing "(n)W" segment for weeks! Weeks are supported here folloiwing:
+            // but mind the missing "(n)W" segment for weeks! Weeks are supported here following:
             //
             //     P(n)Y(n)M(n)W(n)DT(n)H(n)M(n)S
             //

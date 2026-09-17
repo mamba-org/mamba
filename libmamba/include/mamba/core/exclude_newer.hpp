@@ -155,7 +155,7 @@ namespace mamba
          *
          * Returns `std::nullopt` when `value` is not a compact duration.
          */
-        [[nodiscard]] auto parse_compact_duration_seconds(std::string_view value)
+        [[nodiscard]] auto parse_compact_duration_to_seconds(std::string_view value)
             -> std::optional<std::chrono::seconds>;
     }
 

@@ -131,7 +131,7 @@ namespace
         }
     }
 
-    TEST_CASE("parse_compact_duration_seconds")
+    TEST_CASE("parse_compact_duration_to_seconds")
     {
         constexpr std::uint64_t y = seconds_per_year;
         constexpr std::uint64_t mon = seconds_per_month;
@@ -142,7 +142,7 @@ namespace
 
         const auto sec = [](std::int64_t n) { return std::chrono::seconds{ n }; };
         const auto parse = [](std::string_view value)
-        { return detail::parse_compact_duration_seconds(value); };
+        { return detail::parse_compact_duration_to_seconds(value); };
 
         SECTION("each unit suffix is parsed on its own")
         {

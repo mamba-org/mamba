@@ -112,7 +112,7 @@ namespace mamba
             {
                 return seconds;
             }
-            return detail::parse_compact_duration_seconds(value);
+            return detail::parse_compact_duration_to_seconds(value);
         }
 
         /**
@@ -254,7 +254,7 @@ namespace mamba
             return std::chrono::seconds{ static_cast<std::chrono::seconds::rep>(total) };
         }
 
-        auto parse_compact_duration_seconds(std::string_view value)
+        auto parse_compact_duration_to_seconds(std::string_view value)
             -> std::optional<std::chrono::seconds>
         {
             // (n)y(n)M(n)w(n)d(n)h(n)m(n)s — lowercase units except M for months.

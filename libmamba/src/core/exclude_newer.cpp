@@ -166,21 +166,6 @@ namespace mamba
             return now - duration;
         }
 
-        template <typename Duration>
-        [[nodiscard]] constexpr std::uint64_t unit_seconds(Duration unit)
-        {
-            return static_cast<std::uint64_t>(
-                std::chrono::duration_cast<std::chrono::seconds>(unit).count()
-            );
-        }
-
-        constexpr std::uint64_t seconds_per_year = unit_seconds(std::chrono::years{ 1 });
-        constexpr std::uint64_t seconds_per_month = unit_seconds(std::chrono::months{ 1 });
-        constexpr std::uint64_t seconds_per_week = unit_seconds(std::chrono::weeks{ 1 });
-        constexpr std::uint64_t seconds_per_day = unit_seconds(std::chrono::days{ 1 });
-        constexpr std::uint64_t seconds_per_hour = unit_seconds(std::chrono::hours{ 1 });
-        constexpr std::uint64_t seconds_per_minute = unit_seconds(std::chrono::minutes{ 1 });
-
     }  // namespace
 
     namespace detail

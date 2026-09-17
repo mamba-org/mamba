@@ -155,6 +155,21 @@ namespace mamba
 
     namespace detail
     {
+        template <typename Duration>
+        [[nodiscard]] constexpr auto unit_seconds(Duration unit) -> std::uint64_t
+        {
+            return static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::seconds>(unit).count()
+            );
+        }
+
+        inline constexpr std::uint64_t seconds_per_year = unit_seconds(std::chrono::years{ 1 });
+        inline constexpr std::uint64_t seconds_per_month = unit_seconds(std::chrono::months{ 1 });
+        inline constexpr std::uint64_t seconds_per_week = unit_seconds(std::chrono::weeks{ 1 });
+        inline constexpr std::uint64_t seconds_per_day = unit_seconds(std::chrono::days{ 1 });
+        inline constexpr std::uint64_t seconds_per_hour = unit_seconds(std::chrono::hours{ 1 });
+        inline constexpr std::uint64_t seconds_per_minute = unit_seconds(std::chrono::minutes{ 1 });
+
         /**
          * Parse an ISO 8601 duration (`P…Y…M…W…DT…H…M…S`) to seconds.
          *

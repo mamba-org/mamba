@@ -403,17 +403,15 @@ namespace mamba
         return out;
     }
 
-    auto resolve_exclude_newer_policy(
-        std::string_view exclude_newer,
-        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package,
-        std::uint64_t now_seconds
-    ) -> ExcludeNewerPolicy
+    auto resolve_exclude_newer_policy(const ExcludeNewerParams& params, std::uint64_t now_seconds)
+        -> ExcludeNewerPolicy
     {
         return {
-            /* .global_cutoff= */ exclude_newer.empty()
+            /* .global_cutoff= */ params.exclude_newer.empty()
                 ? std::nullopt
-                : resolve_exclude_newer_cutoff(exclude_newer, now_seconds),
-            /* .per_package_cutoff= */ resolve_exclude_newer_package_cutoffs(exclude_newer_package, now_seconds),
+                : resolve_exclude_newer_cutoff(params.exclude_newer, now_seconds),
+            /* .per_package_cutoff= */
+            resolve_exclude_newer_package_cutoffs(params.exclude_newer_package, now_seconds),
         };
     }
 

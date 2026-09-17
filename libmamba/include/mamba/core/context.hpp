@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
@@ -133,18 +134,11 @@ namespace mamba
         solver::Request::Flags solver_flags = {};
 
         /**
-         * Exclude packages published more recently than this duration or date.
+         * Raw `exclude_newer` / `exclude_newer_package` configuration.
          *
-         * See Configurable ``exclude_newer``; resolved into ``ExcludeNewerPolicy`` at solve time.
+         * Resolved into ``ExcludeNewerPolicy`` at solve time.
          */
-        std::string exclude_newer;
-
-        /**
-         * Per-package overrides for ``exclude_newer`` (JSON dictionary on CLI / env vars).
-         *
-         * See Configurable ``exclude_newer_package``.
-         */
-        std::vector<std::pair<std::string, std::string>> exclude_newer_package;
+        ExcludeNewerParams exclude_newer_params;
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;

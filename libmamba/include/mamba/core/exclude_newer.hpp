@@ -34,6 +34,24 @@ namespace mamba
     using ExcludeNewerPackageCutoffs = std::unordered_map<std::string, std::optional<std::uint64_t>>;
 
     /**
+     * Raw `exclude_newer` configuration before cutoff resolution.
+     *
+     * Held on `Context` and resolved into ``ExcludeNewerPolicy`` at solve time.
+     */
+    struct ExcludeNewerParams
+    {
+        /** Global cutoff configuration string. See Configurable ``exclude_newer``. */
+        std::string exclude_newer;
+
+        /**
+         * Per-package overrides (JSON dictionary on CLI / env vars).
+         *
+         * See Configurable ``exclude_newer_package``.
+         */
+        std::vector<std::pair<std::string, std::string>> exclude_newer_package;
+    };
+
+    /**
      * Resolved `exclude_newer` policy used by the solver / database.
      *
      * Holds Unix-second cutoffs only. Raw configuration strings live on `Context` and are
@@ -102,17 +120,14 @@ namespace mamba
     /**
      * Resolve raw `exclude_newer` configuration into a policy for the database.
      *
-     * @param exclude_newer Global cutoff configuration string.
-     * @param exclude_newer_package Per-package overrides.
+     * @param params Global cutoff and per-package overrides.
      * @param now_seconds Reference time for relative durations, in Unix seconds.
      *
      * @throws mamba_error when a value cannot be parsed.
      */
-    [[nodiscard]] auto resolve_exclude_newer_policy(
-        std::string_view exclude_newer,
-        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package,
-        std::uint64_t now_seconds
-    ) -> ExcludeNewerPolicy;
+    [[nodiscard]] auto
+    resolve_exclude_newer_policy(const ExcludeNewerParams& params, std::uint64_t now_seconds)
+        -> ExcludeNewerPolicy;
 
     /**
      * Resolve a global `exclude_newer` configuration value to an absolute Unix

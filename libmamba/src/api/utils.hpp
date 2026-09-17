@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/fs/filesystem.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
 #include "mamba/specs/version.hpp"
@@ -128,8 +129,7 @@ namespace mamba
     solver::libsolv::Database make_solver_database(
         ChannelContext& channel_context,
         bool experimental_matchspec_parsing,
-        std::string_view exclude_newer = {},
-        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package = {}
+        const ExcludeNewerParams& exclude_newer_params = {}
     );
 
     /**

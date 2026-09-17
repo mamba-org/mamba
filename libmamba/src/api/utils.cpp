@@ -524,8 +524,7 @@ namespace mamba
     {
         [[nodiscard]] auto make_database_settings(
             bool experimental_matchspec_parsing,
-            std::string_view exclude_newer,
-            const std::vector<std::pair<std::string, std::string>>& exclude_newer_package
+            const ExcludeNewerParams& exclude_newer_params
         ) -> solver::libsolv::Database::Settings
         {
             const auto now = static_cast<std::uint64_t>(
@@ -539,7 +538,7 @@ namespace mamba
                                               : solver::libsolv::MatchSpecParser::Libsolv;
             return {
                 matchspec_parser,
-                resolve_exclude_newer_policy(exclude_newer, exclude_newer_package, now),
+                resolve_exclude_newer_policy(exclude_newer_params, now),
             };
         }
     }  // namespace
@@ -547,13 +546,12 @@ namespace mamba
     solver::libsolv::Database make_solver_database(
         ChannelContext& channel_context,
         bool experimental_matchspec_parsing,
-        std::string_view exclude_newer,
-        const std::vector<std::pair<std::string, std::string>>& exclude_newer_package
+        const ExcludeNewerParams& exclude_newer_params
     )
     {
         solver::libsolv::Database db{
             channel_context.params(),
-            make_database_settings(experimental_matchspec_parsing, exclude_newer, exclude_newer_package),
+            make_database_settings(experimental_matchspec_parsing, exclude_newer_params),
         };
         add_logger_to_database(db);
         return db;
@@ -603,7 +601,8 @@ namespace mamba
     {
         populate_context_channels_from_specs(raw_specs, ctx);
 
-        if ((!ctx.exclude_newer.empty() || !ctx.exclude_newer_package.empty())
+        if ((!ctx.exclude_newer_params.exclude_newer.empty()
+             || !ctx.exclude_newer_params.exclude_newer_package.empty())
             && !ctx.mamba_repodata_parsing)
         {
             LOG_WARNING << "exclude_newer requires the Mamba repodata parser; packages loaded from "
@@ -613,8 +612,7 @@ namespace mamba
         auto db = make_solver_database(
             channel_context,
             ctx.experimental_matchspec_parsing,
-            ctx.exclude_newer,
-            ctx.exclude_newer_package
+            ctx.exclude_newer_params
         );
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);

@@ -146,7 +146,7 @@ namespace mamba
          *
          * @throws mamba_error when the value starts with `P` but has no components.
          */
-        [[nodiscard]] auto parse_iso8601_duration_seconds(std::string_view value)
+        [[nodiscard]] auto parse_iso8601_duration_to_seconds(std::string_view value)
             -> std::optional<std::chrono::seconds>;
 
         /**

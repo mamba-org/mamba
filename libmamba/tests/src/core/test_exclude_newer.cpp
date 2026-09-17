@@ -121,13 +121,13 @@ namespace
         }
     }
 
-    TEST_CASE("parse_iso8601_duration_seconds")
+    TEST_CASE("parse_iso8601_duration_to_seconds")
     {
         SECTION("malformed durations are rejected")
         {
-            REQUIRE(detail::parse_iso8601_duration_seconds("P3Y6M4D12H30M5S") == std::nullopt);
-            REQUIRE(detail::parse_iso8601_duration_seconds("3Y6M4DT12H30M5S") == std::nullopt);
-            REQUIRE(detail::parse_iso8601_duration_seconds("12H30M5S") == std::nullopt);
+            REQUIRE(detail::parse_iso8601_duration_to_seconds("P3Y6M4D12H30M5S") == std::nullopt);
+            REQUIRE(detail::parse_iso8601_duration_to_seconds("3Y6M4DT12H30M5S") == std::nullopt);
+            REQUIRE(detail::parse_iso8601_duration_to_seconds("12H30M5S") == std::nullopt);
         }
     }
 

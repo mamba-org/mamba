@@ -108,7 +108,7 @@ namespace mamba
             {
                 return seconds;
             }
-            if (auto seconds = detail::parse_iso8601_duration_seconds(value))
+            if (auto seconds = detail::parse_iso8601_duration_to_seconds(value))
             {
                 return seconds;
             }
@@ -194,7 +194,7 @@ namespace mamba
 
     namespace detail
     {
-        auto parse_iso8601_duration_seconds(std::string_view value)
+        auto parse_iso8601_duration_to_seconds(std::string_view value)
             -> std::optional<std::chrono::seconds>
         {
             // For a definition of the ISO 8601 duration format, see:

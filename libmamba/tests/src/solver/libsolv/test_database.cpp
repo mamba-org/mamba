@@ -706,17 +706,11 @@ namespace
             {
                 if (pkg.name == "singular")
                 {
-                    REQUIRE(
-                        pkg.package_url
-                        == "https://downloads.example.org/singular-1.0-0.tar.bz2"
-                    );
+                    REQUIRE(pkg.package_url == "https://downloads.example.org/singular-1.0-0.tar.bz2");
                 }
                 else if (pkg.name == "plural")
                 {
-                    REQUIRE(
-                        pkg.package_url
-                        == "https://downloads.example.org/plural-1.0-0.tar.bz2"
-                    );
+                    REQUIRE(pkg.package_url == "https://downloads.example.org/plural-1.0-0.tar.bz2");
                 }
             }
         );
@@ -740,22 +734,14 @@ namespace
         };
         REQUIRE(db.native_serialize_repo(repo, solv_file, origin).has_value());
 
-        auto loaded_repo = db.add_repo_from_native_serialization(
-            solv_file,
-            origin,
-            "channel"
-        );
+        auto loaded_repo = db.add_repo_from_native_serialization(solv_file, origin, "channel");
         REQUIRE(loaded_repo.has_value());
         REQUIRE(loaded_repo->package_count() == 1);
 
         db.for_each_package_in_repo(
             loaded_repo.value(),
             [](const auto& pkg)
-            {
-                REQUIRE(
-                    pkg.package_url == "https://downloads.example.org/package-1.0-0.tar.bz2"
-                );
-            }
+            { REQUIRE(pkg.package_url == "https://downloads.example.org/package-1.0-0.tar.bz2"); }
         );
     }
 

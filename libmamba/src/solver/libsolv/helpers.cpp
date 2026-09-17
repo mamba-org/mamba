@@ -224,7 +224,8 @@ namespace mamba::solver::libsolv
             {
                 if (auto url = pkg["url"]; !url.error())
                 {
-                    if (auto value = url.get_string(); !value.error() && !value.value_unsafe().empty())
+                    if (auto value = url.get_string();
+                        !value.error() && !value.value_unsafe().empty())
                     {
                         return std::string(value.value_unsafe());
                     }

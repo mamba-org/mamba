@@ -332,7 +332,7 @@ namespace
                     matchspec_parser,
                     ExcludeNewerPolicy{
                         /* .global_cutoff= */ std::uint64_t(2000),
-                        /* .per_package= */
+                        /* .per_package_cutoff= */
                         ExcludeNewerPackageCutoffs{
                             { "exempt-pkg", std::nullopt },
                         },
@@ -483,7 +483,7 @@ namespace
                         matchspec_parser,
                         ExcludeNewerPolicy{
                             /* .global_cutoff= */ cutoff_2019,
-                            /* .per_package= */
+                            /* .per_package_cutoff= */
                             ExcludeNewerPackageCutoffs{
                                 { "numpy", std::nullopt },
                             },
@@ -524,7 +524,7 @@ namespace
                         matchspec_parser,
                         ExcludeNewerPolicy{
                             /* .global_cutoff= */ cutoff_2019,
-                            /* .per_package= */
+                            /* .per_package_cutoff= */
                             ExcludeNewerPackageCutoffs{
                                 { "mamba", cutoff_2026_jan },
                             },

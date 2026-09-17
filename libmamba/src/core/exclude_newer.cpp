@@ -362,7 +362,8 @@ namespace mamba
     auto ExcludeNewerPolicy::cutoff_for(std::string_view package_name) const
         -> std::optional<std::uint64_t>
     {
-        if (const auto it = per_package.find(std::string(package_name)); it != per_package.end())
+        if (const auto it = per_package_cutoff.find(std::string(package_name));
+            it != per_package_cutoff.end())
         {
             return it->second;
         }
@@ -412,7 +413,7 @@ namespace mamba
             /* .global_cutoff= */ exclude_newer.empty()
                 ? std::nullopt
                 : resolve_exclude_newer_cutoff(exclude_newer, now_seconds),
-            /* .per_package= */ resolve_exclude_newer_package_cutoffs(exclude_newer_package, now_seconds),
+            /* .per_package_cutoff= */ resolve_exclude_newer_package_cutoffs(exclude_newer_package, now_seconds),
         };
     }
 

@@ -59,12 +59,12 @@ namespace mamba
         /**
          * Resolved per-package timestamp cutoffs.
          */
-        ExcludeNewerPackageCutoffs per_package = {};
+        ExcludeNewerPackageCutoffs per_package_cutoff = {};
 
         /** Return whether no cutoff is configured. */
         [[nodiscard]] auto empty() const -> bool
         {
-            return !global_cutoff.has_value() && per_package.empty();
+            return !global_cutoff.has_value() && per_package_cutoff.empty();
         }
 
         /**

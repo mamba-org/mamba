@@ -243,7 +243,7 @@ namespace
 
         const ExcludeNewerPolicy policy{
             /* .global_cutoff= */ global_cutoff,
-            /* .per_package= */
+            /* .per_package_cutoff= */
             {
                 { "exempt-pkg", std::nullopt },
                 { "custom-pkg", 1500 },

@@ -242,7 +242,7 @@ namespace
         constexpr std::uint64_t global_cutoff = 2000;
 
         const ExcludeNewerPolicy policy{
-            /* .global= */ global_cutoff,
+            /* .global_cutoff= */ global_cutoff,
             /* .per_package= */
             {
                 { "exempt-pkg", std::nullopt },

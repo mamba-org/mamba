@@ -366,7 +366,7 @@ namespace mamba
         {
             return it->second;
         }
-        return global;
+        return global_cutoff;
     }
 
     /** Return whether ``pkg_timestamp`` exceeds the effective cutoff for ``package_name``. */
@@ -409,7 +409,7 @@ namespace mamba
     ) -> ExcludeNewerPolicy
     {
         return {
-            /* .global= */ exclude_newer.empty()
+            /* .global_cutoff= */ exclude_newer.empty()
                 ? std::nullopt
                 : resolve_exclude_newer_cutoff(exclude_newer, now_seconds),
             /* .per_package= */ resolve_exclude_newer_package_cutoffs(exclude_newer_package, now_seconds),

@@ -54,7 +54,7 @@ namespace mamba
         /**
          * Resolved global cutoff timestamp in seconds.
          */
-        std::optional<std::uint64_t> global = std::nullopt;
+        std::optional<std::uint64_t> global_cutoff = std::nullopt;
 
         /**
          * Resolved per-package timestamp cutoffs.
@@ -64,7 +64,7 @@ namespace mamba
         /** Return whether no cutoff is configured. */
         [[nodiscard]] auto empty() const -> bool
         {
-            return !global.has_value() && per_package.empty();
+            return !global_cutoff.has_value() && per_package.empty();
         }
 
         /**

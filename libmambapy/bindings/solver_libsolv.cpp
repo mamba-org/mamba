@@ -151,7 +151,7 @@ namespace mambapy
                             channel_params,
                             Database::Settings{
                                 matchspec_parser,
-                                ExcludeNewerPolicy{ /* .global= */ exclude_newer_timestamp },
+                                ExcludeNewerPolicy{ /* .global_cutoff= */ exclude_newer_timestamp },
                             }
                         );
                     }

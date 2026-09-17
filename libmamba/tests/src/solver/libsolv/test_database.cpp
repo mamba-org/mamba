@@ -197,7 +197,7 @@ namespace
             const std::uint64_t cutoff = 2000;
             auto db_filtered = libsolv::Database(
                 {},
-                { matchspec_parser, ExcludeNewerPolicy{ /* .global= */ cutoff } }
+                { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ cutoff } }
             );
 
             auto old_pkg = specs::PackageInfo();
@@ -225,7 +225,7 @@ namespace
             const std::uint64_t cutoff = 2000000000;
             auto db_filtered = libsolv::Database(
                 {},
-                { matchspec_parser, ExcludeNewerPolicy{ /* .global= */ cutoff } }
+                { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ cutoff } }
             );
 
             auto ms_pkg = specs::PackageInfo();
@@ -272,7 +272,8 @@ namespace
                                   / "repodata/conda-forge-numpy-linux-64.json";
             auto db_filtered = libsolv::Database(
                 {},
-                { matchspec_parser, ExcludeNewerPolicy{ /* .global= */ std::uint64_t(1700000000) } }
+                { matchspec_parser,
+                  ExcludeNewerPolicy{ /* .global_cutoff= */ std::uint64_t(1700000000) } }
             );
             auto repo1 = db_filtered.add_repo_from_repodata_json(
                 repodata,
@@ -330,7 +331,7 @@ namespace
                 {
                     matchspec_parser,
                     ExcludeNewerPolicy{
-                        /* .global= */ std::uint64_t(2000),
+                        /* .global_cutoff= */ std::uint64_t(2000),
                         /* .per_package= */
                         ExcludeNewerPackageCutoffs{
                             { "exempt-pkg", std::nullopt },
@@ -387,7 +388,7 @@ namespace
 
             auto db_filtered = libsolv::Database(
                 {},
-                { matchspec_parser, ExcludeNewerPolicy{ /* .global= */ std::uint64_t(2000) } }
+                { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ std::uint64_t(2000) } }
             );
             auto repo1 = db_filtered.add_repo_from_repodata_json(
                 repodata,
@@ -450,7 +451,7 @@ namespace
             {
                 auto db_filtered = libsolv::Database(
                     {},
-                    { matchspec_parser, ExcludeNewerPolicy{ /* .global= */ cutoff_2019 } }
+                    { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ cutoff_2019 } }
                 );
                 auto repo1 = db_filtered.add_repo_from_repodata_json(
                     repodata,
@@ -481,7 +482,7 @@ namespace
                     {
                         matchspec_parser,
                         ExcludeNewerPolicy{
-                            /* .global= */ cutoff_2019,
+                            /* .global_cutoff= */ cutoff_2019,
                             /* .per_package= */
                             ExcludeNewerPackageCutoffs{
                                 { "numpy", std::nullopt },
@@ -522,7 +523,7 @@ namespace
                     {
                         matchspec_parser,
                         ExcludeNewerPolicy{
-                            /* .global= */ cutoff_2019,
+                            /* .global_cutoff= */ cutoff_2019,
                             /* .per_package= */
                             ExcludeNewerPackageCutoffs{
                                 { "mamba", cutoff_2026_jan },

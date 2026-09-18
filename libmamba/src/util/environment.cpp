@@ -37,15 +37,29 @@ namespace mamba::util
 
         // Use the Win32 API rather than `_wgetenv_s`: the CRT cannot represent empty values
         // (`_wputenv_s(name, L"")` deletes the variable), so empty and unset would collapse.
+        // `GetEnvironmentVariableW` returns 0 for both missing and empty variables; distinguish
+        // them via `GetLastError()` (`ERROR_ENVVAR_NOT_FOUND` vs `ERROR_SUCCESS`).
+        const auto missing_or_empty = [&]() -> std::optional<std::string>
+        {
+            const auto error_code = ::GetLastError();
+            if (error_code == ERROR_ENVVAR_NOT_FOUND)
+            {
+                return {};
+            }
+            if (error_code != ERROR_SUCCESS)
+            {
+                throw std::runtime_error(
+                    fmt::format(R"(Failed to acquire environment variable "{}" : errcode = {})", key, error_code)
+                );
+            }
+            return std::string{};
+        };
+
         ::SetLastError(ERROR_SUCCESS);
         const DWORD needed = ::GetEnvironmentVariableW(unicode_key.c_str(), nullptr, 0);
         if (needed == 0)
         {
-            if (::GetLastError() == ERROR_ENVVAR_NOT_FOUND)
-            {
-                return {};
-            }
-            return std::string{};
+            return missing_or_empty();
         }
 
         std::wstring value(needed, L'\0');
@@ -53,11 +67,7 @@ namespace mamba::util
         const DWORD nchars = ::GetEnvironmentVariableW(unicode_key.c_str(), value.data(), needed);
         if (nchars == 0)
         {
-            if (::GetLastError() == ERROR_ENVVAR_NOT_FOUND)
-            {
-                return {};
-            }
-            return std::string{};
+            return missing_or_empty();
         }
 
         value.resize(nchars);

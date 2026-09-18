@@ -235,13 +235,15 @@ def test_remove_config_target_prefix(
     cli_env_name,
     env_var,
     current_target_prefix_fallback,
+    monkeypatch,
 ):
     (tmp_root_prefix / "conda-meta").mkdir(parents=True, exist_ok=True)
 
     cmd = []
 
     if use_root_prefix in (None, "cli"):
-        os.environ["MAMBA_DEFAULT_ROOT_PREFIX"] = os.environ.pop("MAMBA_ROOT_PREFIX")
+        monkeypatch.setenv("MAMBA_DEFAULT_ROOT_PREFIX", os.environ["MAMBA_ROOT_PREFIX"])
+        monkeypatch.delenv("MAMBA_ROOT_PREFIX")
 
     if use_root_prefix == "cli":
         cmd += ["-r", str(tmp_root_prefix)]
@@ -262,12 +264,12 @@ def test_remove_config_target_prefix(
         cmd += ["-n", n]
 
     if env_var:
-        os.environ["MAMBA_TARGET_PREFIX"] = p
+        monkeypatch.setenv("MAMBA_TARGET_PREFIX", p)
 
     if not current_target_prefix_fallback:
-        os.environ.pop("CONDA_PREFIX")
+        monkeypatch.delenv("CONDA_PREFIX")
     else:
-        os.environ["CONDA_PREFIX"] = p
+        monkeypatch.setenv("CONDA_PREFIX", p)
 
     if (cli_prefix and cli_env_name) or not (
         cli_prefix or cli_env_name or env_var or current_target_prefix_fallback

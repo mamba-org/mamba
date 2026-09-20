@@ -608,7 +608,7 @@ namespace
                     {
                         REQUIRE(
                             p.package_url
-                            == "https://repo.anaconda.com/repo/main/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                            == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
                         );
                     }
                     else if (p.name == "bzip2")

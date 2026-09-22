@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/channel.hpp"
@@ -65,7 +66,7 @@ namespace mamba::solver::libsolv
         struct Settings
         {
             MatchSpecParser matchspec_parser = MatchSpecParser::Libsolv;
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt;
+            ExcludeNewerPolicy exclude_newer_policy = {};
         };
 
         using logger_type = std::function<void(LogLevel, std::string_view)>;

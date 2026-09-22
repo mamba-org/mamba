@@ -128,7 +128,6 @@ namespace mamba
             -> tl::expected<EnvironmentLockFile::Meta, mamba_error>
         {
             EnvironmentLockFile::Meta metadata;
-            metadata.enable_channels = false;  // we ignore the channels specified by the file
 
             for (const auto& platform_node : metadata_node["platforms"])
             {

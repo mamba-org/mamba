@@ -2373,6 +2373,45 @@ def test_dummy_create(add_glibc_virtual_package, copy_channels_osx, tmp_home, tm
     res = helpers.create_with_chan_pkg(env_name, channels, package)
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_with_mirrored_channel_priority(
+    add_glibc_virtual_package, copy_channels_osx, tmp_home, tmp_root_prefix, tmp_path
+):
+    env_name = "mirrored-channel-priority"
+    channel_a = __this_dir__ / "channel_a"
+    channel_b = __this_dir__ / "channel_b"
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(
+        yaml.dump(
+            {
+                "channel_priority": "strict",
+                "channels": ["channel_a", "channel_b"],
+                "custom_channels": {
+                    "channel_a": channel_a.as_uri(),
+                    "channel_b": channel_b.as_uri(),
+                },
+                "mirrored_channels": {"channel_b": [channel_b.as_uri()]},
+            }
+        )
+    )
+
+    res = helpers.create(
+        "-n",
+        env_name,
+        "a",
+        "--dry-run",
+        "--json",
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+
+    links = [link for link in res["actions"]["LINK"] if link["name"] == "a"]
+    assert len(links) == 1
+    assert links[0]["version"] == "0.2.0"
+    assert "channel_a" in links[0]["channel"]
+
+
 @pytest.mark.parametrize("use_json", [True, False])
 def test_create_dry_run(tmp_home, tmp_root_prefix, use_json):
     env_name = "myenv"

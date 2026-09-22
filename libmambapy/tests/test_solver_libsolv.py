@@ -221,6 +221,10 @@ def test_Database_exclude_newer_timestamp_none_keeps_all():
 
 def test_Database_exclude_newer_timestamp_repodata(tmp_path):
     repodata_file = tmp_path / "repodata.json"
+    # `timestamp > indexed_timestamp` for `included-pkg` is deliberate for testing purposes:
+    # the two packages timestamps point in opposite directions relative to the cutoff,
+    # so the result can only be correct if `indexed_timestamp` is preferred.
+    # CEP-47 recommends channel servers validate `timestamp <= indexed_timestamp`.
     with open(repodata_file, "w+") as f:
         json.dump(
             {

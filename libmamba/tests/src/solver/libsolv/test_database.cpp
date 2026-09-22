@@ -359,6 +359,10 @@ namespace
             auto tmp_dir = TemporaryDirectory();
             const auto repodata = tmp_dir.path() / "repodata.json";
             std::ofstream out_file(repodata.std_path());
+            // `timestamp > indexed_timestamp` for `included-pkg` is deliberate for testing
+            // purposes: the two packages timestamps point in opposite directions relative to the
+            // cutoff, so the result can only be correct if `indexed_timestamp` is preferred.
+            // CEP-47 recommends channel servers validate `timestamp <= indexed_timestamp`.
             out_file << R"({
                 "packages": {
                     "excluded-pkg-1.0-bld.tar.bz2": {

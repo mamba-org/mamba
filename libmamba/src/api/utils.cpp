@@ -24,6 +24,8 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/exclude_newer.hpp"
+#include "mamba/core/logging.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_cache.hpp"
 #include "mamba/core/package_database_loader.hpp"
@@ -518,15 +520,38 @@ namespace mamba
         return outcome;
     }
 
-    solver::libsolv::Database
-    make_solver_database(bool experimental_matchspec_parsing, ChannelContext& channel_context)
+    namespace
+    {
+        [[nodiscard]] auto make_database_settings(
+            bool experimental_matchspec_parsing,
+            const ExcludeNewerParams& exclude_newer_params
+        ) -> solver::libsolv::Database::Settings
+        {
+            const auto now = static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::now().time_since_epoch()
+                )
+                    .count()
+            );
+            const auto matchspec_parser = experimental_matchspec_parsing
+                                              ? solver::libsolv::MatchSpecParser::Mamba
+                                              : solver::libsolv::MatchSpecParser::Libsolv;
+            return {
+                matchspec_parser,
+                resolve_exclude_newer_policy(exclude_newer_params, now),
+            };
+        }
+    }  // namespace
+
+    solver::libsolv::Database make_solver_database(
+        ChannelContext& channel_context,
+        bool experimental_matchspec_parsing,
+        const ExcludeNewerParams& exclude_newer_params
+    )
     {
         solver::libsolv::Database db{
             channel_context.params(),
-            {
-                experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                               : solver::libsolv::MatchSpecParser::Libsolv,
-            },
+            make_database_settings(experimental_matchspec_parsing, exclude_newer_params),
         };
         add_logger_to_database(db);
         return db;
@@ -575,7 +600,20 @@ namespace mamba
     )
     {
         populate_context_channels_from_specs(raw_specs, ctx);
-        auto db = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
+
+        if ((!ctx.exclude_newer_params.exclude_newer.empty()
+             || !ctx.exclude_newer_params.exclude_newer_package.empty())
+            && !ctx.mamba_repodata_parsing)
+        {
+            LOG_WARNING << "exclude_newer requires the Mamba repodata parser; packages loaded from "
+                           "the libsolv parser will not be filtered";
+        }
+
+        auto db = make_solver_database(
+            channel_context,
+            ctx.experimental_matchspec_parsing,
+            ctx.exclude_newer_params
+        );
 
         MultiPackageCache package_caches(ctx.pkgs_dirs, ctx.validation_params);
         auto root_packages = ctx.use_sharded_repodata

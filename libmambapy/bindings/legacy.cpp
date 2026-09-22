@@ -442,7 +442,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     auto pySubdirIndexLoader = py::class_<SubdirIndexLoader>(m, "SubdirIndexLoader");
 
-    auto pyOutputParams = py::class_<Context::OutputParams>(pyContext, "OutputParams");
+    auto pyOutputParams = py::class_<Context::OutputParams, mamba::logging::LoggingParams>(pyContext, "OutputParams");
 
     auto pyCommandParams = py::class_<CommandParams>(pyContext, "CommandParams");
 

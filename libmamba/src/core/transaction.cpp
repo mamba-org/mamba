@@ -1580,7 +1580,7 @@ namespace mamba
         {
             // We need to recreate the channel context using updated channel values
             auto channel_context_params = channel_context.params();
-            const auto zst_channels = channel_context.zst_channels();
+            auto zst_channels = channel_context.zst_channels();
 
             for (const EnvironmentLockFile::Channel& channel_info :
                  lockfile_data.get_metadata().channels)

@@ -89,7 +89,7 @@ namespace mamba
                                      ? solver::libsolv::RepodataParser::Mamba
                                      : solver::libsolv::RepodataParser::Libsolv;
 
-        // Solv files are too slow on Windows. They also bypass exclude_newer filtering.
+        // Solv files are too slow on Windows. They also bypass `exclude_newer` filtering.
         if (!util::on_win && ctx.exclude_newer_params.exclude_newer.empty()
             && ctx.exclude_newer_params.exclude_newer_package.empty())
         {

@@ -585,6 +585,80 @@ def test_env_update_empty_base(tmp_home, tmp_root_prefix, tmp_path):
     assert any(package["name"] == "python" for package in packages)
 
 
+def env_update_platform_file(tmp_path):
+    env_file = tmp_path / "env-update-platform.yaml"
+    env_file.write_text(
+        yaml.safe_dump(
+            {
+                "channels": [str(__this_dir__ / "channel_a")],
+                "dependencies": ["a"],
+            }
+        )
+    )
+    return env_file
+
+
+def test_env_update_platform_option(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-update-platform-option"
+    env_file = env_update_platform_file(tmp_path)
+    helpers.create(
+        "-p",
+        env_prefix,
+        "--platform",
+        "linux-64",
+        no_dry_run=True,
+        default_channel=False,
+        use_target_platform=False,
+    )
+
+    result = helpers.run_env(
+        "update",
+        "-p",
+        env_prefix,
+        "--file",
+        env_file,
+        "--platform",
+        "win-64",
+        "--dry-run",
+        "--json",
+        use_target_platform=False,
+    )
+
+    assert result["success"]
+    package = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "a")
+    assert package["subdir"] == "win-64"
+    assert yaml.safe_load((env_prefix / ".mambarc").read_text())["platform"] == "linux-64"
+
+
+def test_env_update_remembers_prefix_platform(tmp_home, tmp_root_prefix, tmp_path):
+    env_prefix = tmp_path / "env-update-remembered-platform"
+    env_file = env_update_platform_file(tmp_path)
+    helpers.create(
+        "-p",
+        env_prefix,
+        "--platform",
+        "win-64",
+        no_dry_run=True,
+        default_channel=False,
+        use_target_platform=False,
+    )
+
+    result = helpers.run_env(
+        "update",
+        "-p",
+        env_prefix,
+        "--file",
+        env_file,
+        "--dry-run",
+        "--json",
+        use_target_platform=False,
+    )
+
+    assert result["success"]
+    package = next(pkg for pkg in result["actions"]["LINK"] if pkg["name"] == "a")
+    assert package["subdir"] == "win-64"
+
+
 env_yaml_content_env_export_with_pip = """
 channels:
 - conda-forge
@@ -670,7 +744,13 @@ def test_env_export_with_ca_certificates(tmp_path):
     # executable installation are used by default.
     tmp_env_prefix = tmp_path / "env-export-with-ca-certificates"
 
-    helpers.create("-p", tmp_env_prefix, "ca-certificates", no_dry_run=True)
+    helpers.create(
+        "-p",
+        tmp_env_prefix,
+        "ca-certificates",
+        no_dry_run=True,
+        use_target_platform=False,
+    )
 
     # Copy the `mamba` or `micromamba` executable in this prefix `bin` subdirectory
     built_executable = helpers.get_umamba()

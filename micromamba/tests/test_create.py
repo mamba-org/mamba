@@ -11,8 +11,6 @@ import yaml
 
 from . import helpers
 
-from memory_profiler import memory_usage
-
 __this_dir__ = Path(__file__).parent.resolve()
 
 
@@ -385,6 +383,9 @@ def test_clone_by_name(tmp_home, tmp_root_prefix, tmp_path):
     clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
 
     assert_explicit_envs_identical(src_explicit, clone_explicit)
+    if helpers.test_target_platform is not None:
+        assert helpers.info("-n", src_env, "--json")["platform"] == helpers.test_target_platform
+        assert helpers.info("-n", clone_env, "--json")["platform"] == helpers.test_target_platform
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -467,7 +468,13 @@ def test_clone_non_existing_source(tmp_home, tmp_root_prefix, tmp_path):
     # Non-existing named environment
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create(
-            "--clone", "this-env-does-not-exist", "-n", env_name, "--json", no_dry_run=True
+            "--clone",
+            "this-env-does-not-exist",
+            "-n",
+            env_name,
+            "--json",
+            no_dry_run=True,
+            use_target_platform=False,
         )
     json_output = json.loads(info.value.stdout.decode())
     assert (
@@ -480,7 +487,15 @@ def test_clone_non_existing_source(tmp_home, tmp_root_prefix, tmp_path):
     # Non-existing prefix path
     non_existing_prefix = tmp_path / "does-not-exist"
     with pytest.raises(subprocess.CalledProcessError) as info2:
-        helpers.create("--clone", non_existing_prefix, "-n", env_name, "--json", no_dry_run=True)
+        helpers.create(
+            "--clone",
+            non_existing_prefix,
+            "-n",
+            env_name,
+            "--json",
+            no_dry_run=True,
+            use_target_platform=False,
+        )
     json_output2 = json.loads(info2.value.stdout.decode())
     assert (
         helpers.find_message_in_json_logs(json_output2, f"Source prefix '{non_existing_prefix}")
@@ -1857,8 +1872,14 @@ def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
         assert "python" in msg
 
     os.environ["CONDA_SUBDIR"] = "linux-64"
-    helpers.create("-n", "env2", "pkgs/main/linux-64::python", "--dry-run")
-    helpers.create("-n", "env3", "pkgs/main::python", "--dry-run")
+    helpers.create(
+        "-n",
+        "env2",
+        "pkgs/main/linux-64::python",
+        "--dry-run",
+        use_target_platform=False,
+    )
+    helpers.create("-n", "env3", "pkgs/main::python", "--dry-run", use_target_platform=False)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -2077,16 +2098,20 @@ def test_pip_output_visibility_by_default_and_suppressed_with_json_or_quiet(
 
     # By default, pip output should be visible (no --quiet flag)
     env_prefix_1 = tmp_root_prefix / "envs" / "pip_out_vis_1"
-    cmd1 = [
-        umamba,
-        "create",
-        "-p",
-        str(env_prefix_1),
-        "-f",
-        str(env_file),
-        "-y",
-        "--no-rc",
-    ] + helpers.channel
+    cmd1 = (
+        [
+            umamba,
+            "create",
+            "-p",
+            str(env_prefix_1),
+            "-f",
+            str(env_file),
+            "-y",
+            "--no-rc",
+        ]
+        + helpers.package_target_args(())
+        + helpers.channel
+    )
     result1 = subprocess.run(cmd1, capture_output=True, text=True, check=True)
     pip_output_present = (
         "Collecting" in result1.stdout
@@ -2098,17 +2123,21 @@ def test_pip_output_visibility_by_default_and_suppressed_with_json_or_quiet(
 
     # With --json, pip output should be suppressed (--quiet flag used)
     env_prefix_2 = tmp_root_prefix / "envs" / "pip_out_vis_2"
-    cmd2 = [
-        umamba,
-        "create",
-        "-p",
-        str(env_prefix_2),
-        "-f",
-        str(env_file),
-        "-y",
-        "--no-rc",
-        "--json",
-    ] + helpers.channel
+    cmd2 = (
+        [
+            umamba,
+            "create",
+            "-p",
+            str(env_prefix_2),
+            "-f",
+            str(env_file),
+            "-y",
+            "--no-rc",
+            "--json",
+        ]
+        + helpers.package_target_args(())
+        + helpers.channel
+    )
     result2 = subprocess.run(cmd2, capture_output=True, text=True, check=True)
     pip_output_suppressed_json = not (
         "Collecting" in result2.stdout
@@ -2120,17 +2149,21 @@ def test_pip_output_visibility_by_default_and_suppressed_with_json_or_quiet(
 
     # With --quiet, pip output should be suppressed (--quiet flag used)
     env_prefix_3 = tmp_root_prefix / "envs" / "pip_out_vis_3"
-    cmd3 = [
-        umamba,
-        "create",
-        "-p",
-        str(env_prefix_3),
-        "-f",
-        str(env_file),
-        "-y",
-        "--no-rc",
-        "--quiet",
-    ] + helpers.channel
+    cmd3 = (
+        [
+            umamba,
+            "create",
+            "-p",
+            str(env_prefix_3),
+            "-f",
+            str(env_file),
+            "-y",
+            "--no-rc",
+            "--quiet",
+        ]
+        + helpers.package_target_args(())
+        + helpers.channel
+    )
     result3 = subprocess.run(cmd3, capture_output=True, text=True, check=True)
     pip_output_suppressed_quiet = not (
         "Collecting" in result3.stdout
@@ -2221,7 +2254,7 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
                     {"id": "sys-exec"},
                     {
                         "id": "additional-deps",
-                        "additional_dependencies": ["psutil", "python=3.11"],
+                        "additional_dependencies": ["psutil", "python=3.14"],
                     },
                 ],
             }
@@ -2872,6 +2905,10 @@ def test_create_with_empty_lines_and_comments(tmp_home, tmp_root_prefix, tmp_pat
     # Non-regression test for:
     #  - https://github.com/mamba-org/mamba/issues/3289
     #  - https://github.com/mamba-org/mamba/issues/3659
+    # memory_profiler is omitted from the win-arm64 CI environment; packages
+    # needed to use environment-dev.yml on that platform are tracked in
+    # https://github.com/mamba-org/mamba/issues/4393
+    memory_usage = pytest.importorskip("memory_profiler").memory_usage
     memory_limit = 150  # in MB
 
     def memory_intensive_operation():
@@ -2926,6 +2963,7 @@ def test_ca_certificates(tmp_home, tmp_clean_env, tmp_path):
 
     umamba = helpers.get_umamba()
     args = [umamba, "create", "-p", env_prefix, "numpy", "--dry-run", "-vvv"]
+    args += helpers.package_target_args(args)
     p = subprocess.run(args, capture_output=True, check=True)
     verbose_logs = p.stderr.decode()
 

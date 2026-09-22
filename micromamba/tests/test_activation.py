@@ -836,12 +836,14 @@ def test_unicode_activation(
         u1 = "μυρτιὲς"
         u2 = "终过鬼门关"
         u3 = "some ™∞¢3 spaces §∞©ƒ√≈ç"
-        s1 = [f"{mamba_name} create -n {u1} xtensor -y -c conda-forge"]
-        s2 = [f"{mamba_name} create -n {u2} xtensor -y -c conda-forge"]
+        target_args = " ".join(helpers.package_target_args(()))
+        target_suffix = f" {target_args}" if target_args else ""
+        s1 = [f"{mamba_name} create -n {u1} xtensor -y -c conda-forge{target_suffix}"]
+        s2 = [f"{mamba_name} create -n {u2} xtensor -y -c conda-forge{target_suffix}"]
         if interpreter == "cmd.exe":
-            s3 = [f'{mamba_name} create -n "{u3}" xtensor -y -c conda-forge']
+            s3 = [f'{mamba_name} create -n "{u3}" xtensor -y -c conda-forge{target_suffix}']
         else:
-            s3 = [f"{mamba_name} create -n '{u3}' xtensor -y -c conda-forge"]
+            s3 = [f"{mamba_name} create -n '{u3}' xtensor -y -c conda-forge{target_suffix}"]
         call(s1)
         call(s2)
         call(s3)

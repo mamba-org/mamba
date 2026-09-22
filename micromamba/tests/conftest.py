@@ -34,6 +34,21 @@ def pytest_addoption(parser):
             "With this option, cleaning will fallback on the default pytest policy."
         ),
     )
+    parser.addoption(
+        "--test-target-platform",
+        action="store",
+        default=None,
+        help=(
+            "Conda subdir used by package-backed integration fixtures. "
+            "This is passed explicitly to Mamba and does not change the "
+            "native platform seen by platform and environment tests."
+        ),
+    )
+
+
+def pytest_configure(config):
+    """Configure package-backed integration fixtures before collection."""
+    helpers.test_target_platform = config.getoption("--test-target-platform")
 
 
 ##################
@@ -175,7 +190,7 @@ def tmp_empty_env(
     tmp_root_prefix: pathlib.Path, tmp_env_name: str
 ) -> Generator[pathlib.Path, None, None]:
     """An empty environment created under a temporary root prefix."""
-    helpers.create("-n", tmp_env_name, no_dry_run=True)
+    helpers.create("-n", tmp_env_name, no_dry_run=True, use_target_platform=False)
     yield tmp_root_prefix / "envs" / tmp_env_name
 
 

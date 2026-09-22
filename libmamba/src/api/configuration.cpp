@@ -1597,6 +1597,26 @@ namespace mamba
 
 
         // Solver
+        insert(Configurable("override_virtual_packages", &m_context.override_virtual_packages)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .description("Override values for virtual packages")
+                   .long_description(unindent(R"(
+                        A dictionary of virtual package overrides. Keys are virtual package names
+                        without the leading `__` (e.g. `cuda`, `glibc`, `archspec`), though names
+                        with `__` are also accepted. Values override the detected version (or the
+                        build string for `archspec`).
+
+                        Environment variables of the form `CONDA_OVERRIDE_<NAME>` take precedence
+                        over this setting.
+
+                        Example:
+                          override_virtual_packages:
+                            cuda: "12.8"
+                            glibc: "2.17"
+                            archspec: "x86_64_v3"
+                   )")));
+
         insert(Configurable("channel_priority", &m_context.channel_priority)
                    .group("Solver")
                    .set_rc_configurable()

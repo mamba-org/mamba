@@ -186,6 +186,12 @@ namespace mamba
 
     namespace logging
     {
+        using ::mamba::log_level;
+        using ::mamba::log_source;
+        using ::mamba::name_of;
+        using ::mamba::all_log_sources;
+        using ::mamba::LoggingParams;
+
         // TODO: this is a placeholder, replace it by the real thing once available.
         // The intent is to have a type doing SBO when possible, but act as unique_ptr otherwise.
         // Might require allowing to use shared_ptr too, or some kind of value_ptr.

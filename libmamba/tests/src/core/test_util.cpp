@@ -6,12 +6,20 @@
 
 #include <catch2/catch_all.hpp>
 
+#ifdef _WIN32
+#include <cstdio>
+#include <string>
+#endif
+
 #include "mamba/core/context.hpp"
 #include "mamba/core/fsutil.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/fs/filesystem.hpp"
+#ifdef _WIN32
+#include "mamba/util/os_win.hpp"
+#endif
 #include "mamba/util/path_manip.hpp"
 
 #include "mambatests.hpp"
@@ -155,6 +163,24 @@ namespace mamba
         else
         {
             REQUIRE_FALSE(long_paths_support_diagnostic().empty());
+        }
+    }
+
+    TEST_CASE("Windows 10 Anniversary+ is treated as supporting long paths")
+    {
+        const auto maybe_version = util::windows_version();
+        REQUIRE(maybe_version.has_value());
+
+        unsigned major = 0;
+        unsigned minor = 0;
+        unsigned build = 0;
+        REQUIRE(std::sscanf(maybe_version.value().c_str(), "%u.%u.%u", &major, &minor, &build) == 3);
+        (void) minor;
+
+        if (major > 10 || (major == 10 && build >= 14393))
+        {
+            const auto diagnostic = long_paths_support_diagnostic();
+            REQUIRE(diagnostic.find("requires Windows 10 version 1607") == std::string::npos);
         }
     }
 #endif

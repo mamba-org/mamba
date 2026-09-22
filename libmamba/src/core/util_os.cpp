@@ -27,7 +27,6 @@
 #include <intrin.h>
 #include <io.h>
 #include <shlobj_core.h>
-#include <versionhelpers.h>
 #include <windows.h>
 // Incomplete header included last
 #include <tlhelp32.h>
@@ -186,17 +185,34 @@ namespace mamba
 
         auto windows_version_supports_long_paths() -> bool
         {
-            OSVERSIONINFOEXW version_info = {};
+            // VerifyVersionInfoW is gated by the exe compatibility manifest and reports
+            // Windows 8 (6.2) unless Windows 10 GUIDs are declared. longpath.manifest only
+            // sets longPathAware. RtlGetVersion is not manifest-capped.
+            HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
+            if (ntdll == nullptr)
+            {
+                return false;
+            }
+
+            using RtlGetVersionFn = LONG(WINAPI*)(OSVERSIONINFOW*);
+            auto rtl_get_version = reinterpret_cast<RtlGetVersionFn>(
+                ::GetProcAddress(ntdll, "RtlGetVersion")
+            );
+            if (rtl_get_version == nullptr)
+            {
+                return false;
+            }
+
+            OSVERSIONINFOW version_info = {};
             version_info.dwOSVersionInfoSize = sizeof(version_info);
-            version_info.dwMajorVersion = 10;
-            version_info.dwBuildNumber = 14352;
+            if (rtl_get_version(&version_info) != 0)
+            {
+                return false;
+            }
 
-            DWORDLONG condition_mask = 0;
-            VER_SET_CONDITION(condition_mask, VER_MAJORVERSION, VER_GREATER_EQUAL);
-            VER_SET_CONDITION(condition_mask, VER_BUILDNUMBER, VER_GREATER_EQUAL);
-
-            return ::VerifyVersionInfoW(&version_info, VER_MAJORVERSION | VER_BUILDNUMBER, condition_mask)
-                   != FALSE;
+            // Windows 10 version 1607 (Anniversary Update) is build 14393.
+            return version_info.dwMajorVersion > 10
+                   || (version_info.dwMajorVersion == 10 && version_info.dwBuildNumber >= 14393);
         }
 
         auto read_long_paths_registry_enabled() -> bool
@@ -318,7 +334,7 @@ namespace mamba
             {
                 messages.push_back(
                     fmt::format(
-                        "Windows long path support requires Windows 10 version 1607 (build 14352) or newer. "
+                        "Windows long path support requires Windows 10 version 1607 (build 14393) or newer. "
                         "See {}",
                         windows_long_paths_doc_url
                     )

@@ -42,6 +42,7 @@ pybind11_add_module(
     bindings/specs.cpp
     bindings/solver.cpp
     bindings/solver_libsolv.cpp
+    bindings/logging.cpp
 )
 # TODO: remove when `SubdirData::cache_path()` is removed
 if(

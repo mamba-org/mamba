@@ -14,4 +14,5 @@ PYBIND11_MODULE(bindings, m)
     mambapy::bind_submodule_solver(solver_submodule);
     mambapy::bind_submodule_solver_libsolv(solver_submodule.def_submodule("libsolv"));
     mambapy::bind_submodule_legacy(m.def_submodule("legacy"));
+    mambapy::bind_submodule_logging(m.def_submodule("logging")); // depends on legacy
 }

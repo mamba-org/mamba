@@ -39,7 +39,7 @@
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/variant_cmp.hpp"
+#include "mamba/util/variant_util.hpp"
 
 #include "solver/helpers.hpp"
 

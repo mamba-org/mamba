@@ -9,7 +9,7 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
-#include "mamba/util/variant_cmp.hpp"
+#include "mamba/util/variant_util.hpp"
 #include "solv-cpp/solver.hpp"
 
 #include "solver/libsolv/helpers.hpp"

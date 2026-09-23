@@ -20,6 +20,7 @@
 
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/variant_util.hpp"
 
 namespace mamba::solver
 {
@@ -383,18 +384,10 @@ namespace mamba::solver
         auto compressed_node_name(const CompressedProblemsGraph::node_t& node) -> std::string_view
         {
             return std::visit(
-                [](const auto& n) -> std::string_view
-                {
-                    using Node = std::decay_t<decltype(n)>;
-                    if constexpr (std::is_same_v<Node, CompressedProblemsGraph::RootNode>)
-                    {
-                        return "";
-                    }
-                    else
-                    {
-                        return n.name();
-                    }
-                },
+                util::overloaded(
+                    [](const CompressedProblemsGraph::RootNode&) -> std::string_view { return ""; },
+                    [](const auto& n) -> std::string_view { return n.name(); }
+                ),
                 node
             );
         }
@@ -679,7 +672,7 @@ namespace mamba::solver
     {
         if (first < last)
         {
-            const auto first_name = std::string(invoke_name(*first));
+            const auto first_name = invoke_name(*first);
             for (auto it = first; it < last; ++it)
             {
                 // Keep a single package name per list. Divergent names can appear after

@@ -4,8 +4,8 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#ifndef MAMBA_UTIL_VARIANT_CMP_HPP
-#define MAMBA_UTIL_VARIANT_CMP_HPP
+#ifndef MAMBA_UTIL_VARIANT_UTIL_HPP
+#define MAMBA_UTIL_VARIANT_UTIL_HPP
 
 #include <type_traits>
 #include <utility>
@@ -15,6 +15,15 @@ namespace mamba::util
 {
     template <typename IndexCmp, typename AlternativeCmp>
     [[nodiscard]] auto make_variant_cmp(IndexCmp&& index_cmp, AlternativeCmp&& alternative_cmp);
+
+    template <class... Ts>
+    struct overloaded : Ts...
+    {
+        using Ts::operator()...;
+    };
+
+    template <class... Ts>
+    overloaded(Ts...) -> overloaded<Ts...>;
 
     /********************
      *  Implementation  *

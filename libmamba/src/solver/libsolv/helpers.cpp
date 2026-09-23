@@ -220,8 +220,35 @@ namespace mamba::solver::libsolv
             std::uint64_t* out_timestamp = nullptr
         ) -> bool
         {
-            // Not available from RepoDataPackage
-            solv.set_url((repo_url / filename).str(specs::CondaURL::Credentials::Show));
+            const auto package_url = [&]
+            {
+                if (auto url = pkg["url"]; !url.error())
+                {
+                    if (auto value = url.get_string();
+                        !value.error() && !value.value_unsafe().empty())
+                    {
+                        return std::string(value.value_unsafe());
+                    }
+                }
+
+                if (auto urls = pkg["urls"]; !urls.error())
+                {
+                    if (auto values = urls.get_array(); !values.error())
+                    {
+                        for (auto value : values)
+                        {
+                            if (auto url = value.get_string();
+                                !url.error() && !url.value_unsafe().empty())
+                            {
+                                return std::string(url.value_unsafe());
+                            }
+                        }
+                    }
+                }
+
+                return (repo_url / filename).str(specs::CondaURL::Credentials::Show);
+            }();
+            solv.set_url(package_url);
             solv.set_channel(channel_id);
 
             solv.set_file_name(filename);
@@ -971,19 +998,21 @@ namespace mamba::solver::libsolv
     void
     set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url, const std::string& channel_id)
     {
-        // WARNING cannot call ``url()`` at this point because it has not been internalized.
-        // Setting the channel url on where the solvable so that we can retrace
-        // where it came from
         const auto url = specs::CondaURL::parse(repo_url)
                              .or_else([](specs::ParseError&& err) { throw std::move(err); })
                              .value();
+        // The legacy parser may set solvable attributes before they are available for lookup.
+        // Internalize them before deciding whether a fallback URL is needed.
+        repo.internalize();
         repo.for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
-                // The solvable url, this is not set in libsolv parsing so we set it manually
-                // while we still rely on libsolv for parsing
-                // TODO
-                s.set_url((url / s.file_name()).str(specs::CondaURL::Credentials::Show));
+                // Libsolv does not populate the URL for packages without one in repodata.
+                // Preserve an explicitly advertised package URL when it is available.
+                if (s.url().empty())
+                {
+                    s.set_url((url / s.file_name()).str(specs::CondaURL::Credentials::Show));
+                }
                 // The name of the channel where it came from, may be different from repo name
                 // for instance with the installed repo
                 s.set_channel(channel_id);

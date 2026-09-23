@@ -597,6 +597,14 @@ namespace mamba::specs
         pkg.version = j.value("version", "");
         pkg.channel = j.value("channel", "");
         pkg.package_url = j.value("url", "");
+        if (pkg.package_url.empty())
+        {
+            if (auto urls = j.find("urls");
+                urls != j.end() && urls->is_array() && !urls->empty() && urls->front().is_string())
+            {
+                pkg.package_url = urls->front().get<std::string>();
+            }
+        }
         pkg.platform = j.value("subdir", "");
         pkg.filename = j.value("fn", "");
         pkg.size = j.value("size", std::size_t(0));

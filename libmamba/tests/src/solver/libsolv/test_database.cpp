@@ -816,14 +816,14 @@ namespace
                     {
                         REQUIRE(
                             p.package_url
-                            == "https://repo.anaconda.com/repo/main/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                            == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
                         );
                     }
                     else if (p.name == "bzip2")
                     {
                         REQUIRE(
                             p.package_url
-                            == "https://repo.anaconda.com/repo/main/linux-64/bzip2-1.0.8-hd590300_5.conda"
+                            == "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hd590300_5.conda"
                         );
                     }
                 }
@@ -865,6 +865,92 @@ namespace
                 }
             );
         }
+    }
+
+    TEST_CASE("Database preserves per-package repodata URLs", "[mamba::solver::libsolv]")
+    {
+        auto tmp_dir = TemporaryDirectory();
+        auto repodata = tmp_dir.path() / "repodata.json";
+        std::ofstream out_file(repodata.std_path());
+        out_file << R"({
+            "packages": {
+                "singular-1.0-0.tar.bz2": {
+                    "build": "0",
+                    "build_number": 0,
+                    "depends": [],
+                    "name": "singular",
+                    "url": "https://downloads.example.org/singular-1.0-0.tar.bz2",
+                    "version": "1.0"
+                },
+                "plural-1.0-0.tar.bz2": {
+                    "build": "0",
+                    "build_number": 0,
+                    "depends": [],
+                    "name": "plural",
+                    "urls": ["https://downloads.example.org/plural-1.0-0.tar.bz2"],
+                    "version": "1.0"
+                }
+            },
+            "packages.conda": {}
+        })";
+        out_file.close();
+
+        auto db = libsolv::Database({}, { libsolv::MatchSpecParser::Mamba });
+        auto repo = db.add_repo_from_repodata_json(
+            repodata,
+            "https://channel.example.org/linux-64",
+            "channel",
+            libsolv::PipAsPythonDependency::No,
+            libsolv::PackageTypes::CondaOrElseTarBz2,
+            libsolv::VerifyPackages::No,
+            libsolv::RepodataParser::Mamba
+        );
+        REQUIRE(repo.has_value());
+        REQUIRE(repo->package_count() == 2);
+
+        db.for_each_package_in_repo(
+            repo.value(),
+            [](const auto& pkg)
+            {
+                if (pkg.name == "singular")
+                {
+                    REQUIRE(pkg.package_url == "https://downloads.example.org/singular-1.0-0.tar.bz2");
+                }
+                else if (pkg.name == "plural")
+                {
+                    REQUIRE(pkg.package_url == "https://downloads.example.org/plural-1.0-0.tar.bz2");
+                }
+            }
+        );
+    }
+
+    TEST_CASE("Native serialization preserves per-package URLs", "[mamba::solver::libsolv]")
+    {
+        auto tmp_dir = TemporaryDirectory();
+        auto db = libsolv::Database({}, { libsolv::MatchSpecParser::Mamba });
+        auto package = mkpkg("package", "1.0");
+        package.build_string = "0";
+        package.filename = "package-1.0-0.tar.bz2";
+        package.package_url = "https://downloads.example.org/package-1.0-0.tar.bz2";
+        auto repo = db.add_repo_from_packages(std::array{ package }, "channel");
+
+        auto solv_file = tmp_dir.path() / "channel.solv";
+        auto origin = libsolv::RepodataOrigin{
+            /* .url= */ "https://channel.example.org/linux-64",
+            /* .etag= */ "etag",
+            /* .mod= */ "Fri, 11 Feb 2022 13:52:44 GMT",
+        };
+        REQUIRE(db.native_serialize_repo(repo, solv_file, origin).has_value());
+
+        auto loaded_repo = db.add_repo_from_native_serialization(solv_file, origin, "channel");
+        REQUIRE(loaded_repo.has_value());
+        REQUIRE(loaded_repo->package_count() == 1);
+
+        db.for_each_package_in_repo(
+            loaded_repo.value(),
+            [](const auto& pkg)
+            { REQUIRE(pkg.package_url == "https://downloads.example.org/package-1.0-0.tar.bz2"); }
+        );
     }
 
     /**

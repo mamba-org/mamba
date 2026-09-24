@@ -114,7 +114,7 @@ namespace mamba
                 {
                     for (auto& p : fs::directory_iterator(cache_root))
                     {
-                        if (p.exists() && util::ends_with(p.path().string(), ".lock")
+                        if (p.exists() && p.path().string().ends_with(".lock")
                             && (fs::exists(util::rstrip(p.path().string(), ".lock"))
                                 || (util::rstrip(p.path().filename().string(), ".lock")
                                     == p.path().parent_path().filename())))
@@ -137,7 +137,7 @@ namespace mamba
                 {
                     for (auto& p : fs::recursive_directory_iterator(cache_root / "cache"))
                     {
-                        if (p.exists() && util::ends_with(p.path().string(), ".lock"))
+                        if (p.exists() && p.path().string().ends_with(".lock"))
                         {
                             try
                             {
@@ -184,7 +184,7 @@ namespace mamba
         {
             for (auto& pkg : fs::directory_iterator(env / "conda-meta"))
             {
-                if (util::ends_with(pkg.path().string(), ".json"))
+                if (pkg.path().string().ends_with(".json"))
                 {
                     std::string pkg_name = pkg.path().filename().string();
                     installed_pkgs.insert(pkg_name.substr(0, pkg_name.size() - 5));
@@ -208,7 +208,7 @@ namespace mamba
             }
             const auto rel_str = rel.string();
             const auto cache_dir = std::string(cache_paths::cache_relative);
-            return rel_str == cache_dir || util::starts_with(rel_str, cache_dir + "/");
+            return rel_str == cache_dir || rel_str.starts_with(cache_dir + "/");
         };
 
         auto collect_tarballs = [&]()
@@ -243,8 +243,8 @@ namespace mamba
                         continue;
                     }
                     if (!p.is_directory()
-                        && (util::ends_with(p.path().string(), ".tar.bz2")
-                            || util::ends_with(p.path().string(), ".conda")))
+                        && (p.path().string().ends_with(".tar.bz2")
+                            || p.path().string().ends_with(".conda")))
                     {
                         res.push_back(p.path());
                         rows.push_back({ p.path().filename().string(), get_file_size(p.file_size()) });

@@ -96,7 +96,7 @@ namespace mamba::validation
 
     auto SpecBase::is_compatible(const std::string& version) const -> bool
     {
-        return util::starts_with(version, compatible_prefix() + ".");
+        return version.starts_with(compatible_prefix() + ".");
     }
 
     auto SpecBase::is_compatible(const nlohmann::json& j) const -> bool

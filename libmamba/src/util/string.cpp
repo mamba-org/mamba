@@ -227,17 +227,13 @@ namespace mamba::util
     template std::string to_upper(std::string&& str);
     template std::wstring to_upper(std::wstring&& str);
 
-    /*******************************************
-     *  Implementation of start_with functions  *
-     *******************************************/
-
-    // TODO(C++20) This is a method of string_view
+    // TODO(C++23) This is a method of string_view
     auto contains(std::string_view str, std::string_view sub_str) -> bool
     {
         return str.find(sub_str) != std::string::npos;
     }
 
-    // TODO(C++20) This is a method of string_view
+    // TODO(C++23) This is a method of string_view
     auto contains(std::string_view str, char c) -> bool
     {
         return str.find(c) != std::string::npos;
@@ -246,30 +242,6 @@ namespace mamba::util
     auto contains(char c1, char c2) -> bool
     {
         return c1 == c2;
-    }
-
-    // TODO(C++20) This is a method of string_view
-    auto ends_with(std::string_view str, std::string_view suffix) -> bool
-    {
-        return str.size() >= suffix.size()
-               && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-    }
-
-    auto ends_with(std::string_view str, std::string_view::value_type c) -> bool
-    {
-        return (!str.empty()) && (str.back() == c);
-    }
-
-    // TODO(C++20) This is a method of string_view
-    auto starts_with(std::string_view str, std::string_view prefix) -> bool
-    {
-        return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-    }
-
-    // TODO(C++20) This is a method of string_view
-    auto starts_with(std::string_view str, std::string_view::value_type c) -> bool
-    {
-        return (!str.empty()) && (str.front() == c);
     }
 
     /*************************************************
@@ -292,7 +264,7 @@ namespace mamba::util
     auto split_prefix(std::string_view str, std::string_view prefix)
         -> std::array<std::string_view, 2>
     {
-        if (starts_with(str, prefix))
+        if (str.starts_with(prefix))
         {
             return { str.substr(0, prefix.size()), str.substr(prefix.size()) };
         }
@@ -302,7 +274,7 @@ namespace mamba::util
     auto split_prefix(std::string_view str, std::string_view::value_type c)
         -> std::array<std::string_view, 2>
     {
-        if (starts_with(str, c))
+        if (str.starts_with(c))
         {
             return { str.substr(0, 1), str.substr(1) };
         }
@@ -322,7 +294,7 @@ namespace mamba::util
     auto split_suffix(std::string_view str, std::string_view suffix)
         -> std::array<std::string_view, 2>
     {
-        if (ends_with(str, suffix))
+        if (str.ends_with(suffix))
         {
             auto suffix_pos = str.size() - suffix.size();
             return { str.substr(0, suffix_pos), str.substr(suffix_pos) };
@@ -333,7 +305,7 @@ namespace mamba::util
     auto split_suffix(std::string_view str, std::string_view::value_type c)
         -> std::array<std::string_view, 2>
     {
-        if (ends_with(str, c))
+        if (str.ends_with(c))
         {
             auto suffix_pos = str.size() - 1;
             return { str.substr(0, suffix_pos), str.substr(suffix_pos) };
@@ -845,12 +817,12 @@ namespace mamba::util
             const auto str_size = str.size();
             return
                 // The substring is found
-                starts_with(str, prefix)
+                str.starts_with(prefix)
                 && (
                     // Either it ends at the end
                     (end == str_size)
                     // Or it is found before a separator
-                    || ((end <= str_size) && ends_with(str.substr(0, end + sep_size), sep))
+                    || ((end <= str_size) && str.substr(0, end + sep_size).ends_with(sep))
                 );
         }
 

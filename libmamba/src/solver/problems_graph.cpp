@@ -1372,7 +1372,7 @@ namespace mamba::solver
             std::sort(
                 arr.begin(),
                 arr.end(),
-                [](const auto& str1, const auto& str2) { return util::ends_with(str1, str2); }
+                [](const auto& str1, const auto& str2) { return str1.ends_with(str2); }
             );
             return arr;
         }
@@ -1561,7 +1561,7 @@ namespace mamba::solver
                         write(", which");
                     }
                     // Virtual package
-                    if (util::starts_with(node.name(), "__"))
+                    if (node.name().starts_with("__"))
                     {
                         write(" is missing on the system");
                     }

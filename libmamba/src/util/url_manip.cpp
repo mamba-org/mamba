@@ -91,7 +91,7 @@ namespace mamba::util
         static constexpr std::string_view file_scheme = "file:";
 
         // Not "file:" scheme
-        if (!util::starts_with(uri, file_scheme))
+        if (!uri.starts_with(file_scheme))
         {
             return { false, {}, {} };
         }
@@ -150,7 +150,7 @@ namespace mamba::util
 
         // '\' are used as path separator in "file://\\hostname\path\to\data.xml" (also not RFC
         // compliant)
-        if (util::starts_with(hostname, R"(\\)"))
+        if (hostname.starts_with(R"(\\)"))
         {
             return std::string(uri);
         }

@@ -501,7 +501,7 @@ namespace mamba::util
 
     void URL::set_path(std::string path, Encode::no_type)
     {
-        if (!util::starts_with(path, '/'))
+        if (!path.starts_with('/'))
         {
             path.insert(0, 1, '/');
         }
@@ -518,7 +518,7 @@ namespace mamba::util
         // All paths start with a '/' except those like "file:///C:/folder/file.txt"
         if (on_win && scheme() == "file")
         {
-            assert(util::starts_with(m_path, '/'));
+            assert(m_path.starts_with('/'));
             auto path_no_slash = decode_percent(std::string_view(m_path).substr(1));
             if (path_has_drive_letter(path_no_slash))
             {
@@ -541,8 +541,8 @@ namespace mamba::util
     void URL::append_path(std::string_view subpath, Encode::no_type)
     {
         m_path.reserve(m_path.size() + 1 + subpath.size());
-        const bool trailing = util::ends_with(m_path, '/');
-        const bool leading = util::starts_with(subpath, '/');
+        const bool trailing = m_path.ends_with('/');
+        const bool leading = subpath.starts_with('/');
         if (!trailing && !leading && !subpath.empty())
         {
             m_path += '/';

@@ -42,11 +42,11 @@ namespace mamba::specs
 
         auto parse_extension(std::string_view spec) -> PackageType
         {
-            if (util::ends_with(spec, ".whl"))
+            if (spec.ends_with(".whl"))
             {
                 return PackageType::Wheel;
             }
-            else if (util::ends_with(spec, ".tar.gz"))
+            else if (spec.ends_with(".tar.gz"))
             {
                 return PackageType::TarGz;
             }
@@ -256,7 +256,7 @@ namespace mamba::specs
                 return parse_url(url).transform(
                     [&](PackageInfo&& pkg) -> PackageInfo
                     {
-                        if (util::starts_with(hash, "sha256:"))
+                        if (hash.starts_with("sha256:"))
                         {
                             hash = hash.substr(7);
                             if (hash.size() == 64 && is_hash(hash))
@@ -283,7 +283,7 @@ namespace mamba::specs
 
         // A git repository URL over https and used by `pip`
         // git+https://<repository-url>@<commit|branch|tag>#egg=<package-name>
-        if (util::starts_with(str, "git+https"))
+        if (str.starts_with("git+https"))
         {
             auto pkg = PackageInfo();
             pkg.package_url = str;

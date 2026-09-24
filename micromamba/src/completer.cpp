@@ -45,7 +45,7 @@ complete_options(
                 if (p.is_directory() && mamba::fs::exists(p.path() / "conda-meta"))
                 {
                     auto name = p.path().filename().string();
-                    if (mamba::util::starts_with(name, name_start))
+                    if (name.starts_with(name_start))
                     {
                         options.push_back(name);
                     }
@@ -53,17 +53,17 @@ complete_options(
             }
         }
     }
-    else if (mamba::util::starts_with(last_args.back(), "-"))
+    else if (last_args.back().starts_with("-"))
     {
         auto opt_start = mamba::util::lstrip(last_args.back(), "-");
 
-        if (mamba::util::starts_with(last_args.back(), "--"))
+        if (last_args.back().starts_with("--"))
         {
             for (const auto* opt : app->get_options())
             {
                 for (const auto& n : opt->get_lnames())
                 {
-                    if (mamba::util::starts_with(n, opt_start))
+                    if (n.starts_with(opt_start))
                     {
                         options.push_back("--" + n);
                     }
@@ -80,7 +80,7 @@ complete_options(
             {
                 for (const auto& n : opt->get_snames())
                 {
-                    if (mamba::util::starts_with(n, opt_start))
+                    if (n.starts_with(opt_start))
                     {
                         options.push_back("-" + n);
                     }
@@ -93,7 +93,7 @@ complete_options(
         for (const auto* subc : app->get_subcommands(nullptr))
         {
             auto& n = subc->get_name();
-            if (mamba::util::starts_with(n, last_args.back()))
+            if (n.starts_with(last_args.back()))
             {
                 options.push_back(n);
             }

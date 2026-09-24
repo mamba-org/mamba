@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <format>
 #include <limits>
 #include <sstream>
 
@@ -159,10 +160,9 @@ namespace solv
         {
             if (pos >= size)
             {
-                // TODO(C++20) std::format
-                auto ss = std::stringstream{};
-                ss << "Index " << pos << " is greater that the number of elements (" << size << ')';
-                throw std::out_of_range(std::move(ss).str());
+                throw std::out_of_range(
+                    std::format("Index {} is greater that the number of elements ({})", pos, size)
+                );
             }
         }
     }

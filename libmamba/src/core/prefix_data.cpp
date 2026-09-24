@@ -57,7 +57,7 @@ namespace mamba
         {
             for (auto& p : fs::directory_iterator(conda_meta_dir))
             {
-                if (util::ends_with(p.path().string(), ".json"))
+                if (p.path().string().ends_with(".json"))
                 {
                     load_single_record(p.path());
                 }

@@ -33,34 +33,6 @@ namespace
             REQUIRE(to_upper("ThisIsARandomTTTeeesssT") == "THISISARANDOMTTTEEESSST");
         }
 
-        TEST_CASE("starts_with")
-        {
-            REQUIRE(starts_with("", ""));
-            REQUIRE_FALSE(starts_with("", ":"));
-            REQUIRE_FALSE(starts_with("", ':'));
-            REQUIRE(starts_with(":hello", ""));
-            REQUIRE(starts_with(":hello", ":"));
-            REQUIRE(starts_with(":hello", ':'));
-            REQUIRE(starts_with(":hello", ":h"));
-            REQUIRE(starts_with(":hello", ":hello"));
-            REQUIRE_FALSE(starts_with(":hello", "lo"));
-            REQUIRE(starts_with("áäáœ©gþhëb®hüghœ©®xb", "áäáœ©"));
-        }
-
-        TEST_CASE("ends_with")
-        {
-            REQUIRE(ends_with("", ""));
-            REQUIRE_FALSE(ends_with("", "&"));
-            REQUIRE_FALSE(ends_with("", '&'));
-            REQUIRE(ends_with("hello&", ""));
-            REQUIRE(ends_with("hello&", "&"));
-            REQUIRE(ends_with("hello&", '&'));
-            REQUIRE(ends_with("hello&", "o&"));
-            REQUIRE(ends_with("hello&", "hello&"));
-            REQUIRE_FALSE(ends_with("hello&", "he"));
-            REQUIRE(ends_with("áäáœ©gþhëb®hüghœ©®xb", "©®xb"));
-        }
-
         TEST_CASE("string_contains")
         {
             REQUIRE(contains('c', 'c'));
@@ -523,7 +495,7 @@ namespace
             std::string prefix = "/I/am/a/PREFIX\n\nabcdefg\nxyz";
 
             replace_all(prefix, "/I/am/a/PREFIX", "/Yes/Thats/great/");
-            REQUIRE(starts_with(prefix, "/Yes/Thats/great/\n"));
+            REQUIRE(prefix.starts_with("/Yes/Thats/great/\n"));
 
             std::string testbuf2 = "this is another test wow";
             replace_all(testbuf2, "", "somereplacement");

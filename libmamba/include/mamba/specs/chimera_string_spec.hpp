@@ -52,16 +52,7 @@ namespace mamba::specs
 
         [[nodiscard]] auto to_string() const -> const std::string&;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
-        [[nodiscard]] auto operator==(const ChimeraStringSpec& other) const -> bool
-        {
-            return m_spec == other.m_spec;
-        }
-
-        [[nodiscard]] auto operator!=(const ChimeraStringSpec& other) const -> bool
-        {
-            return !(*this == other);
-        }
+        [[nodiscard]] auto operator==(const ChimeraStringSpec& other) const -> bool = default;
 
     private:
 

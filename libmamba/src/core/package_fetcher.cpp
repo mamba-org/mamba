@@ -52,7 +52,7 @@ namespace mamba
     auto get_download_request_components(const specs::PackageInfo& pkg) -> DownloadRequestComponents
     {
         constexpr std::string_view oci_scheme = "oci://";
-        const bool use_oci = util::starts_with(pkg.package_url, oci_scheme);
+        const bool use_oci = pkg.package_url.starts_with(oci_scheme);
         const bool use_auth = std::regex_search(pkg.package_url, http_basicauth_regex())
                               || std::regex_search(pkg.package_url, token_regex());
 
@@ -294,11 +294,11 @@ namespace mamba
         fs::u8path get_extract_path(const std::string& filename, const fs::u8path& cache_path)
         {
             std::string fn = filename;
-            if (util::ends_with(fn, ".tar.bz2"))
+            if (fn.ends_with(".tar.bz2"))
             {
                 fn = fn.substr(0, fn.size() - 8);
             }
-            else if (util::ends_with(fn, ".conda"))
+            else if (fn.ends_with(".conda"))
             {
                 fn = fn.substr(0, fn.size() - 6);
             }

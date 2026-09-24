@@ -150,13 +150,13 @@ namespace mamba
         const fs::u8path& target_site_packages_short_path
     )
     {
-        if (util::starts_with(source_short_path, "site-packages/"))
+        if (source_short_path.starts_with("site-packages/"))
         {
             // replace `site_packages/` with prefix/site_packages
             return target_site_packages_short_path
                    / source_short_path.substr(14, source_short_path.size() - 14);
         }
-        else if (util::starts_with(source_short_path, "python-scripts/"))
+        else if (source_short_path.starts_with("python-scripts/"))
         {
             return get_bin_directory_short_path()
                    / source_short_path.substr(15, source_short_path.size() - 15);

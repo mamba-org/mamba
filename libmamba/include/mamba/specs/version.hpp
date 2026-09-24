@@ -44,6 +44,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto to_string() const -> std::string;
 
+        bool operator==(const VersionPartAtom&) const = default;
+
     private:
 
         // Stored in decreasing size order for performance
@@ -51,12 +53,14 @@ namespace mamba::specs
         std::size_t m_numeral = 0;
     };
 
-    auto operator==(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    std::strong_ordering operator<=>(const VersionPartAtom& lhs, const VersionPartAtom& rhs);
+
+    /*auto operator==(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
     auto operator!=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
     auto operator<(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
     auto operator<=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
     auto operator>(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
-    auto operator>=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;
+    auto operator>=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool;*/
 
     extern template VersionPartAtom::VersionPartAtom(std::size_t, std::string);
 
@@ -95,12 +99,8 @@ namespace mamba::specs
         [[nodiscard]] auto to_string() const -> std::string;
     };
 
-    auto operator==(const VersionPart& left, const VersionPart& other) -> bool;
-    auto operator!=(const VersionPart& left, const VersionPart& other) -> bool;
-    auto operator<(const VersionPart& left, const VersionPart& other) -> bool;
-    auto operator<=(const VersionPart& left, const VersionPart& other) -> bool;
-    auto operator>(const VersionPart& left, const VersionPart& other) -> bool;
-    auto operator>=(const VersionPart& left, const VersionPart& other) -> bool;
+    auto operator==(const VersionPart& lhs, const VersionPart& rhs) -> bool;
+    auto operator<=>(const VersionPart& lhs, const VersionPart& rhs) -> std::strong_ordering;
 
     /**
      * A sequence of VersionPart meant to represent all parts of a version.
@@ -199,12 +199,8 @@ namespace mamba::specs
         std::size_t m_epoch = 0;
     };
 
-    auto operator==(const Version& left, const Version& other) -> bool;
-    auto operator!=(const Version& left, const Version& other) -> bool;
-    auto operator<(const Version& left, const Version& other) -> bool;
-    auto operator<=(const Version& left, const Version& other) -> bool;
-    auto operator>(const Version& left, const Version& other) -> bool;
-    auto operator>=(const Version& left, const Version& other) -> bool;
+    auto operator==(const Version& lhs, const Version& rhs) -> bool;
+    auto operator<=>(const Version& lhs, const Version& rhs) -> std::strong_ordering;
 
     namespace version_literals
     {

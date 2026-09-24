@@ -557,7 +557,7 @@ namespace mamba
         }
 
         // Ensure trailing slash
-        if (!util::ends_with(result, "/"))
+        if (!result.ends_with("/"))
         {
             result += "/";
         }
@@ -640,13 +640,13 @@ namespace mamba
                     // Get path from shards URL (decoded, starts with '/')
                     std::string path = shards_url.path();
                     // Remove leading '/' since we want relative path
-                    if (util::starts_with(path, "/"))
+                    if (path.starts_with("/"))
                     {
                         path = path.substr(1);
                     }
 
                     // Ensure trailing slash
-                    if (!path.empty() && !util::ends_with(path, "/"))
+                    if (!path.empty() && !path.ends_with("/"))
                     {
                         path += "/";
                     }
@@ -666,11 +666,11 @@ namespace mamba
 
         // Normalize shards_base_url_str (remove ./ prefix if present)
         std::string normalized_shards = shards_base_url_str;
-        if (util::starts_with(normalized_shards, "./"))
+        if (normalized_shards.starts_with("./"))
         {
             normalized_shards = normalized_shards.substr(2);
         }
-        if (util::starts_with(normalized_shards, "/"))
+        if (normalized_shards.starts_with("/"))
         {
             normalized_shards = normalized_shards.substr(1);
         }
@@ -678,7 +678,7 @@ namespace mamba
         // Construct path: platform/shards/<hash>.msgpack.zst
         // url_concat handles slashes automatically, no need for "/" separator
         std::string path = util::url_concat(platform, normalized_shards);
-        if (!util::ends_with(path, "/"))
+        if (!path.ends_with("/"))
         {
             path += "/";
         }
@@ -1429,7 +1429,7 @@ namespace mamba
                 {
                     base_url_str = base_dir;
                 }
-                else if (util::starts_with(base_url_str, "/"))
+                else if (base_url_str.starts_with("/"))
                 {
                     base_url_str = util::url_concat(origin, base_url_str);
                 }

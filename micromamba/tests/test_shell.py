@@ -271,6 +271,44 @@ def test_top_level_activate_deactivate_not_initialized(
     assert "Shell not initialized" in excinfo.value.stderr.decode()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell test")
+@pytest.mark.parametrize("help_option", ["--help", "-h"])
+def test_activate_help_is_not_evaluated(tmp_path, help_option):
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("bash is not available")
+
+    mamba_exe = tmp_path / "micromamba"
+    mamba_exe.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = "shell" ]; then\n'
+        "    printf 'activation output must not be evaluated\\n'\n"
+        "else\n"
+        "    printf 'micromamba activate help\\n'\n"
+        "fi\n"
+    )
+    mamba_exe.chmod(0o755)
+
+    env = os.environ.copy()
+    env["MAMBA_EXE"] = str(mamba_exe)
+    env["MAMBA_ROOT_PREFIX"] = str(tmp_path)
+    env["MAMBA_SHELL_SCRIPT"] = str(Path(__file__).parents[2] / "libmamba" / "data" / "mamba.sh")
+    env["MAMBA_HELP_OPTION"] = help_option
+    env.pop("CONDA_SHLVL", None)
+
+    bash_script = 'source "$MAMBA_SHELL_SCRIPT"; micromamba activate "$MAMBA_HELP_OPTION"'
+    result = subprocess.run(
+        [bash, "-c", bash_script],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "micromamba activate help"
+    assert not result.stderr
+
+
 @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])
 @pytest.mark.parametrize("prefix_selector", [None, "prefix"])
 @pytest.mark.parametrize("multiple_time,same_prefix", ((False, None), (True, False), (True, True)))

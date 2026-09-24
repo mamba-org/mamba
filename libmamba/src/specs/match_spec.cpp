@@ -352,7 +352,7 @@ namespace mamba::specs
             -> expected_parse_t<std::tuple<std::string_view, std::optional<std::string_view>>>
         {
             // Forbid known ambiguity
-            if (util::starts_with(key_val, "version"))
+            if (key_val.starts_with("version"))
             {
                 const auto op_val = util::lstrip(key_val, "version");
                 static constexpr std::array operator_strs = { "==", "!=", "~=", ">", "<" };
@@ -445,8 +445,8 @@ namespace mamba::specs
             //   - ``target=blarg,optional``
             //   - ``build=3``
 
-            if (!util::ends_with(str, MatchSpec::preferred_list_close)
-                && !util::ends_with(str, MatchSpec::alt_list_close))
+            if (!str.ends_with(MatchSpec::preferred_list_close)
+                && !str.ends_with(MatchSpec::alt_list_close))
             {
                 return str;
             }

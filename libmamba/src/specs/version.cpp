@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cassert>
 #include <charconv>
+#include <compare>
 #include <iterator>
 #include <optional>
 #include <tuple>
@@ -21,34 +22,6 @@ namespace mamba::specs
 {
     namespace
     {
-        // TODO(C++20) use operator<=>
-        enum strong_ordering
-        {
-            less,
-            equal,
-            greater
-        };
-
-        template <typename T>
-        auto compare_three_way(const T& a, const T& b) -> strong_ordering
-        {
-            if (a < b)
-            {
-                return strong_ordering::less;
-            }
-            if (a == b)
-            {
-                return strong_ordering::equal;
-            }
-            return strong_ordering::greater;
-        }
-
-        template <>
-        auto compare_three_way(const std::string& a, const std::string& b) -> strong_ordering
-        {
-            return compare_three_way(std::strcmp(a.c_str(), b.c_str()), 0);
-        }
-
         /**
          * Compare two ranges where some trailing elements can be considered as empty.
          *
@@ -69,7 +42,7 @@ namespace mamba::specs
             const Empty1& empty1,
             const Empty2& empty2,
             Cmp comp
-        ) -> std::pair<strong_ordering, std::size_t>
+        ) -> std::pair<std::strong_ordering, std::size_t>
         {
             assert(std::distance(first1, last1) >= 0);
             assert(std::distance(first2, last2) >= 0);
@@ -78,7 +51,7 @@ namespace mamba::specs
             auto iter2 = first2;
             for (; (iter1 != last1) && (iter2 != last2); ++iter1, ++iter2)
             {
-                if (auto c = comp(*iter1, *iter2); c != strong_ordering::equal)
+                if (auto c = comp(*iter1, *iter2); c != std::strong_ordering::equal)
                 {
                     return { c, static_cast<std::size_t>(std::distance(first1, iter1)) };
                 }
@@ -90,7 +63,7 @@ namespace mamba::specs
             {
                 for (; iter1 != last1; ++iter1)
                 {
-                    if (auto c = comp(*iter1, empty2); c != strong_ordering::equal)
+                    if (auto c = comp(*iter1, empty2); c != std::strong_ordering::equal)
                     {
                         return { c, static_cast<std::size_t>(std::distance(first1, iter1)) };
                     }
@@ -103,14 +76,15 @@ namespace mamba::specs
             {
                 for (; iter2 != last2; ++iter2)
                 {
-                    if (auto c = comp(empty1, *iter2); c != strong_ordering::equal)
+                    if (auto c = comp(empty1, *iter2); c != std::strong_ordering::equal)
                     {
                         return { c, static_cast<std::size_t>(std::distance(first2, iter2)) };
                     }
                 }
             }
             // They have the same elements
-            return { strong_ordering::equal, static_cast<std::size_t>(std::distance(first1, iter1)) };
+            return { std::strong_ordering::equal,
+                     static_cast<std::size_t>(std::distance(first1, iter1)) };
         }
 
         template <typename Iter1, typename Iter2, typename Empty, typename Cmp>
@@ -121,7 +95,7 @@ namespace mamba::specs
             Iter2 last2,
             const Empty& empty,
             Cmp comp
-        ) -> std::pair<strong_ordering, std::size_t>
+        ) -> std::pair<std::strong_ordering, std::size_t>
         {
             return lexicographical_compare_three_way_trailing(
                 first1,
@@ -180,86 +154,48 @@ namespace mamba::specs
         return fmt::format("{}", *this);
     }
 
-    namespace
+    std::strong_ordering operator<=>(const VersionPartAtom& a, const VersionPartAtom& b)
     {
-        template <>
-        auto compare_three_way(const VersionPartAtom& a, const VersionPartAtom& b) -> strong_ordering
+        const auto num_ord = a.numeral() <=> b.numeral();
+        if (num_ord != std::strong_ordering::equal)
         {
-            const auto num_ord = compare_three_way(a.numeral(), b.numeral());
-            if (num_ord != strong_ordering::equal)
-            {
-                return num_ord;
-            }
-
-            // Certain literals have special meaning we map then to a priority
-            // 0 meaning regular string
-            auto lit_priority = [](const auto& l) -> int
-            {
-                if (l == "*")
-                {
-                    return -3;
-                }
-                if (l == "dev")
-                {
-                    return -2;
-                }
-                if (l == "_")
-                {
-                    return -1;
-                }
-                if (l == "")
-                {
-                    return 1;
-                }
-                if (l == "post")
-                {
-                    return 2;
-                }
-                return 0;
-            };
-            const auto a_lit_val = lit_priority(a.literal());
-            const auto b_lit_val = lit_priority(b.literal());
-            // If two regular string, we need to use string comparison
-            if ((a_lit_val == 0) && (b_lit_val == 0))
-            {
-                return compare_three_way<std::string>(a.literal(), b.literal());
-            }
-            return compare_three_way(a_lit_val, b_lit_val);
+            return num_ord;
         }
-    }
 
-    auto operator==(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
-    {
-        // More efficient than three way comparison because of edge cases
-        auto attrs = [](const VersionPartAtom& a) -> std::tuple<std::size_t, const std::string&>
-        { return { a.numeral(), a.literal() }; };
-        return attrs(left) == attrs(right);
-    }
-
-    auto operator!=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
-    {
-        // More efficient than three way comparison
-        return !(left == right);
-    }
-
-    auto operator<(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
-    {
-        return compare_three_way(left, right) == strong_ordering::less;
-    }
-
-    auto operator<=(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
-    {
-        return compare_three_way(left, right) != strong_ordering::greater;
-    }
-
-    auto operator>(const VersionPartAtom& left, const VersionPartAtom& right) -> bool
-    {
-        return compare_three_way(left, right) == strong_ordering::greater;
-    }
-
-    auto operator>=(const VersionPartAtom& left, const VersionPartAtom& other) -> bool
-    {
-        return compare_three_way(left, other) != strong_ordering::less;
+        // Certain literals have special meaning we map then to a priority
+        // 0 meaning regular string
+        auto lit_priority = [](const auto& l) -> int
+        {
+            if (l == "*")
+            {
+                return -3;
+            }
+            if (l == "dev")
+            {
+                return -2;
+            }
+            if (l == "_")
+            {
+                return -1;
+            }
+            if (l == "")
+            {
+                return 1;
+            }
+            if (l == "post")
+            {
+                return 2;
+            }
+            return 0;
+        };
+        const auto a_lit_val = lit_priority(a.literal());
+        const auto b_lit_val = lit_priority(b.literal());
+        // If two regular string, we need to use string comparison
+        if ((a_lit_val == 0) && (b_lit_val == 0))
+        {
+            return a.literal() <=> b.literal();
+        }
+        return a_lit_val <=> b_lit_val;
     }
 }
 
@@ -301,50 +237,21 @@ namespace mamba::specs
         return fmt::format("{}", *this);
     }
 
-    namespace
+    auto operator==(const VersionPart& lhs, const VersionPart& rhs) -> bool
     {
-        template <>
-        auto compare_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
-        {
-            return lexicographical_compare_three_way_trailing(
-                       a.atoms.cbegin(),
-                       a.atoms.cend(),
-                       b.atoms.cbegin(),
-                       b.atoms.cend(),
-                       VersionPartAtom{},
-                       [](const auto& x, const auto& y) { return compare_three_way(x, y); }
-            ).first;
-        }
+        return (lhs <=> rhs) == std::strong_ordering::equal;
     }
 
-    auto operator==(const VersionPart& left, const VersionPart& right) -> bool
+    auto operator<=>(const VersionPart& lhs, const VersionPart& rhs) -> std::strong_ordering
     {
-        return compare_three_way(left, right) == strong_ordering::equal;
-    }
-
-    auto operator!=(const VersionPart& left, const VersionPart& right) -> bool
-    {
-        return !(left == right);
-    }
-
-    auto operator<(const VersionPart& left, const VersionPart& right) -> bool
-    {
-        return compare_three_way(left, right) == strong_ordering::less;
-    }
-
-    auto operator<=(const VersionPart& left, const VersionPart& right) -> bool
-    {
-        return compare_three_way(left, right) != strong_ordering::greater;
-    }
-
-    auto operator>(const VersionPart& left, const VersionPart& right) -> bool
-    {
-        return compare_three_way(left, right) == strong_ordering::greater;
-    }
-
-    auto operator>=(const VersionPart& left, const VersionPart& right) -> bool
-    {
-        return compare_three_way(left, right) != strong_ordering::less;
+        return lexicographical_compare_three_way_trailing(
+                   lhs.atoms.cbegin(),
+                   lhs.atoms.cend(),
+                   rhs.atoms.cbegin(),
+                   rhs.atoms.cend(),
+                   VersionPartAtom{},
+                   [](const auto& x, const auto& y) { return x <=> y; }
+        ).first;
     }
 }
 
@@ -427,65 +334,34 @@ namespace mamba::specs
         return fmt::format("{:g}", *this);
     }
 
-    namespace
-    {
-        template <>
-        auto compare_three_way(const CommonVersion& a, const CommonVersion& b) -> strong_ordering
-        {
-            return lexicographical_compare_three_way_trailing(
-                       a.cbegin(),
-                       a.cend(),
-                       b.cbegin(),
-                       b.cend(),
-                       VersionPart{},
-                       [](const auto& x, const auto& y) { return compare_three_way(x, y); }
-            ).first;
-        }
-
-        template <>
-        auto compare_three_way(const Version& a, const Version& b) -> strong_ordering
-        {
-            if (auto c = compare_three_way(a.epoch(), b.epoch()); c != strong_ordering::equal)
-            {
-                return c;
-            }
-            if (auto c = compare_three_way(a.version(), b.version()); c != strong_ordering::equal)
-            {
-                return c;
-            }
-            return compare_three_way(a.local(), b.local());
-        }
-    }
-
-    // TODO(C++20) use operator<=> to simplify code and improve operator<=
     auto operator==(const Version& left, const Version& right) -> bool
     {
-        return compare_three_way(left, right) == strong_ordering::equal;
+        return (left <=> right) == std::strong_ordering::equal;
     }
 
-    auto operator!=(const Version& left, const Version& right) -> bool
+    auto operator<=>(const CommonVersion& lhs, const CommonVersion& rhs) -> std::strong_ordering
     {
-        return !(left == right);
+        return lexicographical_compare_three_way_trailing(
+                   lhs.cbegin(),
+                   lhs.cend(),
+                   rhs.cbegin(),
+                   rhs.cend(),
+                   VersionPart{},
+                   [](const auto& x, const auto& y) { return x <=> y; }
+        ).first;
     }
 
-    auto operator<(const Version& left, const Version& right) -> bool
+    auto operator<=>(const Version& lhs, const Version& rhs) -> std::strong_ordering
     {
-        return compare_three_way(left, right) == strong_ordering::less;
-    }
-
-    auto operator<=(const Version& left, const Version& right) -> bool
-    {
-        return compare_three_way(left, right) != strong_ordering::greater;
-    }
-
-    auto operator>(const Version& left, const Version& right) -> bool
-    {
-        return compare_three_way(left, right) == strong_ordering::greater;
-    }
-
-    auto operator>=(const Version& left, const Version& right) -> bool
-    {
-        return compare_three_way(left, right) != strong_ordering::less;
+        if (auto c = lhs.epoch() <=> rhs.epoch(); c != std::strong_ordering::equal)
+        {
+            return c;
+        }
+        if (auto c = lhs.version() <=> rhs.version(); c != std::strong_ordering::equal)
+        {
+            return c;
+        }
+        return lhs.local() <=> rhs.local();
     }
 
     namespace
@@ -495,36 +371,36 @@ namespace mamba::specs
         };
 
         [[maybe_unused]] auto starts_with_three_way(const AlwaysEqual&, const AlwaysEqual&)
-            -> strong_ordering
+            -> std::strong_ordering
         {
             // This comparison should not happen with the current usage.
             assert(false);
-            return strong_ordering::equal;
+            return std::strong_ordering::equal;
         }
 
         template <typename T>
-        auto starts_with_three_way(const AlwaysEqual&, const T&) -> strong_ordering
+        auto starts_with_three_way(const AlwaysEqual&, const T&) -> std::strong_ordering
         {
-            return strong_ordering::equal;
+            return std::strong_ordering::equal;
         }
 
         template <typename T>
-        auto starts_with_three_way(const T&, const AlwaysEqual&) -> strong_ordering
+        auto starts_with_three_way(const T&, const AlwaysEqual&) -> std::strong_ordering
         {
-            return strong_ordering::equal;
+            return std::strong_ordering::equal;
         }
 
         auto starts_with_three_way(const VersionPartAtom& a, const VersionPartAtom& b)
-            -> strong_ordering
+            -> std::strong_ordering
         {
             if ((a.numeral() == b.numeral()) && b.literal().empty())
             {
-                return strong_ordering::equal;
+                return std::strong_ordering::equal;
             }
-            return compare_three_way(a, b);
+            return a <=> b;
         }
 
-        auto starts_with_three_way(const VersionPart& a, const VersionPart& b) -> strong_ordering
+        auto starts_with_three_way(const VersionPart& a, const VersionPart& b) -> std::strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
                        a.atoms.cbegin(),
@@ -537,7 +413,8 @@ namespace mamba::specs
             ).first;
         }
 
-        auto starts_with_three_way(const CommonVersion& a, const CommonVersion& b) -> strong_ordering
+        auto starts_with_three_way(const CommonVersion& a, const CommonVersion& b)
+            -> std::strong_ordering
         {
             return lexicographical_compare_three_way_trailing(
                        a.cbegin(),
@@ -550,9 +427,9 @@ namespace mamba::specs
             ).first;
         }
 
-        auto starts_with_three_way(const Version& a, const Version& b) -> strong_ordering
+        auto starts_with_three_way(const Version& a, const Version& b) -> std::strong_ordering
         {
-            if (auto c = compare_three_way(a.epoch(), b.epoch()); c != strong_ordering::equal)
+            if (auto c = a.epoch() <=> b.epoch(); c != std::strong_ordering::equal)
             {
                 return c;
             }
@@ -560,7 +437,7 @@ namespace mamba::specs
             {
                 return starts_with_three_way(a.version(), b.version());
             }
-            if (auto c = compare_three_way(a.version(), b.version()); c != strong_ordering::equal)
+            if (auto c = a.version() <=> b.version(); c != std::strong_ordering::equal)
             {
                 return c;
             }
@@ -570,7 +447,7 @@ namespace mamba::specs
 
     auto Version::starts_with(const Version& prefix) const -> bool
     {
-        return starts_with_three_way(*this, prefix) == strong_ordering::equal;
+        return starts_with_three_way(*this, prefix) == std::strong_ordering::equal;
     }
 
     namespace
@@ -585,11 +462,11 @@ namespace mamba::specs
                 older.cbegin(),
                 older.cend(),
                 VersionPart{},
-                [](const auto& x, const auto& y) { return compare_three_way(x, y); }
+                [](const auto& x, const auto& y) { return x <=> y; }
             );
 
-            return (cmp == strong_ordering::equal)
-                   || ((cmp == strong_ordering::greater) && (idx >= level));
+            return (cmp == std::strong_ordering::equal)
+                   || ((cmp == std::strong_ordering::greater) && (idx >= level));
         }
     }
 
@@ -601,21 +478,12 @@ namespace mamba::specs
 
     namespace
     {
-        // TODO(C++20) This is a std::string_view constructor
-        template <typename Iter>
-        auto make_string_view(Iter first, Iter last) -> std::string_view
-        {
-            const auto size = util::safe_num_cast<std::size_t>(last - first);
-            return { first, size };
-        }
-
         template <typename Int>
         auto to_int(std::string_view str) -> std::optional<Int>
         {
             Int val = 0;
             const auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), val);
-            if ((ec != std::errc()) || (ptr != (str.data() + str.size())))  // TODO(C++20)
-                                                                            // [[unlikely]]
+            if ((ec != std::errc()) || (ptr != (str.data() + str.size()))) [[unlikely]]
             {
                 return {};
             }
@@ -628,7 +496,7 @@ namespace mamba::specs
         {
             const auto delim_pos = str.find(Version::epoch_delim);
             // No epoch is specified
-            if (delim_pos == std::string_view::npos)  // TODO(C++20) [[likely]]
+            if (delim_pos == std::string_view::npos) [[likely]]
             {
                 return { { Int(0), str } };
             }
@@ -714,8 +582,7 @@ namespace mamba::specs
             // `_` and `-` delimiter cannot be used together.
             // Special meaning for `_` at the end of the string.
             if ((str.find(Version::part_delim_alt) < str.size())
-                && (str.find(Version::part_delim_special) < str.size() - 1))  // TODO(C++20)
-                                                                              // [[unlikely]]
+                && (str.find(Version::part_delim_special) < str.size() - 1)) [[unlikely]]
             {
                 return make_unexpected_parse(
                     fmt::format(
@@ -773,8 +640,7 @@ namespace mamba::specs
                     tail_delim_pos = std::string_view::npos;
                 }
                 // One of the part is empty
-                if ((tail_delim_pos == 0) || (tail_delim_pos == tail.size() - 1))  // TODO(C++20)
-                                                                                   // [[unlikely]]
+                if ((tail_delim_pos == 0) || (tail_delim_pos == tail.size() - 1)) [[unlikely]]
                 {
                     return make_unexpected_parse(fmt::format("Empty part in '{}'.", str));
                 }
@@ -793,7 +659,7 @@ namespace mamba::specs
         {
             const auto delim_pos = str.rfind(Version::local_delim);
             // No local is specified
-            if (delim_pos == std::string_view::npos)  // TODO(C++20) [[likely]]
+            if (delim_pos == std::string_view::npos) [[likely]]
             {
                 return { { str, {} } };
             }

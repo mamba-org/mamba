@@ -194,8 +194,8 @@ TEST_CASE("Shards URL construction")
 
         // shard_url should return absolute URL
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::starts_with(url, "https://shards.example.com"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.starts_with("https://shards.example.com"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Relative URL handling")
@@ -224,7 +224,7 @@ TEST_CASE("Shards URL construction")
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "anaconda.org"));
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Different host detection")
@@ -252,7 +252,7 @@ TEST_CASE("Shards URL construction")
 
         // Should handle different host correctly
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::starts_with(url, "https://different-host.com"));
+        REQUIRE(url.starts_with("https://different-host.com"));
     }
 }
 
@@ -850,7 +850,7 @@ TEST_CASE("Shards - Basic operations")
     SECTION("shard_url")
     {
         std::string url = shards.shard_url("pkg1");
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
         REQUIRE(util::contains(url, "anaconda.org"));
 
         REQUIRE_THROWS_AS(shards.shard_url("nonexistent"), std::runtime_error);
@@ -1309,9 +1309,9 @@ TEST_CASE("Shards - shards_base_url edge cases")
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
         REQUIRE_FALSE(util::contains(url, "repodata.json/"));
-        REQUIRE(util::starts_with(url, "https://anaconda.org/conda-forge/linux-64/"));
+        REQUIRE(url.starts_with("https://anaconda.org/conda-forge/linux-64/"));
     }
 
     SECTION("shards_base_url with trailing slash")
@@ -1326,7 +1326,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
         REQUIRE(util::contains(url, "shards"));
     }
 
@@ -1342,7 +1342,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::starts_with(url, "https://example.com/different/path/"));
+        REQUIRE(url.starts_with("https://example.com/different/path/"));
     }
 
     SECTION("Relative shards_base_url does not inherit repodata filename")
@@ -1358,8 +1358,8 @@ TEST_CASE("Shards - shards_base_url edge cases")
 
         const std::string url = shards.shard_url("test-pkg");
         REQUIRE_FALSE(util::contains(url, "repodata.json/"));
-        REQUIRE(util::starts_with(url, "https://conda.anaconda.org/conda-forge/linux-64/"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.starts_with("https://conda.anaconda.org/conda-forge/linux-64/"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 }
 
@@ -2368,7 +2368,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API - shard_url uses relative_shard_path internally
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Absolute URL with different host")
@@ -2385,7 +2385,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "different-host.com"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Relative URL with ./ prefix")
@@ -2402,7 +2402,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Relative URL with / prefix")
@@ -2419,7 +2419,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 }
 

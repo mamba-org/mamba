@@ -21,11 +21,11 @@ namespace mamba
         // Allows supporting both form of pin, e.g. ``python=3.13`` and ``python ==3.13``.
         auto equality_tail(std::string_view spec_str) -> std::optional<std::string_view>
         {
-            if (util::starts_with(spec_str, specs::VersionSpec::equal_str))
+            if (spec_str.starts_with(specs::VersionSpec::equal_str))
             {
                 return spec_str.substr(specs::VersionSpec::equal_str.size());
             }
-            if (util::starts_with(spec_str, "="))
+            if (spec_str.starts_with("="))
             {
                 return spec_str.substr(1);
             }

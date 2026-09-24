@@ -21,8 +21,7 @@ namespace mamba::path
     bool starts_with_home(const fs::u8path& p)
     {
         std::string path = p.string();
-        return util::starts_with(path, '~')
-               || util::starts_with(util::expand_home(path), util::expand_home("~"));
+        return path.starts_with('~') || util::expand_home(path).starts_with(util::expand_home("~"));
     }
 
     // TODO more error handling

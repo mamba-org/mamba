@@ -48,7 +48,8 @@ namespace mamba::specs
 
         [[nodiscard]] auto to_string() const -> const std::string&;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
+        // Cannot be replaced by the `=default` implementation because
+        // std::regex does not define `operator==`
         [[nodiscard]] auto operator==(const RegexSpec& other) const -> bool
         {
             return m_raw_pattern == other.m_raw_pattern

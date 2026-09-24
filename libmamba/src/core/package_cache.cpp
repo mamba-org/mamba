@@ -45,7 +45,7 @@ namespace mamba
             std::string dir_path = remove_secrets_and_login_credentials(s.package_url);
 
             // Remove filename from the end (everything after the last '/')
-            if (!s.filename.empty() && util::ends_with(dir_path, s.filename))
+            if (!s.filename.empty() && dir_path.ends_with(s.filename))
             {
                 dir_path = dir_path.substr(0, dir_path.size() - s.filename.size());
             }
@@ -83,7 +83,7 @@ namespace mamba
         if (!platform.empty())
         {
             const std::string suffix = "/" + platform;
-            if (util::ends_with(channel, suffix))
+            if (channel.ends_with(suffix))
             {
                 channel.resize(channel.size() - suffix.size());
             }

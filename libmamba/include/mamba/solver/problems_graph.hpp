@@ -10,7 +10,9 @@
 #include <array>
 #include <functional>
 #include <initializer_list>
+#include <iterator>
 #include <ostream>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -167,8 +169,10 @@ namespace mamba::solver
             using typename Base::value_type;
 
             NamedList() = default;
-            template <typename InputIterator>
+            template <std::input_iterator InputIterator>
             NamedList(InputIterator first, InputIterator last);
+            template <std::ranges::range R>
+            explicit NamedList(R&& r);
 
             using Base::empty;
             using Base::size;

@@ -86,9 +86,9 @@ namespace mamba::download
             //   linux-64/repodata.json.zst
             //   linux-64/repodata_shards.msgpack.zst
             //   noarch/repodata_shards.msgpack.zst
-            if (util::ends_with(path, ".json") || util::ends_with(path, ".json.zst")
-                || util::ends_with(path, REPODATA_SHARDS_MSGPACK)
-                || util::ends_with(path, REPODATA_SHARDS_MSGPACK_ZST))
+            if (path.ends_with(".json") || path.ends_with(".json.zst")
+                || path.ends_with(REPODATA_SHARDS_MSGPACK)
+                || path.ends_with(REPODATA_SHARDS_MSGPACK_ZST))
             {
                 return { path, "latest" };
             }
@@ -285,7 +285,7 @@ namespace mamba::download
                         digest = l["digest"];
                     }
                 }
-                assert(util::starts_with(digest, "sha256:"));
+                assert(digest.starts_with("sha256:"));
                 data->sha256sum = digest.substr(sizeof("sha256:") - 1);
                 return expected_t<void>();
             }
@@ -322,7 +322,7 @@ namespace mamba::download
         assert(parts.size() == 2);
         std::string mapped_package_name = parts.back();
         std::string mapped_repo = repo;
-        if (util::starts_with(mapped_package_name, "_"))
+        if (mapped_package_name.starts_with("_"))
         {
             mapped_package_name.insert(0, std::string("zzz"));
             mapped_repo = fmt::format("{}/{}", parts[0], mapped_package_name);
@@ -388,12 +388,12 @@ namespace mamba::download
         {
             return std::make_unique<PassThroughMirror>();
         }
-        else if (util::starts_with(url, "https://") || util::starts_with(url, "http://")
-                 || util::starts_with(url, "file://"))
+        else if (url.starts_with("https://") || url.starts_with("http://")
+                 || url.starts_with("file://"))
         {
             return std::make_unique<HTTPMirror>(std::move(url));
         }
-        else if (util::starts_with(url, "oci://"))
+        else if (url.starts_with("oci://"))
         {
             const auto parsed_url = util::URL::parse(url).value();
             return std::make_unique<OCIMirror>(

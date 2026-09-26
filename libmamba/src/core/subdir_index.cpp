@@ -840,7 +840,7 @@ namespace mamba
                 const std::string& effective_url = success.transfer.effective_url;
                 int http_status = success.transfer.http_status;
                 LOG_INFO << "Checked: " << effective_url << " [" << http_status << "]";
-                if (util::ends_with(effective_url, ".zst"))
+                if (effective_url.ends_with(".zst"))
                 {
                     m_metadata.set_zst(http_status == 200);
                 }
@@ -1100,14 +1100,14 @@ namespace mamba
 
     auto cache_name_from_url(std::string url) -> std::string
     {
-        if (url.empty() || (url.back() != '/' && !util::ends_with(url, ".json")))
+        if (url.empty() || (url.back() != '/' && !url.ends_with(".json")))
         {
             url += '/';
         }
 
         // mimicking conda's behavior by special handling repodata.json
         // todo support .zst
-        if (util::ends_with(url, "/repodata.json"))
+        if (url.ends_with("/repodata.json"))
         {
             url = url.substr(0, url.size() - 13);
         }

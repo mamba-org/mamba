@@ -310,7 +310,7 @@ TEST_CASE("relax_version_spec_to_minor")
         const auto vs = VersionSpec::parse("==3.7.12").value();
         const auto relaxed = relax_version_spec_to_minor(vs);
         REQUIRE(relaxed.contains(req("3.7")));
-        REQUIRE(util::starts_with(relaxed.to_string(), "=="));
+        REQUIRE(relaxed.to_string().starts_with("=="));
     }
 
     SECTION("four-component pin relaxes to first two components")

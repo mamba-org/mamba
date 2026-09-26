@@ -81,7 +81,7 @@ namespace mamba
             }
             else
             {
-                reach_fallback_certificates = (mamba::util::ends_with(certificates, "cert.pem") || mamba::util::ends_with(certificates, "ca-certificates.crt"));
+                reach_fallback_certificates = (certificates.ends_with("cert.pem") || certificates.ends_with("ca-certificates.crt"));
             }
             REQUIRE((certificates == expected_certificates || reach_fallback_certificates));
         }

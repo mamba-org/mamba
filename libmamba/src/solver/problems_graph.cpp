@@ -259,11 +259,14 @@ namespace mamba::solver
         {
             using T = typename Range::value_type;
             using O = std::invoke_result_t<Func, T>;
+            return CompressedProblemsGraph::NamedList<O>(
+                rng | std::views::transform(std::forward<Func>(f))
+            );
             // TODO(C++20) ranges::view::transform
-            auto tmp = std::vector<O>();
+            /*auto tmp = std::vector<O>();
             tmp.reserve(rng.size());
             std::transform(rng.begin(), rng.end(), std::back_inserter(tmp), std::forward<Func>(f));
-            return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());
+            return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());*/
         }
 
 // GCC reports dangling reference when using std::invoke with data members
@@ -332,7 +335,7 @@ namespace mamba::solver
             }
             else
             {
-                return name;
+                return std::forward<Name>(name);
             }
         }
 
@@ -667,7 +670,7 @@ namespace mamba::solver
      **********************************************************/
 
     template <typename T, typename A>
-    template <typename InputIterator>
+    template <std::input_iterator InputIterator>
     CompressedProblemsGraph::NamedList<T, A>::NamedList(InputIterator first, InputIterator last)
     {
         if (first < last)
@@ -685,6 +688,13 @@ namespace mamba::solver
         }
     }
 
+    template <typename T, typename A>
+    template <std::ranges::range R>
+    CompressedProblemsGraph::NamedList<T, A>::NamedList(R&& r)
+        : NamedList(r.begin(), r.end())
+    {
+    }
+    
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> const value_type&
     {
@@ -1372,7 +1382,7 @@ namespace mamba::solver
             std::sort(
                 arr.begin(),
                 arr.end(),
-                [](const auto& str1, const auto& str2) { return util::ends_with(str1, str2); }
+                [](const auto& str1, const auto& str2) { return str1.ends_with(str2); }
             );
             return arr;
         }
@@ -1561,7 +1571,7 @@ namespace mamba::solver
                         write(", which");
                     }
                     // Virtual package
-                    if (util::starts_with(node.name(), "__"))
+                    if (node.name().starts_with("__"))
                     {
                         write(" is missing on the system");
                     }

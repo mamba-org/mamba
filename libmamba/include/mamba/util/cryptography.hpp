@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <fstream>
 #include <memory>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -38,12 +39,7 @@ namespace mamba::util
         using bytes_array = std::array<std::byte, bytes_size>;
         using hex_array = std::array<char, hex_size>;
 
-        // TODO(C++20): use std::span<std::byte>
-        struct blob_type
-        {
-            const std::byte* data;
-            std::size_t size;
-        };
+        using blob_type = std::span<const std::byte>;
 
         /**
          * Hash a blob of data and write the hashed bytes to the provided output.
@@ -206,7 +202,8 @@ namespace mamba::util
     {
         m_digester.digest_start();
 
-        auto [iter, remaining] = blob;
+        auto iter = blob.data();
+        auto remaining = blob.size();
         while (remaining > 0)
         {
             const auto taken = std::min(remaining, digest_size);

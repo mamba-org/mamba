@@ -23,8 +23,8 @@ namespace mamba::util
         }
         // Posix-like path
         if (
-            starts_with(input, '~') || starts_with(input, '/') || (input == ".")
-            || starts_with(input, "./") || (input == "..") || starts_with(input, "../")
+            input.starts_with('~') || input.starts_with('/') || (input == ".")
+            || input.starts_with("./") || (input == "..") || input.starts_with("../")
 
         )
         {
@@ -64,7 +64,7 @@ namespace mamba::util
         {
             const auto prefix = std::array<char, 2>{ '~', sep };
             const auto prefix_str = std::string_view(prefix.data(), prefix.size());
-            if (starts_with(path, prefix_str))
+            if (path.starts_with(prefix_str))
             {
                 return sep;
             }
@@ -200,7 +200,7 @@ namespace mamba::util
     {
         const auto prefix = std::array<char, 2>{ '~', sep };
         const auto prefix_str = std::string_view(prefix.data(), prefix.size());
-        if ((path == "~") || starts_with(path, prefix_str))
+        if ((path == "~") || path.starts_with(prefix_str))
         {
             return path_concat(home, path.substr(1), sep);
         }

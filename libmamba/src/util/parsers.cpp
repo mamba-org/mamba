@@ -161,7 +161,7 @@ namespace mamba::util
         {
             static constexpr auto npos = std::string_view::npos;
 
-            assert(starts_with(pattern, glob));
+            assert(pattern.starts_with(glob));
             pattern = lstrip(pattern, glob);  // Drop leading '*'
             if (pattern.empty())              // input pattern was "*"
             {
@@ -187,14 +187,14 @@ namespace mamba::util
     {
         static constexpr auto npos = std::string_view::npos;
 
-        if (starts_with(pattern, glob))
+        if (pattern.starts_with(glob))
         {
             return glob_match_impl(pattern, str, glob);
         }
         if (const auto next_glob = pattern.find(glob); next_glob != npos)
         {
             const auto word = pattern.substr(0, next_glob);
-            return starts_with(str, word)
+            return str.starts_with(word)
                    && glob_match_impl(pattern.substr(next_glob), remove_prefix(str, word), glob);
             ;
         }

@@ -504,7 +504,7 @@ namespace mamba::download
             p_handle->set_opt(CURLOPT_NOPROGRESS, 0L);
         }
 
-        if (util::ends_with(p_request->url, ".json"))
+        if (p_request->url.ends_with(".json"))
         {
             // accept all encodings supported by the libcurl build
             p_handle->set_opt(CURLOPT_ACCEPT_ENCODING, "");
@@ -682,7 +682,7 @@ namespace mamba::download
 
     bool DownloadAttempt::Impl::can_retry(CURLcode code) const
     {
-        return p_handle->can_retry(code) && !util::starts_with(p_request->url, "file://");
+        return p_handle->can_retry(code) && !p_request->url.starts_with("file://");
     }
 
     bool DownloadAttempt::Impl::can_retry(const TransferData& data) const
@@ -690,7 +690,7 @@ namespace mamba::download
         return (data.http_status == http::PAYLOAD_TOO_LARGE
                 || data.http_status == http::TOO_MANY_REQUESTS
                 || data.http_status >= http::INTERNAL_SERVER_ERROR)
-               && !util::starts_with(p_request->url, "file://");
+               && !p_request->url.starts_with("file://");
     }
 
     TransferData DownloadAttempt::Impl::get_transfer_data() const
@@ -1093,7 +1093,7 @@ namespace mamba::download
 
     bool DownloadTracker::can_try_other_mirror() const
     {
-        bool is_file = util::starts_with(p_initial_request->url_path, "file://");
+        bool is_file = p_initial_request->url_path.starts_with("file://");
         bool is_check = p_initial_request->check_only;
         return !is_file && !is_check && m_tried_mirrors.size() < m_options.max_mirror_tries;
     }

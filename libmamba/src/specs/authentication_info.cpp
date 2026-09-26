@@ -50,7 +50,7 @@ namespace mamba::specs
 
     auto URLWeakener::make_first_key(std::string_view key) const -> std::string
     {
-        if (util::ends_with(key, '/'))
+        if (key.ends_with('/'))
         {
             return std::string(key);
         }

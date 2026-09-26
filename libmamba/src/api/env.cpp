@@ -34,7 +34,7 @@ namespace mamba
             // Check all envs_dirs to find which one contains this environment
             for (const auto& ed : ctx.envs_dirs)
             {
-                if (util::starts_with(px.string(), ed.string()))
+                if (px.string().starts_with(ed.string()))
                 {
                     return mamba::fs::relative(px, ed).string();
                 }

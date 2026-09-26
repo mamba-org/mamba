@@ -80,7 +80,7 @@ namespace umamba
         std::string offending;
         for (const auto& arg : parsed_app->remaining(false))
         {
-            if (!util::starts_with(arg, "-"))
+            if (!arg.starts_with("-"))
             {
                 offending = arg;
                 break;

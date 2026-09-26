@@ -50,11 +50,11 @@ set_package_command(CLI::App* com, mamba::Context& context)
         {
             std::cout << "Compressing " << fs::absolute(infile) << " to " << dest << std::endl;
 
-            if (util::ends_with(dest, ".tar.bz2") && compression_level == -1)
+            if (dest.ends_with(".tar.bz2") && compression_level == -1)
             {
                 compression_level = 9;
             }
-            if (util::ends_with(dest, ".conda") && compression_level == -1)
+            if (dest.ends_with(".conda") && compression_level == -1)
             {
                 compression_level = 15;
             }
@@ -83,7 +83,7 @@ set_package_command(CLI::App* com, mamba::Context& context)
     transmute_subcom->callback(
         [&]()
         {
-            if (util::ends_with(infile, ".tar.bz2"))
+            if (infile.ends_with(".tar.bz2"))
             {
                 if (compression_level == -1)
                 {

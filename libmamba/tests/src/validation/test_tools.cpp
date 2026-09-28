@@ -20,7 +20,7 @@ template <std::size_t size>
 auto
 hex_str(const std::array<std::byte, size>& bytes)
 {
-    return util::bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size());
+    return util::bytes_to_hex_str(bytes);
 }
 
 namespace

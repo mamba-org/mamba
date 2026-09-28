@@ -2546,10 +2546,7 @@ TEST_CASE("Shards - Disk caching")
 
         // Use wrong hash (different from index)
         std::vector<std::uint8_t> wrong_hash(32, 0xFF);
-        std::string wrong_hex_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(wrong_hash.data()),
-            reinterpret_cast<const std::byte*>(wrong_hash.data() + wrong_hash.size())
-        );
+        std::string wrong_hex_hash = util::bytes_to_hex_str(std::as_bytes(std::span{ wrong_hash }));
 
         // Write shard with wrong hash to cache
         auto cache_file = cache_dir / (wrong_hex_hash + ".msgpack.zst");
@@ -2579,10 +2576,7 @@ TEST_CASE("Shards - Disk caching")
         fs::create_directories(cache_dir);
 
         // Compute expected hash
-        std::string hex_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(hash_bytes.data()),
-            reinterpret_cast<const std::byte*>(hash_bytes.data() + hash_bytes.size())
-        );
+        std::string hex_hash = util::bytes_to_hex_str(std::as_bytes(std::span{ hash_bytes }));
 
         // Write corrupted data to cache
         auto cache_file = cache_dir / (hex_hash + ".msgpack.zst");

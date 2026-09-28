@@ -230,8 +230,9 @@ namespace mamba::util
         static_assert(sizeof(std::byte) == sizeof(char));
         auto bytes_first = reinterpret_cast<std::byte*>(out) + bytes_size;
         auto bytes_last = bytes_first + bytes_size;
+        std::span<std::byte> bytes(bytes_first, bytes_last);
         blob_bytes_to(blob, bytes_first);
-        bytes_to_hex_to(bytes_first, bytes_last, out);
+        bytes_to_hex_to(bytes, out);
     }
 
     template <typename D>
@@ -315,8 +316,9 @@ namespace mamba::util
         static_assert(sizeof(std::byte) == sizeof(char));
         auto bytes_first = reinterpret_cast<std::byte*>(out) + bytes_size;
         auto bytes_last = bytes_first + bytes_size;
+        std::span<std::byte> bytes(bytes_first, bytes_last);
         file_bytes_to(infile, bytes_first);
-        bytes_to_hex_to(bytes_first, bytes_last, out);
+        bytes_to_hex_to(bytes, out);
     }
 
     template <typename D>

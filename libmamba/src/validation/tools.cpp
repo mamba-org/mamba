@@ -144,13 +144,7 @@ namespace mamba::validation
     auto generate_ed25519_keypair_hex() -> std::pair<std::string, std::string>
     {
         auto [first, second] = generate_ed25519_keypair();
-        // TODO change function signature to use std::byte
-        const auto first_data = reinterpret_cast<const std::byte*>(first.data());
-        const auto second_data = reinterpret_cast<const std::byte*>(second.data());
-        return {
-            util::bytes_to_hex_str(first_data, first_data + first.size()),
-            util::bytes_to_hex_str(second_data, second_data + second.size()),
-        };
+        return { util::bytes_to_hex_str(first), util::bytes_to_hex_str(second) };
     }
 
     auto sign(const std::string& data, const std::byte* sk, std::byte* signature) -> int
@@ -209,10 +203,7 @@ namespace mamba::validation
         std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig;
 
         error_code = sign(data, bin_sk.data(), sig.data());
-
-        const auto sig_data = reinterpret_cast<const std::byte*>(sig.data());
-        signature = util::bytes_to_hex_str(sig_data, sig_data + sig.size());
-
+        signature = util::bytes_to_hex_str(sig);
         return error_code;
     }
 

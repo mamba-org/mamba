@@ -130,7 +130,7 @@ public:
         {
             sign(root_meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
+            auto sig_hex = util::bytes_to_hex_str(sig_bin);
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 
@@ -180,7 +180,7 @@ protected:
         for (int i = 0; i < count; ++i)
         {
             generate_ed25519_keypair(pk.data(), sk.data());
-            auto pk_hex = util::bytes_to_hex_str(pk.data(), pk.data() + pk.size());
+            auto pk_hex = util::bytes_to_hex_str(pk);
 
             role_secrets.insert({ pk_hex, sk });
         }
@@ -795,7 +795,7 @@ protected:
         {
             sign(meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
+            auto sig_hex = util::bytes_to_hex_str(sig_bin);
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 
@@ -1073,7 +1073,7 @@ protected:
         {
             sign(meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
+            auto sig_hex = util::bytes_to_hex_str(sig_bin);
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 
@@ -1121,7 +1121,7 @@ protected:
         {
             sign(meta.dump(2), secret.second.data(), sig_bin.data());
 
-            auto sig_hex = util::bytes_to_hex_str(sig_bin.data(), sig_bin.data() + sig_bin.size());
+            auto sig_hex = util::bytes_to_hex_str(sig_bin);
             signatures[secret.first].insert({ "signature", sig_hex });
         }
 

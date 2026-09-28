@@ -262,11 +262,6 @@ namespace mamba::solver
             return CompressedProblemsGraph::NamedList<O>(
                 rng | std::views::transform(std::forward<Func>(f))
             );
-            // TODO(C++20) ranges::view::transform
-            /*auto tmp = std::vector<O>();
-            tmp.reserve(rng.size());
-            std::transform(rng.begin(), rng.end(), std::back_inserter(tmp), std::forward<Func>(f));
-            return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());*/
         }
 
 // GCC reports dangling reference when using std::invoke with data members
@@ -694,7 +689,7 @@ namespace mamba::solver
         : NamedList(r.begin(), r.end())
     {
     }
-    
+
     template <typename T, typename A>
     auto CompressedProblemsGraph::NamedList<T, A>::front() const noexcept -> const value_type&
     {

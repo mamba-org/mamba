@@ -106,6 +106,9 @@ namespace mamba
         msgpack_object_to_hash_string(const msgpack_object& obj, const std::string& field_name = "")
             -> std::string
         {
+            auto as_span = [](const auto* ptr, std::size_t size) -> std::span<std::byte>
+            { return { const_cast<std::byte*>(reinterpret_cast<const std::byte*>(ptr)), size }; };
+
             if (obj.type == MSGPACK_OBJECT_STR)
             {
                 return std::string(obj.via.str.ptr, obj.via.str.size);
@@ -113,18 +116,12 @@ namespace mamba
             else if (obj.type == MSGPACK_OBJECT_BIN)
             {
                 // Convert bytes to hex string
-                return util::bytes_to_hex_str(
-                    reinterpret_cast<const std::byte*>(obj.via.bin.ptr),
-                    reinterpret_cast<const std::byte*>(obj.via.bin.ptr + obj.via.bin.size)
-                );
+                return util::bytes_to_hex_str(as_span(obj.via.bin.ptr, obj.via.bin.size));
             }
             else if (obj.type == MSGPACK_OBJECT_EXT)
             {
                 // Handle EXT type (sometimes used for bytes)
-                return util::bytes_to_hex_str(
-                    reinterpret_cast<const std::byte*>(obj.via.ext.ptr),
-                    reinterpret_cast<const std::byte*>(obj.via.ext.ptr + obj.via.ext.size)
-                );
+                return util::bytes_to_hex_str(as_span(obj.via.ext.ptr, obj.via.ext.size));
             }
             else if (obj.type == MSGPACK_OBJECT_ARRAY)
             {
@@ -153,7 +150,7 @@ namespace mamba
                         return std::string();
                     }
                 }
-                return util::bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size());
+                return util::bytes_to_hex_str(bytes);
             }
             else if (obj.type == MSGPACK_OBJECT_NIL)
             {
@@ -576,7 +573,7 @@ namespace mamba
         return m_shard_cache_dir;
     }
 
-    auto Shards::shard_url(const std::string& package) const -> std::string
+    auto Shards::shard_name(const std::string& package) const -> std::string
     {
         auto it = m_shards_index.shards.find(package);
         if (it == m_shards_index.shards.end())
@@ -585,11 +582,15 @@ namespace mamba
         }
 
         // Convert hash bytes to hex string
-        std::string hex_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(it->second.data()),
-            reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
-        );
+        auto data = const_cast<std::byte*>(reinterpret_cast<const std::byte*>(it->second.data()));
+        std::string hex_hash = util::bytes_to_hex_str({ data, it->second.size() });
         std::string shard_name = hex_hash + ".msgpack.zst";
+        return shard_name;
+    }
+
+    auto Shards::shard_url(const std::string& package) const -> std::string
+    {
+        auto shard_name = this->shard_name(package);
         std::string url = shards_base_url() + shard_name;
         return url;
     }
@@ -600,19 +601,7 @@ namespace mamba
      */
     auto Shards::relative_shard_path(const std::string& package) const -> std::string
     {
-        auto it = m_shards_index.shards.find(package);
-        if (it == m_shards_index.shards.end())
-        {
-            throw std::runtime_error("Package " + package + " not found in shard index");
-        }
-
-        // Convert hash bytes to hex string
-        std::string hex_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(it->second.data()),
-            reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
-        );
-        std::string shard_name = hex_hash + ".msgpack.zst";
-
+        std::string shard_name = this->shard_name(package);
         std::string shards_base_url_str = m_shards_index.info.shards_base_url;
 
         // Check if shards_base_url is absolute (has a URL scheme)
@@ -1456,21 +1445,9 @@ namespace mamba
 
     auto Shards::shard_cache_path(const std::string& package) const -> fs::u8path
     {
-        // Get hash from shard index
-        auto it = m_shards_index.shards.find(package);
-        if (it == m_shards_index.shards.end())
-        {
-            throw std::runtime_error("Package " + package + " not found in shard index");
-        }
-
-        // Convert hash bytes to hex string
-        std::string hex_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(it->second.data()),
-            reinterpret_cast<const std::byte*>(it->second.data() + it->second.size())
-        );
-
+        auto shard_name = this->shard_name(package);
         // Return full cache path: {pkgs_cache_root}/cache/shards/{hex_hash}.msgpack.zst
-        return shard_cache_dir() / (hex_hash + ".msgpack.zst");
+        return shard_cache_dir() / shard_name;
     }
 
     auto Shards::is_shard_cached(const std::string& package) const -> bool

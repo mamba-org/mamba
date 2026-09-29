@@ -168,7 +168,7 @@ namespace mamba
                 {
                     for (auto& p : fs::directory_iterator(base))
                     {
-                        if (util::starts_with(p.path().filename().string(), "nv")
+                        if (p.path().filename().string().starts_with("nv")
                             && fs::exists(p.path() / "nvidia-smi.exe"))
                         {
                             std::string f = (p.path() / "nvidia-smi.exe").string();

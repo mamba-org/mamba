@@ -440,7 +440,7 @@ namespace mamba::util
                 {
                     err = if_else(d < 0, ParseError::InvalidInput, err);
                 }
-                const bool match = starts_with(text.substr(pos), val);
+                const bool match = text.substr(pos).starts_with(val);
                 first_val_pos = if_else(match && (pos == sv_npos), pos, first_val_pos);
                 if (match && (depths == decltype(depths){}))
                 {

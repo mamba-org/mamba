@@ -701,7 +701,7 @@ namespace mamba
                         // or `spec` with some other constraints.
                         // Note: The condition below may be subject to modification if
                         // other use cases come up in the future
-                        if (util::starts_with(dep, args[i]) || util::starts_with(args[i], dep))
+                        if (dep.starts_with(args[i]) || args[i].starts_with(dep))
                         {
                             depends_qualifier = dep;
                             break;

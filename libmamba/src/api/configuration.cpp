@@ -1092,8 +1092,7 @@ namespace mamba
         {
             const auto filename = fs::u8path(file).filename();
             return filename == ".condarc" || filename == "condarc" || filename == ".mambarc"
-                   || filename == "mambarc" || util::ends_with(file, ".yml")
-                   || util::ends_with(file, ".yaml");
+                   || filename == "mambarc" || file.ends_with(".yml") || file.ends_with(".yaml");
         }
 
         bool is_config_file(const fs::u8path& path)

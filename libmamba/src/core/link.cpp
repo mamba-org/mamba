@@ -102,7 +102,7 @@ namespace mamba
                 );
             }
 
-            if (util::starts_with(command, ".."))
+            if (command.starts_with(".."))
             {
                 return make_unexpected(
                     fmt::format("Invalid entry point command name '{}': must not start with '..'", command),
@@ -161,7 +161,7 @@ namespace mamba
             }
 
             const std::string rel_str = rel.generic_string();
-            if (rel_str.empty() || rel_str == "." || util::starts_with(rel_str, "..")
+            if (rel_str.empty() || rel_str == "." || rel_str.starts_with("..")
                 || util::contains(rel_str, "/../") || util::contains(rel_str, "\\..\\"))
             {
                 return make_unexpected(

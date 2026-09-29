@@ -78,7 +78,7 @@ namespace mamba::specs
             static constexpr auto npos = std::string_view::npos;
             static constexpr auto prefix = CondaURL::token_prefix;
 
-            if ((path.size() <= prefix.size()) || !util::starts_with(path, prefix))
+            if ((path.size() <= prefix.size()) || !path.starts_with(prefix))
             {
                 return 0;
             }
@@ -159,7 +159,7 @@ namespace mamba::specs
             // Fast return for easy cases
             (p.size() > token_prefix.size())
             // The actual check
-            && util::starts_with(p, token_prefix);
+            && p.starts_with(token_prefix);
     }
 
     auto CondaURL::token() const -> std::string_view
@@ -204,7 +204,7 @@ namespace mamba::specs
         if (len == 0)
         {
             std::string l_path = clear_path();  // percent encoded
-            assert(util::starts_with(l_path, '/'));
+            assert(l_path.starts_with('/'));
             set_path(util::concat("/t/", token, l_path), Encode::no);
         }
         else

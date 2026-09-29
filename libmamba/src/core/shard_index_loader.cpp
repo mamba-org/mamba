@@ -316,7 +316,7 @@ namespace mamba
         // Use similar naming as repodata.json cache but with .msgpack.zst extension
         std::string cache_name = cache_filename_from_url(subdir.name());
         // Replace .json extension with .msgpack.zst
-        if (util::ends_with(cache_name, ".json"))
+        if (cache_name.ends_with(".json"))
         {
             cache_name = cache_name.substr(0, cache_name.size() - 5) + ".msgpack.zst";
         }

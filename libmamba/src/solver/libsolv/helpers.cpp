@@ -1326,7 +1326,7 @@ namespace mamba::solver::libsolv
                     // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
                     // In the meantime (and probably later for safety) we filter all virtual
                     // packages out.
-                    if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
+                    if (pkginfo.name.starts_with("__"))  // i.e. is_virtual_package
                     {
                         return;
                     }

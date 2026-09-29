@@ -203,11 +203,11 @@ namespace mamba::download
         // Compressed repodata is rather handled internally
         // in OCIMirror implementation, and is reflected
         // by `is_repodata_zst_from_oci_reg`
-        if (util::ends_with(url, ".json.zst") || is_repodata_zst_from_oci_reg)
+        if (url.ends_with(".json.zst") || is_repodata_zst_from_oci_reg)
         {
             return std::make_unique<ZstdCompressionStream>(std::move(func));
         }
-        else if (util::ends_with(url, "json.bz2"))
+        else if (url.ends_with("json.bz2"))
         {
             return std::make_unique<Bzip2CompressionStream>(std::move(func));
         }

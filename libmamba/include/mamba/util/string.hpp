@@ -72,12 +72,6 @@ namespace mamba::util
     extern template std::string to_upper(std::string&& str);
     extern template std::wstring to_upper(std::wstring&& str);
 
-    [[nodiscard]] auto starts_with(std::string_view str, std::string_view prefix) -> bool;
-    [[nodiscard]] auto starts_with(std::string_view str, std::string_view::value_type c) -> bool;
-
-    [[nodiscard]] auto ends_with(std::string_view str, std::string_view suffix) -> bool;
-    [[nodiscard]] auto ends_with(std::string_view str, std::string_view::value_type c) -> bool;
-
     [[nodiscard]] auto contains(std::string_view str, std::string_view sub_str) -> bool;
     [[nodiscard]] auto contains(std::string_view str, char c) -> bool;
     [[nodiscard]] auto contains(char c1, char c2) -> bool;
@@ -420,7 +414,7 @@ namespace mamba::util
         return std::any_of(
             strs.cbegin(),
             strs.cend(),
-            [&prefix](const auto& s) { return starts_with(s, prefix); }
+            [&prefix](const auto& s) { return s.starts_with(prefix); }
         );
     }
 
@@ -445,7 +439,7 @@ namespace mamba::util
         return std::any_of(
             prefix.cbegin(),
             prefix.cend(),
-            [&str](const auto& p) { return starts_with(str, p); }
+            [&str](const auto& p) { return str.starts_with(p); }
         );
     }
 

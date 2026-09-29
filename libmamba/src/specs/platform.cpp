@@ -44,7 +44,7 @@ namespace mamba::specs
     auto platform_is_linux(DynamicPlatform plat) -> bool
     {
         static constexpr auto repr = std::string_view("linux");
-        return (plat.size() >= repr.size()) && util::starts_with(util::to_lower(plat), repr);
+        return (plat.size() >= repr.size()) && util::to_lower(plat).starts_with(repr);
     }
 
     auto platform_is_osx(KnownPlatform plat) -> bool
@@ -55,7 +55,7 @@ namespace mamba::specs
     auto platform_is_osx(DynamicPlatform plat) -> bool
     {
         static constexpr auto repr = std::string_view("osx");
-        return (plat.size() >= repr.size()) && util::starts_with(util::to_lower(plat), repr);
+        return (plat.size() >= repr.size()) && (util::to_lower(plat).starts_with(repr));
     }
 
     auto platform_is_win(KnownPlatform plat) -> bool
@@ -68,8 +68,7 @@ namespace mamba::specs
     auto platform_is_win(DynamicPlatform plat) -> bool
     {
         static constexpr auto repr = std::string_view("win");
-        return (plat.size() >= repr.size())
-               && util::starts_with(util::to_lower(std::move(plat)), repr);
+        return (plat.size() >= repr.size()) && (util::to_lower(std::move(plat)).starts_with(repr));
     }
 
     auto platform_is_noarch(KnownPlatform plat) -> bool
@@ -80,7 +79,7 @@ namespace mamba::specs
     auto platform_is_noarch(DynamicPlatform plat) -> bool
     {
         static constexpr auto repr = std::string_view("noarch");
-        return util::starts_with(util::to_lower(std::move(plat)), repr);
+        return util::to_lower(std::move(plat)).starts_with(repr);
     }
 
     /**

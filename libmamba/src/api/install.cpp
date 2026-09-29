@@ -43,18 +43,18 @@ namespace mamba
             { "linux", false },
         };
 
-        if (util::starts_with(platform, "win"))
+        if (platform.starts_with("win"))
         {
             vals["win"] = true;
         }
         else
         {
             vals["unix"] = true;
-            if (util::starts_with(platform, "linux"))
+            if (platform.starts_with("linux"))
             {
                 vals["linux"] = true;
             }
-            else if (util::starts_with(platform, "osx"))
+            else if (platform.starts_with("osx"))
             {
                 vals["osx"] = true;
             }
@@ -66,7 +66,7 @@ namespace mamba
     {
         bool eval_selector(const std::string& selector, const std::string& platform)
         {
-            if (!(util::starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
+            if (!(selector.starts_with("sel(") && selector[selector.size() - 1] == ')'))
             {
                 throw std::runtime_error(
                     "Couldn't parse selector. Needs to start with sel( and end with )"
@@ -184,7 +184,7 @@ namespace mamba
                     for (const auto& map_el : *it)
                     {
                         std::string key = map_el.first.as<std::string>();
-                        if (util::starts_with(key, "sel("))
+                        if (key.starts_with("sel("))
                         {
                             bool selected = detail::eval_selector(key, platform);
                             if (selected)
@@ -1012,7 +1012,7 @@ namespace mamba
                 // read specs from file :)
                 if (is_env_lockfile_name(file))
                 {
-                    if (util::starts_with(file, "http"))
+                    if (file.starts_with("http"))
                     {
                         context.env_lockfile = file;
                     }
@@ -1114,7 +1114,7 @@ namespace mamba
                     for (std::size_t i = 0; i < file_contents.size(); ++i)
                     {
                         auto& line = file_contents[i];
-                        if (util::starts_with(line, "@EXPLICIT"))
+                        if (line.starts_with("@EXPLICIT"))
                         {
                             // this is an explicit env
                             // we can check if the platform is correct with the previous line
@@ -1124,7 +1124,7 @@ namespace mamba
                                 for (std::size_t j = 0; j < i; ++j)
                                 {
                                     platform = file_contents[j];
-                                    if (util::starts_with(platform, "# platform: "))
+                                    if (platform.starts_with("# platform: "))
                                     {
                                         platform = platform.substr(12);
                                         break;

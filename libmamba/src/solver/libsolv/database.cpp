@@ -324,7 +324,7 @@ namespace mamba::solver::libsolv
 
     void Database::add_virtual_package_impl(const RepoInfo& repo, const specs::PackageInfo& pkg)
     {
-        if (!util::starts_with(pkg.name, "__"))
+        if (!pkg.name.starts_with("__"))
         {
             throw mamba_error(
                 fmt::format(R"(Package "{}" is not a virtual package)", pkg.name),

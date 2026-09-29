@@ -153,8 +153,7 @@ namespace mamba::validation::v0_6
         std::array<std::byte, MAMBA_ED25519_SIGSIZE_BYTES> sig_bin;
         sign(j.dump(), sk, sig_bin.data());
 
-        const auto sig_bin_data = sig_bin.data();
-        auto sig_hex = util::bytes_to_hex_str(sig_bin_data, sig_bin_data + sig_bin.size());
+        auto sig_hex = util::bytes_to_hex_str(sig_bin);
 
         return { pk, sig_hex };
     }

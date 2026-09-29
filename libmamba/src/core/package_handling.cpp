@@ -212,7 +212,7 @@ namespace mamba
     int zip_order(const fs::u8path& path)
     {
         // sort info-...tar.zst file last in zip folder"
-        int init_order = util::starts_with(path.filename().string(), "info-");
+        int init_order = path.filename().string().starts_with("info-");
         // sort metadata.json first in zip folder
         if (path.filename().string() == "metadata.json")
         {
@@ -419,7 +419,7 @@ namespace mamba
     )
     {
         fs::u8path out_file_abs = fs::absolute(out_file);
-        if (util::ends_with(out_file.string(), ".tar.bz2"))
+        if (out_file.string().ends_with(".tar.bz2"))
         {
             create_archive(
                 directory,
@@ -430,7 +430,7 @@ namespace mamba
                 [](const fs::u8path&) { return false; }
             );
         }
-        else if (util::ends_with(out_file.string(), ".conda"))
+        else if (out_file.string().ends_with(".conda"))
         {
             TemporaryDirectory tdir;
             create_archive(
@@ -714,11 +714,11 @@ namespace mamba
 
     static fs::u8path extract_dest_dir(const fs::u8path& file)
     {
-        if (util::ends_with(file.string(), ".tar.bz2"))
+        if (file.string().ends_with(".tar.bz2"))
         {
             return file.string().substr(0, file.string().size() - 8);
         }
-        else if (util::ends_with(file.string(), ".conda"))
+        else if (file.string().ends_with(".conda"))
         {
             return file.string().substr(0, file.string().size() - 6);
         }
@@ -731,11 +731,11 @@ namespace mamba
         static std::mutex extract_mutex;
         std::unique_lock lock{ extract_mutex };
 
-        if (util::ends_with(file.string(), ".tar.bz2"))
+        if (file.string().ends_with(".tar.bz2"))
         {
             extract_archive(file, dest, options);
         }
-        else if (util::ends_with(file.string(), ".conda"))
+        else if (file.string().ends_with(".conda"))
         {
             extract_conda(file, dest, options);
         }
@@ -794,11 +794,11 @@ namespace mamba
     {
         TemporaryDirectory extract_dir;
 
-        if (util::ends_with(pkg_file.string(), ".tar.bz2"))
+        if (pkg_file.string().ends_with(".tar.bz2"))
         {
             extract_archive(pkg_file, extract_dir, options);
         }
-        else if (util::ends_with(pkg_file.string(), ".conda"))
+        else if (pkg_file.string().ends_with(".conda"))
         {
             extract_conda(pkg_file, extract_dir, options);
         }

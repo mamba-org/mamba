@@ -218,12 +218,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
     # Artifacts validation
     ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/keys.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/repo_checker.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v0_6.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v1.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework.cpp
     # Downloaders and mirrors
     ${LIBMAMBA_SOURCE_DIR}/download/compression.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/compression.hpp
@@ -267,7 +262,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.cpp
@@ -377,12 +371,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
     # Artifacts validation
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/keys.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/repo_checker.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v0_6.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v1.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework.hpp
     # Downloaders and mirrors
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/downloader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror_map.hpp
@@ -418,7 +407,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shards.hpp

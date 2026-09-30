@@ -18,20 +18,20 @@ namespace mambapy
         namespace py = pybind11;
         namespace logging = mamba::logging;
                 
-        // static constexpr auto doc_log_level = R"(Level of logging, used to filter out logs which are at a lower level than the current one.
-        // - see `libmambapy.logging.LoggingParams`
-        // - see `libmambapy.logging.LogRecord`
-        // - see `libmambapy.logging.set_log_level`)";
-        // py::native_enum<mamba::log_level>(m, "LogLevel", "enum.Enum", doc_log_level)
-        //     .value("TRACE", mamba::log_level::trace)
-        //     .value("DEBUG", mamba::log_level::debug)
-        //     .value("INFO", mamba::log_level::info)
-        //     .value("WARNING", mamba::log_level::warn)
-        //     .value("ERROR", mamba::log_level::err)
-        //     .value("CRITICAL", mamba::log_level::critical)
-        //     .value("OFF", mamba::log_level::off)
-        //     .value("ALL", mamba::log_level::all)
-        //     .finalize();
+        static constexpr auto doc_log_level = R"(Level of logging, used to filter out logs which are at a lower level than the current one.
+        - see `libmambapy.logging.LoggingParams`
+        - see `libmambapy.logging.LogRecord`
+        - see `libmambapy.logging.set_log_level`)";
+        py::native_enum<mamba::log_level>(m, "LogLevel", "enum.Enum", doc_log_level)
+            .value("TRACE", mamba::log_level::trace)
+            .value("DEBUG", mamba::log_level::debug)
+            .value("INFO", mamba::log_level::info)
+            .value("WARNING", mamba::log_level::warn)
+            .value("ERROR", mamba::log_level::err)
+            .value("CRITICAL", mamba::log_level::critical)
+            .value("OFF", mamba::log_level::off)
+            .value("ALL", mamba::log_level::all)
+            .finalize();
         
 
         m.def("name_of", [](mamba::log_level value){

@@ -7,7 +7,7 @@ def test_log_level():
     import libmambapy.logging as logging
 
     # TODO: check every values
-    log_level = libmambapy.LogLevel.DEBUG
+    log_level = libmambapy.logging.LogLevel.DEBUG
     assert log_level.name == "DEBUG"
     assert logging.name_of(log_level) == "debug"
 
@@ -17,6 +17,6 @@ def test_log_params():
     import libmambapy.logging as logging
 
     params = logging.LoggingParams()
-    params.log_level = libmambapy.LogLevel.DEBUG
+    params.logging_level = libmambapy.logging.LogLevel.DEBUG
     params.log_backtrace = 42
     

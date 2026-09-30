@@ -891,18 +891,18 @@ bind_submodule_impl(pybind11::module_ m)
         .value("Warn", VerificationLevel::Warn)
         .value("Enabled", VerificationLevel::Enabled);
 
-    static constexpr auto doc_log_level = R"(Level of logging, used to filter out logs which are at a lower level than the current one.
-    - see `libmambapy.logging.LoggingParams`
-    - see `libmambapy.logging.LogRecord`
-    - see `libmambapy.logging.set_log_level`)";
-    py::enum_<mamba::log_level>(m, "LogLevel", "enum.Enum", doc_log_level)
-        .value("TRACE", mamba::log_level::trace)
-        .value("DEBUG", mamba::log_level::debug)
-        .value("INFO", mamba::log_level::info)
-        .value("WARNING", mamba::log_level::warn)
-        .value("ERROR", mamba::log_level::err)
-        .value("CRITICAL", mamba::log_level::critical)
-        .value("OFF", mamba::log_level::off);        
+    // static constexpr auto doc_log_level = R"(Level of logging, used to filter out logs which are at a lower level than the current one.
+    // - see `libmambapy.logging.LoggingParams`
+    // - see `libmambapy.logging.LogRecord`
+    // - see `libmambapy.logging.set_log_level`)";
+    // py::enum_<mamba::log_level>(m, "LogLevel", "enum.Enum", doc_log_level)
+    //     .value("TRACE", mamba::log_level::trace)
+    //     .value("DEBUG", mamba::log_level::debug)
+    //     .value("INFO", mamba::log_level::info)
+    //     .value("WARNING", mamba::log_level::warn)
+    //     .value("ERROR", mamba::log_level::err)
+    //     .value("CRITICAL", mamba::log_level::critical)
+    //     .value("OFF", mamba::log_level::off);
 
     pyChannelContext.def_static("make_simple", &ChannelContext::make_simple)
         .def_static("make_conda_compatible", &ChannelContext::make_conda_compatible)

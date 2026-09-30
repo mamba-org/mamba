@@ -79,8 +79,6 @@ set(
     src/solver/libsolv/test_solver.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
-    src/validation/test_update_framework_v0_6.cpp
-    src/validation/test_update_framework_v1.cpp
     # Implementation of downloaders and mirrors
     src/download/test_downloader.cpp
     src/download/test_mirror.cpp

@@ -35,7 +35,6 @@
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/spdlog/logging_spdlog.hpp"
 #include "mamba/validation/tools.hpp"
-#include "mamba/validation/update_framework_v0_6.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
@@ -443,9 +442,6 @@ bind_submodule_impl(pybind11::module_ m)
     auto pyPrefixData = py::class_<PrefixData>(m, "PrefixData");
 
     auto pySubdirIndexLoader = py::class_<SubdirIndexLoader>(m, "SubdirIndexLoader");
-
-    // only used in a return type; does it belong in the module?
-    auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
 
     auto pyOutputParams = py::class_<Context::OutputParams>(pyContext, "OutputParams");
 
@@ -1595,104 +1591,6 @@ bind_submodule_impl(pybind11::module_ m)
         py::arg("data"),
         py::arg("secret_key")
     );
-
-    py::class_<validation::Key>(m, "Key")
-        .def_readwrite("keytype", &validation::Key::keytype)
-        .def_readwrite("scheme", &validation::Key::scheme)
-        .def_readwrite("keyval", &validation::Key::keyval)
-        .def_property_readonly(
-            "json_str",
-            [](const validation::Key& key)
-            {
-                nlohmann::json j;
-                validation::to_json(j, key);
-                return j.dump();
-            }
-        )
-        .def_static("from_ed25519", &validation::Key::from_ed25519);
-
-    py::class_<validation::RoleFullKeys>(m, "RoleFullKeys")
-        .def(py::init<>())
-        .def(
-            py::init<const std::map<std::string, validation::Key>&, const std::size_t&>(),
-            py::arg("keys"),
-            py::arg("threshold")
-        )
-        .def_readwrite("keys", &validation::RoleFullKeys::keys)
-        .def_readwrite("threshold", &validation::RoleFullKeys::threshold);
-
-    py::class_<validation::TimeRef>(m, "TimeRef")
-        .def(py::init<>())
-        .def(py::init<std::time_t>())
-        .def("set_now", &validation::TimeRef::set_now)
-        .def("set", &validation::TimeRef::set)
-        .def("timestamp", &validation::TimeRef::timestamp);
-
-    py::class_<validation::SpecBase, std::shared_ptr<validation::SpecBase>>(m, "SpecBase");
-
-    py::class_<validation::RoleBase, std::shared_ptr<validation::RoleBase>>(m, "RoleBase")
-        .def_property_readonly("type", &validation::RoleBase::type)
-        .def_property_readonly("version", &validation::RoleBase::version)
-        .def_property_readonly("spec_version", &validation::RoleBase::spec_version)
-        .def_property_readonly("file_ext", &validation::RoleBase::file_ext)
-        .def_property_readonly("expires", &validation::RoleBase::expires)
-        .def_property_readonly("expired", &validation::RoleBase::expired)
-        .def("all_keys", &validation::RoleBase::all_keys);
-
-    py::class_<validation::v0_6::V06RoleBaseExtension, std::shared_ptr<validation::v0_6::V06RoleBaseExtension>>(
-        m,
-        "RoleBaseExtension"
-    )
-        .def_property_readonly("timestamp", &validation::v0_6::V06RoleBaseExtension::timestamp);
-
-    py::class_<validation::v0_6::SpecImpl, validation::SpecBase, std::shared_ptr<validation::v0_6::SpecImpl>>(
-        m,
-        "SpecImpl"
-    )
-        .def(py::init<>());
-
-    py::class_<
-        validation::v0_6::KeyMgrRole,
-        validation::RoleBase,
-        validation::v0_6::V06RoleBaseExtension,
-        std::shared_ptr<validation::v0_6::KeyMgrRole>>(m, "KeyMgr")
-        .def(
-            py::init<
-                const std::string&,
-                const validation::RoleFullKeys&,
-                const std::shared_ptr<validation::SpecBase>>()
-        );
-
-    py::class_<
-        validation::v0_6::PkgMgrRole,
-        validation::RoleBase,
-        validation::v0_6::V06RoleBaseExtension,
-        std::shared_ptr<validation::v0_6::PkgMgrRole>>(m, "PkgMgr")
-        .def(
-            py::init<
-                const std::string&,
-                const validation::RoleFullKeys&,
-                const std::shared_ptr<validation::SpecBase>>()
-        );
-
-    py::class_<
-        validation::v0_6::RootImpl,
-        validation::RoleBase,
-        validation::v0_6::V06RoleBaseExtension,
-        std::shared_ptr<validation::v0_6::RootImpl>>(m, "RootImpl")
-        .def(py::init<const std::string&>(), py::arg("json_str"))
-        .def(
-            "update",
-            [](validation::v0_6::RootImpl& role, const std::string& json_str)
-            { return role.update(nlohmann::json::parse(json_str)); },
-            py::arg("json_str")
-        )
-        .def(
-            "create_key_mgr",
-            [](validation::v0_6::RootImpl& role, const std::string& json_str)
-            { return role.create_key_mgr(nlohmann::json::parse(json_str)); },
-            py::arg("json_str")
-        );
 
     m.def(
         "clean",

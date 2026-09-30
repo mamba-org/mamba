@@ -28,7 +28,6 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/package_handling.hpp"
-#include "mamba/core/repo_checker_store.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
@@ -944,42 +943,8 @@ namespace mamba
         {
             FetcherList fetchers;
 
-            if (ctx.validation_params.verify_artifacts)
-            {
-                LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
-            }
             for (const auto& pkg : solution.packages_to_install())
             {
-                if (ctx.validation_params.verify_artifacts)
-                {
-                    LOG_INFO << "Creating RepoChecker...";
-                    auto repo_checker_store = RepoCheckerStore::make(ctx, channel_context, multi_cache);
-                    for (auto& chan : channel_context.make_channel(pkg.channel))
-                    {
-                        auto repo_checker = repo_checker_store.find_checker(chan);
-                        if (repo_checker)
-                        {
-                            LOG_INFO << "RepoChecker successfully created.";
-                            repo_checker->generate_index_checker();
-                            repo_checker->verify_package(
-                                pkg.json_signable(),
-                                std::string_view(pkg.signatures)
-                            );
-                        }
-                        else
-                        {
-                            LOG_ERROR << "Could not create a valid RepoChecker.";
-                            throw std::runtime_error(
-                                fmt::format(
-                                    R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
-                                    pkg.name
-                                )
-                            );
-                        }
-                    }
-                    LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
-                }
-
                 // FIXME: only do this for micromamba for now
                 if (ctx.command_params.is_mamba_exe)
                 {
@@ -1019,17 +984,6 @@ namespace mamba
                 {
                     fetchers.emplace_back(pkg, multi_cache);
                 }
-            }
-
-            if (ctx.validation_params.verify_artifacts)
-            {
-                auto out = Console::stream();
-                fmt::print(
-                    out,
-                    "Content trust verifications successful, {} ",
-                    fmt::styled("package(s) are trusted", ctx.graphics_params.palette.safe)
-                );
-                LOG_INFO << "All package(s) are trusted";
             }
             return fetchers;
         }

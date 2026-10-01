@@ -17,7 +17,7 @@ namespace mambapy
     {
         namespace py = pybind11;
         namespace logging = mamba::logging;
-                
+
         static constexpr auto doc_log_level = R"(Level of logging, used to filter out logs which are at a lower level than the current one.
         - see `libmambapy.logging.LoggingParams`
         - see `libmambapy.logging.LogRecord`
@@ -32,15 +32,37 @@ namespace mambapy
             .value("OFF", mamba::log_level::off)
             .value("ALL", mamba::log_level::all)
             .finalize();
-        
 
-        m.def("name_of", [](mamba::log_level value){
+
+        m.def("name_of_level", [](mamba::log_level value){
                 // NOTE: this is necessary because this function is constexpr and doesnt have a runtime address until instanciated here.
                 return mamba::name_of(value);
-            }, 
+            },
             "Provides the name that will be used in `LogRecord`s for the specified LogLevel.",
             py::arg("log_level"));
-        
+
+        static constexpr auto doc_log_source = R"(Specifies the source a `LogRecord` is originating from.
+This is mainly useful for debugging issues coming from dependencies that have logging callbacks.)";
+        py::native_enum<mamba::log_source>(m, "LogSource", "enum.Enum", doc_log_source)
+            .value("LIBMAMBA", mamba::log_source::libmamba)
+            .value("LIBCURL", mamba::log_source::libcurl)
+            .value("LIBSOLV", mamba::log_source::libsolv)
+            .value("TESTS", mamba::log_source::tests)
+            .finalize();
+
+
+        m.def(
+            "name_of_source",
+            [](mamba::log_source value)
+            {
+                // NOTE: this is necessary because this function is constexpr and doesnt have a
+                // runtime address until instanciated here.
+                return mamba::name_of(value);
+            },
+            "Provides the name that will be used in `LogRecord`s for the specified LogLevel.",
+            py::arg("log_level")
+        );
+
         static constexpr auto doc_loggingparams_logging_level = "Minimum level a log record must have to not be filtered out.";
         static constexpr auto doc_loggingparams_log_backtrace = R"(Number of log records to keep in the backtrace history.
 The backtrace feature will be enabled only if the value is different from `0`.)";
@@ -64,6 +86,6 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
             .def_readwrite("logging_level", &logging::LoggingParams::logging_level, doc_loggingparams_logging_level)
             .def_readwrite("log_backtrace", &logging::LoggingParams::log_backtrace, doc_loggingparams_log_backtrace);
 
-        
+
     }
 }

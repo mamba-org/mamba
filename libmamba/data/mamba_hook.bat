@@ -9,7 +9,7 @@
 @SET "PATH=%__mambabin_dir%;%PATH%"
 @SET "MAMBA_BAT=%__mambabin_dir%\__MAMBA_INSERT_BAT_NAME__"
 @FOR %%F in ("%__mambabin_dir%") do @SET "__mamba_root=%%~dpF"
-__MAMBA_DEFINE_MAMBA_EXE__
+@SET "MAMBA_EXE=%__mamba_root%Library\bin\mamba.exe"
 @SET __mambabin_dir=
 @SET __mamba_root=
 

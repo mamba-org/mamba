@@ -32,7 +32,7 @@
         must provide to be usable by libmamba.
 
     - `mamba::logging::AnyLogHandler`:
-        A type-erasing type that can store a on object
+        A type-erasing type that can store an object
         which type satisfies `LogHandler` or a pointer to such type.
 
     - `mamba::logging::set_log_handler`:

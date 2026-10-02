@@ -324,13 +324,11 @@ jobs:
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
-      - name: Run tests using conda-content-trust (server side)
+      - name: Run auth tests
         shell: bash -l {0} -euo pipefail -x
         run: |
           export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
           export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
           unset CONDARC  # Interferes with tests
           cd micromamba/test-server
-          #./generate_gpg_keys.sh
-          #TODO rename to testserver_auth.sh
-          ./testserver_auth_pkg_signing.sh
+          ./testserver_auth.sh

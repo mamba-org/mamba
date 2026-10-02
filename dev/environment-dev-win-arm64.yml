@@ -40,7 +40,7 @@ dependencies:
   # Python / test dependencies available on win-arm64.
   # Omitted vs environment-dev.yml until they (or their deps) are published:
   # mitmproxy, bcrypt, pytest-xprocess, memory_profiler, pywin32,
-  # conda-content-trust, cryptography, mypy, pre-commit, and the Sphinx stack.
+  # cryptography, mypy, pre-commit, and the Sphinx stack.
   # Tests that need those packages skip; see https://github.com/mamba-org/mamba/issues/4393
   - python=3.14
   - pip

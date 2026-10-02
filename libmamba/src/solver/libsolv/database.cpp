@@ -155,12 +155,9 @@ namespace mamba::solver::libsolv
         const std::string& channel_id,
         PipAsPythonDependency add,
         PackageTypes package_types,
-        VerifyPackages verify_packages,
         RepodataParser repo_parser
     ) -> expected_t<RepoInfo>
     {
-        const auto verify_artifacts = static_cast<bool>(verify_packages);
-
         if (!fs::exists(path))
         {
             return make_unexpected(
@@ -183,7 +180,6 @@ namespace mamba::solver::libsolv
                     channel_id,
                     package_types,
                     settings().matchspec_parser,
-                    verify_artifacts,
                     settings().exclude_newer_policy
                 );
             }
@@ -197,7 +193,7 @@ namespace mamba::solver::libsolv
                     mamba_error_code::incorrect_usage
                 );
             }
-            return libsolv_read_json(repo, path, package_types, verify_artifacts)
+            return libsolv_read_json(repo, path, package_types)
                 .transform(
                     [&url, &channel_id](solv::ObjRepoView p_repo)
                     {

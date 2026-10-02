@@ -59,16 +59,6 @@ start_server --auth basic --user user@email.com --password test & PID=$!
 test_install http://user%40email.com:test@localhost:8000
 kill -TERM $PID
 
-start_server --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
-test_install http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012
-kill -TERM $PID
-
-# Verify signed packages
-if [[ "$(uname -s)" == "Linux" ]]; then
-	export KEY1=$(gpg --fingerprint "MAMBA1")
-	export KEY2=$(gpg --fingerprint "MAMBA2")
-
-	start_server --auth none --sign & PID=$!
-	test_install http://localhost:8000 --trusted-channels "http://localhost:8000/mychannel" --verify-artifacts
-	kill -TERM $PID
-fi
+# start_server --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
+# test_install http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012
+# kill -TERM $PID

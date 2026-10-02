@@ -414,7 +414,6 @@ TEST_CASE(
         "flat",
         solver::libsolv::PipAsPythonDependency::No,
         solver::libsolv::PackageTypes::CondaOrElseTarBz2,
-        solver::libsolv::VerifyPackages::No,
         solver::libsolv::RepodataParser::Mamba
     );
     REQUIRE(repo.has_value());

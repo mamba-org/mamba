@@ -44,16 +44,6 @@ namespace mamba
     {
         VerificationLevel safety_checks = VerificationLevel::Warn;
         bool extra_safety_checks = false;
-        bool verify_artifacts = false;
-
-        // TODO Uncomment `conda-forge` or whatever trusted_channels when possible
-        // (i.e server side package signing ready)
-        // Remove "http://127.0.0.1:8000/get/channel0"
-        // (should only be used in integration tests,
-        // this one is for testing with quetz)
-        std::vector<std::string> trusted_channels = {
-            /*"conda-forge", */ "http://127.0.0.1:8000/get/channel0"
-        };
     };
 
     enum class ChannelPriority

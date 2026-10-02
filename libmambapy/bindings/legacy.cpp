@@ -34,7 +34,6 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/spdlog/logging_spdlog.hpp"
-#include "mamba/validation/tools.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
@@ -1165,27 +1164,19 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             py::init(
                 [](decltype(ValidationParams::safety_checks) safety_checks,
-                   decltype(ValidationParams::extra_safety_checks) extra_safety_checks,
-                   decltype(ValidationParams::verify_artifacts) verify_artifacts,
-                   decltype(ValidationParams::trusted_channels) trusted_channels) -> ValidationParams
+                   decltype(ValidationParams::extra_safety_checks) extra_safety_checks) -> ValidationParams
                 {
                     return {
                         .safety_checks = std::move(safety_checks),
                         .extra_safety_checks = std::move(extra_safety_checks),
-                        .verify_artifacts = std::move(verify_artifacts),
-                        .trusted_channels = std::move(trusted_channels),
                     };
                 }
             ),
             py::arg("safety_checks") = default_validation_params.safety_checks,
-            py::arg("extra_safety_checks") = default_validation_params.extra_safety_checks,
-            py::arg("verify_artifacts") = default_validation_params.verify_artifacts,
-            py::arg("trusted_channels") = default_validation_params.trusted_channels
+            py::arg("extra_safety_checks") = default_validation_params.extra_safety_checks
         )
         .def_readwrite("safety_checks", &ValidationParams::safety_checks)
-        .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks)
-        .def_readwrite("verify_artifacts", &ValidationParams::verify_artifacts)
-        .def_readwrite("trusted_channels", &ValidationParams::trusted_channels);
+        .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks);
 
     pyContext.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
         .def_readwrite("output_params", &Context::output_params)
@@ -1478,32 +1469,6 @@ bind_submodule_impl(pybind11::module_ m)
                 deprecated("Use `validation_params.extra_safety_checks` instead.");
                 self.validation_params.extra_safety_checks = esc;
             }
-        )
-        .def_property(
-            "verify_artifacts",
-            [](const Context& self)
-            {
-                deprecated("Use `validation_params.verify_artifacts` instead.");
-                return self.validation_params.verify_artifacts;
-            },
-            [](Context& self, bool va)
-            {
-                deprecated("Use `validation_params.verify_artifacts` instead.");
-                self.validation_params.verify_artifacts = va;
-            }
-        )
-        .def_property(
-            "trusted_channels",
-            [](const Context& self)
-            {
-                deprecated("Use `validation_params.trusted_channels` instead.");
-                return self.validation_params.trusted_channels;
-            },
-            [](Context& self, std::vector<std::string> tc)
-            {
-                deprecated("Use `validation_params.trusted_channels` instead.");
-                self.validation_params.trusted_channels = tc;
-            }
         );
 
     ////////////////////////////////////////////
@@ -1574,23 +1539,6 @@ bind_submodule_impl(pybind11::module_ m)
         )
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
-
-    // Content trust - Package signature and verification
-    m.def("generate_ed25519_keypair", &validation::generate_ed25519_keypair_hex);
-    m.def(
-        "sign",
-        [](const std::string& data, const std::string& sk)
-        {
-            std::string signature;
-            if (!validation::sign(data, sk, signature))
-            {
-                throw std::runtime_error("Signing failed");
-            }
-            return signature;
-        },
-        py::arg("data"),
-        py::arg("secret_key")
-    );
 
     m.def(
         "clean",

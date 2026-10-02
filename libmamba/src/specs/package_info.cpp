@@ -520,7 +520,6 @@ namespace mamba::specs
                 p.track_features,
                 p.dependencies,
                 p.constrains,
-                p.signatures,
                 p.python_site_packages_path,
                 p.defaulted_keys
             );
@@ -563,10 +562,6 @@ namespace mamba::specs
         if (!pkg.sha256.empty())
         {
             j["sha256"] = pkg.sha256;
-        }
-        if (!pkg.signatures.empty())
-        {
-            j["signatures"] = pkg.signatures;
         }
         if (!pkg.python_site_packages_path.empty())
         {
@@ -621,7 +616,6 @@ namespace mamba::specs
         pkg.license = j.value("license", "");
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");
-        pkg.signatures = j.value("signatures", "");
         pkg.python_site_packages_path = j.value("python_site_packages_path", "");
         if (auto it = j.find("track_features"); it != j.end())
         {

@@ -46,9 +46,6 @@ namespace
             solv.set_python_site_packages_path("dummy_pspp");
             solv.set_md5("6f29ba77e8b03b191c9d667f331bf2a0");
             solv.set_sha256("ecde63af23e0d49c0ece19ec539d873ea408a6f966d3126994c6d33ae1b9d3f7");
-            solv.set_signatures(
-                R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
-            );
             solv.set_noarch(std::string("python"));
             solv.set_size(2345);
             solv.set_timestamp(4110596167);
@@ -66,7 +63,6 @@ namespace
                 REQUIRE(solv.python_site_packages_path() == "");
                 REQUIRE(solv.md5() == "");
                 REQUIRE(solv.sha256() == "");
-                REQUIRE(solv.signatures() == "");
                 REQUIRE(solv.noarch() == "");
                 REQUIRE(solv.size() == 0);
                 REQUIRE(solv.timestamp() == 0);
@@ -89,10 +85,6 @@ namespace
                 REQUIRE(solv.md5() == "6f29ba77e8b03b191c9d667f331bf2a0");
                 REQUIRE(
                     solv.sha256() == "ecde63af23e0d49c0ece19ec539d873ea408a6f966d3126994c6d33ae1b9d3f7"
-                );
-                REQUIRE(
-                    solv.signatures()
-                    == R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
                 );
                 REQUIRE(solv.noarch() == "python");
                 REQUIRE(solv.size() == 2345);
@@ -122,7 +114,6 @@ namespace
             REQUIRE(solv.license() == "");
             REQUIRE(solv.md5() == "");
             REQUIRE(solv.sha256() == "");
-            REQUIRE(solv.signatures() == "");
             REQUIRE(solv.noarch() == "");
             REQUIRE(solv.size() == 0);
             REQUIRE(solv.timestamp() == 0);

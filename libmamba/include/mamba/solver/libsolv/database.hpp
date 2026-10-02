@@ -93,7 +93,6 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             PipAsPythonDependency add = PipAsPythonDependency::No,
             PackageTypes package_types = PackageTypes::CondaOrElseTarBz2,
-            VerifyPackages verify_packages = VerifyPackages::No,
             RepodataParser repo_parser = RepodataParser::Mamba
         ) -> expected_t<RepoInfo>;
 

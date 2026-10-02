@@ -152,7 +152,6 @@ namespace
         pkg.size = 3200;
         pkg.timestamp = 4532;
         pkg.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
-        pkg.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
         pkg.md5 = "68b329da9893e34099c7d8ad5cb9c940";
         pkg.track_features = { "mkl", "blas" };
         pkg.dependencies = { "python>=3.7", "requests" };
@@ -197,10 +196,6 @@ namespace
             REQUIRE(
                 j.at("sha256") == "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
             );
-            REQUIRE(
-                j.at("signatures")
-                == R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
-            );
             REQUIRE(j.at("md5") == "68b329da9893e34099c7d8ad5cb9c940");
             REQUIRE(j.at("track_features") == "mkl,blas");
             REQUIRE(j.at("depends") == StrVec{ "python>=3.7", "requests" });
@@ -224,7 +219,6 @@ namespace
             j["size"] = 3200;
             j["timestamp"] = 4532;
             j["sha256"] = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
-            j["signatures"] = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
             j["md5"] = "68b329da9893e34099c7d8ad5cb9c940";
             j["track_features"] = "mkl,blas";
             j["depends"] = StrVec{ "python>=3.7", "requests" };
@@ -295,7 +289,6 @@ namespace
             pkg2.size = 3200;
             pkg2.timestamp = 4532;
             pkg2.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
-            pkg2.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
             pkg2.md5 = "68b329da9893e34099c7d8ad5cb9c940";
             pkg2.track_features = { "mkl", "blas" };
             pkg2.dependencies = { "python>=3.7", "requests" };

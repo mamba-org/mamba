@@ -289,7 +289,7 @@ jobs:
     name: mamba auth tests
     needs: ["build_shared_unix"]
     runs-on: ${{ inputs.os }}
-    if: false # Disabled for now
+    if: startsWith(inputs.os, 'ubuntu')
     steps:
       - name: Disk Space Before Clean Up
         run: |

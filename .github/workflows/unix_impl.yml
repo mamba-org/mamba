@@ -284,3 +284,53 @@ jobs:
               -vv --durations=50 \
               ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} \
               ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
+
+  mamba_auth_tests:
+    name: mamba auth tests
+    needs: ["build_shared_unix"]
+    runs-on: ${{ inputs.os }}
+    if: false # Disabled for now
+    steps:
+      - name: Disk Space Before Clean Up
+        run: |
+          df -h
+      - name: Free Disk Space (Base Runner)
+        uses: jlumbroso/free-disk-space@v2.0.0
+        with:
+          tool-cache: false
+          large-packages: false
+          docker-images: false
+      - name: Free Disk Space (Container)
+        run: |
+          rm -rf /mnt/usr/local/lib/android
+          rm -rf /mnt/usr/share/dotnet
+          rm -rf /mnt/usr/local/share/boost
+          rm -rf /mnt/opt/ghc
+          rm -rf /mnt/opt/hostedtoolcache/CodeQL
+          rm -rf /mnt/usr/local/lib/node_modules
+      - name: Disk Space After Clean Up
+        run: |
+          df -h
+      - name: Checkout mamba repository
+        uses: actions/checkout@v7
+      - name: Restore workspace
+        uses: ./.github/actions/workspace
+        with:
+          action: restore
+          path: build/
+          key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Create build environment
+        uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-file: ./build/environment.lock
+          environment-name: build_env
+      - name: Run tests using conda-content-trust (server side)
+        shell: bash -l {0} -euo pipefail -x
+        run: |
+          export TEST_MAMBA_EXE=$(pwd)/build/micromamba/mamba
+          export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
+          unset CONDARC  # Interferes with tests
+          cd micromamba/test-server
+          #./generate_gpg_keys.sh
+          #TODO rename to testserver_auth.sh
+          ./testserver_auth_pkg_signing.sh

@@ -111,20 +111,25 @@ namespace
                 continue;
             }
 
+            if (info_val_obj.type != MSGPACK_OBJECT_STR)
+            {
+                LOG_DEBUG << "Invalid info value type for key '" << info_key
+                          << "': " << static_cast<int>(info_val_obj.type);
+                continue;
+            }
+            std::string info_val(info_val_obj.via.str.ptr, info_val_obj.via.str.size);
+
             if (info_key == "base_url")
             {
-                info_dict.base_url = std::string(info_val_obj.via.str.ptr, info_val_obj.via.str.size);
+                info_dict.base_url = std::move(info_val);
             }
             else if (info_key == "shards_base_url")
             {
-                info_dict.shards_base_url = std::string(
-                    info_val_obj.via.str.ptr,
-                    info_val_obj.via.str.size
-                );
+                info_dict.shards_base_url = std::move(info_val);
             }
             else if (info_key == "subdir")
             {
-                info_dict.subdir = std::string(info_val_obj.via.str.ptr, info_val_obj.via.str.size);
+                info_dict.subdir = std::move(info_val);
             }
         }
         return info_dict;

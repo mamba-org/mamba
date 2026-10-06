@@ -2412,6 +2412,101 @@ def test_create_with_mirrored_channel_priority(
     assert "channel_a" in links[0]["channel"]
 
 
+@pytest.mark.parametrize("config_source", ["env", "rc"])
+@pytest.mark.parametrize(
+    "add_pip,specs,include_pip,expected",
+    [
+        pytest.param(False, ["python"], True, {"python": "3.12.0"}, id="disabled"),
+        pytest.param(True, ["python"], True, {"python": "3.12.0", "pip": "25.0"}, id="enabled"),
+        pytest.param(None, ["python"], True, {"python": "3.12.0", "pip": "25.0"}, id="default"),
+        pytest.param(
+            False,
+            ["python", "pip=24.0"],
+            True,
+            {"python": "3.12.0", "pip": "24.0"},
+            id="explicit-pip",
+        ),
+        pytest.param(
+            False,
+            ["python", "needs-pip"],
+            True,
+            {"python": "3.12.0", "pip": "25.0", "needs-pip": "1.0"},
+            id="required-pip",
+        ),
+        pytest.param(
+            False,
+            ["needs-python"],
+            True,
+            {"python": "3.12.0", "needs-python": "1.0"},
+            id="transitive-python",
+        ),
+        pytest.param(False, ["python"], False, {"python": "3.12.0"}, id="pip-unavailable"),
+    ],
+)
+def test_add_pip_as_python_dependency(
+    tmp_home,
+    tmp_root_prefix,
+    tmp_path,
+    monkeypatch,
+    config_source,
+    add_pip,
+    specs,
+    include_pip,
+    expected,
+):
+    channel = tmp_path / "channel"
+    packages = [
+        ("python", "3.12.0", []),
+        ("needs-python", "1.0", ["python"]),
+        ("needs-pip", "1.0", ["pip"]),
+    ]
+    if include_pip:
+        packages.extend([("pip", "24.0", ["python"]), ("pip", "25.0", ["python"])])
+    # Separate repos prevent repo-level injection from masking request-level regressions.
+    records = {"linux-64": {}, "noarch": {}}
+    for name, version, depends in packages:
+        subdir = "noarch" if name == "pip" else "linux-64"
+        records[subdir][f"{name}-{version}-0.tar.bz2"] = {
+            "name": name,
+            "version": version,
+            "build": "0",
+            "build_number": 0,
+            "depends": depends,
+            "subdir": subdir,
+        }
+    for subdir, packages in records.items():
+        directory = channel / subdir
+        directory.mkdir(parents=True)
+        (directory / "repodata.json").write_text(json.dumps({"packages": packages}))
+
+    config = {}
+    if add_pip is not None:
+        if config_source == "env":
+            monkeypatch.setenv("MAMBA_ADD_PIP_AS_PYTHON_DEPENDENCY", str(add_pip).lower())
+        else:
+            config["add_pip_as_python_dependency"] = add_pip
+    rc_file = tmp_path / ".condarc"
+    rc_file.write_text(yaml.safe_dump(config))
+
+    result = helpers.create(
+        "--name",
+        "pip-injection",
+        "--dry-run",
+        "--json",
+        "--platform",
+        "linux-64",
+        "--override-channels",
+        "--channel",
+        channel.as_uri(),
+        *specs,
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+    assert result["success"]
+    assert {pkg["name"]: pkg["version"] for pkg in result["actions"]["LINK"]} == expected
+
+
 @pytest.mark.parametrize("use_json", [True, False])
 def test_create_dry_run(tmp_home, tmp_root_prefix, use_json):
     env_name = "myenv"

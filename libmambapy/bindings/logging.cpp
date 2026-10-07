@@ -8,6 +8,7 @@
 #include <string>
 
 #include <pybind11/native_enum.h>
+#include <pybind11/stl.h>
 
 #include "mamba/core/logging.hpp"
 #include "mamba/core/logging_tools.hpp"
@@ -258,6 +259,8 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                 );
             // TODO: add equality comparison?
         }
+
+        bind_any_log_handler(module);
 
         {
             // TODO: add documentation + args

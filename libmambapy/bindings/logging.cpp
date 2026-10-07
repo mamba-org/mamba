@@ -4,6 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <vector>
+#include <string>
+
 #include <pybind11/native_enum.h>
 
 #include "mamba/core/logging.hpp"
@@ -13,18 +16,124 @@
 
 namespace mambapy
 {
-    void bind_submodule_logging(pybind11::module_ m)
+    namespace logging = mamba::logging;
+
+    struct PyAnyLogHandler
+    {
+        pybind11::object impl;
+
+        PyAnyLogHandler() = default;
+        PyAnyLogHandler(const PyAnyLogHandler&) = delete;
+        PyAnyLogHandler& operator=(const PyAnyLogHandler&) = delete;
+        PyAnyLogHandler(PyAnyLogHandler&&) = default;
+        PyAnyLogHandler& operator=(PyAnyLogHandler&&) = default;
+
+        explicit PyAnyLogHandler(pybind11::object object)
+            : impl(std::move(object))
+        {
+            // TODO: Consider checking the validity of the object early?
+            //       Removed for now because all Python discussions on the subject
+            //       I found recommend to not do this and let the calls fail instead.
+        }
+
+        auto is_none() const -> bool
+        {
+            return impl.is_none();
+        }
+
+        auto is_valid() const -> bool
+        {
+            return not is_none();
+        }
+
+        auto start_log_handling(logging::LoggingParams params, const std::vector<logging::log_source> sources) -> void
+        {
+            impl.attr("start_log_handling")(params, sources);
+        }
+
+        auto stop_log_handling() -> void
+        {
+            impl.attr("stop_log_handling");
+        }
+
+        auto set_log_level(logging::log_level level) -> void
+        {
+            impl.attr("set_log_level")(level);
+        }
+
+        auto set_params(logging::LoggingParams new_params) -> void
+        {
+            impl.attr("set_params")(new_params);
+        }
+
+        auto log(logging::LogRecord record) -> void
+        {
+            impl.attr("log")(record);
+        }
+
+        auto enable_backtrace(std::size_t backtrace_size) -> void
+        {
+            impl.attr("enable_backtrace")(backtrace_size);
+        }
+
+        auto log_backtrace() -> void
+        {
+            impl.attr("log_backtrace");
+        }
+
+        auto log_backtrace_no_guards() -> void
+        {
+            impl.attr("log_backtrace_no_guards");
+        }
+
+        auto flush(std::optional<logging::log_source> source_to_flush = std::nullopt) -> void
+        {
+            impl.attr("flush")(source_to_flush);
+        }
+
+        auto set_flush_threshold(logging::log_level level_threshold = logging::log_level::all) -> void
+        {
+            impl.attr("set_flush_threshold")(level_threshold);
+        }
+
+    };
+
+    static_assert(logging::LogHandler_Moveable<PyAnyLogHandler>);
+
+    using loghandler_ptr = std::unique_ptr<logging::AnyLogHandler>;
+
+    void bind_any_log_handler(pybind11::module_ module)
     {
         namespace py = pybind11;
 
-        namespace logging = mamba::logging;
+        constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
+
+        py::class_<logging::AnyLogHandler, loghandler_ptr>(module, "AnyLogHandler", doc_class)
+            .def(
+                py::init(
+                    [](py::object log_handler_impl) -> loghandler_ptr
+                    {
+                        if (log_handler_impl.is_none())
+                        {
+                            return std::make_unique<logging::AnyLogHandler>();
+                        }
+                        return std::make_unique<logging::AnyLogHandler>((PyAnyLogHandler{ std::move(log_handler_impl) }));
+                    }
+                ),
+                py::arg("log_handler_impl") = py::none{}
+            );
+    }
+
+    void bind_submodule_logging(pybind11::module_ module)
+    {
+        namespace py = pybind11;
 
         {
             static constexpr auto doc_log_level = R"(Level of logging, used to filter out logs which are at a lower level than the current one.
     - see `libmambapy.logging.LoggingParams`
     - see `libmambapy.logging.LogRecord`
     - see `libmambapy.logging.set_log_level`)";
-            py::native_enum<mamba::log_level>(m, "LogLevel", "enum.Enum", doc_log_level)
+            py::native_enum<mamba::log_level>(module, "LogLevel", "enum.Enum", doc_log_level)
                 .value("TRACE", mamba::log_level::trace)
                 .value("DEBUG", mamba::log_level::debug)
                 .value("INFO", mamba::log_level::info)
@@ -36,7 +145,7 @@ namespace mambapy
                 .finalize();
 
 
-            m.def(
+            module.def(
                 "name_of_level",
                 [](mamba::log_level value)
                 {
@@ -52,7 +161,7 @@ namespace mambapy
         {
             static constexpr auto doc_log_source = R"(Specifies the source a `LogRecord` is originating from.
 This is mainly useful for debugging issues coming from dependencies that have logging callbacks.)";
-            py::native_enum<mamba::log_source>(m, "LogSource", "enum.Enum", doc_log_source)
+            py::native_enum<mamba::log_source>(module, "LogSource", "enum.Enum", doc_log_source)
                 .value("LIBMAMBA", mamba::log_source::libmamba)
                 .value("LIBCURL", mamba::log_source::libcurl)
                 .value("LIBSOLV", mamba::log_source::libsolv)
@@ -60,7 +169,7 @@ This is mainly useful for debugging issues coming from dependencies that have lo
                 .finalize();
 
 
-            m.def(
+            module.def(
                 "name_of_source",
                 [](mamba::log_source value)
                 {
@@ -79,7 +188,7 @@ This is mainly useful for debugging issues coming from dependencies that have lo
             static constexpr auto doc_loggingparams_log_backtrace = R"(Number of log records to keep in the backtrace history.
 The backtrace feature will be enabled only if the value is different from `0`.)";
             static constexpr auto default_loggingparams = logging::LoggingParams{};
-            py::class_<logging::LoggingParams>(m, "LoggingParams", "Parameters for the logging system.")
+            py::class_<logging::LoggingParams>(module, "LoggingParams", "Parameters for the logging system.")
                 .def(
                     py::init(
                         [](decltype(logging::LoggingParams::logging_level) logging_level,
@@ -111,7 +220,7 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
     - see `libmamba.logging.log`
     - see `libmamba.logging.AnyLogHandler.log`)";
 
-            py::class_<logging::LogRecord>(m, "LogRecord", doc_logrecord)
+            py::class_<logging::LogRecord>(module, "LogRecord", doc_logrecord)
                 .def(
                     py::init(
                         [](decltype(logging::LogRecord::message) message,
@@ -148,7 +257,62 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         }
 
         {
-
+            // TODO: add documentation + args
+            module.def("stop_logging", [] () -> loghandler_ptr {
+                    auto previous_handler = logging::stop_logging();
+                    if (previous_handler)
+                    {
+                        return std::make_unique<logging::AnyLogHandler>(std::move(previous_handler));
+                    }
+                    else
+                    {
+                        return nullptr;
+                    }
+                });
+            module.def(
+                "set_log_handler",
+                [](loghandler_ptr handler,
+            std::optional<logging::LoggingParams> maybe_new_params,
+            std::vector<logging::log_source> new_log_sources)
+                -> loghandler_ptr {
+                    auto previous_handler = set_log_handler(
+                        std::move(*handler), // FIXME: FISHY
+                        std::move(maybe_new_params),
+                        std::move(new_log_sources)
+                    );
+                    if (previous_handler)
+                    {
+                        return std::make_unique<logging::AnyLogHandler>(std::move(previous_handler));
+                    }
+                    else
+                    {
+                        return nullptr;
+                    }
+                }
+            );
+            // FIXME:
+            /*module.def("get_log_handler", []() -> logging::AnyLogHandler* {
+                    auto& current_loghandler = logging::get_log_handler();
+                    if (current_loghandler)
+                    {
+                        return &current_loghandler;
+                    }
+                    else
+                    {
+                        return nullptr;
+                    }
+                });*/
+            module.def("set_log_level", &logging::set_log_level);
+            module.def("get_log_level", &logging::get_log_level);
+            module.def("get_logging_params", &logging::get_logging_params);
+            module.def("set_logging_params", &logging::set_logging_params);
+            module.def("log", &logging::log);
+            module.def("enable_backtrace", &logging::enable_backtrace);
+            module.def("disable_backtrace", &logging::disable_backtrace);
+            module.def("log_backtrace", &logging::log_backtrace);
+            module.def("log_backtrace_no_guards", &logging::log_backtrace_no_guards);
+            module.def("flush_logs", &logging::flush_logs);
+            module.def("set_flush_threshold", &logging::set_flush_threshold);
         }
     }
 }

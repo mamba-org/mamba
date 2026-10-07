@@ -106,6 +106,15 @@ namespace mambapy
 
     using loghandler_ptr = std::unique_ptr<logging::AnyLogHandler>;
 
+    auto has_valid_object(const logging::AnyLogHandler& handler) -> bool
+    {
+        if(handler.type_id() == typeid(PyAnyLogHandler))
+        {
+            return handler.unsafe_get<PyAnyLogHandler>()->is_valid();
+        }
+        return handler.has_value();
+    }
+
     void bind_any_log_handler(pybind11::module_ module)
     {
         namespace py = pybind11;
@@ -123,8 +132,8 @@ namespace mambapy
                 py::arg("log_handler_impl") = py::none{},
                 py::return_value_policy::move
             )
-            .def("has_value", &logging::AnyLogHandler::has_value)
-            .def("__bool__", &logging::AnyLogHandler::has_value)
+            .def("has_value", &has_valid_object)
+            .def("__bool__", &has_valid_object)
             ; // FIXME: ADD MISSING FUNCTIONS (?)
     }
 

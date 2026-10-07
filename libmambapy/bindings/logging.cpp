@@ -18,6 +18,9 @@ namespace mambapy
 {
     namespace logging = mamba::logging;
 
+    // TODO: DOC!!!
+    // Wraps a Python object that provides `LogHandler` interface into a C++ type which can be
+    // passed to `AnyLogHandler`.
     struct PyAnyLogHandler
     {
         pybind11::object impl;
@@ -46,7 +49,7 @@ namespace mambapy
             return not is_none();
         }
 
-        auto start_log_handling(logging::LoggingParams params, const std::vector<logging::log_source> sources) -> void
+        auto start_log_handling(logging::LoggingParams params, const std::vector<logging::log_source>& sources) -> void
         {
             impl.attr("start_log_handling")(params, sources);
         }
@@ -108,20 +111,20 @@ namespace mambapy
 
         constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
 
-        py::class_<logging::AnyLogHandler, loghandler_ptr>(module, "AnyLogHandler", doc_class)
+        py::class_<logging::AnyLogHandler>(module, "AnyLogHandler", doc_class)
             .def(
                 py::init(
-                    [](py::object log_handler_impl) -> loghandler_ptr
+                    [](py::object log_handler_impl) -> logging::AnyLogHandler
                     {
-                        if (log_handler_impl.is_none())
-                        {
-                            return std::make_unique<logging::AnyLogHandler>();
-                        }
-                        return std::make_unique<logging::AnyLogHandler>((PyAnyLogHandler{ std::move(log_handler_impl) }));
+                        return logging::AnyLogHandler{ PyAnyLogHandler{ std::move(log_handler_impl) } };
                     }
                 ),
-                py::arg("log_handler_impl") = py::none{}
-            );
+                py::arg("log_handler_impl") = py::none{},
+                py::return_value_policy::move
+            )
+            .def("has_value", &logging::AnyLogHandler::has_value)
+            .def("__bool__", &logging::AnyLogHandler::has_value)
+            ; // FIXME: ADD MISSING FUNCTIONS (?)
     }
 
     void bind_submodule_logging(pybind11::module_ module)
@@ -258,50 +261,19 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
 
         {
             // TODO: add documentation + args
-            module.def("stop_logging", [] () -> loghandler_ptr {
-                    auto previous_handler = logging::stop_logging();
-                    if (previous_handler)
-                    {
-                        return std::make_unique<logging::AnyLogHandler>(std::move(previous_handler));
-                    }
-                    else
-                    {
-                        return nullptr;
-                    }
-                });
-            module.def(
-                "set_log_handler",
-                [](loghandler_ptr handler,
-            std::optional<logging::LoggingParams> maybe_new_params,
-            std::vector<logging::log_source> new_log_sources)
-                -> loghandler_ptr {
-                    auto previous_handler = set_log_handler(
-                        std::move(*handler), // FIXME: FISHY
+            module.def("stop_logging", &logging::stop_logging, py::return_value_policy::move);
+            module.def("set_log_handler", [](logging::AnyLogHandler& handler, // we need to take `handler` by reference to be able to move it (FISHY?)
+                    std::optional<logging::LoggingParams> maybe_new_params,
+                    std::vector<logging::log_source> new_log_sources)
+                    -> logging::AnyLogHandler
+                {
+                    return logging::set_log_handler(
+                        std::move(handler),
                         std::move(maybe_new_params),
                         std::move(new_log_sources)
                     );
-                    if (previous_handler)
-                    {
-                        return std::make_unique<logging::AnyLogHandler>(std::move(previous_handler));
-                    }
-                    else
-                    {
-                        return nullptr;
-                    }
-                }
-            );
-            // FIXME:
-            /*module.def("get_log_handler", []() -> logging::AnyLogHandler* {
-                    auto& current_loghandler = logging::get_log_handler();
-                    if (current_loghandler)
-                    {
-                        return &current_loghandler;
-                    }
-                    else
-                    {
-                        return nullptr;
-                    }
-                });*/
+                }, py::return_value_policy::move);
+            module.def("get_log_handler", &logging::get_log_handler, py::return_value_policy::reference);  // FIXME: FISHY, MAYBE DONT ALLOW THIS ONE???
             module.def("set_log_level", &logging::set_log_level);
             module.def("get_log_level", &logging::get_log_level);
             module.def("get_logging_params", &logging::get_logging_params);

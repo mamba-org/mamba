@@ -141,6 +141,59 @@ def test_list_subcommands(
             assert len(output.split("=")) == 3
 
 
+def _inject_token_into_conda_meta(prefix, token):
+    import json
+    import pathlib
+
+    conda_meta = pathlib.Path(prefix) / "conda-meta"
+    count = 0
+    for record in conda_meta.glob("*.json"):
+        data = json.loads(record.read_text())
+        url = data.get("url", "")
+        if "://" not in url or "/t/" in url:
+            continue
+        scheme, rest = url.split("://", 1)
+        host, path = rest.split("/", 1)
+        data["url"] = f"{scheme}://{host}/t/{token}/{path}"
+        record.write_text(json.dumps(data))
+        count += 1
+    return count
+
+
+@pytest.mark.parametrize("hash_flag", ["", "--md5", "--sha256"])
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_explicit_auth(tmp_home, tmp_root_prefix, tmp_xtensor_env, hash_flag):
+    token = "sometoken123abc"
+    assert _inject_token_into_conda_meta(tmp_xtensor_env, token) > 0
+    token_fragment = f"/t/{token}/"
+
+    # Default: Authentication stripped from URLs.
+    default_res = helpers.umamba_list("-p", tmp_xtensor_env, "--explicit", hash_flag)
+    default_urls = [line for line in default_res.splitlines() if "://" in line]
+    assert len(default_urls) > 0
+    for line in default_urls:
+        assert token_fragment not in line
+        assert line.startswith("https://")
+        if hash_flag == "--md5":
+            assert len(line.split("#")[-1].strip()) == 32
+        elif hash_flag == "--sha256":
+            assert len(line.split("#")[-1].strip()) == 64
+
+    # With --auth: Authentication preserved in URLs.
+    auth_res = helpers.umamba_list("-p", tmp_xtensor_env, "--explicit", "--auth", hash_flag)
+    auth_urls = [line for line in auth_res.splitlines() if "://" in line]
+    assert len(auth_urls) > 0
+    for line in auth_urls:
+        assert token_fragment in line
+
+
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_list_auth_without_explicit_is_ignored(tmp_home, tmp_root_prefix, tmp_xtensor_env):
+    res = helpers.umamba_list("-p", tmp_xtensor_env, "--auth")
+    assert "xtensor" in res
+    assert "xtl" in res
+
+
 @pytest.mark.parametrize("quiet_flag", ["", "-q", "--quiet"])
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 def test_list_name(tmp_home, tmp_root_prefix, tmp_xtensor_env, quiet_flag):

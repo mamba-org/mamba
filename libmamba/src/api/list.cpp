@@ -13,6 +13,7 @@
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/prefix_data.hpp"
+#include "mamba/specs/conda_url.hpp"
 #include "mamba/util/string.hpp"
 
 namespace mamba
@@ -32,6 +33,7 @@ namespace mamba
             bool canonical = false;
             bool export_ = false;
             bool revisions = false;
+            bool auth = false;
         };
 
         struct formatted_pkg
@@ -140,6 +142,11 @@ namespace mamba
                 );
             }
             PrefixData& prefix_data = sprefix_data.value();
+
+            if (options.auth && !options.explicit_)
+            {
+                LOG_WARNING << "Option --auth ignored because --explicit was not provided.";
+            }
 
             if (options.full_name)
             {
@@ -288,6 +295,15 @@ namespace mamba
                         LOG_WARNING
                             << "Option --export ignored because --explicit was also provided.";
                     }
+                    // By default, strip authentication (token, username/password) from the URL.
+                    // So explicit list can be shared safely. If --auth is specified, keep it.
+                    const auto credentials = options.auth ? specs::CondaURL::Credentials::Show
+                                                          : specs::CondaURL::Credentials::Remove;
+                    auto format_url = [&](const std::string& url) -> std::string
+                    {
+                        auto parsed = specs::CondaURL::parse(url);
+                        return parsed ? parsed->str(credentials) : url;
+                    };
                     for (auto p : packages)
                     {
                         if (options.md5 && options.sha256)
@@ -299,15 +315,15 @@ namespace mamba
                         }
                         if (options.md5)
                         {
-                            std::cout << p.url << "#" << p.md5 << std::endl;
+                            std::cout << format_url(p.url) << "#" << p.md5 << std::endl;
                         }
                         else if (options.sha256)
                         {
-                            std::cout << p.url << "#" << p.sha256 << std::endl;
+                            std::cout << format_url(p.url) << "#" << p.sha256 << std::endl;
                         }
                         else
                         {
-                            std::cout << p.url << std::endl;
+                            std::cout << format_url(p.url) << std::endl;
                         }
                     }
                 }
@@ -381,6 +397,7 @@ namespace mamba
         options.canonical = config.at("canonical").value<bool>();
         options.export_ = config.at("export").value<bool>();
         options.revisions = config.at("revisions").value<bool>();
+        options.auth = config.at("auth").value<bool>();
 
         auto channel_context = ChannelContext::make_conda_compatible(config.context());
         detail::list_packages(config.context(), regex, channel_context, std::move(options));

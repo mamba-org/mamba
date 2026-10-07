@@ -59,6 +59,6 @@ start_server --auth basic --user user@email.com --password test & PID=$!
 test_install http://user%40email.com:test@localhost:8000
 kill -TERM $PID
 
-# start_server --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
-# test_install http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012
-# kill -TERM $PID
+start_server --token xy-12345678-1234-1234-1234-123456789012 & PID=$!
+test_install http://localhost:8000/t/xy-12345678-1234-1234-1234-123456789012
+kill -TERM $PID

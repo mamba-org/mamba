@@ -108,11 +108,12 @@ namespace mambapy
 
     auto has_valid_object(const logging::AnyLogHandler& handler) -> bool
     {
-        if(handler.type_id() == typeid(PyAnyLogHandler))
+        const auto stored_type_id = handler.type_id();
+        if (stored_type_id == typeid(PyAnyLogHandler))
         {
             return handler.unsafe_get<PyAnyLogHandler>()->is_valid();
         }
-        return handler.has_value();
+        return stored_type_id.has_value();
     }
 
     void bind_any_log_handler(pybind11::module_ module)

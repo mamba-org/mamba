@@ -367,6 +367,7 @@ namespace mamba
     {
         bool freeze_installed = false;
         bool prefix_data_interoperability = false;
+        bool add_pip_as_python_dependency = true;
     };
 
     auto create_install_request(
@@ -377,10 +378,11 @@ namespace mamba
     {
         using Request = solver::Request;
 
-        // When the user explicitly asks for ``python`` in the requested specs, also inject a
-        // plain ``pip`` request unless it is already present. This complements
-        // ``add_pip_as_python_dependency`` at the repo level and makes sure that the Request
-        // is in phase with the root packages including both ``python`` and ``pip`` when requested.
+        // When the user explicitly asks for ``python`` in the requested specs and
+        // ``add_pip_as_python_dependency`` is enabled, also inject a plain ``pip`` request
+        // unless it is already present. This complements ``add_pip_as_python_dependency``
+        // at the repo level and makes sure that the Request is in phase with the root
+        // packages including both ``python`` and ``pip`` when requested.
         bool wants_python = false;
         bool wants_pip = false;
         for (const auto& s : specs)
@@ -399,7 +401,7 @@ namespace mamba
                 wants_pip = true;
             }
         }
-        if (wants_python && !wants_pip)
+        if (options.add_pip_as_python_dependency && wants_python && !wants_pip)
         {
             specs.emplace_back("pip");
         }
@@ -596,8 +598,11 @@ namespace mamba
             auto request = create_install_request(
                 prefix_data,
                 raw_specs,
-                InstallRequestOptions{ .freeze_installed = freeze_installed,
-                                       .prefix_data_interoperability = ctx.prefix_data_interoperability }
+                InstallRequestOptions{
+                    .freeze_installed = freeze_installed,
+                    .prefix_data_interoperability = ctx.prefix_data_interoperability,
+                    .add_pip_as_python_dependency = ctx.add_pip_as_python_dependency,
+                }
             );
 
             add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);

@@ -2806,7 +2806,7 @@ namespace mamba
 
     void print_dump(const Configuration& config, int dump_opts, std::vector<std::string> dump_names)
     {
-        const std::string dump_text = hide_secrets(config.dump(dump_opts, std::move(dump_names)));
+        const std::string dump_text = config.dump(dump_opts, std::move(dump_names));
         if (config.context().output_params.json)
         {
             // merge the output with existing json output

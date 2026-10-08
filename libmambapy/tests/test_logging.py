@@ -43,10 +43,10 @@ def test_logging_api_basics():
     params = logging.LoggingParams(logging_level = logging.LogLevel.DEBUG)
 
     previous_log_handler = logging.stop_logging()
-    no_log_handler = logging.set_log_handler(logging.AnyLogHandler(log_handler), params, [ logging.LogSource.TESTS ])
+    no_log_handler = logging.set_log_handler(log_handler, params, [ logging.LogSource.TESTS ])
     assert not no_log_handler
 
-    last_log_handler = logging.stop_logging()
+    last_log_handler = logging.stop_logging() # returns an `AnyLogHandler` wrapping `log_handler`
     assert last_log_handler.has_pyobject()
     assert last_log_handler.get_pyobject() == log_handler
 

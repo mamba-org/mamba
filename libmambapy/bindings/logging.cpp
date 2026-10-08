@@ -50,7 +50,8 @@ namespace mambapy
             return not is_none();
         }
 
-        auto start_log_handling(logging::LoggingParams params, const std::vector<logging::log_source>& sources) -> void
+        auto start_log_handling(logging::LoggingParams params,
+            const std::vector<logging::log_source>& sources) -> void
         {
             impl.attr("start_log_handling")(params, sources);
         }
@@ -132,6 +133,25 @@ namespace mambapy
         return py_object->impl;
     }
 
+    auto to_anyloghandler(pybind11::object pyobject) -> logging::AnyLogHandler
+    {
+        // When the object passed is actually a C++ `logging::AnyLogHandler`, we take it by move.
+        // When it's any other object, we assume it's a python log handler and wrap it
+        // appropriately.
+
+        namespace py = pybind11;
+        const bool is_anyloghandler = py::type::of(pyobject).is(py::type::of<logging::AnyLogHandler>());
+
+        if (is_anyloghandler)
+        {
+            return std::move(pyobject).cast<logging::AnyLogHandler>();
+        }
+        else
+        {
+            return logging::AnyLogHandler{ PyAnyLogHandler{ pyobject } };
+        }
+    }
+
     void bind_any_log_handler(pybind11::module_ module)
     {
         namespace py = pybind11;
@@ -140,12 +160,7 @@ namespace mambapy
 
         py::class_<logging::AnyLogHandler>(module, "AnyLogHandler", doc_class)
             .def(
-                py::init(
-                    [](py::object log_handler_impl) -> logging::AnyLogHandler
-                    {
-                        return logging::AnyLogHandler{ PyAnyLogHandler{ std::move(log_handler_impl) } };
-                    }
-                ),
+                py::init(&to_anyloghandler),
                 py::arg("log_handler_impl") = py::none{},
                 py::return_value_policy::move
             )
@@ -153,7 +168,7 @@ namespace mambapy
             .def("__bool__", &has_valid_object)
             .def("has_pyobject", &has_python_object)
             .def("get_pyobject", &get_python_object)
-            ; // FIXME: ADD MISSING FUNCTIONS (?)
+            ; // THINK: add other member functions?
     }
 
 
@@ -294,16 +309,16 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         {
             // TODO: add documentation + args
             module.def("stop_logging", &logging::stop_logging, py::return_value_policy::move);
-            module.def("set_log_handler", [](logging::AnyLogHandler& handler, // we need to take `handler` by reference to be able to move it (FISHY?)
+            module.def("set_log_handler", [](py::object handler,
                     std::optional<logging::LoggingParams> maybe_new_params,
                     std::vector<logging::log_source> new_log_sources)
                     -> logging::AnyLogHandler
                 {
                     return logging::set_log_handler(
-                        std::move(handler),
-                        std::move(maybe_new_params),
-                        std::move(new_log_sources)
-                    );
+                            to_anyloghandler(handler),
+                            std::move(maybe_new_params),
+                            std::move(new_log_sources)
+                        );
                 }, py::return_value_policy::move);
 
             // WARNING:

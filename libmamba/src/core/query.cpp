@@ -606,7 +606,7 @@ namespace mamba
         /** Remove potential subdir from channel name (not url!). */
         auto cut_subdir(std::string_view str) -> std::string
         {
-            return util::split(str, "/", 1).front();  // Has at least one element
+            return rangesext::to<std::string>(*(std::views::split(str, "/").begin()));
         }
     }
 
@@ -646,7 +646,7 @@ namespace mamba
             }
             else
             {
-                auto sfmt = util::split(col, ":", 1);
+                auto sfmt = util::as_strings(std::views::split(col, ":"));
                 headers.emplace_back(sfmt[0]);
                 cmds.push_back(sfmt[0]);
                 args.push_back(sfmt[1]);

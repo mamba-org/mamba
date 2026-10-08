@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <functional>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
 
@@ -622,7 +623,9 @@ namespace mamba::specs
             if (it->is_string() && !it->get<std::string_view>().empty())
             {
                 // Split empty string would have an empty element
-                pkg.track_features = util::split(it->get<std::string_view>(), ",");
+                pkg.track_features = util::as_strings(
+                    std::views::split(it->get<std::string_view>(), ',')
+                );
             }
             if (it->is_array())
             {

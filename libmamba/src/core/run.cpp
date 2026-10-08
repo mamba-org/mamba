@@ -371,7 +371,7 @@ namespace mamba
             {
                 if (e.find_first_of("=") != std::string::npos)
                 {
-                    auto split_e = util::split(e, "=", 1);
+                    auto split_e = util::as_strings(std::views::split(e, "="));
                     env_map[split_e[0]] = split_e[1];
                 }
                 else

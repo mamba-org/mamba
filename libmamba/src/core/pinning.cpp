@@ -38,7 +38,7 @@ namespace mamba
             }
         }
 
-        std::vector<std::string> elems = util::split(py_version, ".");
+        auto elems = util::as_strings(std::views::split(py_version, '.'));
         std::string py_pin_str = util::concat("python ", elems[0], ".", elems[1], ".*");
         // Parse and use MatchSpec's string representation to ensure correct format
         auto py_pin_ms = specs::MatchSpec::parse(py_pin_str)
@@ -65,9 +65,8 @@ namespace mamba
                     // Pin format: python_abi[version="=3.13",build="*_cp313t"]
                     // This preserves the ABI tag (e.g., _cp314t for free-threaded) while allowing
                     // any build number. Use attribute format to avoid ambiguity.
-                    std::vector<std::string> version_elems = util::split(
-                        python_abi_iter->second.version,
-                        "."
+                    auto version_elems = util::as_strings(
+                        std::views::split(python_abi_iter->second.version, '.')
                     );
                     std::string version_pin;
                     if (version_elems.size() >= 2)

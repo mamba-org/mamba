@@ -116,6 +116,22 @@ namespace mambapy
         return stored_type_id.has_value();
     }
 
+    auto has_python_object(const logging::AnyLogHandler& handler) -> bool
+    {
+        return handler.type_id() == typeid(PyAnyLogHandler);
+    }
+
+    auto get_python_object(const logging::AnyLogHandler& handler) -> std::optional<pybind11::object>
+    {
+        auto* py_object = handler.unsafe_get<PyAnyLogHandler>();
+        if (not py_object or py_object->is_none())
+        {
+            return {};
+        }
+
+        return py_object->impl;
+    }
+
     void bind_any_log_handler(pybind11::module_ module)
     {
         namespace py = pybind11;
@@ -135,8 +151,11 @@ namespace mambapy
             )
             .def("has_value", &has_valid_object)
             .def("__bool__", &has_valid_object)
+            .def("has_pyobject", &has_python_object)
+            .def("get_pyobject", &get_python_object)
             ; // FIXME: ADD MISSING FUNCTIONS (?)
     }
+
 
     void bind_submodule_logging(pybind11::module_ module)
     {
@@ -286,7 +305,11 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                         std::move(new_log_sources)
                     );
                 }, py::return_value_policy::move);
-            module.def("get_log_handler", &logging::get_log_handler, py::return_value_policy::reference);  // FIXME: FISHY, MAYBE DONT ALLOW THIS ONE???
+
+            // WARNING:
+            // Do not expose this function for now as we are not sure if it's useful and it might cause UB easilly.
+            //module.def("get_log_handler", &logging::get_log_handler, py::return_value_policy::reference);
+
             module.def("set_log_level", &logging::set_log_level);
             module.def("get_log_level", &logging::get_log_level);
             module.def("get_logging_params", &logging::get_logging_params);

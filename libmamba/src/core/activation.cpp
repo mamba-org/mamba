@@ -193,7 +193,7 @@ namespace mamba
                 // TODO there may be more missing here.
             }
 
-            auto conda_stacked_env = util::join(";", prompt_stack);
+            auto conda_stacked_env = util::join_with<std::string>(prompt_stack, ";");
 
             std::string prompt = m_context.env_prompt;
             util::replace_all(prompt, "{default_env}", conda_default_env);
@@ -213,14 +213,15 @@ namespace mamba
         std::vector<fs::u8path> path;
         std::vector<std::string> strings{};
 
-        if (m_env.find("PATH") != m_env.end())
+        auto it = m_env.find("PATH");
+        if (it == m_env.end())
         {
-            strings = util::split(m_env["PATH"], util::pathsep());
+            // On Windows, the variable can be Path and not PATH
+            it = m_env.find("Path");
         }
-        // On Windows, the variable can be Path and not PATH
-        else if (m_env.find("Path") != m_env.end())
+        if (it != m_env.end())
         {
-            strings = util::split(m_env["Path"], util::pathsep());
+            strings = util::as_strings(std::views::split(it->second, util::pathsep()));
         }
         for (auto& s : strings)
         {
@@ -257,7 +258,7 @@ namespace mamba
         std::vector<fs::u8path> final_path = util::get_path_dirs(prefix);
         final_path.insert(final_path.end(), path_list.begin(), path_list.end());
         final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-        std::string result = util::join(util::pathsep(), final_path).string();
+        auto result = util::join_with<fs::u8path>(final_path, util::pathsep()).string();
         return result;
     }
 
@@ -300,7 +301,7 @@ namespace mamba
 
             // remove duplicates
             final_path.erase(std::unique(final_path.begin(), final_path.end()), final_path.end());
-            std::string result = util::join(util::pathsep(), final_path).string();
+            auto result = util::join_with<fs::u8path>(final_path, util::pathsep()).string();
             return result;
         }
         else
@@ -309,7 +310,7 @@ namespace mamba
                 std::unique(current_path.begin(), current_path.end()),
                 current_path.end()
             );
-            std::string result = util::join(util::pathsep(), current_path).string();
+            auto result = util::join_with<fs::u8path>(current_path, util::pathsep()).string();
             return result;
         }
     }
@@ -583,7 +584,8 @@ namespace mamba
         if (clobbering_env_vars.size())
         {
             LOG_WARNING << "WARNING: overwriting environment variables set in the machine";
-            LOG_WARNING << "Overwriting variables: " << util::join(",", clobbering_env_vars);
+            LOG_WARNING << "Overwriting variables: "
+                        << util::join_with<std::string>(clobbering_env_vars, ",");
         }
 
         std::string new_path = add_prefix_to_path(prefix, old_conda_shlvl);

@@ -5,6 +5,7 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <ranges>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -243,8 +244,8 @@ namespace mamba::util
         while (std::regex_search(start_it, out.cend(), rmatch, ver_output_regex))
         {
             std::string full_version = rmatch[3];
-            auto version_elems = util::split(full_version, ".");
-            return { util::concat(version_elems[0], ".", version_elems[1], ".", version_elems[2]) };
+            auto version_elems = full_version | std::views::split('.') | std::views::take(3);
+            return util::join_with<std::string>(version_elems, '.');
         }
 
         return tl::make_unexpected(

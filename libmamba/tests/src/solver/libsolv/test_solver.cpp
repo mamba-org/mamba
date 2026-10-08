@@ -85,7 +85,6 @@ namespace
             "conda-forge",
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
-            libsolv::VerifyPackages::No,
             libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
@@ -239,7 +238,6 @@ namespace
             "conda-forge",
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
-            libsolv::VerifyPackages::No,
             libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
@@ -343,7 +341,6 @@ namespace
             "installed",
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
-            libsolv::VerifyPackages::No,
             libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo_installed.has_value());
@@ -354,7 +351,6 @@ namespace
             "conda-forge",
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
-            libsolv::VerifyPackages::No,
             libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
@@ -395,7 +391,6 @@ namespace
             "conda-forge",
             libsolv::PipAsPythonDependency::No,
             libsolv::PackageTypes::CondaOrElseTarBz2,
-            libsolv::VerifyPackages::No,
             libsolv::RepodataParser::Mamba
         );
         REQUIRE(repo.has_value());
@@ -986,7 +981,6 @@ namespace
                 "conda-forge",
                 libsolv::PipAsPythonDependency::No,
                 libsolv::PackageTypes::CondaOrElseTarBz2,
-                libsolv::VerifyPackages::No,
                 libsolv::RepodataParser::Mamba
             );
             REQUIRE(repo_linux.has_value());
@@ -1000,7 +994,6 @@ namespace
                 "conda-forge",
                 libsolv::PipAsPythonDependency::No,
                 libsolv::PackageTypes::CondaOrElseTarBz2,
-                libsolv::VerifyPackages::No,
                 libsolv::RepodataParser::Mamba
             );
             REQUIRE(repo_noarch.has_value());

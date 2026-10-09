@@ -48,8 +48,8 @@ jobs:
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
-          cache-environment: true
-          cache-environment-key: >-
+          cache-downloads: true
+          cache-downloads-key: >-
             coverage-${{
               hashFiles(
                 'dev/environment-dev.yml',

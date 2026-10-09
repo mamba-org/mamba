@@ -3,8 +3,11 @@
 
 @REM Replaced by mamba executable with the MAMBA_EXE and MAMBA_ROOT_PREFIX variable pointing
 @REM to the correct locations.
-__MAMBA_DEFINE_MAMBA_EXE__
-__MAMBA_DEFINE_ROOT_PREFIX__
+@SET "CURDIR=%CD%"
+@CD /d "%~dp0.."
+@SET "MAMBA_ROOT_PREFIX=%CD%"
+@SET "MAMBA_EXE=%CD%\Library\bin\mamba.exe"
+@CD /d "%CURDIR%"
 
 @IF [%1]==[activate]   "%~dp0__MAMBA_INSERT_ACTIVATE_BAT_NAME__" %*
 @IF [%1]==[deactivate] "%~dp0__MAMBA_INSERT_ACTIVATE_BAT_NAME__" %*

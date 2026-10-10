@@ -35,7 +35,7 @@ namespace mamba
         {
             // TODO: make sure that strings that are quoted are still split correctly
             //       e.g. when a file path contains a space...
-            auto s = util::split(l, " ");
+            auto s = util::as_strings(std::views::split(l, " "));
             if (s.size() == 1)
             {
                 res[s[0]] = PrefixFileParse{

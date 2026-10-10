@@ -152,7 +152,7 @@ namespace mamba
                 // Windows fallback
                 bool may_exist = false;
                 std::string path = util::get_env("PATH").value_or("");
-                std::vector<std::string> paths = util::split(path, util::pathsep());
+                auto paths = util::as_strings(std::views::split(path, util::pathsep()));
 
                 for (auto& p : paths)
                 {
@@ -382,7 +382,9 @@ namespace mamba
             LOG_DEBUG << "Loading distribution virtual packages";
 
             std::vector<specs::PackageInfo> res;
-            const auto split_platform = util::split(platform, "-", 1);
+            const auto split_platform = util::as_strings(
+                std::views::split(platform, '-') | std::views::take(2)
+            );
 
             if (split_platform.size() != 2)
             {

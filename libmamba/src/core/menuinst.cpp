@@ -211,7 +211,9 @@ namespace mamba
 
         auto to_forward_slash = [](const fs::u8path& p) { return util::path_to_posix(p.string()); };
 
-        auto platform_split = util::split(context.transaction_params().platform, "-");
+        auto platform_split = util::as_strings(
+            std::views::split(context.transaction_params().platform, "-")
+        );
         std::string platform_bitness;
         if (platform_split.size() >= 2)
         {
@@ -220,7 +222,7 @@ namespace mamba
 
         if (py_ver.size())
         {
-            py_ver = util::split(py_ver, ".")[0];
+            py_ver = rangesext::to<std::string>(*(std::views::split(py_ver, ".").begin()));
         }
 
         std::map<std::string, std::string> vars = {
@@ -368,14 +370,18 @@ namespace mamba
                     {
                         script = root_pyw;
                         arguments = cwp_pyw_args;
-                        auto tmp = util::split(item["pywscript"], " ");
+                        auto tmp = util::as_strings(
+                            std::views::split(item["pywscript"].get<std::string>(), ' ')
+                        );
                         std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     }
                     else if (item.contains("pyscript"))
                     {
                         script = root_py;
                         arguments = cwp_py_args;
-                        auto tmp = util::split(item["pyscript"], " ");
+                        auto tmp = util::as_strings(
+                            std::views::split(item["pyscript"].get<std::string>(), ' ')
+                        );
                         std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     }
                     else if (item.contains("webbrowser"))
@@ -387,13 +393,17 @@ namespace mamba
                     {
                         script = root_py;
                         arguments = { cwp_path.string(), target_prefix.string() };
-                        auto tmp = util::split(item["script"], " ");
+                        auto tmp = util::as_strings(
+                            std::views::split(item["script"].get<std::string>(), ' ')
+                        );
                         std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                         extend_script_args(item, arguments);
                     }
                     else if (item.contains("system"))
                     {
-                        auto tmp = util::split(item["system"], " ");
+                        auto tmp = util::as_strings(
+                            std::views::split(item["system"].get<std::string>(), ' ')
+                        );
                         script = tmp[0];
                         if (tmp.size() > 1)
                         {

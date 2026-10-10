@@ -181,7 +181,7 @@ namespace mamba
 
     void python_entry_point_template(std::ostream& out, const python_entry_point_parsed& p)
     {
-        auto import_name = util::split(p.func, ".")[0];
+        auto import_name = rangesext::to<std::string_view>(*(std::views::split(p.func, ".").begin()));
         out << "# -*- coding: utf-8 -*-\n";
         out << "import re\n";
         out << "import sys\n\n";
@@ -680,7 +680,7 @@ namespace mamba
         std::string PATH = util::get_env("PATH").value_or("");
         envmap["PATH"] = util::concat(path.parent_path().string(), util::pathsep(), PATH);
 
-        std::string cargs = util::join(" ", command_args);
+        auto cargs = util::join_with<std::string>(command_args, " ");
         LOG_DEBUG << "For " << pkg_info.name << " at " << envmap["PREFIX"]
                   << ", executing script: $ " << cargs;
         LOG_TRACE << "Calling " << cargs;
@@ -1528,7 +1528,7 @@ namespace mamba
         {
             LOG_WARNING << "[" << f_name
                         << "] The following files were already present in the environment:\n- "
-                        << util::join("\n- ", m_clobber_warnings);
+                        << util::join_with<std::string>(m_clobber_warnings, "\n- ");
         }
 
         return true;

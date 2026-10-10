@@ -12,12 +12,15 @@
 #include <cstdint>
 #include <cstring>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#include "mamba/util/ranges.hpp"
 
 namespace mamba::util
 {
@@ -244,17 +247,6 @@ namespace mamba::util
         -> std::tuple<std::optional<std::string_view>, std::string_view>;
 
     [[nodiscard]] auto
-    split(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX)
-        -> std::vector<std::string>;
-    [[nodiscard]] auto split(std::string_view input, char sep, std::size_t max_split = SIZE_MAX)
-        -> std::vector<std::string>;
-    [[nodiscard]] auto
-    split(std::wstring_view input, std::wstring_view sep, std::size_t max_split = SIZE_MAX)
-        -> std::vector<std::wstring>;
-    [[nodiscard]] auto split(std::wstring_view input, wchar_t sep, std::size_t max_split = SIZE_MAX)
-        -> std::vector<std::wstring>;
-
-    [[nodiscard]] auto
     rsplit(std::string_view input, std::string_view sep, std::size_t max_split = SIZE_MAX)
         -> std::vector<std::string>;
     [[nodiscard]] auto rsplit(std::string_view input, char sep, std::size_t max_split = SIZE_MAX)
@@ -288,6 +280,9 @@ namespace mamba::util
         {
             template <typename T, typename U>
             auto operator()(T& left, const U& right);
+
+            template <typename T, std::ranges::range R>
+            auto operator()(T& left, const R& right);
         };
     }
 
@@ -298,10 +293,11 @@ namespace mamba::util
      * defined by iterating through the ``n`` elements of the iterator pair, interleaving the
      * separator in between the elements (thus appearing ``n-1`` times).
      */
-    template <typename InputIt, typename UnaryFunction, typename Value>
-    auto join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep)
+    template <typename InputIt1, typename InputIt2, typename UnaryFunction, typename Value>
+    auto join_for_each(InputIt1 first, InputIt2 last, UnaryFunction func, const Value& sep)
         -> UnaryFunction;
 
+    // TODO: move in ranges.hpp
     /**
      * Concatenate the elements of the container @p container by interleaving a separator.
      *
@@ -311,9 +307,8 @@ namespace mamba::util
      *
      * @see join_for_each
      */
-    template <class Range, class Value, class Joiner = detail::PlusEqual>
-    auto join(const Value& sep, const Range& container, Joiner joiner = detail::PlusEqual{}) ->
-        typename Range::value_type;
+    template <typename Result, std::ranges::range R, class Separator, class Joiner = detail::PlusEqual>
+    auto join_with(R&& r, const Separator& sep, Joiner joiner = {}) -> Result;
 
     /**
      * Execute the function @p func on each element of a tuncated join iteration.
@@ -617,25 +612,24 @@ namespace mamba::util
 
     namespace detail
     {
+        template <class T>
+        concept char_like = std::same_as<std::remove_cv_t<T>, char>
+                            || std::same_as<std::remove_cv_t<T>, wchar_t>
+                            || std::same_as<std::remove_cv_t<T>, char8_t>
+                            || std::same_as<std::remove_cv_t<T>, char16_t>
+                            || std::same_as<std::remove_cv_t<T>, char32_t>;
+
         template <typename T, typename U>
         auto PlusEqual::operator()(T& left, const U& right)
         {
             left += right;
         }
 
-        template <class T, class = void>
-        struct has_reserve : std::false_type
+        template <typename T, std::ranges::range R>
+        auto PlusEqual::operator()(T& left, const R& right)
         {
-        };
-
-        template <class T>
-        struct has_reserve<T, std::void_t<decltype(std::declval<T>().reserve(std::size_t()))>>
-            : std::true_type
-        {
-        };
-
-        template <typename T>
-        inline constexpr bool has_reserve_v = has_reserve<T>::value;
+            left += T(std::begin(right), std::end(right));
+        }
 
         auto length(const char* s) -> std::size_t;
         auto length(const wchar_t* s) -> std::size_t;
@@ -645,42 +639,61 @@ namespace mamba::util
         template <class T>
         auto length(const T& s) -> std::size_t
         {
-            return s.length();
+            return s.size();
+        }
+
+        template <class T>
+        constexpr decltype(auto) as_separator(const T& v)
+        {
+            if constexpr (std::is_array_v<T> && char_like<std::remove_extent_t<T>>)
+            {
+                return std::string_view(v);
+            }
+            else
+            {
+                return v;
+            }
         }
     }
 
-    // TODO(C++20) Use ``std::ranges::join_view`` (or ``std::ranges::join``)
-    template <typename InputIt, typename UnaryFunction, typename Value>
-    auto join_for_each(InputIt first, InputIt last, UnaryFunction func, const Value& sep)
+    // TODO(C++23) Use ``std::ranges::join_with_view`` (or ``std::ranges::join_with``)
+    template <typename InputIt1, typename InputIt2, typename UnaryFunction, typename Value>
+    auto join_for_each(InputIt1 first, InputIt2 last, UnaryFunction func, const Value& sep)
         -> UnaryFunction
     {
-        if (first < last)
+        if (first != last)
         {
             func(*(first++));
-            for (; first < last; ++first)
+            for (; first != last; ++first)
             {
-                func(sep);
+                func(detail::as_separator(sep));
                 func(*first);
             }
         }
         return func;
     }
 
-    template <class Range, class Value, class Joiner>
-    auto join(const Value& sep, const Range& container, Joiner joiner) -> typename Range::value_type
+    // TODO(C++23) Use ``std::ranges::join_with_view`` (or ``std::ranges::join_with``)
+    template <typename Result, std::ranges::range R, class Separator, class Joiner>
+    auto join_with(R&& r, const Separator& sep, Joiner joiner) -> Result
     {
-        using Result = typename Range::value_type;
         Result out{};
-        if constexpr (detail::has_reserve_v<Result>)
+        if constexpr (rangesext::detail::has_reserve_v<Result>)
         {
             std::size_t final_size = 0;
             auto inc_size = [&final_size](const auto& val) { final_size += detail::length(val); };
-            join_for_each(container.begin(), container.end(), inc_size, sep);
+            join_for_each(r.begin(), r.end(), inc_size, sep);
             out.reserve(final_size);
         }
         auto out_joiner = [&](auto&& val) { joiner(out, std::forward<decltype(val)>(val)); };
-        join_for_each(container.begin(), container.end(), out_joiner, sep);
+        join_for_each(r.begin(), r.end(), out_joiner, sep);
         return out;
+    }
+
+    template <std::ranges::range R, class... Args>
+    std::vector<std::string> as_strings(R&& r, Args&&... args)
+    {
+        return rangesext::to<std::vector<std::string>>(std::forward<R>(r), std::forward<Args>(args)...);
     }
 
     /********************************************
@@ -744,7 +757,7 @@ namespace mamba::util
     {
         using Result = typename Range::value_type;
         Result out{};
-        if constexpr (detail::has_reserve_v<Result>)
+        if constexpr (rangesext::detail::has_reserve_v<Result>)
         {
             std::size_t final_size = 0;
             auto inc_size = [&final_size](const auto& val) { final_size += detail::length(val); };

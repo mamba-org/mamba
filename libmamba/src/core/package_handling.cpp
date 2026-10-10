@@ -767,7 +767,8 @@ namespace mamba
         }
 
         std::string out, err;
-        LOG_DEBUG << "Running subprocess extraction '" << util::join(" ", args) << "'";
+        LOG_DEBUG << "Running subprocess extraction '" << util::join_with<std::string>(args, " ")
+                  << "'";
         auto [status, ec] = reproc::run(
             args,
             reproc::options{},

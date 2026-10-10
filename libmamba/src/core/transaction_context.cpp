@@ -364,7 +364,7 @@ namespace mamba
             complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
         };
 
-        auto py_ver_split = util::split(python_params().python_version, ".");
+        auto py_ver_split = util::split(python_params().python_version, '.');
 
         try
         {

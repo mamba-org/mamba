@@ -24,6 +24,7 @@ namespace mamba
             REQUIRE(compute_short_python_version("") == "");
             REQUIRE(compute_short_python_version("3.5") == "3.5");
             REQUIRE(compute_short_python_version("3.5.0") == "3.5");
+            REQUIRE(compute_short_python_version("3.9.23") == "3.9");
         }
 
         TEST_CASE("get_python_short_path")

@@ -158,8 +158,10 @@ namespace mamba
         libmamba,  // default
         libcurl,
         libsolv,
+        tests,  // only used for library testing
 
-        tests,  // only used for testing
+        external, // doesnt come from this library or from it's dependencies,
+                  // reserved for library user's logs if it's logging records here
     };
 
     constexpr auto operator<=>(log_source left, std::size_t right) noexcept

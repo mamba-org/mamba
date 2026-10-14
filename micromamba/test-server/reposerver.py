@@ -55,12 +55,6 @@ class ChannelHandler(SimpleHTTPRequestHandler):
 
         self.send_response(404)
 
-    def do_HEAD(self) -> None:
-        if self.path.endswith("_mgr.json"):
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-
     def basic_do_HEAD(self) -> None:
         self.send_response(200)
         self.send_header("Content-type", "text/html")

@@ -183,6 +183,189 @@ namespace mamba
         REQUIRE(pip_it->second.platform == specs::build_platform_name());
     }
 
+    TEST_CASE("PrefixData: uv fallback ignores conda managed distributions", "[core][prefix-interop]")
+    {
+        auto tmp_dir = TemporaryDirectory();
+        auto prefix_path = tmp_dir.path() / "prefix";
+        fs::create_directories(prefix_path / "conda-meta");
+
+        auto& ctx = mambatests::context();
+        auto channel_context = ChannelContext::make_simple(ctx);
+
+        // `python` is needed so the prefix site-packages directory can be located.
+        {
+            auto out = open_ofstream(prefix_path / "conda-meta" / "python-3.10.0-h12345_0.json");
+            out << R"({
+                "name": "python",
+                "version": "3.10.0",
+                "build_string": "h12345_0",
+                "channel": "conda-forge",
+                "platform": "linux-64",
+                "python_site_packages_path": "lib/python3.10/site-packages"
+            })";
+        }
+        // `demo-pkg` is a conda package that also happens to be listed by the fake `uv pip list`.
+        {
+            auto out = open_ofstream(prefix_path / "conda-meta" / "demo-pkg-1.2.3-py310h12345_0.json");
+            out << R"({
+                "name": "demo-pkg",
+                "version": "1.2.3",
+                "build_string": "py310h12345_0",
+                "channel": "conda-forge",
+                "platform": "linux-64"
+            })";
+        }
+        // `uv` present and `pip` absent -> the `uv pip list` fallback branch is taken.
+        {
+            auto out = open_ofstream(prefix_path / "conda-meta" / "uv-0.0.0-0.json");
+            out << R"({
+                "name": "uv",
+                "version": "0.0.0",
+                "build_string": "0",
+                "channel": "conda-forge",
+                "platform": "linux-64"
+            })";
+        }
+        // `pytorch` is a conda package whose Python distribution is named `torch` (alias case).
+        {
+            auto out = open_ofstream(prefix_path / "conda-meta" / "pytorch-2.0.0-py310h12345_0.json");
+            out << R"({
+                "name": "pytorch",
+                "version": "2.0.0",
+                "build_string": "py310h12345_0",
+                "channel": "conda-forge",
+                "platform": "linux-64"
+            })";
+        }
+
+#ifdef _WIN32
+        const auto uv_exe = prefix_path / "Scripts" / "uv.exe";
+#else
+        const auto uv_exe = prefix_path / "bin" / "uv";
+#endif
+        // `effective_python_site_packages_path` uses the package platform (`linux-64`), so the
+        // Unix layout is expected regardless of the host platform.
+        const auto site_packages = prefix_path / "lib" / "python3.10" / "site-packages";
+        fs::create_directories(uv_exe.parent_path());
+        fs::create_directories(site_packages);
+        fs::copy_file(mambatests::testing_libmamba_lock_exe, uv_exe, fs::copy_options::overwrite_existing);
+#ifndef _WIN32
+        fs::permissions(
+            uv_exe,
+            fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
+            fs::perm_options::add
+        );
+#endif
+
+        // Write a distribution under site-packages.
+        //  - `stem`: entry basename without suffix, e.g. `demo_uv_pkg-1.2.3` or versionless
+        //    `demo_uv_pkg`.
+        //  - `name`: value written as `Name:` in the metadata (the loader never reads it here).
+        //  - `kind`: "dist-info" -> `<stem>.dist-info/METADATA`
+        //            "egg-info"  -> `<stem>.egg-info/PKG-INFO`
+        //            "egg-file"  -> single file `<stem>.egg-info`
+        //  - a non-empty `installer` is written to `<stem>.<kind>/INSTALLER` (no INSTALLER for
+        //    "egg-file").
+        const auto write_metadata = [&](std::string_view stem,
+                                        std::string_view name,
+                                        std::string_view kind,
+                                        std::string_view installer)
+        {
+            fs::u8path entry = site_packages / std::string(stem);
+            if (kind == "egg-file")
+            {
+                entry += ".egg-info";
+                auto out = open_ofstream(entry);
+                out << "Metadata-Version: 2.1\n"
+                       "Name: "
+                    << name << "\nVersion: 1.2.3\n";
+                return;
+            }
+            entry += kind == "dist-info" ? ".dist-info" : ".egg-info";
+            fs::create_directories(entry);
+            {
+                auto out = open_ofstream(entry / (kind == "dist-info" ? "METADATA" : "PKG-INFO"));
+                out << "Metadata-Version: 2.1\n"
+                       "Name: "
+                    << name << "\nVersion: 1.2.3\n";
+            }
+            if (!installer.empty())
+            {
+                auto out = open_ofstream(entry / "INSTALLER");
+                out << installer;
+            }
+        };
+
+        const auto pip_records_contains = [&](const std::string& name)
+        {
+            const auto prefix_data = PrefixData::create(prefix_path, channel_context, false).value();
+            return prefix_data.pip_records().find(name) != prefix_data.pip_records().end();
+        };
+
+        // conda-meta is authoritative
+        SECTION("conda named dist-info is NOT recorded even with INSTALLER=uv")
+        {
+            write_metadata("demo_pkg-1.2.3", "demo-pkg", "dist-info", "uv");
+            REQUIRE_FALSE(pip_records_contains("demo-pkg"));
+        }
+
+        SECTION("conda named dist-info without METADATA is NOT recorded")
+        {
+            fs::create_directories(site_packages / "demo_pkg-1.2.3.dist-info");
+            REQUIRE_FALSE(pip_records_contains("demo-pkg"));
+        }
+
+        // Alias hardening for names not in conda-meta
+        SECTION("non-conda dist-info with INSTALLER=uv IS recorded")
+        {
+            write_metadata("demo_uv_pkg-1.2.3", "demo-uv-pkg", "dist-info", "uv");
+            REQUIRE(pip_records_contains("demo-uv-pkg"));
+        }
+
+        SECTION("non-conda dist-info with INSTALLER=pip IS recorded")
+        {
+            write_metadata("demo_uv_pkg-1.2.3", "demo-uv-pkg", "dist-info", "pip");
+            REQUIRE(pip_records_contains("demo-uv-pkg"));
+        }
+
+        SECTION("non-conda dist-info with INSTALLER=conda is NOT recorded")
+        {
+            write_metadata("demo_uv_pkg-1.2.3", "demo-uv-pkg", "dist-info", "conda");
+            REQUIRE_FALSE(pip_records_contains("demo-uv-pkg"));
+        }
+
+        SECTION("non-conda dist-info without INSTALLER is NOT recorded")
+        {
+            write_metadata("demo_uv_pkg-1.2.3", "demo-uv-pkg", "dist-info", "");
+            REQUIRE_FALSE(pip_records_contains("demo-uv-pkg"));
+        }
+
+        SECTION("non-conda egg-info directory is NOT recorded")
+        {
+            write_metadata("demo_uv_pkg-1.2.3", "demo-uv-pkg", "egg-info", "");
+            REQUIRE_FALSE(pip_records_contains("demo-uv-pkg"));
+        }
+
+        SECTION("non-conda single-file egg-info is NOT recorded")
+        {
+            write_metadata("demo_uv_pkg-1.2.3", "demo-uv-pkg", "egg-file", "");
+            REQUIRE_FALSE(pip_records_contains("demo-uv-pkg"));
+        }
+
+        SECTION("versionless egg-info is NOT recorded")
+        {
+            write_metadata("demo_uv_pkg", "demo-uv-pkg", "egg-info", "");
+            REQUIRE_FALSE(pip_records_contains("demo-uv-pkg"));
+        }
+
+        // Alias where the conda name differs from the dist name
+        SECTION("alias (conda `pytorch` shadows dist `torch`) is NOT recorded")
+        {
+            write_metadata("torch-1.2.3", "torch", "dist-info", "conda");
+            REQUIRE_FALSE(pip_records_contains("torch"));
+        }
+    }
+
     TEST_CASE("Package database loader: pip packages in solver", "[core][prefix-interop]")
     {
         auto tmp_dir = TemporaryDirectory();

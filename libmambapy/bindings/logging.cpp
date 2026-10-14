@@ -4,8 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
-#include <vector>
 #include <string>
+#include <vector>
+#include <unordered_map>
 
 #include <pybind11/native_enum.h>
 #include <pybind11/stl.h>
@@ -13,164 +14,266 @@
 #include "mamba/core/logging.hpp"
 #include "mamba/core/logging_tools.hpp"
 
-#include "bindings.hpp"
+#include "logging.hpp"
+
+
 
 namespace mambapy
 {
     namespace logging = mamba::logging;
 
-    // TODO: DOC!!!
-    // Wraps a Python object that provides `LogHandler` interface into a C++ type which can be
-    // passed to `AnyLogHandler`.
-    struct PyAnyLogHandler
+    namespace details
     {
-        pybind11::object impl;
-
-        PyAnyLogHandler() = default;
-        PyAnyLogHandler(const PyAnyLogHandler&) = delete;
-        PyAnyLogHandler& operator=(const PyAnyLogHandler&) = delete;
-        PyAnyLogHandler(PyAnyLogHandler&&) = default;
-        PyAnyLogHandler& operator=(PyAnyLogHandler&&) = default;
-
-        explicit PyAnyLogHandler(pybind11::object object)
-            : impl(std::move(object))
+        struct pytype_hash
         {
-            // TODO: Consider checking the validity of the object early?
-            //       Removed for now because all Python discussions on the subject
-            //       I found recommend to not do this and let the calls fail instead.
+            std::size_t operator()(const pybind11::type& type) const noexcept
+            {
+                return pybind11::hash(type);
+            }
+        };
+
+        struct pytype_equal
+        {
+            auto operator()(const pybind11::type& left, const pybind11::type& right) const -> bool
+            {
+                return left.is(right);
+            }
+        };
+
+        static std::unordered_map<pybind11::type, AnyLogHandlerConstructor, pytype_hash, pytype_equal> registry_anyloghandler_constructors;
+
+        auto register_anyloghandler_constructor(
+            pybind11::type type_id,
+            AnyLogHandlerConstructor constructor
+        ) -> void
+        {
+            registry_anyloghandler_constructors.emplace(type_id, constructor);
         }
 
-        auto is_none() const -> bool
+        // note: we take `pyobject` by reference to be able to conditionally move it
+        auto make_anyloghandler_from_cpp_loghandler_type(pybind11::object& pyobject) -> std::optional<mamba::logging::AnyLogHandler>
         {
-            return impl.is_none();
-        }
+            auto found_it = registry_anyloghandler_constructors.find(pybind11::type::of(pyobject));
+            if (found_it == registry_anyloghandler_constructors.end())
+            {
+                return std::nullopt;
+            }
 
-        auto is_valid() const -> bool
-        {
-            return not is_none();
-        }
-
-        auto start_log_handling(logging::LoggingParams params,
-            const std::vector<logging::log_source>& sources) -> void
-        {
-            impl.attr("start_log_handling")(params, sources);
-        }
-
-        auto stop_log_handling() -> void
-        {
-            impl.attr("stop_log_handling");
-        }
-
-        auto set_log_level(logging::log_level level) -> void
-        {
-            impl.attr("set_log_level")(level);
-        }
-
-        auto set_params(logging::LoggingParams new_params) -> void
-        {
-            impl.attr("set_params")(new_params);
-        }
-
-        auto log(logging::LogRecord record) -> void
-        {
-            impl.attr("log")(record);
-        }
-
-        auto enable_backtrace(std::size_t backtrace_size) -> void
-        {
-            impl.attr("enable_backtrace")(backtrace_size);
-        }
-
-        auto log_backtrace() -> void
-        {
-            impl.attr("log_backtrace");
-        }
-
-        auto log_backtrace_no_guards() -> void
-        {
-            impl.attr("log_backtrace_no_guards");
-        }
-
-        auto flush(std::optional<logging::log_source> source_to_flush = std::nullopt) -> void
-        {
-            impl.attr("flush")(source_to_flush);
-        }
-
-        auto set_flush_threshold(logging::log_level level_threshold = logging::log_level::all) -> void
-        {
-            impl.attr("set_flush_threshold")(level_threshold);
-        }
-
-    };
-
-    static_assert(logging::LogHandler_Moveable<PyAnyLogHandler>);
-
-    using loghandler_ptr = std::unique_ptr<logging::AnyLogHandler>;
-
-    auto has_valid_object(const logging::AnyLogHandler& handler) -> bool
-    {
-        const auto stored_type_id = handler.type_id();
-        if (stored_type_id == typeid(PyAnyLogHandler))
-        {
-            return handler.unsafe_get<PyAnyLogHandler>()->is_valid();
-        }
-        return stored_type_id.has_value();
-    }
-
-    auto has_python_object(const logging::AnyLogHandler& handler) -> bool
-    {
-        return handler.type_id() == typeid(PyAnyLogHandler);
-    }
-
-    auto get_python_object(const logging::AnyLogHandler& handler) -> std::optional<pybind11::object>
-    {
-        auto* py_object = handler.unsafe_get<PyAnyLogHandler>();
-        if (not py_object or py_object->is_none())
-        {
-            return {};
-        }
-
-        return py_object->impl;
-    }
-
-    auto to_anyloghandler(pybind11::object pyobject) -> logging::AnyLogHandler
-    {
-        // When the object passed is actually a C++ `logging::AnyLogHandler`, we take it by move.
-        // When it's any other object, we assume it's a python log handler and wrap it
-        // appropriately.
-
-        namespace py = pybind11;
-        const bool is_anyloghandler = py::type::of(pyobject).is(py::type::of<logging::AnyLogHandler>());
-
-        if (is_anyloghandler)
-        {
-            return std::move(pyobject).cast<logging::AnyLogHandler>();
-        }
-        else
-        {
-            return logging::AnyLogHandler{ PyAnyLogHandler{ pyobject } };
+            const auto& constructor = found_it->second;
+            return constructor(std::move(pyobject));
         }
     }
 
-    void bind_any_log_handler(pybind11::module_ module)
+    namespace
     {
-        namespace py = pybind11;
 
-        constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
+        // TODO: DOC!!!
+        // Wraps a Python object that provides `LogHandler` interface into a C++ type which can be
+        // passed to `AnyLogHandler`.
+        struct PyAnyLogHandler
+        {
+            pybind11::object impl;
 
-        py::class_<logging::AnyLogHandler>(module, "AnyLogHandler", doc_class)
-            .def(
-                py::init(&to_anyloghandler),
-                py::arg("log_handler_impl") = py::none{},
-                py::return_value_policy::move
-            )
-            .def("has_value", &has_valid_object)
-            .def("__bool__", &has_valid_object)
-            .def("has_pyobject", &has_python_object)
-            .def("get_pyobject", &get_python_object)
-            ; // THINK: add other member functions?
+            PyAnyLogHandler() = default;
+            PyAnyLogHandler(const PyAnyLogHandler&) = delete;
+            PyAnyLogHandler& operator=(const PyAnyLogHandler&) = delete;
+            PyAnyLogHandler(PyAnyLogHandler&&) = default;
+            PyAnyLogHandler& operator=(PyAnyLogHandler&&) = default;
+
+            explicit PyAnyLogHandler(pybind11::object object)
+                : impl(std::move(object))
+            {
+                // TODO: Consider checking the validity of the object early?
+                //       Removed for now because all Python discussions on the subject
+                //       I found recommend to not do this and let the calls fail instead.
+            }
+
+            auto is_none() const -> bool
+            {
+                return impl.is_none();
+            }
+
+            auto is_valid() const -> bool
+            {
+                return not is_none();
+            }
+
+            auto start_log_handling(
+                logging::LoggingParams params,
+                const std::vector<logging::log_source>& sources
+            ) -> void
+            {
+                impl.attr("start_log_handling")(params, sources);
+            }
+
+            auto stop_log_handling() -> void
+            {
+                impl.attr("stop_log_handling");
+            }
+
+            auto set_log_level(logging::log_level level) -> void
+            {
+                impl.attr("set_log_level")(level);
+            }
+
+            auto set_params(logging::LoggingParams new_params) -> void
+            {
+                impl.attr("set_params")(new_params);
+            }
+
+            auto log(logging::LogRecord record) -> void
+            {
+                impl.attr("log")(record);
+            }
+
+            auto enable_backtrace(std::size_t backtrace_size) -> void
+            {
+                impl.attr("enable_backtrace")(backtrace_size);
+            }
+
+            auto log_backtrace() -> void
+            {
+                impl.attr("log_backtrace");
+            }
+
+            auto log_backtrace_no_guards() -> void
+            {
+                impl.attr("log_backtrace_no_guards");
+            }
+
+            auto flush(std::optional<logging::log_source> source_to_flush = std::nullopt) -> void
+            {
+                impl.attr("flush")(source_to_flush);
+            }
+
+            auto set_flush_threshold(logging::log_level level_threshold = logging::log_level::all)
+                -> void
+            {
+                impl.attr("set_flush_threshold")(level_threshold);
+            }
+        };
+
+        static_assert(logging::LogHandler_Moveable<PyAnyLogHandler>);
+
+        using loghandler_ptr = std::unique_ptr<logging::AnyLogHandler>;
+
+        auto has_valid_object(const logging::AnyLogHandler& handler) -> bool
+        {
+            const auto stored_type_id = handler.type_id();
+            if (stored_type_id == typeid(PyAnyLogHandler))
+            {
+                return handler.unsafe_get<PyAnyLogHandler>()->is_valid();
+            }
+            return stored_type_id.has_value();
+        }
+
+        auto has_python_object(const logging::AnyLogHandler& handler) -> bool
+        {
+            return handler.type_id() == typeid(PyAnyLogHandler);
+        }
+
+        auto get_python_object(const logging::AnyLogHandler& handler)
+            -> std::optional<pybind11::object>
+        {
+            auto* py_object = handler.unsafe_get<PyAnyLogHandler>();
+            if (not py_object or py_object->is_none())
+            {
+                return {};
+            }
+
+            return py_object->impl;
+        }
+
+        auto to_anyloghandler(pybind11::object pyobject) -> logging::AnyLogHandler
+        {
+            // When the object passed is actually a C++ `logging::AnyLogHandler`, we take it by
+            // move. When it's any other object, we assume it's a python log handler and wrap it
+            // appropriately.
+
+            namespace py = pybind11;
+            const bool is_anyloghandler = py::type::of(pyobject).is(
+                py::type::of<logging::AnyLogHandler>()
+            );
+
+            if (is_anyloghandler)
+            {
+                return std::move(pyobject).cast<logging::AnyLogHandler>();
+            }
+            if (auto maybe_cpp_handler = details::make_anyloghandler_from_cpp_loghandler_type(pyobject))
+            {
+                return std::move(maybe_cpp_handler).value();
+            }
+            else
+            {
+                return logging::AnyLogHandler{ PyAnyLogHandler{ pyobject } };
+            }
+        }
+
+        void bind_any_log_handler(pybind11::module_ module)
+        {
+            namespace py = pybind11;
+
+            constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
+
+            py::class_<logging::AnyLogHandler>(module, "AnyLogHandler", doc_class)
+                .def(
+                    py::init(&to_anyloghandler),
+                    py::arg("log_handler_impl") = py::none{},
+                    py::return_value_policy::move
+                )
+                .def("has_value", &has_valid_object)
+                .def("__bool__", &has_valid_object)
+                .def("has_pyobject", &has_python_object)
+                .def("get_pyobject", &get_python_object);  // THINK: add other member functions?
+        }
+
+        void bind_loghandler_history(pybind11::module_ module)
+        {
+            namespace py = pybind11;
+
+            using Options = logging::LogHandler_History::Options;
+            {
+                constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
+
+                py::class_<Options>(module, "LogHandler_History.Options", doc_class)
+                    .def(
+                        py::init(
+                            [](size_t max_records_count, bool clear_on_stop)
+                            {
+                                return Options{ .max_records_count = max_records_count,
+                                                .clear_on_stop = clear_on_stop };
+                            }
+                        ),
+                        py::arg("max_records_count") = size_t{ 0 },
+                        py::arg("clear_on_stop") = false
+                    )
+                    .def_readwrite("max_records_count", &Options::max_records_count)
+                    .def_readwrite("clear_on_stop", &Options::clear_on_stop);
+            }
+
+            {
+                constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
+
+                py::class_<logging::LogHandler_History>(module, "LogHandler_History", doc_class)
+                    .def(
+                        py::init([](Options options)
+                                 { return logging::LogHandler_History{ std::move(options) }; }),
+                        py::arg("options") = Options{},
+                        py::return_value_policy::move
+                    )
+                    .def("capture_history", &logging::LogHandler_History::capture_history)
+                    .def("clear_history", &logging::LogHandler_History::clear_history)
+                    .def("is_started", &logging::LogHandler_History::is_started)
+                    .def(
+                        "get_options",
+                        &logging::LogHandler_History::get_options,
+                        py::return_value_policy::copy
+                    );
+            }
+
+            register_cpp_loghandler_type_for_anyloghandler<logging::LogHandler_History>();
+        }
     }
-
 
     void bind_submodule_logging(pybind11::module_ module)
     {
@@ -214,6 +317,7 @@ This is mainly useful for debugging issues coming from dependencies that have lo
                 .value("LIBCURL", mamba::log_source::libcurl)
                 .value("LIBSOLV", mamba::log_source::libsolv)
                 .value("TESTS", mamba::log_source::tests)
+                .value("EXTERNAL", mamba::log_source::external)
                 .finalize();
 
 
@@ -309,21 +413,26 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         {
             // TODO: add documentation + args
             module.def("stop_logging", &logging::stop_logging, py::return_value_policy::move);
-            module.def("set_log_handler", [](py::object handler,
-                    std::optional<logging::LoggingParams> maybe_new_params,
-                    std::vector<logging::log_source> new_log_sources)
-                    -> logging::AnyLogHandler
+            module.def(
+                "set_log_handler",
+                [](py::object handler,
+                   std::optional<logging::LoggingParams> maybe_new_params,
+                   std::vector<logging::log_source> new_log_sources) -> logging::AnyLogHandler
                 {
                     return logging::set_log_handler(
-                            to_anyloghandler(handler),
-                            std::move(maybe_new_params),
-                            std::move(new_log_sources)
-                        );
-                }, py::return_value_policy::move);
+                        to_anyloghandler(handler),
+                        std::move(maybe_new_params),
+                        std::move(new_log_sources)
+                    );
+                },
+                py::return_value_policy::move
+            );
 
             // WARNING:
-            // Do not expose this function for now as we are not sure if it's useful and it might cause UB easilly.
-            //module.def("get_log_handler", &logging::get_log_handler, py::return_value_policy::reference);
+            // Do not expose this function for now as we are not sure if it's useful and it might
+            // cause UB easilly.
+            // module.def("get_log_handler", &logging::get_log_handler,
+            // py::return_value_policy::reference);
 
             module.def("set_log_level", &logging::set_log_level);
             module.def("get_log_level", &logging::get_log_level);

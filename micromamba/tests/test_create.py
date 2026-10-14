@@ -2267,7 +2267,7 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
     create_repo(caller_repo)
 
     env_prefix = tmp_path / "some-prefix"
-    helpers.create("-p", env_prefix, "pre-commit")
+    helpers.create("-p", env_prefix, "pre-commit=4.6.2")
     env_overrides = {
         "PRE_COMMIT_USE_MAMBA": "1",
         "PATH": os.pathsep.join(

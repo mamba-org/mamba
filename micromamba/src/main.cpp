@@ -350,7 +350,5 @@ main(int argc, char** argv)
         return_value = EXIT_FAILURE;
     }
 
-    LOG_WARNING << "coincoin";
-
     return return_value;
 }

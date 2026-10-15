@@ -474,20 +474,6 @@ init_install_options(CLI::App* subcom, Configuration& config)
         extra_safety_checks.description()
     );
 
-    auto& av = config.at("verify_artifacts");
-    subcom->add_flag("--verify-artifacts", av.get_cli_config<bool>(), av.description());
-
-    auto& trusted_channels = config.at("trusted_channels");
-    // Allowing unlimited number of args (may be modified later if needed using `type_size` and
-    // `allow_extra_args`)
-    subcom
-        ->add_option(
-            "--trusted-channels",
-            trusted_channels.get_cli_config<string_list>(),
-            trusted_channels.description()
-        )
-        ->option_text("CHANNEL1 CHANNEL2...");
-
     auto& repo_parsing = config.at("mamba_repodata_parsing");
     subcom->add_flag(
         "--mamba-repodata-parsing, !--no-mamba-repodata-parsing",

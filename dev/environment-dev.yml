@@ -51,7 +51,6 @@ dependencies:
   - requests
   - sel(win): pywin32
   - sel(win): menuinst
-  - conda-content-trust
   - conda-package-handling
   - cryptography
   - securesystemslib

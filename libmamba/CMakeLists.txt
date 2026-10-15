@@ -217,7 +217,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
     # Artifacts validation
-    ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
     # Downloaders and mirrors
     ${LIBMAMBA_SOURCE_DIR}/download/compression.cpp
@@ -370,7 +369,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
     # Artifacts validation
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
     # Downloaders and mirrors
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/downloader.hpp

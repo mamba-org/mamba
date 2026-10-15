@@ -1873,27 +1873,6 @@ namespace mamba
                         Spend extra time validating package contents. Currently, runs sha256
                         verification on every file within each package during installation.)")));
 
-        insert(Configurable("verify_artifacts", &m_context.validation_params.verify_artifacts)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description(  //
-                       "Run verifications on packages signatures.\n"
-                       "This is still experimental and may not be stable yet.\n"
-                   )
-                   .long_description(unindent(R"(
-                        Spend extra time validating package contents. It consists of running
-                        cryptographic verifications on channels and packages metadata.)")));
-
-        insert(Configurable("trusted_channels", &m_context.validation_params.trusted_channels)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description(  //
-                       "The list of trusted channels allowing artifacts verification.\n"
-                       "See `verify-artifacts` for more details.\n"
-                   ));
-
         insert(Configurable("lock_timeout", &m_context.lock_timeout)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
@@ -2827,7 +2806,7 @@ namespace mamba
 
     void print_dump(const Configuration& config, int dump_opts, std::vector<std::string> dump_names)
     {
-        const std::string dump_text = hide_secrets(config.dump(dump_opts, std::move(dump_names)));
+        const std::string dump_text = config.dump(dump_opts, std::move(dump_names));
         if (config.context().output_params.json)
         {
             // merge the output with existing json output

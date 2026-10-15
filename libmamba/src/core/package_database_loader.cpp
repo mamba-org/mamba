@@ -124,9 +124,6 @@ namespace mamba
                         add_pip,
                         ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
                                              : PackageTypes::CondaOrElseTarBz2,
-                        static_cast<solver::libsolv::VerifyPackages>(
-                            ctx.validation_params.verify_artifacts
-                        ),
                         json_parser
                     );
                 }

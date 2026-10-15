@@ -43,12 +43,6 @@ namespace mamba::solver::libsolv
         CondaOrElseTarBz2,
     };
 
-    enum class VerifyPackages : bool
-    {
-        No = false,
-        Yes = true,
-    };
-
     enum class LogLevel
     {
         Debug,

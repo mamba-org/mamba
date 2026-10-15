@@ -60,8 +60,7 @@ namespace mamba::solver::libsolv
     [[nodiscard]] auto libsolv_read_json(  //
         solv::ObjRepoView repo,
         const fs::u8path& filename,
-        PackageTypes types,
-        bool verify_artifacts
+        PackageTypes types
     ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto mamba_read_json(
@@ -72,7 +71,6 @@ namespace mamba::solver::libsolv
         const std::string& channel_id,
         PackageTypes types,
         MatchSpecParser parser,
-        bool verify_artifacts,
         ExcludeNewerPolicy exclude_newer_policy = {}
     ) -> expected_t<solv::ObjRepoView>;
 

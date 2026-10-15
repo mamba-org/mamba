@@ -5,6 +5,8 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <catch2/catch_all.hpp>
+#include <fmt/format.h>
+#include <nlohmann/json.hpp>
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/channel_context.hpp"
@@ -21,6 +23,61 @@
 
 namespace mamba
 {
+    namespace
+    {
+        // Write a conda-meta JSON record.
+        void write_conda_record(
+            const fs::u8path& prefix_path,
+            const std::string& name,
+            const std::string& version,
+            const std::string& build_string,
+            const std::string& python_site_packages_path = ""
+        )
+        {
+            nlohmann::json record = {
+                { "name", name },
+                { "version", version },
+                { "build_string", build_string },
+                { "channel", "conda-forge" },
+                { "platform", "linux-64" },
+            };
+            if (!python_site_packages_path.empty())
+            {
+                record["python_site_packages_path"] = python_site_packages_path;
+            }
+            fs::create_directories(prefix_path / "conda-meta");
+            auto out = open_ofstream(
+                prefix_path / "conda-meta" / fmt::format("{}-{}-{}.json", name, version, build_string)
+            );
+            out << record.dump(2);
+        }
+
+        auto install_fake_uv(const fs::u8path& prefix_path) -> fs::u8path
+        {
+#ifdef _WIN32
+            const auto uv_exe = prefix_path / "Scripts" / "uv.exe";
+#else
+            const auto uv_exe = prefix_path / "bin" / "uv";
+#endif
+            fs::create_directories(uv_exe.parent_path());
+            // Fake `uv`: copy the lock test helper (it recognizes `pip list --format json` and
+            // prints fixed JSON). On Windows this must be a real PE (see util::get_path_dirs /
+            // util::which_in).
+            fs::copy_file(
+                mambatests::testing_libmamba_lock_exe,
+                uv_exe,
+                fs::copy_options::overwrite_existing
+            );
+#ifndef _WIN32
+            fs::permissions(
+                uv_exe,
+                fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
+                fs::perm_options::add
+            );
+#endif
+            return uv_exe;
+        }
+    }
 
     TEST_CASE("Configuration: prefix_data_interoperability", "[core][prefix-interop]")
     {
@@ -140,42 +197,13 @@ namespace mamba
     {
         auto tmp_dir = TemporaryDirectory();
         auto prefix_path = tmp_dir.path() / "prefix";
-        fs::create_directories(prefix_path / "conda-meta");
-#ifdef _WIN32
-        const auto uv_exe = prefix_path / "Scripts" / "uv.exe";
-        fs::create_directories(uv_exe.parent_path());
-#else
-        const auto uv_exe = prefix_path / "bin" / "uv";
-        fs::create_directories(uv_exe.parent_path());
-#endif
 
         auto& ctx = mambatests::context();
         auto channel_context = ChannelContext::make_simple(ctx);
 
         // Mark uv as installed in the prefix, but do not install python.
-        auto uv_pkg_json = prefix_path / "conda-meta" / "uv-0.0.0-0.json";
-        {
-            auto out = open_ofstream(uv_pkg_json);
-            out << R"({
-                "name": "uv",
-                "version": "0.0.0",
-                "build_string": "0",
-                "channel": "conda-forge",
-                "platform": "linux-64"
-            })";
-        }
-
-        // Fake `uv`: copy the lock test helper (it recognizes `pip list --format json` and prints
-        // fixed JSON). On Windows this must be a real PE (see util::get_path_dirs /
-        // util::which_in).
-        fs::copy_file(mambatests::testing_libmamba_lock_exe, uv_exe, fs::copy_options::overwrite_existing);
-#ifndef _WIN32
-        fs::permissions(
-            uv_exe,
-            fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
-            fs::perm_options::add
-        );
-#endif
+        write_conda_record(prefix_path, "uv", "0.0.0", "0");
+        install_fake_uv(prefix_path);
 
         const auto prefix_data = PrefixData::create(prefix_path, channel_context, false).value();
         const auto pip_it = prefix_data.pip_records().find("demo-pkg");
@@ -187,75 +215,25 @@ namespace mamba
     {
         auto tmp_dir = TemporaryDirectory();
         auto prefix_path = tmp_dir.path() / "prefix";
-        fs::create_directories(prefix_path / "conda-meta");
 
         auto& ctx = mambatests::context();
         auto channel_context = ChannelContext::make_simple(ctx);
 
         // `python` is needed so the prefix site-packages directory can be located.
-        {
-            auto out = open_ofstream(prefix_path / "conda-meta" / "python-3.10.0-h12345_0.json");
-            out << R"({
-                "name": "python",
-                "version": "3.10.0",
-                "build_string": "h12345_0",
-                "channel": "conda-forge",
-                "platform": "linux-64",
-                "python_site_packages_path": "lib/python3.10/site-packages"
-            })";
-        }
+        write_conda_record(prefix_path, "python", "3.10.0", "h12345_0", "lib/python3.10/site-packages");
         // `demo-pkg` is a conda package that also happens to be listed by the fake `uv pip list`.
-        {
-            auto out = open_ofstream(prefix_path / "conda-meta" / "demo-pkg-1.2.3-py310h12345_0.json");
-            out << R"({
-                "name": "demo-pkg",
-                "version": "1.2.3",
-                "build_string": "py310h12345_0",
-                "channel": "conda-forge",
-                "platform": "linux-64"
-            })";
-        }
+        write_conda_record(prefix_path, "demo-pkg", "1.2.3", "py310h12345_0");
         // `uv` present and `pip` absent -> the `uv pip list` fallback branch is taken.
-        {
-            auto out = open_ofstream(prefix_path / "conda-meta" / "uv-0.0.0-0.json");
-            out << R"({
-                "name": "uv",
-                "version": "0.0.0",
-                "build_string": "0",
-                "channel": "conda-forge",
-                "platform": "linux-64"
-            })";
-        }
+        write_conda_record(prefix_path, "uv", "0.0.0", "0");
         // `pytorch` is a conda package whose Python distribution is named `torch` (alias case).
-        {
-            auto out = open_ofstream(prefix_path / "conda-meta" / "pytorch-2.0.0-py310h12345_0.json");
-            out << R"({
-                "name": "pytorch",
-                "version": "2.0.0",
-                "build_string": "py310h12345_0",
-                "channel": "conda-forge",
-                "platform": "linux-64"
-            })";
-        }
+        write_conda_record(prefix_path, "pytorch", "2.0.0", "py310h12345_0");
 
-#ifdef _WIN32
-        const auto uv_exe = prefix_path / "Scripts" / "uv.exe";
-#else
-        const auto uv_exe = prefix_path / "bin" / "uv";
-#endif
+        install_fake_uv(prefix_path);
+
         // `effective_python_site_packages_path` uses the package platform (`linux-64`), so the
         // Unix layout is expected regardless of the host platform.
         const auto site_packages = prefix_path / "lib" / "python3.10" / "site-packages";
-        fs::create_directories(uv_exe.parent_path());
         fs::create_directories(site_packages);
-        fs::copy_file(mambatests::testing_libmamba_lock_exe, uv_exe, fs::copy_options::overwrite_existing);
-#ifndef _WIN32
-        fs::permissions(
-            uv_exe,
-            fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
-            fs::perm_options::add
-        );
-#endif
 
         // Write a distribution under site-packages.
         //  - `stem`: entry basename without suffix, e.g. `demo_uv_pkg-1.2.3` or versionless

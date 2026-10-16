@@ -47,6 +47,7 @@ def test_KnownPlatform():
     assert KnownPlatform.linux_s390x.name == "linux_s390x"
     assert KnownPlatform.linux_riscv32.name == "linux_riscv32"
     assert KnownPlatform.linux_riscv64.name == "linux_riscv64"
+    assert KnownPlatform.linux_loongarch64.name == "linux_loongarch64"
     assert KnownPlatform.osx_64.name == "osx_64"
     assert KnownPlatform.osx_arm64.name == "osx_arm64"
     assert KnownPlatform.win_32.name == "win_32"

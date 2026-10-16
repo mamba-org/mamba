@@ -1117,3 +1117,35 @@ def test_install_revision(tmp_home, tmp_root_prefix):
     xtl_regex = re.compile(r"xtl\s+0.7.2")
     assert xtl_regex.search(res)
     assert "nlohmann_json" in res
+
+
+def test_update_all_with_uv_and_no_pip(tmp_home, tmp_root_prefix, tmp_path):
+    env_name = "env-update-all-uv-no-pip"
+
+    # Prevent from pulling `pip`
+    rc_file = tmp_path / ".condarc"
+    rc_file.write_text("add_pip_as_python_dependency: false\n")
+
+    helpers.create(
+        "-n",
+        env_name,
+        "python",
+        "uv",
+        "tomli=2.0.1",
+        "--json",
+        f"--rc-file={rc_file}",
+        no_rc=False,
+        no_dry_run=True,
+    )
+
+    packages = helpers.umamba_list("-n", env_name, "--json")
+    # `uv` present, `pip` absent => the `uv pip list` fallback is used.
+    assert any(p["name"] == "uv" for p in packages)
+    assert any(p["name"] == "python" for p in packages)
+    assert all(p["name"] != "pip" for p in packages)
+    assert any(p["name"] == "tomli" and p["version"] == "2.0.1" for p in packages)
+
+    helpers.update("-n", env_name, "--all", "--json", no_dry_run=True)
+
+    packages = helpers.umamba_list("-n", env_name, "--json")
+    assert any(p["name"] == "tomli" and Version(p["version"]) > Version("2.0.1") for p in packages)

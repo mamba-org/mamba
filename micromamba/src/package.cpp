@@ -69,11 +69,11 @@ set_package_command(CLI::App* subcom, Configuration& config)
             Console::stream() << "Compressing " << fs::absolute(infile) << " to " << dest
                               << std::endl;
 
-            if (util::ends_with(dest, ".tar.bz2") && compression_level == -1)
+            if (dest.ends_with(".tar.bz2") && compression_level == -1)
             {
                 compression_level = 9;
             }
-            if (util::ends_with(dest, ".conda") && compression_level == -1)
+            if (dest.ends_with(".conda") && compression_level == -1)
             {
                 compression_level = 15;
             }
@@ -110,7 +110,7 @@ set_package_command(CLI::App* subcom, Configuration& config)
             // load verbose and other options to context
             config.load();
 
-            if (util::ends_with(infile, ".tar.bz2"))
+            if (infile.ends_with(".tar.bz2"))
             {
                 if (compression_level == -1)
                 {

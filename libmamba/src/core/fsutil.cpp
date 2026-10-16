@@ -21,8 +21,7 @@ namespace mamba::path
     bool starts_with_home(const fs::u8path& p)
     {
         std::string path = p.string();
-        return util::starts_with(path, '~')
-               || util::starts_with(util::expand_home(path), util::expand_home("~"));
+        return path.starts_with('~') || util::expand_home(path).starts_with(util::expand_home("~"));
     }
 
     // TODO more error handling
@@ -41,12 +40,26 @@ namespace mamba::path
         fs::create_directory(path);
 
 #ifndef _WIN32
-        // set permissions to 0o2775
+        // Set permissions to `0o2775` in two steps: some filesystems reject `setgid`, and change of
+        // permissions may fail under MAC policies. Never treat permission failures as fatal (same
+        // as conda).
+        std::error_code ec;
         fs::permissions(
             path,
-            fs::perms::set_gid | fs::perms::owner_all | fs::perms::group_all
-                | fs::perms::others_read | fs::perms::others_exec
+            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read
+                | fs::perms::others_exec,
+            fs::perm_options::replace,
+            ec
         );
+        if (!ec)
+        {
+            fs::permissions(path, fs::perms::set_gid, fs::perm_options::add, ec);
+        }
+        if (ec)
+        {
+            LOG_TRACE << "Could not set sudo-safe permissions on " << path
+                      << "\nReason:" << ec.message() << "; ignoring and continuing";
+        }
 #endif
     }
 

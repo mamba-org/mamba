@@ -36,10 +36,7 @@ namespace
                 std::byte{ 0xEF }, std::byte{ 0xFF },
             };
 
-            REQUIRE(
-                bytes_to_hex_str(bytes.data(), bytes.data() + bytes.size())
-                == "000103090a0d0fad1030a0d0f0ada94eefff"
-            );
+            REQUIRE(bytes_to_hex_str(bytes) == "000103090a0d0fad1030a0d0f0ada94eefff");
         }
 
         SECTION("hex_to_nibble")

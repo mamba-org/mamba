@@ -95,7 +95,7 @@ function __fish_mamba_universal_optspecs
                    'c-no-rc' 'd-no-env' 'v/verbose' \
                    'o/-log-level=+' 'q/quiet' 'y/yes' \
                    'e-json' 'f-offline' \
-                   'g-dry-run' 'i-experimental' 'r/root-prefix=+' \
+                   'g-dry-run' 'r/root-prefix=+' \
                    'p/prefix=+' 'n/name=+'
 end
 

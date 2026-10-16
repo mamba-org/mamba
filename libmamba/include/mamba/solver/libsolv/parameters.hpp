@@ -13,6 +13,9 @@
 
 namespace mamba::solver::libsolv
 {
+    /** Opaque libsolv pool solvable identifier (``::Id``). */
+    using SolvableId = int;
+
     enum class RepodataParser
     {
         Mamba,
@@ -38,12 +41,6 @@ namespace mamba::solver::libsolv
         TarBz2Only,
         CondaAndTarBz2,
         CondaOrElseTarBz2,
-    };
-
-    enum class VerifyPackages : bool
-    {
-        No = false,
-        Yes = true,
     };
 
     enum class LogLevel

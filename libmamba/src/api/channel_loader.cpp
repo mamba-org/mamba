@@ -201,7 +201,11 @@ namespace mamba
         }
 
         // Forward declarations for helpers defined later in this namespace.
-        void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors);
+        void create_mirrors(
+            const specs::Channel& channel,
+            download::mirror_map& mirrors,
+            specs::Channel::UrlPriority priority = specs::Channel::UrlPriority::low
+        );
 
         void create_subdirs(
             Context& ctx,
@@ -238,37 +242,20 @@ namespace mamba
             int max_prio = static_cast<int>(ctx.channels.size());
             specs::CondaURL previous_channel_url;
 
-            // Process mirrored channels: create channel objects, configure mirrors, and initialize
-            // subdirs for each platform.
-            for (const auto& mirror : ctx.mirrored_channels)
-            {
-                for (const specs::Channel& channel :
-                     channel_context.make_channel(mirror.first, mirror.second))
-                {
-                    create_mirrors(channel, ctx.mirrors);
-                    create_subdirs(
-                        ctx,
-                        channel_context,
-                        channel,
-                        package_caches,
-                        subdirs,
-                        error_list,
-                        priorities,
-                        max_prio,
-                        previous_channel_url
-                    );
-                }
-            }
-
-            // Process regular (non-mirrored) channels.
+            // Process all channels in the order they appear in ctx.channels,
+            // expanding mirrored channels inline so that priority assignment
+            // follows the configured channel order. Previously, mirrored
+            // channels were processed in a separate first pass, causing them
+            // to always receive a higher priority than regular channels
+            // regardless of their position in the channels list.
             for (const auto& location : ctx.channels)
             {
-                if (ctx.mirrored_channels.contains(location))
-                {
-                    continue;
-                }
+                const auto mirror = ctx.mirrored_channels.find(location);
+                const auto& channels = (mirror != ctx.mirrored_channels.end())
+                                           ? channel_context.make_channel(mirror->first, mirror->second)
+                                           : channel_context.make_channel(location);
 
-                for (const specs::Channel& channel : channel_context.make_channel(location))
+                for (const specs::Channel& channel : channels)
                 {
                     if (channel.is_package())
                     {
@@ -437,7 +424,9 @@ namespace mamba
 
             LOG_DEBUG << "Shard index fetched for " << subdir.name();
             const auto& channel = subdir.channel();
-            std::string current_repodata_url = subdir.repodata_url().str();
+            std::string current_repodata_url = subdir.repodata_url().str(
+                specs::CondaURL::Credentials::Show
+            );
             if (python_minor_version_for_prefilter.has_value())
             {
                 LOG_DEBUG << "Shard prefilter on python minor version enabled with "
@@ -472,7 +461,9 @@ namespace mamba
                         continue;
                     }
                     auto si = std::move(sidx_result.value().value());
-                    std::string sdir_url = subdirs[j].repodata_url().str();
+                    std::string sdir_url = subdirs[j].repodata_url().str(
+                        specs::CondaURL::Credentials::Show
+                    );
                     all_shards.emplace_back(
                         std::move(si),
                         sdir_url,
@@ -1037,17 +1028,19 @@ namespace mamba
             }
         }
 
-        void create_mirrors(const specs::Channel& channel, download::mirror_map& mirrors)
+        void create_mirrors(
+            const specs::Channel& channel,
+            download::mirror_map& mirrors,
+            specs::Channel::UrlPriority priority
+        )
         {
-            if (!mirrors.has_mirrors(channel.id()))
+            for (const specs::CondaURL& url : channel.mirror_urls())
             {
-                for (const specs::CondaURL& url : channel.mirror_urls())
-                {
-                    mirrors.add_unique_mirror(
-                        channel.id(),
-                        download::make_mirror(url.str(specs::CondaURL::Credentials::Show))
-                    );
-                }
+                mirrors.add_unique_mirror(
+                    channel.id(),
+                    download::make_mirror(url.str(specs::CondaURL::Credentials::Show)),
+                    priority
+                );
             }
         }
 
@@ -1164,14 +1157,15 @@ namespace mamba
         );
     }
 
-    void init_channels(Context& context, ChannelContext& channel_context)
+    void
+    init_channels(Context& context, ChannelContext& channel_context, specs::Channel::UrlPriority priority)
     {
         for (const auto& mirror : context.mirrored_channels)
         {
             for (const specs::Channel& channel :
                  channel_context.make_channel(mirror.first, mirror.second))
             {
-                create_mirrors(channel, context.mirrors);
+                create_mirrors(channel, context.mirrors, priority);
             }
         }
 
@@ -1181,7 +1175,7 @@ namespace mamba
             {
                 for (const specs::Channel& channel : channel_context.make_channel(location))
                 {
-                    create_mirrors(channel, context.mirrors);
+                    create_mirrors(channel, context.mirrors, priority);
                 }
             }
         }

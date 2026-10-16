@@ -18,6 +18,7 @@ set_remove_command(CLI::App* subcom, Configuration& config)
     using string_list = std::vector<std::string>;
     init_general_options(subcom, config);
     init_prefix_options(subcom, config);
+    init_link_options(subcom, config);
 
     auto& specs = config.at("specs");
     subcom

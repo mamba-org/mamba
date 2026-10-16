@@ -83,11 +83,6 @@ init_general_options(CLI::App* subcom, Configuration& config)
         ->add_flag("--download-only", download_only.get_cli_config<bool>(), download_only.description())
         ->group(cli_group);
 
-    auto& experimental = config.at("experimental");
-    subcom
-        ->add_flag("--experimental", experimental.get_cli_config<bool>(), experimental.description())
-        ->group(cli_group);
-
     auto& use_uv = config.at("use_uv");
     subcom->add_flag("--use-uv", use_uv.get_cli_config<bool>(), use_uv.description())->group(cli_group);
 
@@ -347,6 +342,25 @@ no_channel_priority_hook(Configuration& config, bool&)
 }
 
 void
+init_link_options(CLI::App* subcom, Configuration& config)
+{
+    auto& skip_run_link_scripts = config.at("skip_run_link_scripts");
+    subcom->add_flag(
+        "--skip-run-link-scripts,!--run-link-scripts",
+        skip_run_link_scripts.get_cli_config<bool>(),
+        skip_run_link_scripts.description()
+    );
+}
+
+void
+init_platform_options(CLI::App* subcom, Configuration& config)
+{
+    auto& platform = config.at("platform");
+    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
+        ->option_text("PLATFORM");
+}
+
+void
 init_install_options(CLI::App* subcom, Configuration& config)
 {
     using string_list = std::vector<std::string>;
@@ -354,6 +368,7 @@ init_install_options(CLI::App* subcom, Configuration& config)
     init_prefix_options(subcom, config);
     init_network_options(subcom, config);
     init_channel_parser(subcom, config);
+    init_link_options(subcom, config);
 
     auto& specs = config.at("specs");
     subcom
@@ -388,6 +403,21 @@ init_install_options(CLI::App* subcom, Configuration& config)
         "--allow-downgrade,!--no-allow-downgrade",
         allow_downgrade.get_cli_config<bool>(),
         allow_downgrade.description()
+    );
+
+    auto& exclude_newer = config.at("exclude_newer");
+    subcom->add_option(
+        "--exclude-newer",
+        exclude_newer.get_cli_config<std::string>(),
+        exclude_newer.description()
+    );
+
+    auto& exclude_newer_package = config.at("exclude_newer_package");
+    subcom->add_option_function<std::string>(
+        "--exclude-newer-package",
+        [&exclude_newer_package](const std::string& value)
+        { exclude_newer_package.set_cli_yaml_value(value); },
+        exclude_newer_package.description()
     );
 
     auto& allow_softlinks = config.at("allow_softlinks");
@@ -444,30 +474,14 @@ init_install_options(CLI::App* subcom, Configuration& config)
         extra_safety_checks.description()
     );
 
-    auto& av = config.at("verify_artifacts");
-    subcom->add_flag("--verify-artifacts", av.get_cli_config<bool>(), av.description());
-
-    auto& trusted_channels = config.at("trusted_channels");
-    // Allowing unlimited number of args (may be modified later if needed using `type_size` and
-    // `allow_extra_args`)
-    subcom
-        ->add_option(
-            "--trusted-channels",
-            trusted_channels.get_cli_config<string_list>(),
-            trusted_channels.description()
-        )
-        ->option_text("CHANNEL1 CHANNEL2...");
-
-    auto& repo_parsing = config.at("experimental_repodata_parsing");
+    auto& repo_parsing = config.at("mamba_repodata_parsing");
     subcom->add_flag(
-        "--exp-repodata-parsing, !--no-exp-repodata-parsing",
+        "--mamba-repodata-parsing, !--no-mamba-repodata-parsing",
         repo_parsing.get_cli_config<bool>(),
         repo_parsing.description()
     );
 
-    auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
-        ->option_text("PLATFORM");
+    init_platform_options(subcom, config);
 
     auto& no_deps = config.at("no_deps");
     subcom->add_flag("--no-deps", no_deps.get_cli_config<bool>(), no_deps.description());

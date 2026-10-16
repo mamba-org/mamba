@@ -48,8 +48,9 @@ You can try Mamba now by visiting the installation for
 
    advanced_usage/more_concepts
    advanced_usage/detailed_operations
-   advanced_usage/artifacts_verification
    advanced_usage/package_resolution
+   advanced_usage/artifacts_verification
+   advanced_usage/security
 
 .. toctree::
    :caption: LIBMAMBA USAGE

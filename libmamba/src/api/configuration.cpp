@@ -754,7 +754,7 @@ namespace mamba
             }
             else
             {
-                throw std::move(result).value();
+                throw std::move(result).error();
             }
 
             LOG_TRACE << "Using default root prefix for micromamba: " << root_prefix;
@@ -815,14 +815,9 @@ namespace mamba
 
         mamba::log_level log_level_fallback_hook(Configuration& config)
         {
-            const auto& ctx = config.context();
-
-            if (ctx.output_params.json)
+            if (config.at("verbose").configured())
             {
-                return mamba::log_level::critical;
-            }
-            else if (config.at("verbose").configured())
-            {
+                const auto& ctx = config.context();
                 switch (ctx.output_params.verbosity)
                 {
                     case 0:
@@ -917,14 +912,6 @@ namespace mamba
                         throw std::runtime_error("Aborting.");
                     }
                 }
-            }
-        }
-
-        void experimental_hook(bool& value)
-        {
-            if (value)
-            {
-                LOG_WARNING << "Experimental mode enabled";
             }
         }
 
@@ -1105,8 +1092,7 @@ namespace mamba
         {
             const auto filename = fs::u8path(file).filename();
             return filename == ".condarc" || filename == "condarc" || filename == ".mambarc"
-                   || filename == "mambarc" || util::ends_with(file, ".yml")
-                   || util::ends_with(file, ".yaml");
+                   || filename == "mambarc" || file.ends_with(".yml") || file.ends_with(".yaml");
         }
 
         bool is_config_file(const fs::u8path& path)
@@ -1389,20 +1375,10 @@ namespace mamba
                    .set_single_op_lifetime()
                    .description("Others package managers specifications"));
 
-        insert(Configurable("experimental", &m_context.experimental)
-                   .group("Basic")
-                   .description("Enable experimental features")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .long_description(unindent(R"(
-                        Enable experimental features that may be still.
-                        under active development and not stable yet.)"))
-                   .set_post_merge_hook(detail::experimental_hook));
-
-        insert(Configurable("experimental_repodata_parsing", &m_context.experimental_repodata_parsing)
+        insert(Configurable("mamba_repodata_parsing", &m_context.mamba_repodata_parsing)
                    .group("Basic")
                    .description(  //
-                       "Enable experimental parsing of `repodata.json` using simdjson.\n"
+                       "Enable parsing of `repodata.json` using simdjson.\n"
                        "Default is `true`. `false` means libsolv is used.\n"
                    )
                    .set_rc_configurable()
@@ -1413,7 +1389,7 @@ namespace mamba
                    .group("Basic")
                    .description(  //
                        "Enable internal parsing and matching of MatchSpecs using Mamba's experimental implementation rather than Libsolv's.\n"
-                       "This is not mean for production"
+                       "This is not meant for production"
                    )
                    .set_env_var_names());
 
@@ -1620,6 +1596,26 @@ namespace mamba
 
 
         // Solver
+        insert(Configurable("override_virtual_packages", &m_context.override_virtual_packages)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .description("Override values for virtual packages")
+                   .long_description(unindent(R"(
+                        A dictionary of virtual package overrides. Keys are virtual package names
+                        without the leading `__` (e.g. `cuda`, `glibc`, `archspec`), though names
+                        with `__` are also accepted. Values override the detected version (or the
+                        build string for `archspec`).
+
+                        Environment variables of the form `CONDA_OVERRIDE_<NAME>` take precedence
+                        over this setting.
+
+                        Example:
+                          override_virtual_packages:
+                            cuda: "12.8"
+                            glibc: "2.17"
+                            archspec: "x86_64_v3"
+                   )")));
+
         insert(Configurable("channel_priority", &m_context.channel_priority)
                    .group("Solver")
                    .set_rc_configurable()
@@ -1742,6 +1738,32 @@ namespace mamba
                    .set_env_var_names()
                    .description("Allow downgrade when installing packages. Default is false."));
 
+        insert(Configurable("exclude_newer", &m_context.exclude_newer_params.exclude_newer)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "CONDA_EXCLUDE_NEWER", "MAMBA_EXCLUDE_NEWER" })
+                   .description("Exclude packages published more recently than the given duration or date")
+                   .long_description(unindent(R"(
+                        Exclude packages with a policy timestamp newer than the cutoff.
+                        Accepts durations (e.g. 7d, 3d12h, 1w, P7D), ISO datetimes
+                        (e.g. 2026-04-01T12:00:00Z), or date-only values (e.g. 2026-04-01).
+                        Date-only values follow conda's exclude-newer convention: the given
+                        calendar day is included, so the cutoff is the start of the next UTC
+                        day. Plain integers are treated as durations in seconds. Supply 0
+                        for no delay, using the current time as the cutoff.)")));
+
+        insert(Configurable("exclude_newer_package", &m_context.exclude_newer_params.exclude_newer_package)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "CONDA_EXCLUDE_NEWER_PACKAGE", "MAMBA_EXCLUDE_NEWER_PACKAGE" })
+                   .description("Per-package overrides for the exclude_newer policy")
+                   .long_description(unindent(R"(
+                        Maps package names to durations, dates, timestamps, or false to exempt
+                        a package from the global exclude_newer policy. Package-specific values
+                        take precedence over the global cutoff. This must
+                        be expressed as a JSON dictionary with package names as keys (e.g.
+                        '{"numpy": "false", "pandas": "7d"}'.)")));
+
         insert(Configurable("order_solver_request", &m_context.solver_flags.order_request)
                    .group("Solver")
                    .set_rc_configurable()
@@ -1851,27 +1873,6 @@ namespace mamba
                         Spend extra time validating package contents. Currently, runs sha256
                         verification on every file within each package during installation.)")));
 
-        insert(Configurable("verify_artifacts", &m_context.validation_params.verify_artifacts)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description(  //
-                       "Run verifications on packages signatures.\n"
-                       "This is still experimental and may not be stable yet.\n"
-                   )
-                   .long_description(unindent(R"(
-                        Spend extra time validating package contents. It consists of running
-                        cryptographic verifications on channels and packages metadata.)")));
-
-        insert(Configurable("trusted_channels", &m_context.validation_params.trusted_channels)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description(  //
-                       "The list of trusted channels allowing artifacts verification.\n"
-                       "See `verify-artifacts` for more details.\n"
-                   ));
-
         insert(Configurable("lock_timeout", &m_context.lock_timeout)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
@@ -1897,6 +1898,14 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .description("Defines if PYC files will be compiled or not"));
+
+        insert(
+            Configurable("skip_run_link_scripts", &m_context.link_params.skip_run_link_scripts)
+                .group("Extract, Link & Install")
+                .set_rc_configurable()
+                .set_env_var_names()
+                .description("Whether pre/post-un/link scripts will be skipped. Defaults to false.")
+        );
 
         insert(
             Configurable("use_uv", &m_context.use_uv)
@@ -1969,8 +1978,19 @@ namespace mamba
                    .group("Output, Prompt and Flow Control")
                    .set_rc_configurable()
                    .needs({ "print_config_only", "print_context_only" })
+                   .set_post_merge_hook<bool>(
+                       [](const bool enabled)
+                       {
+                           if (enabled)
+                           {
+                               Console::setup_log_handling_for_json();
+                           }
+                       }
+                   )
                    .set_env_var_names()
-                   .description("Report all output as json"));
+                   .description(
+                       "Report all output as json. Implicitly bypasses prompts as if `--yes` was used."
+                   ));
 
         insert(Configurable("changeps1", &m_context.change_ps1)
                    .group("Output, Prompt and Flow Control")
@@ -2049,7 +2069,18 @@ namespace mamba
                    .set_rc_configurable()
                    .set_env_var_names()
                    .needs({ "json", "print_config_only", "print_context_only" })
-                   .description("Set quiet mode (print less output)"));
+                   .set_post_merge_hook<bool>(
+                       [](const bool enabled)
+                       {
+                           if (enabled)
+                           {
+                               logging::stop_logging();
+                           }
+                       }
+                   )
+                   .description(
+                       "Set quiet mode (print less output). Implicitly bypasses prompts as if `--yes` was used."
+                   ));
 
         insert(Configurable("verbose", 0)
                    .group("Output, Prompt and Flow Control")
@@ -2290,7 +2321,7 @@ namespace mamba
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
             print_dump(*this, dump_opts);
-            exit(0);
+            throw mamba_early_exit_request{};
         }
 
         m_context.set_log_level(m_context.output_params.logging_level);
@@ -2775,9 +2806,17 @@ namespace mamba
 
     void print_dump(const Configuration& config, int dump_opts, std::vector<std::string> dump_names)
     {
-        // Note: this function is intended to get more complex with incoming changes and need to be
-        // isolated in preparation for these changes.
-        const std::string dump_text = hide_secrets(config.dump(dump_opts, std::move(dump_names)));
-        std::cout << dump_text << std::endl;
+        const std::string dump_text = config.dump(dump_opts, std::move(dump_names));
+        if (config.context().output_params.json)
+        {
+            // merge the output with existing json output
+            auto dump_json = nlohmann::json::parse(dump_text);
+            Console::instance().set_json_output(JSONEdit::from_json_object_members(dump_json));
+        }
+        else
+        {
+            std::cout << dump_text << std::endl;  // outputs YAML
+        }
     }
+
 }

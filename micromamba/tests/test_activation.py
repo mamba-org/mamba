@@ -1,6 +1,7 @@
 import os
 import pathlib
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -565,7 +566,11 @@ def test_shell_init_deinit_contents(
             rc_contents_after_deinit = fi.read()
     else:
         rc_contents_after_deinit = ""
-    assert rc_contents_after_deinit == prev_rc_contents
+    if interpreter == "powershell":
+        assert "#region mamba initialize" not in rc_contents_after_deinit
+    else:
+        assert "# >>> mamba initialize >>>" not in rc_contents_after_deinit
+    assert not find_path_in_str(tmp_root_prefix, rc_contents_after_deinit)
 
 
 @pytest.mark.parametrize("interpreter", get_interpreters())
@@ -831,12 +836,14 @@ def test_unicode_activation(
         u1 = "μυρτιὲς"
         u2 = "终过鬼门关"
         u3 = "some ™∞¢3 spaces §∞©ƒ√≈ç"
-        s1 = [f"{mamba_name} create -n {u1} xtensor -y -c conda-forge"]
-        s2 = [f"{mamba_name} create -n {u2} xtensor -y -c conda-forge"]
+        target_args = " ".join(helpers.package_target_args(()))
+        target_suffix = f" {target_args}" if target_args else ""
+        s1 = [f"{mamba_name} create -n {u1} xtensor -y -c conda-forge{target_suffix}"]
+        s2 = [f"{mamba_name} create -n {u2} xtensor -y -c conda-forge{target_suffix}"]
         if interpreter == "cmd.exe":
-            s3 = [f'{mamba_name} create -n "{u3}" xtensor -y -c conda-forge']
+            s3 = [f'{mamba_name} create -n "{u3}" xtensor -y -c conda-forge{target_suffix}']
         else:
-            s3 = [f"{mamba_name} create -n '{u3}' xtensor -y -c conda-forge"]
+            s3 = [f"{mamba_name} create -n '{u3}' xtensor -y -c conda-forge{target_suffix}"]
         call(s1)
         call(s2)
         call(s3)
@@ -927,6 +934,67 @@ def test_activate_envs_dirs(
     res = helpers.shell("activate", env_name, "-s", interpreter)
     dict_res = env_to_dict(res, interpreter)
     assert any([env_name in p for p in dict_res.values()])
+
+
+@pytest.mark.skipif(
+    "xonsh" not in valid_interpreters,
+    reason="xonsh not available",
+)
+@pytest.mark.parametrize("alias", ["micromamba", "mamba"])
+def test_xonsh_help_and_version(tmp_home, tmp_root_prefix, tmp_path, alias):
+    umamba = helpers.get_umamba()
+
+    s = [f"{umamba} shell init -r {tmp_root_prefix} -s xonsh"]
+    call_interpreter(s, tmp_path, "xonsh")
+
+    def call(s):
+        return call_interpreter(s, tmp_path, "xonsh", interactive=True)
+
+    s = [f"{alias} --help"]
+    stdout, stderr = call(s)
+    assert not stderr, f"stderr was not empty: {stderr}"
+    assert "--help" in stdout
+    assert "Print this help message and exit" in stdout
+
+    s = [f"{alias} --version"]
+    stdout, stderr = call(s)
+    assert not stderr, f"stderr was not empty: {stderr}"
+    assert re.search(r"\d+\.\d+\.\d+", stdout.strip()), f"not a version: {stdout}"
+
+
+@pytest.mark.skipif(
+    "xonsh" not in valid_interpreters,
+    reason="xonsh not available",
+)
+@pytest.mark.parametrize("alias", ["micromamba", "mamba"])
+def test_xonsh_del_nonexistent_env_var(tmp_home, tmp_root_prefix, tmp_path, alias):
+    umamba = helpers.get_umamba()
+
+    s = [f"{umamba} shell init -r {tmp_root_prefix} -s xonsh"]
+    call_interpreter(s, tmp_path, "xonsh")
+
+    def call(s):
+        return call_interpreter(s, tmp_path, "xonsh", interactive=True)
+
+    helpers.create("-n", "test_unset_env", "--offline", "--no-rc", no_dry_run=True)
+
+    prefix = tmp_root_prefix / "envs" / "test_unset_env"
+    state_file = prefix / "conda-meta" / "state"
+    state_file.write_text(helpers.json.dumps({"env_vars": {"MAMBA_UNSET_TEST": "hello"}}))
+
+    # activate → manually delete var → deactivate
+    s = [
+        f"{alias} activate test_unset_env",
+        "del $MAMBA_UNSET_TEST",
+        f"{alias} deactivate",
+    ]
+
+    try:
+        stdout, stderr = call(s)
+    except subprocess.CalledProcessError:
+        pytest.fail("deactivate crashed on del of non-existent env var")
+
+    assert "does not contain any filesystem separator" not in stderr
 
 
 @pytest.fixture

@@ -33,7 +33,7 @@ jobs:
         run: |
           df -h
       - name: Free Disk Space (Base Runner)
-        uses: jlumbroso/free-disk-space@v1.3.1
+        uses: jlumbroso/free-disk-space@v2.0.0
         with:
           tool-cache: false
           large-packages: false
@@ -42,14 +42,14 @@ jobs:
         run: |
           df -h
       - name: Checkout mamba repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
-          cache-environment: true
-          cache-environment-key: >-
+          cache-downloads: true
+          cache-downloads-key: >-
             coverage-${{
               hashFiles(
                 'dev/environment-dev.yml',
@@ -69,12 +69,6 @@ jobs:
             ccache-libmamba-${{ github.runner.os }}
       - name: Build mamba with coverage
         run: |
-          # Ensure ar/ranlib are found: conda compiler activation may not set AR when
-          # mixing envs (dev + micromamba-static); CMAKE_AR from preset uses $env{AR}
-          # which can resolve to a bare name, causing "x86_64-conda-linux-gnu-ar: not found"
-          # when building the static libmamba (micromamba requires BUILD_STATIC).
-          export AR="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-ar"
-          export RANLIB="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-ranlib"
           cmake -B build/ -G Ninja \
             --preset mamba-unix-shared-debug \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \

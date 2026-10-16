@@ -66,3 +66,11 @@ When installing a ``noarch: python`` package, the installation process will comp
 All installed files are later referenced in the ``$TARGET_PREFIX/conda-meta/mypkg-version-build.json`` file, to facilitate the removal (e.g. when upgrading or removing a package).
 
 If the package contains a ``menu/*.json`` entry that follows the spec introduced by ``menuinst``, a start-menu entry is created on Windows. This is currently not implemented on Linux or macOS but that might change in the future.
+
+Package link scripts
+--------------------
+
+Some packages also include ``pre-link``, ``post-link``, ``pre-unlink``,
+or ``post-unlink`` scripts that are executed during the linking step.
+Because these scripts can contain arbitrary code, they have security
+implications. See :ref:`security` for more details.

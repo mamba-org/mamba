@@ -13,9 +13,11 @@
 #include <vector>
 
 #include "mamba/core/context_params.hpp"
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/core/logging.hpp"
 #include "mamba/core/palette.hpp"
 #include "mamba/core/subdir_parameters.hpp"
+#include "mamba/core/virtual_packages.hpp"
 #include "mamba/download/mirror_map.hpp"
 #include "mamba/download/parameters.hpp"
 #include "mamba/fs/filesystem.hpp"
@@ -42,16 +44,6 @@ namespace mamba
     {
         VerificationLevel safety_checks = VerificationLevel::Warn;
         bool extra_safety_checks = false;
-        bool verify_artifacts = false;
-
-        // TODO Uncomment `conda-forge` or whatever trusted_channels when possible
-        // (i.e server side package signing ready)
-        // Remove "http://127.0.0.1:8000/get/channel0"
-        // (should only be used in integration tests,
-        // this one is for testing with quetz)
-        std::vector<std::string> trusted_channels = {
-            /*"conda-forge", */ "http://127.0.0.1:8000/get/channel0"
-        };
     };
 
     enum class ChannelPriority
@@ -65,10 +57,18 @@ namespace mamba
     class Logger;
     class Context;
 
+    struct OutputParams : LoggingParams
+    {
+        bool json{ false };
+        bool quiet{ false };
+        int verbosity{ 0 };
+    };
+
     struct ContextOptions
     {
         bool enable_logging = false;
         bool enable_signal_handling = false;
+        std::optional<OutputParams> output_params = {};
     };
 
     // Context singleton class
@@ -78,12 +78,7 @@ namespace mamba
 
         static void use_default_signal_handler(bool val);
 
-        struct OutputParams : LoggingParams
-        {
-            bool json{ false };
-            bool quiet{ false };
-            int verbosity{ 0 };
-        };
+        using OutputParams = mamba::OutputParams;
 
         struct GraphicsParams
         {
@@ -98,8 +93,7 @@ namespace mamba
         };
 
         // Configurable
-        bool experimental = false;
-        bool experimental_repodata_parsing = true;
+        bool mamba_repodata_parsing = true;
         bool experimental_matchspec_parsing = false;
         bool debug = false;
         bool use_uv = false;
@@ -128,6 +122,13 @@ namespace mamba
 
         // solver options
         solver::Request::Flags solver_flags = {};
+
+        /**
+         * Raw `exclude_newer` / `exclude_newer_package` configuration.
+         *
+         * Resolved into ``ExcludeNewerPolicy`` at solve time.
+         */
+        ExcludeNewerParams exclude_newer_params;
 
         // add start menu shortcuts on Windows (not implemented on Linux / macOS)
         bool shortcuts = true;
@@ -256,6 +257,11 @@ namespace mamba
         bool override_channels_enabled = true;
 
         std::vector<std::string> pinned_packages = {};
+
+        // Keys are virtual package names without the `__` prefix (e.g. "cuda", "glibc").
+        // Names with a `__` prefix are also accepted and normalized on lookup.
+        // Environment variables `CONDA_OVERRIDE_<NAME>` take precedence over this map.
+        override_virtual_packages_map override_virtual_packages = {};
 
         bool use_only_tar_bz2 = false;
 

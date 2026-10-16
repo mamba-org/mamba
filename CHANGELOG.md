@@ -1,3 +1,159 @@
+## 2026.08.07
+
+Release: 2.9.0 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [libmamba, micromamba] Refactor and clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4359>
+- [libmamba, libmambapy] feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- [all] Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+Bug fixes:
+
+- [micromamba] fix: Remove duplicate deactivate from shell completion by @henriquesimoes in <https://github.com/mamba-org/mamba/pull/4371>
+- [libmamba] fix: Explain missing packages when string ids collide with solvables by @jjerphan in <https://github.com/mamba-org/mamba/pull/4369>
+- [libmamba] fix: Do not change permissions of existing shared package cache directories by @jjerphan in <https://github.com/mamba-org/mamba/pull/4365>
+- [libmamba] fix: Link `libpsl` static library for static builds by @mikemhenry in <https://github.com/mamba-org/mamba/pull/4355>
+- [libmamba, micromamba] fix: Accept non-standard quoted noarch entry points by @jjerphan in <https://github.com/mamba-org/mamba/pull/4354>
+- [micromamba] fix: Add `deactivate` command to the help message by @faze-geek in <https://github.com/mamba-org/mamba/pull/4350>
+- [libmamba] Fix duplicated deps in `repoquery depends` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4356>
+- [libmamba] fix: Long paths support activation hint on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4342>
+- [micromamba] Fix init/deinit test with `fish` on `macos` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4348>
+- [libmamba, micromamba] Fix `update` behavior by @Hind-M in <https://github.com/mamba-org/mamba/pull/4345>
+- [libmamba] fix: preserve credentials for sharded repodata URLs by @jdr45 in <https://github.com/mamba-org/mamba/pull/4347>
+- [libmamba] Fix duplicated packages with categories from env lock file by @Hind-M in <https://github.com/mamba-org/mamba/pull/4340>
+- [libmamba, micromamba] fix: Lock virtual packages in libsolv's repo by @jjerphan in <https://github.com/mamba-org/mamba/pull/4312>
+- [libmamba] fix: Support dotless versions in wheels' filenames by @jjerphan in <https://github.com/mamba-org/mamba/pull/4335>
+- [libmamba, micromamba] Handle pre/post-link/unlink scripts by @Hind-M in <https://github.com/mamba-org/mamba/pull/4313>
+- [libmamba] fix: prompts should act as if `--yes` was used when `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4329>
+- [libmamba] fix: Handle legacy invalid value for `noarch` field in package records by @jjerphan in <https://github.com/mamba-org/mamba/pull/4324>
+- [libmamba, micromamba] fix: Don't log if `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4202>
+- [libmamba] fix: Local channel expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4317>
+
+CI fixes and doc:
+
+- [micromamba] test: Adapt `test_python_abi_preserved_with_freethreading` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4362>
+- [all] docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- [all] ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- [libmamba] maint: Use in-place construction in `InfixParser::stack_push` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4363>
+- [all] maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- [all] build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- [libmamba] maint: Adapt `fmt` headers' inclusion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4339>
+- [libmamba] maint: Harden `ScopedContextChange` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4337>
+- [all] Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- [all] Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- [libmamba] maint: Introduce `ScopedContextChange` for tests by @jjerphan in <https://github.com/mamba-org/mamba/pull/4334>
+- [all] build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- [micromamba] test: Adapt `test_parsable_env_history_with_metadata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4319>
+- [all] maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- [libmambapy] maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
+## 2026.08.05
+
+Release: 2.9.0.rc1 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [libmamba, micromamba] Refactor and clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4359>
+- [libmamba, libmambapy] feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- [all] Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+Bug fixes:
+
+- [libmamba] fix: Explain missing packages when string ids collide with solvables by @jjerphan in <https://github.com/mamba-org/mamba/pull/4369>
+- [libmamba] fix: Do not change permissions of existing shared package cache directories by @jjerphan in <https://github.com/mamba-org/mamba/pull/4365>
+- [libmamba] fix: Link `libpsl` static library for static builds by @mikemhenry in <https://github.com/mamba-org/mamba/pull/4355>
+- [libmamba, micromamba] fix: Accept non-standard quoted noarch entry points by @jjerphan in <https://github.com/mamba-org/mamba/pull/4354>
+- [micromamba] fix: Add `deactivate` command to the help message by @faze-geek in <https://github.com/mamba-org/mamba/pull/4350>
+- [libmamba] Fix duplicated deps in `repoquery depends` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4356>
+- [libmamba] fix: Long paths support activation hint on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4342>
+- [micromamba] Fix init/deinit test with `fish` on `macos` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4348>
+- [libmamba, micromamba] Fix `update` behavior by @Hind-M in <https://github.com/mamba-org/mamba/pull/4345>
+- [libmamba] fix: preserve credentials for sharded repodata URLs by @jdr45 in <https://github.com/mamba-org/mamba/pull/4347>
+- [libmamba] Fix duplicated packages with categories from env lock file by @Hind-M in <https://github.com/mamba-org/mamba/pull/4340>
+- [libmamba, micromamba] fix: Lock virtual packages in libsolv's repo by @jjerphan in <https://github.com/mamba-org/mamba/pull/4312>
+- [libmamba] fix: Support dotless versions in wheels' filenames by @jjerphan in <https://github.com/mamba-org/mamba/pull/4335>
+- [libmamba, micromamba] Handle pre/post-link/unlink scripts by @Hind-M in <https://github.com/mamba-org/mamba/pull/4313>
+- [libmamba] fix: prompts should act as if `--yes` was used when `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4329>
+- [libmamba] fix: Handle legacy invalid value for `noarch` field in package records by @jjerphan in <https://github.com/mamba-org/mamba/pull/4324>
+- [libmamba, micromamba] fix: Don't log if `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4202>
+- [libmamba] fix: Local channel expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4317>
+
+CI fixes and doc:
+
+- [micromamba] test: Adapt `test_python_abi_preserved_with_freethreading` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4362>
+- [all] docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- [all] ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- [libmamba] maint: Use in-place construction in `InfixParser::stack_push` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4363>
+- [all] maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- [all] build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- [libmamba] maint: Adapt `fmt` headers' inclusion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4339>
+- [libmamba] maint: Harden `ScopedContextChange` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4337>
+- [all] Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- [all] Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- [libmamba] maint: Introduce `ScopedContextChange` for tests by @jjerphan in <https://github.com/mamba-org/mamba/pull/4334>
+- [all] build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- [micromamba] test: Adapt `test_parsable_env_history_with_metadata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4319>
+- [all] maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- [libmambapy] maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
+## 2026.07.31
+
+Release: 2.9.0.rc0 (libmamba, mamba, micromamba, libmambapy)
+
+Enhancements:
+
+- [micromamba, libmamba] Refactor and clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4359>
+- [libmambapy, libmamba] feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- [all] Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+Bug fixes:
+
+- [libmamba] fix: Do not change permissions of existing shared package cache directories by @jjerphan in <https://github.com/mamba-org/mamba/pull/4365>
+- [libmamba] fix: Link `libpsl` static library for static builds by @mikemhenry in <https://github.com/mamba-org/mamba/pull/4355>
+- [micromamba, libmamba] fix: Accept non-standard quoted noarch entry points by @jjerphan in <https://github.com/mamba-org/mamba/pull/4354>
+- [micromamba] fix: Add `deactivate` command to the help message by @faze-geek in <https://github.com/mamba-org/mamba/pull/4350>
+- [libmamba] Fix duplicated deps in `repoquery depends` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4356>
+- [libmamba] fix: Long paths support activation hint on Windows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4342>
+- [micromamba] Fix init/deinit test with `fish` on `macos` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4348>
+- [micromamba, libmamba] Fix `update` behavior by @Hind-M in <https://github.com/mamba-org/mamba/pull/4345>
+- [libmamba] fix: preserve credentials for sharded repodata URLs by @jdr45 in <https://github.com/mamba-org/mamba/pull/4347>
+- [libmamba] Fix duplicated packages with categories from env lock file by @Hind-M in <https://github.com/mamba-org/mamba/pull/4340>
+- [micromamba, libmamba] fix: Lock virtual packages in libsolv's repo by @jjerphan in <https://github.com/mamba-org/mamba/pull/4312>
+- [libmamba] fix: Support dotless versions in wheels' filenames by @jjerphan in <https://github.com/mamba-org/mamba/pull/4335>
+- [micromamba, libmamba] Handle pre/post-link/unlink scripts by @Hind-M in <https://github.com/mamba-org/mamba/pull/4313>
+- [libmamba] fix: prompts should act as if `--yes` was used when `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4329>
+- [libmamba] fix: Handle legacy invalid value for `noarch` field in package records by @jjerphan in <https://github.com/mamba-org/mamba/pull/4324>
+- [micromamba, libmamba] fix: Don't log if `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4202>
+- [libmamba] fix: Local channel expansion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4317>
+
+CI fixes and doc:
+
+- [micromamba] test: Adapt `test_python_abi_preserved_with_freethreading` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4362>
+- [all] docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- [all] ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- [libmamba] maint: Use in-place construction in `InfixParser::stack_push` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4363>
+- [all] maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- [all] build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- [libmamba] maint: Adapt `fmt` headers' inclusion by @jjerphan in <https://github.com/mamba-org/mamba/pull/4339>
+- [libmamba] maint: Harden `ScopedContextChange` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4337>
+- [all] Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- [all] Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- [libmamba] maint: Introduce `ScopedContextChange` for tests by @jjerphan in <https://github.com/mamba-org/mamba/pull/4334>
+- [all] build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- [micromamba] test: Adapt `test_parsable_env_history_with_metadata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4319>
+- [all] maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- [libmambapy] maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
 ## 2026.06.08
 
 Release: 2.8.1 (libmamba, mamba, micromamba, libmambapy)

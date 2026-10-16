@@ -53,6 +53,12 @@ namespace mamba
 
     void Context::start_logging(logging::AnyLogHandler log_handler)
     {
+        if (output_params.json or output_params.quiet)
+        {
+            throw mamba_error{ "cannot start logging with `--json` or `--quiet`",
+                               mamba_error_code::incorrect_usage };
+        }
+
         // Only change the log-handler if specified, keep the current one otherwise.
         if (log_handler)
         {
@@ -98,9 +104,27 @@ namespace mamba
             enable_signal_handling();
         }
 
-        if (options.enable_logging)
+        if (options.output_params)
+        {
+            output_params = *options.output_params;
+        }
+
+        // Do not start logging if `--json` or `--quiet` are used.
+        if (options.enable_logging and not(output_params.json or output_params.quiet))
         {
             start_logging(std::move(log_handler));
+        }
+
+        if (output_params.quiet)
+        {
+            // Explicitly stop logging in case a log-handler
+            // has already been installed before `Context`'s creation.
+            logging::stop_logging();
+        }
+        if (output_params.json)
+        {
+            // We still need to capture the log and put it into the json output.
+            Console::setup_log_handling_for_json();
         }
     }
 
@@ -181,7 +205,7 @@ namespace mamba
             }
             for (const auto& entry : fs::directory_iterator(px))
             {
-                if (util::ends_with(entry.path().filename().string(), ".token"))
+                if (entry.path().filename().string().ends_with(".token"))
                 {
                     found_tokens.push_back(entry.path());
                     std::string token_url = util::decode_percent(entry.path().filename().string());

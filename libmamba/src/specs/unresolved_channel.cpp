@@ -71,7 +71,7 @@ namespace mamba::specs
         auto split_location_platform(std::string_view str)
             -> expected_parse_t<std::pair<std::string, dynamic_platform_set>>
         {
-            if (util::ends_with(str, ']'))
+            if (str.ends_with(']'))
             {
                 // Parsing platforms in "something[linux-64,noarch]"
                 const auto start_pos = str.find_last_of('[');

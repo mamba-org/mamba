@@ -269,6 +269,21 @@ class TestConfigList:
         )
         os.environ.pop("MAMBA_OFFLINE")
 
+    @pytest.mark.parametrize("env_name", ["CONDA_EXCLUDE_NEWER", "MAMBA_EXCLUDE_NEWER"])
+    def test_exclude_newer_env_var(self, monkeypatch, env_name):
+        monkeypatch.setenv(env_name, "7d")
+        values = config("list", "exclude_newer", "--no-rc", "--json")
+        assert values["exclude_newer"] == "7d"
+
+    @pytest.mark.parametrize(
+        "env_name",
+        ["CONDA_EXCLUDE_NEWER_PACKAGE", "MAMBA_EXCLUDE_NEWER_PACKAGE"],
+    )
+    def test_exclude_newer_package_env_var(self, monkeypatch, env_name):
+        monkeypatch.setenv(env_name, "{numpy: 'false', pandas: '7d'}")
+        values = config("list", "exclude_newer_package", "--no-rc", "--json")
+        assert values["exclude_newer_package"] == {"numpy": "false", "pandas": "7d"}
+
     def test_no_env(self):
         os.environ["MAMBA_OFFLINE"] = "false"
 
@@ -590,13 +605,8 @@ class TestConfigModifiers:
     def test_file_set_and_append_inputs(self, rc_file):
         # Backward test compatibility: when an empty file exists, the formatting is different
         rc_file.unlink()
-        config("set", "experimental", "true", "--file", rc_file)
         config("append", "channels", "gandalf", "--file", rc_file)
         config("append", "channels", "legolas", "--file", rc_file)
-        assert (
-            config("get", "experimental", "--file", rc_file).splitlines()
-            == "experimental: true".splitlines()
-        )
         assert config("get", "channels", "--file", rc_file).splitlines() == [
             "channels:",
             "  - gandalf",
@@ -606,25 +616,13 @@ class TestConfigModifiers:
     def test_file_set_and_prepend_inputs(self, rc_file):
         # Backward test compatibility: when an empty file exists, the formatting is different
         rc_file.unlink()
-        config("set", "experimental", "false", "--file", rc_file)
         config("prepend", "channels", "zelda", "--file", rc_file)
         config("prepend", "channels", "link", "--file", rc_file)
-        assert (
-            config("get", "experimental", "--file", rc_file).splitlines()
-            == "experimental: false".splitlines()
-        )
         assert config("get", "channels", "--file", rc_file).splitlines() == [
             "channels:",
             "  - link",
             "  - zelda",
         ]
-
-    def test_flag_env_set(self, rc_file):
-        config("set", "experimental", "false", "--env")
-        assert (
-            config("get", "experimental", "--env").splitlines()
-            == "experimental: false".splitlines()
-        )
 
     def test_flag_env_file_remove_vector(self, rc_file):
         config("prepend", "channels", "thinga-madjiga", "--env")

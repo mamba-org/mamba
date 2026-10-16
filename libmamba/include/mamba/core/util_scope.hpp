@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include "mamba/core/logging.hpp"
 

@@ -38,6 +38,7 @@ namespace mamba
         bool always_copy = false;
         bool always_softlink = false;
         bool compile_pyc = true;
+        bool skip_run_link_scripts = false;
     };
 
     struct ThreadsParams

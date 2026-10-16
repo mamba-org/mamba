@@ -13,6 +13,7 @@
 #include <string>
 #include <string_view>
 #include <tuple>
+#include <unordered_map>
 #include <vector>
 
 #include <fmt/format.h>
@@ -101,7 +102,7 @@ namespace mamba
                 );
             }
 
-            if (util::starts_with(command, ".."))
+            if (command.starts_with(".."))
             {
                 return make_unexpected(
                     fmt::format("Invalid entry point command name '{}': must not start with '..'", command),
@@ -160,7 +161,7 @@ namespace mamba
             }
 
             const std::string rel_str = rel.generic_string();
-            if (rel_str.empty() || rel_str == "." || util::starts_with(rel_str, "..")
+            if (rel_str.empty() || rel_str == "." || rel_str.starts_with("..")
                 || util::contains(rel_str, "/../") || util::contains(rel_str, "\\..\\"))
             {
                 return make_unexpected(
@@ -234,31 +235,51 @@ namespace mamba
         }
     }
 
-    auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>
+    auto parse_entry_point(const std::string& ep_def)
+        -> expected_t<python_entry_point_parsed, mamba_aggregated_error>
     {
         // def looks like: "wheel = wheel.cli:main"
-        auto cmd_mod_func = util::rsplit(ep_def, ":", 1);
-        if (cmd_mod_func.size() != 2)
+        // Same approach as conda's parse_entry_point_def (conda/conda#16340):
+        //   1. split on the first '=' into command and RHS
+        //   2. strip whitespace and surrounding quotes from the RHS
+        //      (some packages, e.g. findpython, ship `cmd = "mod:func"`)
+        //   3. rsplit the stripped RHS on the last ':' into module and callable
+        // Always return mamba_aggregated_error (even for a single failure) so the error is not
+        // sliced when stored in expected_t (mamba-org/mamba#4352).
+        auto make_parse_error = [](auto&&... errs)
         {
-            return make_unexpected(
-                fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
-                mamba_error_code::invalid_spec
+            return tl::unexpected(mamba_aggregated_error(
+                std::vector<mamba_error>{ std::forward<decltype(errs)>(errs)... },
+                /*with_bug_report_info=*/false
+            ));
+        };
+
+        const auto [command, defn] = util::split_once(ep_def, '=');
+        if (!defn)
+        {
+            return make_parse_error(
+                mamba_error{ fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
+                             mamba_error_code::invalid_spec }
             );
         }
 
-        auto command_module = util::rsplit(cmd_mod_func[0], "=", 1);
-        if (command_module.size() != 2)
+        // Step 2: strip whitespace/quotes from the module:callable side (conda#16340).
+        constexpr std::string_view entry_point_rhs_strip_chars = " \t\r\n\"'";
+        const auto module_func = util::strip(*defn, entry_point_rhs_strip_chars);
+        // Step 3: rsplit the stripped RHS on the last ':' into module and callable.
+        const auto [module, func] = util::rsplit_once(module_func, ':');
+        if (!module)
         {
-            return make_unexpected(
-                fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
-                mamba_error_code::invalid_spec
+            return make_parse_error(
+                mamba_error{ fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
+                             mamba_error_code::invalid_spec }
             );
         }
 
         python_entry_point_parsed result;
-        result.command = util::strip(command_module[0]);
-        result.module = util::strip(command_module[1]);
-        result.func = util::strip(cmd_mod_func[1]);
+        result.command = util::strip(command);
+        result.module = util::strip(*module);
+        result.func = util::strip(func);
 
         std::vector<mamba_error> errors;
         auto record_error = [&](const tl::expected<void, mamba_error>& check)
@@ -273,13 +294,11 @@ namespace mamba
         record_error(check_python_identifier_chain(result.module, "module"));
         record_error(check_python_identifier_chain(result.func, "callable"));
 
-        if (errors.size() == 1)
+        if (!errors.empty())
         {
-            return tl::unexpected(std::move(errors.front()));
-        }
-        if (errors.size() > 1)
-        {
-            return tl::unexpected(mamba_aggregated_error(std::move(errors)));
+            return tl::unexpected(
+                mamba_aggregated_error(std::move(errors), /*with_bug_report_info=*/false)
+            );
         }
 
         return result;
@@ -541,6 +560,7 @@ namespace mamba
     bool run_script(
         const TransactionParams& transaction_params,
         const PrefixParams& prefix_params,
+        const fs::u8path& script_prefix,
         const specs::PackageInfo& pkg_info,
         const std::string& action = "post-link",
         const std::string& env_prefix = "",
@@ -550,12 +570,12 @@ namespace mamba
         fs::u8path path;
         if (util::on_win)
         {
-            path = prefix_params.target_prefix / get_bin_directory_short_path()
+            path = script_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".bat");
         }
         else
         {
-            path = prefix_params.target_prefix / get_bin_directory_short_path()
+            path = script_prefix / get_bin_directory_short_path()
                    / util::concat(".", pkg_info.name, "-", action, ".sh");
         }
 
@@ -566,13 +586,29 @@ namespace mamba
             return true;
         }
 
-        // TODO impl.
-        std::map<std::string, std::string> envmap;  // = env::copy();
+        if (transaction_params.link_params.skip_run_link_scripts)
+        {
+            LOG_DEBUG << "Skipping " << action << " script for '" << pkg_info.name
+                      << "' (disabled via config)";
+            return true;
+        }
 
+        std::unordered_map<std::string, std::string> envmap;
         if (action == "pre-link")
         {
-            throw std::runtime_error("mamba does not support pre-link scripts");
+            LOG_WARNING
+                << "Special Note: Pre-link scripts are particularly high-risk as they can "
+                << "modify the package cache, potentially affecting all environments on this system.";
+            envmap["SOURCE_DIR"] = script_prefix.string();
         }
+
+        if (action == "post-unlink")
+        {
+            LOG_WARNING << "post-unlink scripts are deprecated and therefore won't be executed!";
+            return true;
+        }
+
+        LOG_WARNING << "Executing " << action << " script for package '" << pkg_info.name << "'.";
 
         // script_caller = None
         std::vector<std::string> command_args;
@@ -799,6 +835,16 @@ namespace mamba
             return true;
         }
 
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_context->prefix_params().target_prefix,
+            m_pkg_info,
+            "pre-unlink",
+            "",
+            false
+        );
+
         std::ifstream json_file = open_ifstream(json);
         if (!json_file.good())
         {
@@ -847,6 +893,16 @@ namespace mamba
         }
 
         json_file.close();
+
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_context->prefix_params().target_prefix,
+            m_pkg_info,
+            "post-unlink",
+            "",
+            true
+        );
 
         fs::remove(json);
 
@@ -1074,7 +1130,7 @@ namespace mamba
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
             bool copy = path_data.no_link || m_context->link_params().always_copy;
-            bool softlink = m_context->link_params().always_softlink;
+            bool softlink = m_context->link_params().always_softlink && !path_data.no_link;
 
             if (!copy && !softlink)
             {
@@ -1108,6 +1164,12 @@ namespace mamba
             }
             if (copy)
             {
+                if (path_data.no_link && m_context->link_params().always_softlink)
+                {
+                    LOG_WARNING
+                        << "File '" << subtarget
+                        << "' is marked as `no_link`, ignoring --always-softlink and forcing copy.";
+                }
                 fs::copy(src, dst);
                 LOG_TRACE << "copied '" << src.string() << "'" << std::endl
                           << " --> '" << dst.string() << "'";
@@ -1166,6 +1228,16 @@ namespace mamba
     {
         nlohmann::json index_json, out_json;
         LOG_TRACE << "Preparing linking from '" << m_source.string() << "'";
+
+        run_script(
+            m_context->transaction_params(),
+            m_context->prefix_params(),
+            m_source,
+            m_pkg_info,
+            "pre-link",
+            "",
+            false
+        );
 
         LOG_TRACE << "Opening: " << m_source / "info" / "paths.json";
         auto paths_data = read_paths(m_source);
@@ -1375,6 +1447,8 @@ namespace mamba
                     auto entry_point_parsed = parse_entry_point(ep_def);
                     if (!entry_point_parsed)
                     {
+                        // Contextual wrapper uses invalid_spec (not the aggregated error_code) so
+                        // we do not create a sliced plain mamba_error carrying aggregated.
                         throw mamba_error(
                             fmt::format(
                                 "Invalid noarch:python entry point '{}' in package '{}' ({}): {}\n"
@@ -1385,7 +1459,7 @@ namespace mamba
                                 m_pkg_info.build_string,
                                 entry_point_parsed.error().what()
                             ),
-                            entry_point_parsed.error().error_code()
+                            mamba_error_code::invalid_spec
                         );
                     }
                     auto entry_point_path = get_bin_directory_short_path()
@@ -1431,6 +1505,7 @@ namespace mamba
         run_script(
             m_context->transaction_params(),
             m_context->prefix_params(),
+            m_context->prefix_params().target_prefix,
             m_pkg_info,
             "post-link",
             "",

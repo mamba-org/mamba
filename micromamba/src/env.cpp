@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include <fmt/format.h>
+
 #include "mamba/api/configuration.hpp"
 #include "mamba/api/create.hpp"
 #include "mamba/api/env.hpp"
@@ -13,6 +15,7 @@
 #include "mamba/api/update.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/environments_manager.hpp"
+#include "mamba/core/output.hpp"
 #include "mamba/core/prefix_data.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/conda_url.hpp"
@@ -78,6 +81,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
             // Raise a warning if `--json` and `--explicit` are used together.
             if (json_format && explicit_format)
             {
+                // FIXME?
                 std::cerr << "Warning: `--json` and `--explicit` are used together but are incompatible. The `--json` flag will be ignored."
                           << std::endl;
             }
@@ -129,10 +133,9 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 const auto& versions_map = pd.records();
                 const auto& pip_versions_map = pd.pip_records();
                 auto requested_specs_map = hist.get_requested_specs_map();
-                std::stringstream dependencies;
+                nlohmann::json deps_json = nlohmann::json::array();
                 std::set<std::string> channels;
 
-                bool first_dependency_printed = false;
                 for (const auto& [k, v] : versions_map)
                 {
                     if (from_history && requested_specs_map.find(k) == requested_specs_map.end())
@@ -140,34 +143,33 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                         continue;
                     }
 
-                    dependencies << (first_dependency_printed ? ",\n" : "") << "    \"";
-                    first_dependency_printed = true;
-
                     auto chans = channel_context.make_channel(v.channel);
 
                     if (from_history)
                     {
-                        dependencies << requested_specs_map[k].to_string() << "\"";
+                        // MatchSpecs may contain quotes (e.g. version=">=14,<20"); push as
+                        // json values so they are escaped. See mamba-org/mamba#4374.
+                        deps_json.push_back(requested_specs_map[k].to_string());
                     }
                     else
                     {
-                        if (channel_subdir)
-                        {
-                            dependencies
-                                // If the size is not one, it's a custom multi channel
-                                << ((chans.size() == 1) ? chans.front().display_name() : v.channel)
-                                << "/" << v.platform << "::";
-                        }
-                        dependencies << v.name << "=" << v.version;
-                        if (!no_build)
-                        {
-                            dependencies << "=" << v.build_string;
-                        }
-                        if (no_md5 == -1)
-                        {
-                            dependencies << "[md5=" << v.md5 << "]";
-                        }
-                        dependencies << "\"";
+                        // If the size is not one, it's a custom multi channel
+                        deps_json.push_back(
+                            fmt::format(
+                                "{}{}={}{}{}",
+                                channel_subdir
+                                    ? fmt::format(
+                                          "{}/{}::",
+                                          (chans.size() == 1) ? chans.front().display_name() : v.channel,
+                                          v.platform
+                                      )
+                                    : "",
+                                v.name,
+                                v.version,
+                                !no_build ? fmt::format("={}", v.build_string) : "",
+                                no_md5 == -1 ? fmt::format("[md5={}]", v.md5) : ""
+                            )
+                        );
                     }
 
                     for (const auto& chan : chans)
@@ -179,39 +181,25 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
                 // Add a `pip` subsection in `dependencies` listing wheels installed from PyPI
                 if (!pip_versions_map.empty())
                 {
-                    dependencies << (first_dependency_printed ? ",\n" : "") << "     { \"pip\": [\n";
-                    first_dependency_printed = false;
+                    nlohmann::json pip_deps = nlohmann::json::array();
                     for (const auto& [k, v] : pip_versions_map)
                     {
-                        dependencies << (first_dependency_printed ? ",\n" : "") << "      \""
-                                     << v.name << "==" << v.version << "\"";
-                        first_dependency_printed = true;
+                        pip_deps.push_back(v.name + "==" + v.version);
                     }
-                    dependencies << "\n    ]\n    }";
+                    deps_json.push_back(nlohmann::json{ { "pip", std::move(pip_deps) } });
                 }
 
-                dependencies << (first_dependency_printed ? "\n" : "");
-
-                std::cout << "{\n";
-
-                std::cout << "  \"channels\": [\n";
-                for (auto channel_it = channels.begin(); channel_it != channels.end(); ++channel_it)
-                {
-                    auto last_channel = std::next(channel_it) == channels.end();
-                    std::cout << "    \"" << *channel_it << "\"" << (last_channel ? "" : ",") << "\n";
-                }
-                std::cout << "  ],\n";
-
-                std::cout << "  \"dependencies\": [\n" << dependencies.str() << "  ],\n";
-
-                std::cout << "  \"name\": \""
-                          << mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix)
-                          << "\",\n";
-                std::cout << "  \"prefix\": " << ctx.prefix_params.target_prefix << "\n";
-
-                std::cout << "}\n";
-
-                std::cout.flush();
+                // clang-format off
+                mamba::JSONEdit out_json{
+                    .to_assign = {
+                        { "/channels"_json_pointer , channels },
+                        { "/dependencies"_json_pointer , std::move(deps_json) },
+                        { "/name"_json_pointer, mamba::detail::get_env_name(ctx, ctx.prefix_params.target_prefix) },
+                        { "/prefix"_json_pointer , ctx.prefix_params.target_prefix }
+                    }
+                };
+                mamba::Console::instance().set_json_output(std::move(out_json));
+                // clang-format on
             }
             else
             {
@@ -298,6 +286,7 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
     auto* remove_subcom = com->add_subcommand("remove", "Remove an environment");
     init_general_options(remove_subcom, config);
     init_prefix_options(remove_subcom, config);
+    init_link_options(remove_subcom, config);
 
     remove_subcom->callback(
         [&config]
@@ -354,6 +343,8 @@ set_env_command(CLI::App* com, mamba::Configuration& config)
 
     init_general_options(update_subcom, config);
     init_prefix_options(update_subcom, config);
+    init_link_options(update_subcom, config);
+    init_platform_options(update_subcom, config);
 
     auto& file_specs = config.at("file_specs");
     update_subcom

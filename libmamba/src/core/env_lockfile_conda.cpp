@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <yaml-cpp/yaml.h>
 
 #include "mamba/core/env_lockfile.hpp"

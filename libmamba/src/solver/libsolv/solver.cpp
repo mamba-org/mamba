@@ -9,7 +9,7 @@
 #include "mamba/core/error_handling.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/solver/libsolv/solver.hpp"
-#include "mamba/util/variant_cmp.hpp"
+#include "mamba/util/variant_util.hpp"
 #include "solv-cpp/solver.hpp"
 
 #include "solver/libsolv/helpers.hpp"
@@ -56,7 +56,13 @@ namespace mamba::solver::libsolv
         auto& pool = Database::Impl::get(mpool);
         const auto& flags = request.flags;
 
-        return solver::libsolv::request_to_decision_queue(request, pool, flags.force_reinstall, ms_parser)
+        return solver::libsolv::request_to_decision_queue(
+                   request,
+                   pool,
+                   mpool.virtual_package_lock_jobs(),
+                   flags.force_reinstall,
+                   ms_parser
+        )
             .transform(
                 [&](auto&& jobs) -> Outcome
                 {

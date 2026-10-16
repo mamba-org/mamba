@@ -65,7 +65,7 @@ uninstalling ``mamba`` involves removing the entire Miniforge installation.
    Use these paths to adapt the commands below to your specific installation.
 
 1. Remove shell initialization
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    If you initialized your shell with ``mamba shell init``, you need to remove the initialization code from your shell configuration files.
    Run the following command for each shell you initialized:
@@ -88,7 +88,7 @@ uninstalling ``mamba`` involves removing the entire Miniforge installation.
    This will remove the mamba initialization block from your shell configuration files (``.bashrc``, ``.zshrc``, ``config.fish``, etc.).
 
 2. Remove the Miniforge installation directory and package cache
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    The Miniforge installation directory contains ``mamba``, ``conda``, and all installed packages and environments.
    Check ``mamba info`` to find the exact location:
@@ -129,7 +129,7 @@ uninstalling ``mamba`` involves removing the entire Miniforge installation.
       Make sure you have backed up any important environments or data before removing this directory.
 
 3. Remove configuration files (optional)
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    Check ``mamba info`` for the exact paths to your configuration files:
 
@@ -157,7 +157,7 @@ uninstalling ``mamba`` involves removing the entire Miniforge installation.
       If you also use ``conda`` from another distribution (like Anaconda), be careful not to delete shared configuration files that are still needed.
 
 4. Remove from PATH (if manually added)
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    If you manually added Miniforge to your PATH, remove those entries from your shell configuration files (``.bashrc``, ``.zshrc``, ``.profile``, etc.).
 

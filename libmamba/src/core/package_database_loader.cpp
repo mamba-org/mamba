@@ -85,12 +85,13 @@ namespace mamba
         const auto add_pip = static_cast<solver::libsolv::PipAsPythonDependency>(
             ctx.add_pip_as_python_dependency
         );
-        const auto json_parser = ctx.experimental_repodata_parsing
+        const auto json_parser = ctx.mamba_repodata_parsing
                                      ? solver::libsolv::RepodataParser::Mamba
                                      : solver::libsolv::RepodataParser::Libsolv;
 
-        // Solv files are too slow on Windows.
-        if (!util::on_win)
+        // Solv files are too slow on Windows. They also bypass `exclude_newer` filtering.
+        if (!util::on_win && ctx.exclude_newer_params.exclude_newer.empty()
+            && ctx.exclude_newer_params.exclude_newer_package.empty())
         {
             auto maybe_repo = subdir.valid_libsolv_cache_path().and_then(
                 [&](fs::u8path&& solv_file)
@@ -123,9 +124,6 @@ namespace mamba
                         add_pip,
                         ctx.use_only_tar_bz2 ? PackageTypes::TarBz2Only
                                              : PackageTypes::CondaOrElseTarBz2,
-                        static_cast<solver::libsolv::VerifyPackages>(
-                            ctx.validation_params.verify_artifacts
-                        ),
                         json_parser
                     );
                 }
@@ -191,11 +189,7 @@ namespace mamba
             std::ranges::copy(pip_packages_to_add, std::back_inserter(pkgs));
         }
 
-        // TODO(C++20): We only need a range that concatenate both
-        for (auto&& pkg : get_virtual_packages(ctx.platform))
-        {
-            pkgs.push_back(std::move(pkg));
-        }
+        database.clear_virtual_package_lock_jobs();
 
         // Not adding Pip dependency since it might needlessly make the installed/active environment
         // broken if pip is not already installed (debatable).
@@ -204,6 +198,11 @@ namespace mamba
             "installed",
             solver::libsolv::PipAsPythonDependency::No
         );
+        database.add_virtual_packages(
+            repo,
+            get_virtual_packages(ctx.platform, ctx.override_virtual_packages)
+        );
+        database.internalize_repo(repo);
         database.set_installed_repo(repo);
         return repo;
     }

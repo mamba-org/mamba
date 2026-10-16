@@ -504,7 +504,7 @@ namespace mamba::download
             p_handle->set_opt(CURLOPT_NOPROGRESS, 0L);
         }
 
-        if (util::ends_with(p_request->url, ".json"))
+        if (p_request->url.ends_with(".json"))
         {
             // accept all encodings supported by the libcurl build
             p_handle->set_opt(CURLOPT_ACCEPT_ENCODING, "");
@@ -612,19 +612,12 @@ namespace mamba::download
         if (colon_idx != std::string_view::npos)
         {
             std::string_view key = header.substr(0, colon_idx);
-            colon_idx++;
-            // remove spaces
-            while (std::isspace(header[colon_idx]))
-            {
-                ++colon_idx;
-            }
-
-            // remove \r\n header ending
-            const auto header_end = header.find_first_of("\r\n");
-            std::string_view value = header.substr(
-                colon_idx,
-                (header_end > colon_idx) ? header_end - colon_idx : 0
-            );
+            // Servers such as GHCR send empty values ("Content-Disposition: \r\n").
+            // Indexing past the end here aborts in debug builds which use
+            // `GLIBCXX_ASSERTIONS` from `libstdc++` (default from GCC 15).
+            std::string_view remainder = util::lstrip(header.substr(colon_idx + 1));
+            const auto header_end = remainder.find_first_of("\r\n");
+            std::string_view value = remainder.substr(0, header_end);
 
             // http headers are case insensitive!
             const std::string lkey = util::to_lower(key);
@@ -689,7 +682,7 @@ namespace mamba::download
 
     bool DownloadAttempt::Impl::can_retry(CURLcode code) const
     {
-        return p_handle->can_retry(code) && !util::starts_with(p_request->url, "file://");
+        return p_handle->can_retry(code) && !p_request->url.starts_with("file://");
     }
 
     bool DownloadAttempt::Impl::can_retry(const TransferData& data) const
@@ -697,7 +690,7 @@ namespace mamba::download
         return (data.http_status == http::PAYLOAD_TOO_LARGE
                 || data.http_status == http::TOO_MANY_REQUESTS
                 || data.http_status >= http::INTERNAL_SERVER_ERROR)
-               && !util::starts_with(p_request->url, "file://");
+               && !p_request->url.starts_with("file://");
     }
 
     TransferData DownloadAttempt::Impl::get_transfer_data() const
@@ -1100,7 +1093,7 @@ namespace mamba::download
 
     bool DownloadTracker::can_try_other_mirror() const
     {
-        bool is_file = util::starts_with(p_initial_request->url_path, "file://");
+        bool is_file = p_initial_request->url_path.starts_with("file://");
         bool is_check = p_initial_request->check_only;
         return !is_file && !is_check && m_tried_mirrors.size() < m_options.max_mirror_tries;
     }

@@ -9,6 +9,26 @@ cmake_policy(SET CMP0025 NEW) # Introduced in cmake 3.0
 cmake_policy(SET CMP0077 NEW) # Introduced in cmake 3.13
 project(libmamba)
 
+# std::chrono::parse (P0355) is not yet available on libc++ (macOS).
+# https://github.com/llvm/llvm-project/issues/166051
+
+# TODO: drop Howard Hinnant fallback once libc++ implements P0355.
+if(APPLE)
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE ON)
+else()
+    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE OFF)
+endif()
+
+if(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
+    find_package(date CONFIG REQUIRED)
+    message(
+        STATUS
+            "libmamba: using Howard Hinnant date for date/datetime parsing (std::chrono::parse unavailable)"
+    )
+else()
+    message(STATUS "libmamba: using std::chrono::parse for date/datetime parsing")
+endif()
+
 set(LIBMAMBA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(LIBMAMBA_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(LIBMAMBA_DATA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/data)
@@ -197,13 +217,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/solver.cpp
     ${LIBMAMBA_SOURCE_DIR}/solver/libsolv/unsolvable.cpp
     # Artifacts validation
-    ${LIBMAMBA_SOURCE_DIR}/validation/errors.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/keys.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/repo_checker.cpp
     ${LIBMAMBA_SOURCE_DIR}/validation/tools.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v0_6.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework_v1.cpp
-    ${LIBMAMBA_SOURCE_DIR}/validation/update_framework.cpp
     # Downloaders and mirrors
     ${LIBMAMBA_SOURCE_DIR}/download/compression.cpp
     ${LIBMAMBA_SOURCE_DIR}/download/compression.hpp
@@ -220,6 +234,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/activation.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/channel_context.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/context.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/db_utils.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/download_progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_impl.hpp
@@ -227,6 +242,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/env_lockfile_mambajs.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/environments_manager.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/error_handling.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/exclude_newer.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/execution.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/fsutil.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/history.cpp
@@ -245,7 +261,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar_impl.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
-    ${LIBMAMBA_SOURCE_DIR}/core/repo_checker_store.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.cpp
@@ -282,14 +297,6 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/api/shell.cpp
     ${LIBMAMBA_SOURCE_DIR}/api/update.cpp
 )
-# TODO: remove when switch to C++20
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    # This file uses capturing structured bindings, which was fixed in C++20
-    set_source_files_properties(
-        ${LIBMAMBA_SOURCE_DIR}/download/mirror_impl.cpp
-        PROPERTIES COMPILE_FLAGS -Wno-c++20-extensions
-    )
-endif()
 
 foreach(script ${SHELL_SCRIPTS})
     list(APPEND LIBMAMBA_SOURCES shell_scripts/${script}.cpp)
@@ -301,6 +308,7 @@ set(
     # Filesystem library
     ${LIBMAMBA_INCLUDE_DIR}/mamba/fs/filesystem.hpp
     # Utility library
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/algorithm.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/build.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cast.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/cfile.hpp
@@ -331,7 +339,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/type_traits.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/url.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/variant_cmp.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/variant_util.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/weakening_map.hpp
     # Implementation of version and matching specs
     ${LIBMAMBA_INCLUDE_DIR}/mamba/specs/archive.hpp
@@ -361,13 +369,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/solver.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/solver/libsolv/unsolvable.hpp
     # Artifacts validation
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/errors.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/keys.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/repo_checker.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/tools.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v0_6.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework_v1.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/validation/update_framework.hpp
     # Downloaders and mirrors
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/downloader.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/download/mirror_map.hpp
@@ -378,10 +380,13 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/channel_context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/context_params.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/db_utils.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/detail/chrono_parse.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/download_progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/env_lockfile.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/environments_manager.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/error_handling.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/exclude_newer.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/execution.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/fsutil.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/history.hpp
@@ -400,7 +405,6 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/prefix_data.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
-    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/repo_checker_store.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shards.hpp
@@ -509,6 +513,7 @@ macro(libmamba_create_target target_name linkage output_name)
             set(
                 REQUIRED_STATIC_DEPS
                 libcurl.a
+                libpsl.a
                 libssh2.a
                 libgssapi_krb5.a
                 libkrb5.a
@@ -622,6 +627,7 @@ macro(libmamba_create_target target_name linkage output_name)
                 libssl_static.lib
                 libcrypto_static.lib
                 libcurl_a.lib
+                libpsl.a
             )
 
             set(STATIC_DEPS "")
@@ -642,7 +648,19 @@ macro(libmamba_create_target target_name linkage output_name)
 
             target_link_libraries(${target_name} PUBLIC ${SYSTEM_PROVIDED_LIBRARIES} ${STATIC_DEPS})
 
-            add_compile_definitions(LIBARCHIVE_STATIC CURL_STATICLIB)
+            # Necessary for properly linking static libraries.
+            add_compile_definitions(
+                # See:
+                # https://github.com/libarchive/libarchive/blob/19ff56da4f4790064346579a1a7f18a0230b0ac6/libarchive/archive_entry.h#L134-L158
+                LIBARCHIVE_STATIC
+                # See:
+                # https://github.com/curl/curl/blob/1d7b8e6c29e22c88750fb53a01e30be03104a3fd/docs/FAQ.md?plain=1#L1074-L1077
+                CURL_STATICLIB
+                # See:
+                # https://github.com/rockdaboot/libpsl/blob/8c06e95b8878f6b80613d7628486056728429d09/include/libpsl.h.in#L45-L55
+                PSL_STATIC
+            )
+
             include_directories("${_mamba_deps_prefix}/include/")
         endif()
     else()
@@ -718,6 +736,11 @@ macro(libmamba_create_target target_name linkage output_name)
         find_package(Threads REQUIRED)
 
         target_link_libraries(${target_name} PUBLIC Threads::Threads)
+    endif()
+
+    if(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
+        target_compile_definitions(${target_name} PUBLIC LIBMAMBA_USE_HOWARD_HINNANT_DATE)
+        target_link_libraries(${target_name} PUBLIC date::date date::date-tz)
     endif()
 
     list(APPEND libmamba_targets ${target_name})

@@ -3,6 +3,7 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 from pathlib import Path, PureWindowsPath
 
 import pytest
@@ -19,6 +20,59 @@ def skip_if_shell_incompat(shell_type):
         or (plat_system == "Darwin" and shell_type not in ("zsh", "bash", "posix", "dash"))
     ):
         pytest.skip("Incompatible shell/OS")
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
+@pytest.mark.parametrize(
+    ("shell", "expect_prefix_dirs", "expect_hook_stderr"),
+    [
+        ("cmd.exe", True, True),
+        ("powershell", False, False),
+    ],
+)
+def test_hook_shell(
+    tmp_home, tmp_root_prefix, tmp_path, shell, expect_prefix_dirs, expect_hook_stderr
+):
+    res = helpers.shell("hook", "-s", shell)
+
+    if shell == "cmd.exe":
+        assert res == ""
+        assert (tmp_root_prefix / "condabin" / "mamba_hook.bat").is_file()
+        assert (tmp_root_prefix / "Scripts" / "activate.bat").is_file()
+        assert (tmp_root_prefix / "conda-meta").is_dir()
+    elif shell == "powershell":
+        assert res, "shell hook output was empty"
+        assert not (tmp_root_prefix / "condabin").is_dir()
+        assert not (tmp_root_prefix / "Scripts").is_dir()
+        assert not (tmp_root_prefix / "conda-meta").is_dir()
+
+    # Remove any preconfigured settings
+    data = tmp_path / "data"
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("MAMBA_", "XDG_", "CONDA_"))}
+    env["XDG_DATA_HOME"] = str(data)
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "config")
+    default_prefix = data / "mamba"
+
+    mamba_exe = helpers.get_umamba()
+
+    res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
+    assert res.returncode == 0
+    assert not res.stderr, f"mamba exe stderr was not empty: {res.stderr}"
+
+    hook = subprocess.run(
+        [mamba_exe, "shell", "hook", "-s", shell], env=env, capture_output=True, text=True
+    )
+    assert hook.returncode == 0
+    assert bool(hook.stderr) is expect_hook_stderr
+
+    assert (default_prefix / "condabin").is_dir() is expect_prefix_dirs
+    assert (default_prefix / "Scripts").is_dir() is expect_prefix_dirs
+    assert (default_prefix / "conda-meta").is_dir() is expect_prefix_dirs
+
+    # Running `mamba_exe` again does not fail silently
+    res = subprocess.run([mamba_exe], env=env, capture_output=True, text=True)
+    assert res.returncode == 0
+    assert not res.stderr, f"stderr was not empty: {res.stderr}"
 
 
 @pytest.mark.parametrize(
@@ -56,7 +110,7 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
         assert res.count(mamba_exe_posix) == 0
 
     res = helpers.shell("hook", "-s", shell_type, "--json")
-    expected_keys = {"success", "operation", "context", "actions"}
+    expected_keys = {"success", "operation", "context", "actions", "log_history"}
     assert set(res.keys()) == expected_keys
 
     assert res["success"]
@@ -118,7 +172,7 @@ def test_auto_detection(tmp_home, tmp_root_prefix):
 
     res = custom_shell(shell_type)
 
-    expected_keys = {"success", "operation", "context", "actions"}
+    expected_keys = {"success", "operation", "context", "actions", "log_history"}
     assert set(res.keys()) == expected_keys
 
     assert res["success"]
@@ -192,6 +246,67 @@ def test_activate_target_prefix_checks(tmp_home, tmp_root_prefix):
     assert not res["use_target_prefix_fallback"]
     assert not res["use_default_prefix_fallback"]
     assert not res["use_root_prefix_fallback"]
+
+
+@pytest.mark.parametrize(
+    "command, description",
+    [
+        ("activate", "Activate an environment"),
+        ("deactivate", "Deactivate the active environment"),
+    ],
+)
+def test_top_level_activate_deactivate_not_initialized(
+    tmp_home, tmp_root_prefix, command, description
+):
+    """Test that top-level activate/deactivate commands are not initialized."""
+    umamba = helpers.get_umamba()
+
+    # Commands must be listed in top-level help.
+    top_help = helpers.subprocess_run(umamba, "--help").decode()
+    assert description in top_help
+
+    # Commands run directly with no shell function aborts with error message.
+    with pytest.raises(subprocess.CalledProcessError) as excinfo:
+        helpers.subprocess_run(umamba, command)
+    assert "Shell not initialized" in excinfo.value.stderr.decode()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX shell test")
+@pytest.mark.parametrize("help_option", ["--help", "-h"])
+def test_activate_help_is_not_evaluated(tmp_path, help_option):
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("bash is not available")
+
+    mamba_exe = tmp_path / "micromamba"
+    mamba_exe.write_text(
+        "#!/bin/sh\n"
+        'if [ "$1" = "shell" ]; then\n'
+        "    printf 'activation output must not be evaluated\\n'\n"
+        "else\n"
+        "    printf 'micromamba activate help\\n'\n"
+        "fi\n"
+    )
+    mamba_exe.chmod(0o755)
+
+    env = os.environ.copy()
+    env["MAMBA_EXE"] = str(mamba_exe)
+    env["MAMBA_ROOT_PREFIX"] = str(tmp_path)
+    env["MAMBA_SHELL_SCRIPT"] = str(Path(__file__).parents[2] / "libmamba" / "data" / "mamba.sh")
+    env["MAMBA_HELP_OPTION"] = help_option
+    env.pop("CONDA_SHLVL", None)
+
+    bash_script = 'source "$MAMBA_SHELL_SCRIPT"; micromamba activate "$MAMBA_HELP_OPTION"'
+    result = subprocess.run(
+        [bash, "-c", bash_script],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "micromamba activate help"
+    assert not result.stderr
 
 
 @pytest.mark.parametrize("shell_type", ["bash", "powershell", "cmd.exe"])

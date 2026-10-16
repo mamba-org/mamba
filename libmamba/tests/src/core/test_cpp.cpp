@@ -368,8 +368,9 @@ namespace mamba
             if constexpr (util::on_mac || util::on_linux)
             {
                 auto& ctx = mambatests::context();
-                ctx.prefix_params.root_prefix = "/home/user/micromamba/";
-                ctx.envs_dirs = { ctx.prefix_params.root_prefix / "envs" };
+                mambatests::ScopedContextChange context_change{ ctx };
+                context_change.set_root_prefix("/home/user/micromamba/")
+                    .set_envs_dirs({ fs::u8path("/home/user/micromamba/envs") });
                 fs::u8path prefix = "/home/user/micromamba/envs/testprefix";
 
                 auto& pp = ctx.prefix_params;

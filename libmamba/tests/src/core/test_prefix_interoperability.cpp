@@ -190,7 +190,8 @@ namespace mamba
         fs::create_directories(prefix_path);
 
         auto& ctx = mambatests::context();
-        const auto original_prefix_data_interoperability = ctx.prefix_data_interoperability;
+        mambatests::ScopedContextChange context_change{ ctx };
+
         auto channel_context = ChannelContext::make_simple(ctx);
 
         // Create a minimal conda environment
@@ -234,7 +235,7 @@ namespace mamba
 
         SECTION("Pip packages are NOT included when prefix interoperability is disabled")
         {
-            ctx.prefix_data_interoperability = false;
+            context_change.set_prefix_data_interoperability(false);
 
             auto db = solver::libsolv::Database(channel_context.params());
             load_installed_packages_in_database(ctx, db, prefix_data);
@@ -255,7 +256,7 @@ namespace mamba
 
         SECTION("Pip packages ARE included when prefix interoperability is enabled")
         {
-            ctx.prefix_data_interoperability = true;
+            context_change.set_prefix_data_interoperability(true);
 
             auto db = solver::libsolv::Database(channel_context.params());
             load_installed_packages_in_database(ctx, db, prefix_data);
@@ -277,7 +278,7 @@ namespace mamba
 
         SECTION("Pip packages with conda equivalents are NOT added")
         {
-            ctx.prefix_data_interoperability = true;
+            context_change.set_prefix_data_interoperability(true);
 
             // Add a conda package with the same name as the pip package
             auto conda_boto3 = specs::PackageInfo("boto3", "1.13.21", "py310h12345_0", "conda-forge");
@@ -317,7 +318,7 @@ namespace mamba
 
         SECTION("Multiple pip packages are included when prefix interoperability is enabled")
         {
-            ctx.prefix_data_interoperability = true;
+            context_change.set_prefix_data_interoperability(true);
 
             // Add multiple pip packages
             auto pip_pkg1 = specs::PackageInfo("requests", "2.28.0", "pypi_0", "pypi");
@@ -364,9 +365,6 @@ namespace mamba
             REQUIRE(found_boto3);
             REQUIRE(pip_pkg_count >= 3);  // At least our 3 pip packages
         }
-
-        // Restore original value
-        ctx.prefix_data_interoperability = original_prefix_data_interoperability;
     }
 
     TEST_CASE("Transaction: pip package removal", "[core][prefix-interop]")
@@ -403,7 +401,8 @@ namespace mamba
         fs::create_directories(prefix_path);
 
         auto& ctx = mambatests::context();
-        const auto original_prefix_data_interoperability = ctx.prefix_data_interoperability;
+        mambatests::ScopedContextChange context_change{ ctx };
+
         auto channel_context = ChannelContext::make_simple(ctx);
 
         // Create a minimal conda environment
@@ -436,7 +435,7 @@ namespace mamba
 
         SECTION("Full workflow: pip package detected and can be removed")
         {
-            ctx.prefix_data_interoperability = true;
+            context_change.set_prefix_data_interoperability(true);
 
             // Use no_pip=true to avoid trying to run pip inspect
             auto prefix_data = PrefixData::create(prefix_path, channel_context, true).value();
@@ -474,7 +473,7 @@ namespace mamba
 
         SECTION("Pip package exclusion when conda package exists")
         {
-            ctx.prefix_data_interoperability = true;
+            context_change.set_prefix_data_interoperability(true);
 
             // Use no_pip=true to avoid trying to run pip inspect
             auto prefix_data = PrefixData::create(prefix_path, channel_context, true).value();
@@ -518,9 +517,6 @@ namespace mamba
             REQUIRE_FALSE(found_pip);
             REQUIRE(boto3_count == 1);
         }
-
-        // Restore original value
-        ctx.prefix_data_interoperability = original_prefix_data_interoperability;
     }
 
 }  // namespace mamba

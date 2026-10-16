@@ -3,6 +3,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <yaml-cpp/yaml.h>
@@ -170,6 +171,45 @@ namespace mamba
         {
             return true;
         }
+
+        // Map-shaped config (e.g. exclude_newer_package): stored as vector of pairs for
+        // duplicate-key / order control, but configured as a YAML/JSON object — not a sequence.
+        // Must not use Source<vector<T>>::deserialize, which wraps the value in `[...]`.
+        template <>
+        struct Source<std::vector<std::pair<std::string, std::string>>>
+        {
+            using value_type = std::vector<std::pair<std::string, std::string>>;
+
+            static std::vector<std::string> default_value(const value_type& /* init */)
+            {
+                return { "default" };
+            }
+
+            static void merge(
+                const std::map<std::string, value_type>& values,
+                const std::vector<std::string>& sources,
+                value_type& value,
+                std::vector<std::string>& source
+            )
+            {
+                source = sources;
+                value = values.at(sources.front());
+            }
+
+            static value_type deserialize(const std::string& value)
+            {
+                if (value.empty())
+                {
+                    return {};
+                }
+                return YAML::Load(value).as<value_type>();
+            }
+
+            static bool is_sequence()
+            {
+                return false;
+            }
+        };
     }
 }
 
@@ -195,6 +235,37 @@ namespace YAML
             }
 
             rhs = std::optional<T>(node.as<T>());
+            return true;
+        }
+    };
+
+    template <>
+    struct convert<std::vector<std::pair<std::string, std::string>>>
+    {
+        static Node encode(const std::vector<std::pair<std::string, std::string>>& rhs)
+        {
+            // Empty default Node is Null; print-config / YAML consumers need an empty Map.
+            Node node(NodeType::Map);
+            node.SetStyle(YAML::EmitterStyle::Block);
+            for (const auto& [key, value] : rhs)
+            {
+                node[key] = value;
+            }
+            return node;
+        }
+
+        static bool decode(const Node& node, std::vector<std::pair<std::string, std::string>>& rhs)
+        {
+            if (!node.IsMap())
+            {
+                return false;
+            }
+            rhs.clear();
+            rhs.reserve(node.size());
+            for (const auto& entry : node)
+            {
+                rhs.emplace_back(entry.first.as<std::string>(), entry.second.as<std::string>());
+            }
             return true;
         }
     };

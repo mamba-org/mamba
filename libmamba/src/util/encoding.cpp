@@ -48,23 +48,22 @@ namespace mamba::util
         return hex_chars[static_cast<std::uint8_t>(low_nibble(b))];
     }
 
-    // TODO(C++20): use std::span and iterators
-    void bytes_to_hex_to(const std::byte* first, const std::byte* last, char* out) noexcept
+    void bytes_to_hex_to(std::span<const std::byte> bytes, char* out) noexcept
     {
-        while (first != last)
-        {
-            const auto b = *first;
-            *out++ = nibble_to_hex(high_nibble(b));
-            *out++ = nibble_to_hex(low_nibble(b));
-            ++first;
-        }
+        std::ranges::for_each(
+            bytes,
+            [&out](const std::byte b)
+            {
+                *out++ = nibble_to_hex(high_nibble(b));
+                *out++ = nibble_to_hex(low_nibble(b));
+            }
+        );
     }
 
-    // TODO(C++20): use std::span and iterators
-    auto bytes_to_hex_str(const std::byte* first, const std::byte* last) -> std::string
+    auto bytes_to_hex_str(std::span<const std::byte> bytes) -> std::string
     {
-        auto out = std::string(static_cast<std::size_t>(last - first) * 2, 'x');
-        bytes_to_hex_to(first, last, out.data());
+        auto out = std::string(bytes.size() * 2, 'x');
+        bytes_to_hex_to(bytes, out.data());
         return out;
     }
 

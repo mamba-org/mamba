@@ -9,6 +9,7 @@
 
 #include <string>
 #include <tuple>
+#include <unordered_set>
 #include <vector>
 
 #include "mamba/api/install.hpp"
@@ -51,6 +52,24 @@ namespace mamba
         );
 
         // Only use if the packages have been solved previously already.
+        template <std::forward_iterator I, std::sentinel_for<I> S>
+            requires std::same_as<std::remove_cvref<typename std::iterator_traits<I>::value_type>, specs::PackageInfo>
+        MTransaction(
+            const Context& ctx,
+            solver::libsolv::Database& database,
+            I begin_packages,
+            S end_packages,
+            MultiPackageCache& caches
+        )
+            : MTransaction(
+                  ctx,
+                  database,
+                  std::vector<specs::PackageInfo>(begin_packages, end_packages),
+                  caches
+              )
+        {
+        }
+
         MTransaction(
             const Context& ctx,
             solver::libsolv::Database& database,
@@ -106,7 +125,8 @@ namespace mamba
     );
 
     MTransaction create_explicit_transaction_from_lockfile(
-        const Context& ctx,
+        Context& ctx,
+        ChannelContext& channel_context,
         solver::libsolv::Database& database,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,

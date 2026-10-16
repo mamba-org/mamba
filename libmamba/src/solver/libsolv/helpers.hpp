@@ -7,11 +7,13 @@
 #ifndef MAMBA_SOLVER_LIBSOLV_HELPERS
 #define MAMBA_SOLVER_LIBSOLV_HELPERS
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/request.hpp"
 #include "mamba/solver/solution.hpp"
@@ -19,6 +21,7 @@
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/specs/package_info.hpp"
 #include "solv-cpp/pool.hpp"
+#include "solv-cpp/queue.hpp"
 #include "solv-cpp/repo.hpp"
 #include "solv-cpp/solvable.hpp"
 #include "solv-cpp/transaction.hpp"
@@ -36,6 +39,14 @@ namespace mamba::fs
 
 namespace mamba::solver::libsolv
 {
+    [[nodiscard]] constexpr auto normalize_conda_timestamp(std::uint64_t timestamp) -> std::uint64_t
+    {
+        // Beyond this value, the timestamp would be in milliseconds and therefore should be
+        // converted to seconds.
+        constexpr std::uint64_t max_conda_timestamp = 253402300799ULL;
+        return (timestamp > max_conda_timestamp) ? (timestamp / 1000) : timestamp;
+    }
+
     void set_solvable(
         solv::ObjPool& pool,
         solv::ObjSolvableView solv,
@@ -49,8 +60,7 @@ namespace mamba::solver::libsolv
     [[nodiscard]] auto libsolv_read_json(  //
         solv::ObjRepoView repo,
         const fs::u8path& filename,
-        PackageTypes types,
-        bool verify_artifacts
+        PackageTypes types
     ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto mamba_read_json(
@@ -61,7 +71,7 @@ namespace mamba::solver::libsolv
         const std::string& channel_id,
         PackageTypes types,
         MatchSpecParser parser,
-        bool verify_artifacts
+        ExcludeNewerPolicy exclude_newer_policy = {}
     ) -> expected_t<solv::ObjRepoView>;
 
     [[nodiscard]] auto read_solv(
@@ -171,9 +181,9 @@ namespace mamba::solver::libsolv
     [[nodiscard]] auto request_to_decision_queue(
         const Request& request,
         solv::ObjPool& pool,
+        solv::ObjQueue solv_jobs,
         bool force_reinstall,
         MatchSpecParser parser
-
     ) -> expected_t<solv::ObjQueue>;
 }
 #endif

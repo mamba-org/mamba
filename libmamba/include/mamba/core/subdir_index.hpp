@@ -294,9 +294,15 @@ namespace mamba
     [[nodiscard]] auto cache_filename_from_url(std::string url) -> std::string;
 
     /**
-     * Create cache directory with correct permissions
+     * Ensure a `cache` subdirectory exists under `cache_path` by creating it if it doesn't exist
+     * yet and setting the appropriate permissions.
      *
-     * @return The path to the directory created
+     * Permissions (`rwxrwxr-x`, plus `setgid` when supported) are applied only when the directory
+     * is newly created. Existing directories are left untouched so shared multi-user package
+     * caches owned by another user do not fail with "Operation not permitted" on change of
+     * permissions.
+     *
+     * @return The path to the cache directory
      */
     auto create_cache_dir(const fs::u8path& cache_path) -> std::string;
 

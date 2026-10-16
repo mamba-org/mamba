@@ -15,6 +15,7 @@
 #include "mamba/core/package_database_loader.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/solver/libsolv/database.hpp"
+#include "mamba/util/algorithm.hpp"
 
 #include "mambatests.hpp"
 
@@ -40,6 +41,42 @@ namespace mamba
             REQUIRE(expected_error == error_details.parsing_error_code);
 
             return maybe_lockfile;
+        }
+
+        void check_categories(
+            Context& ctx,
+            const fs::u8path& lockfile_path,
+            const std::vector<std::string>& categories,
+            size_t num_conda,
+            size_t num_pip
+        )
+        {
+            auto channel_context = ChannelContext::make_conda_compatible(ctx);
+            solver::libsolv::Database db{ channel_context.params() };
+            add_logger_to_database(db);
+            mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
+
+            std::vector<detail::other_pkg_mgr_spec> other_specs;
+            auto transaction = create_explicit_transaction_from_lockfile(
+                ctx,
+                channel_context,
+                db,
+                lockfile_path,
+                categories,
+                pkg_cache,
+                other_specs
+            );
+            auto to_install = std::get<1>(transaction.to_conda());
+            REQUIRE(to_install.size() == num_conda);
+            if (num_pip == 0)
+            {
+                REQUIRE(other_specs.size() == 0);
+            }
+            else
+            {
+                REQUIRE(other_specs.size() == 1);
+                REQUIRE(other_specs.at(0).deps.size() == num_pip);
+            }
         }
 
         TEST_CASE("env-lockfile absent_file_fails-unknown")
@@ -246,10 +283,17 @@ namespace mamba
             EnvironmentLockFile::PackageFilter package_filter;
         };
 
+        struct ChannelInfo
+        {
+            std::string name = {};
+            std::vector<std::string> urls = {};
+        };
+
         auto test_get_specific_packages(
             const fs::u8path lockfile_path,
             size_t expected_total_package_count,
-            std::vector<SpecificPackagesRequest> requests
+            std::vector<SpecificPackagesRequest> requests,
+            std::vector<ChannelInfo> expected_channels = {}
         ) -> void
         {
             auto maybe_lockfile = read_environment_lockfile(lockfile_path);
@@ -267,6 +311,23 @@ namespace mamba
             {
                 const auto packages = lockfile.get_packages_for(request.package_filter);
                 REQUIRE(packages.size() == request.expected_package_count);
+            }
+
+            const auto& channels = lockfile.get_metadata().channels;
+            for (const auto& expected_channel : expected_channels)
+            {
+                auto it = std::ranges::find(
+                    channels,
+                    expected_channel.name,
+                    &mamba::EnvironmentLockFile::Channel::name
+                );
+                REQUIRE(it != channels.end());
+
+                const auto& channel_info = *it;
+                for (const auto& url_mirror : expected_channel.urls)
+                {
+                    REQUIRE(mamba::stdext::contains(channel_info.urls, url_mirror));
+                }
             }
         }
 
@@ -287,7 +348,13 @@ namespace mamba
                 51,
                 { { 41, { .category = "main", .platform = "emscripten-wasm32", .manager = "conda" } },
                   { 26, { .category = "main", .platform = "noarch", .manager = "conda" } },
-                  { 10, { .category = "main", .platform = std::nullopt, .manager = "pip" } } }
+                  { 10, { .category = "main", .platform = std::nullopt, .manager = "pip" } } },
+                { { .name = "emscripten-forge",
+                    .urls = { "https://prefix.dev/emscripten-forge-dev",
+                              "https://repo.prefix.dev/emscripten-forge-dev" } },
+                  { .name = "conda-forge",
+                    .urls = { "https://prefix.dev/conda-forge",
+                              "https://repo.prefix.dev/conda-forge" } } }
             );
         }
 
@@ -412,48 +479,33 @@ namespace mamba
             // so we only have this test for yaml/conda env-lock-files.
 
             auto& ctx = mambatests::context();
+            mambatests::ScopedContextChange context_change{ ctx };
+            context_change.set_platform("linux-64");
+
             const fs::u8path lockfile_path{ mambatests::test_data_dir
                                             / "env_lockfile/good_multiple_categories-lock.yaml" };
-            auto channel_context = ChannelContext::make_conda_compatible(mambatests::context());
-            solver::libsolv::Database db{ channel_context.params() };
-            add_logger_to_database(db);
-            mamba::MultiPackageCache pkg_cache({ "/tmp/" }, ctx.validation_params);
 
-            ctx.platform = "linux-64";
-
-            auto check_categories =
-                [&](std::vector<std::string> categories, size_t num_conda, size_t num_pip)
-            {
-                std::vector<detail::other_pkg_mgr_spec> other_specs;
-                auto transaction = create_explicit_transaction_from_lockfile(
-                    ctx,
-                    db,
-                    lockfile_path,
-                    categories,
-                    pkg_cache,
-                    other_specs
-                );
-                auto to_install = std::get<1>(transaction.to_conda());
-                REQUIRE(to_install.size() == num_conda);
-                if (num_pip == 0)
-                {
-                    REQUIRE(other_specs.size() == 0);
-                }
-                else
-                {
-                    REQUIRE(other_specs.size() == 1);
-                    REQUIRE(other_specs.at(0).deps.size() == num_pip);
-                }
-            };
-
-            check_categories({ "main" }, 3, 5);
-            check_categories({ "main", "dev" }, 31, 6);
-            check_categories({ "dev" }, 28, 1);
-            check_categories({ "nonesuch" }, 0, 0);
-
-            ctx.platform = ctx.host_platform;
+            check_categories(ctx, lockfile_path, { "main" }, 3, 5);
+            check_categories(ctx, lockfile_path, { "main", "dev" }, 31, 6);
+            check_categories(ctx, lockfile_path, { "dev" }, 28, 1);
+            check_categories(ctx, lockfile_path, { "nonesuch" }, 0, 0);
         }
 
+        TEST_CASE("env-lockfile create_transaction_with_categories_dedup")
+        {
+            auto& ctx = mambatests::context();
+            mambatests::ScopedContextChange context_change{ ctx };
+            context_change.set_platform("linux-64");
+
+            const fs::u8path lockfile_path{ mambatests::test_data_dir
+                                            / "env_lockfile/good_overlap_categories-lock.yaml" };
+
+            check_categories(ctx, lockfile_path, { "foo" }, 1, 1);
+            check_categories(ctx, lockfile_path, { "bar" }, 2, 3);
+            check_categories(ctx, lockfile_path, { "foo", "bar" }, 2, 3);
+            check_categories(ctx, lockfile_path, { "foo", "foo" }, 1, 1);
+            check_categories(ctx, lockfile_path, { "bar", "bar" }, 2, 3);
+        }
     }
 
     namespace

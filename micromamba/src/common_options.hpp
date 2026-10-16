@@ -23,6 +23,12 @@ void
 init_prefix_options(CLI::App* subcom, mamba::Configuration& config);
 
 void
+init_link_options(CLI::App* subcom, mamba::Configuration& config);
+
+void
+init_platform_options(CLI::App* subcom, mamba::Configuration& config);
+
+void
 init_install_options(CLI::App* subcom, mamba::Configuration& config);
 
 void

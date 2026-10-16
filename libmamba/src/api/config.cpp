@@ -31,7 +31,7 @@ namespace mamba
         auto specs = config.at("specs").value<std::vector<std::string>>();
         int dump_opts = MAMBA_SHOW_CONFIG_DESCS | show_long_desc | show_group;
 
-        print_dump(config, dump_opts, specs);
+        print_dump(config, dump_opts, std::move(specs));
 
         config.operation_teardown();
     }
@@ -64,7 +64,7 @@ namespace mamba
         int dump_opts = MAMBA_SHOW_CONFIG_VALUES | show_sources | show_desc | show_long_desc
                         | show_group | show_all_rcs | show_all;
 
-        print_dump(config, dump_opts, specs);
+        print_dump(config, dump_opts, std::move(specs));
 
         config.operation_teardown();
     }

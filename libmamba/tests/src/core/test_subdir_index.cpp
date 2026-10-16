@@ -45,7 +45,7 @@ namespace
 TEST_CASE("SubdirIndexLoader", "[mamba::core][mamba::core::SubdirIndexLoader]")
 {
     const auto qs_channel = make_simple_channel("quantstack");
-    const auto local_repo_path = mambatests::repo_dir / "micromamba/test-server/repo/";
+    const auto local_repo_path = mambatests::repo_dir / "micromamba/tests/test-server/repo/";
     const auto local_channel = make_simple_channel(local_repo_path.string());
 
     auto mirrors = download::mirror_map();

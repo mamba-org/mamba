@@ -76,6 +76,16 @@ namespace mamba
         bool m_with_bug_report_message = true;
     };
 
+    /// Only used when we need to exit the program ASAP
+    /// but:
+    //  - we still need to go exit from `main()`;
+    /// - we want the program in control of what to do exactly.
+    /// This should NOT be considered an error and should
+    /// not result in an error report.
+    class mamba_early_exit_request : public std::exception
+    {
+    };
+
     /********************************
      * wrappers around tl::expected *
      ********************************/

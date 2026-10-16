@@ -243,7 +243,7 @@ namespace mamba
             bool no_condabin = std::none_of(
                 path_list.begin(),
                 path_list.end(),
-                [](const fs::u8path& s) { return util::ends_with(s.string(), "condabin"); }
+                [](const fs::u8path& s) { return s.string().ends_with("condabin"); }
             );
             if (no_condabin)
             {
@@ -1131,7 +1131,7 @@ namespace mamba
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "del $" << uvar << "\n";
+            out << "try:\n  del $" << uvar << "\nexcept KeyError:\n  pass\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)

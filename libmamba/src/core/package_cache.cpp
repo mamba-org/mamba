@@ -6,9 +6,11 @@
 
 #include <fstream>
 #include <mutex>
+#include <ranges>
 #include <sstream>
 #include <unordered_map>
 
+#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "mamba/core/context.hpp"
@@ -43,7 +45,7 @@ namespace mamba
             std::string dir_path = remove_secrets_and_login_credentials(s.package_url);
 
             // Remove filename from the end (everything after the last '/')
-            if (!s.filename.empty() && util::ends_with(dir_path, s.filename))
+            if (!s.filename.empty() && dir_path.ends_with(s.filename))
             {
                 dir_path = dir_path.substr(0, dir_path.size() - s.filename.size());
             }
@@ -81,7 +83,7 @@ namespace mamba
         if (!platform.empty())
         {
             const std::string suffix = "/" + platform;
-            if (util::ends_with(channel, suffix))
+            if (channel.ends_with(suffix))
             {
                 channel.resize(channel.size() - suffix.size());
             }
@@ -146,6 +148,15 @@ namespace mamba
     {
         m_valid_tarballs.erase(s.long_str());
         m_valid_extracted_dir.erase(s.long_str());
+    }
+
+    void PackageCacheData::remove_extracted_package(const specs::PackageInfo& s)
+    {
+        const auto folder = package_cache_folder_relative_path(s);
+        const fs::u8path pkg_name = specs::strip_archive_extension(s.filename);
+        fs::remove_all(m_path / folder / pkg_name);
+        fs::remove_all(m_path / pkg_name);
+        clear_query_cache(s);
     }
 
     void PackageCacheData::check_writable()
@@ -423,6 +434,27 @@ namespace mamba
                         // for explicit env, we have no size, nor sha256 so we need to
                         // set valid true here
                         valid = true;
+
+                        const auto repodata_url = repodata_record["url"].get<std::string>();
+                        if (!repodata_url.empty())
+                        {
+                            if (!compare_cleaned_url(repodata_url, s.package_url))
+                            {
+                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                            << "' has invalid url";
+                                valid = false;
+                            }
+                        }
+                        else
+                        {
+                            const auto pkg_channel = repodata_record["channel"].get<std::string>();
+                            if (pkg_channel != s.channel)
+                            {
+                                LOG_WARNING << "Extracted package cache '" << extracted_dir.string()
+                                            << "' has invalid channel";
+                                valid = false;
+                            }
+                        }
                     }
                 }
                 else if (valid && s.size != 0)
@@ -601,8 +633,16 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find tarball cache for '" << s.filename << "'";
-            throw std::runtime_error("Package cache error.");
+            const auto message = fmt::format(
+                "Package cache error: Cannot find tarball cache for '{}' (evaluated cache dirs: tarballs {}, local {})",
+                s.filename,
+                m_cached_tarballs,
+                m_caches
+                    | std::views::transform([](const auto& pkg_cache_data)
+                                            { return pkg_cache_data.path(); })
+            );
+            LOG_ERROR << message;
+            throw mamba_error{ message, mamba_error_code::internal_failure };
         }
     }
 
@@ -638,8 +678,16 @@ namespace mamba
         }
         else
         {
-            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << s.filename << "'";
-            throw std::runtime_error("Package cache error.");
+            const auto message = fmt::format(
+                "Package cache error: Cannot find a valid extracted directory cache for '{}' (evaluated cache dirs: extraction {}, local {})",
+                s.filename,
+                m_cached_extracted_dirs,
+                m_caches
+                    | std::views::transform([](const auto& pkg_cache_data)
+                                            { return pkg_cache_data.path(); })
+            );
+            LOG_ERROR << message;
+            throw mamba_error{ message, mamba_error_code::internal_failure };
         }
     }
 
@@ -656,9 +704,23 @@ namespace mamba
 
     void MultiPackageCache::clear_query_cache(const specs::PackageInfo& s)
     {
+        const std::string pkg = s.long_str();
+        m_cached_tarballs.erase(pkg);
+        m_cached_extracted_dirs.erase(pkg);
         for (auto& c : m_caches)
         {
             c.clear_query_cache(s);
         }
+    }
+
+    void MultiPackageCache::remove_extracted_package(const specs::PackageInfo& s)
+    {
+        for (auto& c : m_caches)
+        {
+            c.remove_extracted_package(s);
+        }
+        const std::string pkg = s.long_str();
+        m_cached_tarballs.erase(pkg);
+        m_cached_extracted_dirs.erase(pkg);
     }
 }  // namespace mamba

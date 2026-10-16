@@ -11,8 +11,6 @@ import yaml
 
 from . import helpers
 
-from memory_profiler import memory_usage
-
 __this_dir__ = Path(__file__).parent.resolve()
 
 
@@ -195,25 +193,64 @@ def test_specs(tmp_home, tmp_root_prefix, tmp_path, source, file_type, create_cm
     assert json_res["success"]
 
 
+def check_channels_from_lockfile(
+    json_packages, lockfile_format, expected_valid_channels=["conda-forge"], exclude_packages=[]
+):
+    expected_valid_channels_urls = []
+
+    # TODO: handle other formats once they support channels from lockfiles
+    if lockfile_format == lockfile_format_mambajs:
+        expected_valid_channels_urls = [
+            # NOTE: these urls must be in sync with the json lockfiles in ./env_lockfiles/
+            "https://prefix.dev/conda-forge",
+            "https://repo.prefix.dev/conda-forge",
+            "https://prefix.dev/emscripten-forge-dev",
+            "https://repo.prefix.dev/emscripten-forge-dev",
+            "https://pypi.org/",  # for now we ignore pypi packages having no known url
+        ]
+
+    for package in json_packages:
+        name = package["name"]
+        if name in exclude_packages:
+            continue
+        channel = package["channel"]
+        assert channel in expected_valid_channels or channel in expected_valid_channels_urls, (
+            f"unexpected package `{name}`'s channel name : '{channel}' (expected channels: {expected_valid_channels} or {expected_valid_channels_urls})\npackages: {json.dumps(json_packages, indent=2)}"
+        )
+        if expected_valid_channels_urls:
+            url = package["url"]
+            if not url and channel in [
+                "https://pypi.org/",
+                "pypi",
+            ]:  # for now we ignore pypi packages having no known url
+                # skip
+                continue
+
+            assert any(
+                url.startswith(channel_url) for channel_url in expected_valid_channels_urls
+            ), (
+                f"package `{name}`'s url not starting with expected channel url : '{url}' (expected channel urls: {expected_valid_channels_urls})\npackages: {json.dumps(json_packages, indent=2)}"
+            )
+
+
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
 @pytest.mark.parametrize("lockfile_format", [lockfile_format_condalock, lockfile_format_mambajs])
 def test_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_format):
     env_prefix = tmp_path / "myenv"
 
     lockfile_to_use = lockfile_path(lockfile_format)
-    print("lockfile_to_use = ", lockfile_to_use)
 
     spec_file = tmp_path / lockfile_name("env-lock", lockfile_format)
 
     shutil.copyfile(lockfile_to_use, spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
-    print("create result:", res)
-    assert res["success"]
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
+    assert res["success"], f"output: \n{json.dumps(res, indent=2)}"
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
-    print("packages installed:", packages)
     assert any(package["name"] == "zlib" and package["version"] == "1.2.11" for package in packages)
+
+    check_channels_from_lockfile(packages, lockfile_format)
 
 
 @pytest.mark.skipif(
@@ -228,7 +265,7 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
 
     shutil.copyfile(pip_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -248,6 +285,8 @@ def test_lockfile_with_pip(tmp_home, tmp_root_prefix, tmp_path, lockfile_format)
     # Test pkg url ending with `.tar.bz2`
     assert any(package["name"] == "xz" and package["version"] == "5.2.6" for package in packages)
 
+    check_channels_from_lockfile(packages, lockfile_format, ["conda-forge", "pypi"])
+
 
 # TODO: Remove this test once this is fixed:
 # https://github.com/dateutil/dateutil/issues/1419
@@ -266,7 +305,7 @@ def test_pip_git_https_lockfile(tmp_home, tmp_root_prefix, tmp_path, lockfile_fo
 
     shutil.copyfile(pip_git_https_lockfile_path(lockfile_format), spec_file)
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -293,7 +332,7 @@ def test_lockfile_online(
     env_prefix = tmp_path / "myenv"
     spec_file = "https://raw.githubusercontent.com/mamba-org/mamba/main/micromamba/tests/env_lockfiles/test-env-lock.yaml"
 
-    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json")
+    res = helpers.create("-p", env_prefix, "-f", spec_file, "--json", default_channel=False)
     assert res["success"]
 
     packages = helpers.umamba_list("-p", env_prefix, "--json")
@@ -316,11 +355,15 @@ def test_env_lockfile_different_install_after_create(
         _base_lockfile_path("envlockfile-check-step-2-lock", lockfile_format), install_spec_file
     )
 
-    res = helpers.create("-p", env_prefix, "-f", create_spec_file, "-y", "--json")
+    res = helpers.create(
+        "-p", env_prefix, "-f", create_spec_file, "-y", "--json", default_channel=False
+    )
     assert res["success"]
 
     # Must not crash
-    helpers.install("-p", env_prefix, "-f", install_spec_file, "-y", "--json")
+    helpers.install(
+        "-p", env_prefix, "-f", install_spec_file, "-y", "--json", default_channel=False
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -340,6 +383,9 @@ def test_clone_by_name(tmp_home, tmp_root_prefix, tmp_path):
     clone_explicit = helpers.run_env("export", "-n", clone_env, "--explicit")
 
     assert_explicit_envs_identical(src_explicit, clone_explicit)
+    if helpers.test_target_platform is not None:
+        assert helpers.info("-n", src_env, "--json")["platform"] == helpers.test_target_platform
+        assert helpers.info("-n", clone_env, "--json")["platform"] == helpers.test_target_platform
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -365,6 +411,7 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
     env_name = "clone-conflict-specs"
     helpers.create("-n", "src-env-for-conflict", "xtensor", "--json", no_dry_run=True)
 
+    # We expect this run to fail
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create(
             "--clone",
@@ -375,8 +422,14 @@ def test_clone_conflicts_with_specs(tmp_home, tmp_root_prefix, tmp_path):
             "--json",
             no_dry_run=True,
         )
-    stderr = info.value.stderr.decode()
-    assert "Cannot use --clone together with package specs." in stderr
+    json_output = json.loads(info.value.stdout.decode())
+
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Cannot use --clone together with package specs."
+        )
+        is not None
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -398,9 +451,14 @@ def test_clone_conflicts_with_file(tmp_home, tmp_root_prefix, tmp_path):
             "--json",
             no_dry_run=True,
         )
-    stderr = info.value.stderr.decode()
+    json_output = json.loads(info.value.stdout.decode())
 
-    assert "Cannot use --clone together with package specs." in stderr
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Cannot use --clone together with package specs."
+        )
+        is not None
+    )
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -410,17 +468,39 @@ def test_clone_non_existing_source(tmp_home, tmp_root_prefix, tmp_path):
     # Non-existing named environment
     with pytest.raises(subprocess.CalledProcessError) as info:
         helpers.create(
-            "--clone", "this-env-does-not-exist", "-n", env_name, "--json", no_dry_run=True
+            "--clone",
+            "this-env-does-not-exist",
+            "-n",
+            env_name,
+            "--json",
+            no_dry_run=True,
+            use_target_platform=False,
         )
-    stderr = info.value.stderr.decode()
-    assert "Could not find environment to clone: this-env-does-not-exist" in stderr
+    json_output = json.loads(info.value.stdout.decode())
+    assert (
+        helpers.find_message_in_json_logs(
+            json_output, "Could not find environment to clone: this-env-does-not-exist"
+        )
+        is not None
+    )
 
     # Non-existing prefix path
     non_existing_prefix = tmp_path / "does-not-exist"
     with pytest.raises(subprocess.CalledProcessError) as info2:
-        helpers.create("--clone", non_existing_prefix, "-n", env_name, "--json", no_dry_run=True)
-    stderr2 = info2.value.stderr.decode()
-    assert f"Source prefix '{non_existing_prefix}" in stderr2
+        helpers.create(
+            "--clone",
+            non_existing_prefix,
+            "-n",
+            env_name,
+            "--json",
+            no_dry_run=True,
+            use_target_platform=False,
+        )
+    json_output2 = json.loads(info2.value.stdout.decode())
+    assert (
+        helpers.find_message_in_json_logs(json_output2, f"Source prefix '{non_existing_prefix}")
+        is not None
+    )
 
 
 @pytest.mark.skipif(
@@ -1711,14 +1791,13 @@ def test_channel_alias(tmp_home, tmp_root_prefix, alias):
             "--channel-alias",
             alias,
         )
-        # ca = alias.rstrip("/")
+        ca = alias.rstrip("/")
     else:
         res = helpers.create("-n", env_name, "xtensor", "--json")
-        # ca = "https://conda.anaconda.org"
+        ca = "https://conda.anaconda.org"
 
     for link in res["actions"]["LINK"]:
-        assert link["channel"] == "conda-forge"
-        # assert link["channel"].startswith(f"{ca}/conda-forge/")
+        assert link["channel"] == "conda-forge" or link["channel"].startswith(f"{ca}/conda-forge/")
         # assert link["url"].startswith(f"{ca}/conda-forge/")
 
 
@@ -1793,8 +1872,14 @@ def test_spec_with_slash_in_channel(tmp_home, tmp_root_prefix):
         assert "python" in msg
 
     os.environ["CONDA_SUBDIR"] = "linux-64"
-    helpers.create("-n", "env2", "pkgs/main/linux-64::python", "--dry-run")
-    helpers.create("-n", "env3", "pkgs/main::python", "--dry-run")
+    helpers.create(
+        "-n",
+        "env2",
+        "pkgs/main/linux-64::python",
+        "--dry-run",
+        use_target_platform=False,
+    )
+    helpers.create("-n", "env3", "pkgs/main::python", "--dry-run", use_target_platform=False)
 
 
 @pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
@@ -2013,16 +2098,20 @@ def test_pip_output_visibility_by_default_and_suppressed_with_json_or_quiet(
 
     # By default, pip output should be visible (no --quiet flag)
     env_prefix_1 = tmp_root_prefix / "envs" / "pip_out_vis_1"
-    cmd1 = [
-        umamba,
-        "create",
-        "-p",
-        str(env_prefix_1),
-        "-f",
-        str(env_file),
-        "-y",
-        "--no-rc",
-    ] + helpers.channel
+    cmd1 = (
+        [
+            umamba,
+            "create",
+            "-p",
+            str(env_prefix_1),
+            "-f",
+            str(env_file),
+            "-y",
+            "--no-rc",
+        ]
+        + helpers.package_target_args(())
+        + helpers.channel
+    )
     result1 = subprocess.run(cmd1, capture_output=True, text=True, check=True)
     pip_output_present = (
         "Collecting" in result1.stdout
@@ -2034,17 +2123,21 @@ def test_pip_output_visibility_by_default_and_suppressed_with_json_or_quiet(
 
     # With --json, pip output should be suppressed (--quiet flag used)
     env_prefix_2 = tmp_root_prefix / "envs" / "pip_out_vis_2"
-    cmd2 = [
-        umamba,
-        "create",
-        "-p",
-        str(env_prefix_2),
-        "-f",
-        str(env_file),
-        "-y",
-        "--no-rc",
-        "--json",
-    ] + helpers.channel
+    cmd2 = (
+        [
+            umamba,
+            "create",
+            "-p",
+            str(env_prefix_2),
+            "-f",
+            str(env_file),
+            "-y",
+            "--no-rc",
+            "--json",
+        ]
+        + helpers.package_target_args(())
+        + helpers.channel
+    )
     result2 = subprocess.run(cmd2, capture_output=True, text=True, check=True)
     pip_output_suppressed_json = not (
         "Collecting" in result2.stdout
@@ -2056,17 +2149,21 @@ def test_pip_output_visibility_by_default_and_suppressed_with_json_or_quiet(
 
     # With --quiet, pip output should be suppressed (--quiet flag used)
     env_prefix_3 = tmp_root_prefix / "envs" / "pip_out_vis_3"
-    cmd3 = [
-        umamba,
-        "create",
-        "-p",
-        str(env_prefix_3),
-        "-f",
-        str(env_file),
-        "-y",
-        "--no-rc",
-        "--quiet",
-    ] + helpers.channel
+    cmd3 = (
+        [
+            umamba,
+            "create",
+            "-p",
+            str(env_prefix_3),
+            "-f",
+            str(env_file),
+            "-y",
+            "--no-rc",
+            "--quiet",
+        ]
+        + helpers.package_target_args(())
+        + helpers.channel
+    )
     result3 = subprocess.run(cmd3, capture_output=True, text=True, check=True)
     pip_output_suppressed_quiet = not (
         "Collecting" in result3.stdout
@@ -2157,7 +2254,7 @@ def test_pre_commit_compat(tmp_home, tmp_root_prefix, tmp_path):
                     {"id": "sys-exec"},
                     {
                         "id": "additional-deps",
-                        "additional_dependencies": ["psutil", "python=3.11"],
+                        "additional_dependencies": ["psutil", "python=3.14"],
                     },
                 ],
             }
@@ -2276,6 +2373,140 @@ def test_dummy_create(add_glibc_virtual_package, copy_channels_osx, tmp_home, tm
     res = helpers.create_with_chan_pkg(env_name, channels, package)
 
 
+@pytest.mark.parametrize("shared_pkgs_dirs", [True], indirect=True)
+def test_create_with_mirrored_channel_priority(
+    add_glibc_virtual_package, copy_channels_osx, tmp_home, tmp_root_prefix, tmp_path
+):
+    env_name = "mirrored-channel-priority"
+    channel_a = __this_dir__ / "channel_a"
+    channel_b = __this_dir__ / "channel_b"
+    rc_file = tmp_path / "config.yaml"
+    rc_file.write_text(
+        yaml.dump(
+            {
+                "channel_priority": "strict",
+                "channels": ["channel_a", "channel_b"],
+                "custom_channels": {
+                    "channel_a": channel_a.as_uri(),
+                    "channel_b": channel_b.as_uri(),
+                },
+                "mirrored_channels": {"channel_b": [channel_b.as_uri()]},
+            }
+        )
+    )
+
+    res = helpers.create(
+        "-n",
+        env_name,
+        "a",
+        "--dry-run",
+        "--json",
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+
+    links = [link for link in res["actions"]["LINK"] if link["name"] == "a"]
+    assert len(links) == 1
+    assert links[0]["version"] == "0.2.0"
+    assert "channel_a" in links[0]["channel"]
+
+
+@pytest.mark.parametrize("config_source", ["env", "rc"])
+@pytest.mark.parametrize(
+    "add_pip,specs,include_pip,expected",
+    [
+        pytest.param(False, ["python"], True, {"python": "3.12.0"}, id="disabled"),
+        pytest.param(True, ["python"], True, {"python": "3.12.0", "pip": "25.0"}, id="enabled"),
+        pytest.param(None, ["python"], True, {"python": "3.12.0", "pip": "25.0"}, id="default"),
+        pytest.param(
+            False,
+            ["python", "pip=24.0"],
+            True,
+            {"python": "3.12.0", "pip": "24.0"},
+            id="explicit-pip",
+        ),
+        pytest.param(
+            False,
+            ["python", "needs-pip"],
+            True,
+            {"python": "3.12.0", "pip": "25.0", "needs-pip": "1.0"},
+            id="required-pip",
+        ),
+        pytest.param(
+            False,
+            ["needs-python"],
+            True,
+            {"python": "3.12.0", "needs-python": "1.0"},
+            id="transitive-python",
+        ),
+        pytest.param(False, ["python"], False, {"python": "3.12.0"}, id="pip-unavailable"),
+    ],
+)
+def test_add_pip_as_python_dependency(
+    tmp_home,
+    tmp_root_prefix,
+    tmp_path,
+    monkeypatch,
+    config_source,
+    add_pip,
+    specs,
+    include_pip,
+    expected,
+):
+    channel = tmp_path / "channel"
+    packages = [
+        ("python", "3.12.0", []),
+        ("needs-python", "1.0", ["python"]),
+        ("needs-pip", "1.0", ["pip"]),
+    ]
+    if include_pip:
+        packages.extend([("pip", "24.0", ["python"]), ("pip", "25.0", ["python"])])
+    # Separate repos prevent repo-level injection from masking request-level regressions.
+    records = {"linux-64": {}, "noarch": {}}
+    for name, version, depends in packages:
+        subdir = "noarch" if name == "pip" else "linux-64"
+        records[subdir][f"{name}-{version}-0.tar.bz2"] = {
+            "name": name,
+            "version": version,
+            "build": "0",
+            "build_number": 0,
+            "depends": depends,
+            "subdir": subdir,
+        }
+    for subdir, packages in records.items():
+        directory = channel / subdir
+        directory.mkdir(parents=True)
+        (directory / "repodata.json").write_text(json.dumps({"packages": packages}))
+
+    config = {}
+    if add_pip is not None:
+        if config_source == "env":
+            monkeypatch.setenv("MAMBA_ADD_PIP_AS_PYTHON_DEPENDENCY", str(add_pip).lower())
+        else:
+            config["add_pip_as_python_dependency"] = add_pip
+    rc_file = tmp_path / ".condarc"
+    rc_file.write_text(yaml.safe_dump(config))
+
+    result = helpers.create(
+        "--name",
+        "pip-injection",
+        "--dry-run",
+        "--json",
+        "--platform",
+        "linux-64",
+        "--override-channels",
+        "--channel",
+        channel.as_uri(),
+        *specs,
+        f"--rc-file={rc_file}",
+        default_channel=False,
+        no_rc=False,
+    )
+    assert result["success"]
+    assert {pkg["name"]: pkg["version"] for pkg in result["actions"]["LINK"]} == expected
+
+
 @pytest.mark.parametrize("use_json", [True, False])
 def test_create_dry_run(tmp_home, tmp_root_prefix, use_json):
     env_name = "myenv"
@@ -2333,7 +2564,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-main.tar.bz2"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startswith("https://conda.anaconda.org/conda-forge")
     else:
         assert len(pkgs) == 1
         assert pkgs[0]["name"] == "abacus"
@@ -2342,7 +2573,7 @@ def test_create_with_explicit_url(tmp_home, tmp_root_prefix, spec):
             pkgs[0]["url"]
             == "https://conda.anaconda.org/conda-forge/linux-64/abacus-3.2.4-hb6c440e_0.conda"
         )
-        assert pkgs[0]["channel"] == "https://conda.anaconda.org/conda-forge"
+        assert pkgs[0]["channel"].startswith("https://conda.anaconda.org/conda-forge")
 
 
 def test_create_from_mirror(tmp_home, tmp_root_prefix):
@@ -2366,7 +2597,7 @@ def test_create_from_mirror(tmp_home, tmp_root_prefix):
 
     assert any(
         package["name"] == "cpp-tabulate"
-        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["channel"].startswith("https://repo.prefix.dev/emscripten-forge-dev")
         and package["subdir"] == "emscripten-wasm32"
         for package in res["actions"]["LINK"]
     )
@@ -2401,15 +2632,18 @@ def test_create_from_mirror_with_prefix(tmp_home, tmp_root_prefix, tmp_path):
 
     assert any(
         package["name"] == "cpp-tabulate"
-        and package["channel"] == "https://repo.prefix.dev/emscripten-forge-dev"
+        and package["channel"].startswith("https://repo.prefix.dev/emscripten-forge-dev")
         and package["subdir"] == "emscripten-wasm32"
         for package in res["actions"]["LINK"]
     )
 
-    # Verify no warnings in output
-    combined_output = result.stdout + result.stderr
-    assert "warning" not in combined_output.lower(), (
-        f"Unexpected warning in output:\nstdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    # Verify warning in output
+    assert (
+        helpers.find_message_in_json_logs(
+            res,
+            "Security Warning: This transaction includes executing package scripts (pre/post-link/unlink) if present.",
+        )
+        is not None
     )
 
 
@@ -2518,7 +2752,7 @@ def test_create_from_oci_mirrored_channels(tmp_home, tmp_root_prefix, tmp_path, 
 
     cmd = ["-n", env_name, spec, "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,
@@ -2559,7 +2793,7 @@ def test_create_from_oci_mirrored_channels_with_deps(tmp_home, tmp_root_prefix, 
 
     cmd = ["-n", env_name, "xtensor", "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,
@@ -2595,7 +2829,7 @@ def test_create_from_oci_mirrored_channels_pkg_name_mapping(
 
     cmd = ["-n", env_name, "_go_select", "--json", "-c", "oci_channel"]
     if parser == "libsolv":
-        cmd += ["--no-exp-repodata-parsing"]
+        cmd += ["--no-mamba-repodata-parsing"]
 
     res = helpers.create(
         *cmd,
@@ -2690,6 +2924,7 @@ def test_create_dry_run_json(tmp_path):
         "dry_run": True,
         "prefix": str(env_prefix),
         "success": True,
+        "log_history": [],
     }
 
     assert res == expected_output
@@ -2765,6 +3000,10 @@ def test_create_with_empty_lines_and_comments(tmp_home, tmp_root_prefix, tmp_pat
     # Non-regression test for:
     #  - https://github.com/mamba-org/mamba/issues/3289
     #  - https://github.com/mamba-org/mamba/issues/3659
+    # memory_profiler is omitted from the win-arm64 CI environment; packages
+    # needed to use environment-dev.yml on that platform are tracked in
+    # https://github.com/mamba-org/mamba/issues/4393
+    memory_usage = pytest.importorskip("memory_profiler").memory_usage
     memory_limit = 150  # in MB
 
     def memory_intensive_operation():
@@ -2819,6 +3058,7 @@ def test_ca_certificates(tmp_home, tmp_clean_env, tmp_path):
 
     umamba = helpers.get_umamba()
     args = [umamba, "create", "-p", env_prefix, "numpy", "--dry-run", "-vvv"]
+    args += helpers.package_target_args(args)
     p = subprocess.run(args, capture_output=True, check=True)
     verbose_logs = p.stderr.decode()
 

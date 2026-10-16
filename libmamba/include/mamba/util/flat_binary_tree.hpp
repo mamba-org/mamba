@@ -39,18 +39,7 @@ namespace mamba::util
             std::size_t left_child = 0;
             std::size_t right_child = 0;
 
-            // TODO(C++20): replace by the `= default` implementation of `operator==`
-            [[nodiscard]] auto operator==(const branch_node& other) const -> bool
-            {
-                return data == other.data                 //
-                       && left_child == other.left_child  //
-                       && right_child == other.right_child;
-            }
-
-            [[nodiscard]] auto operator!=(const branch_node& other) const -> bool
-            {
-                return !(*this == other);
-            }
+            [[nodiscard]] auto operator==(const branch_node& other) const -> bool = default;
         };
 
         using leaf_node = leaf_type;
@@ -103,16 +92,7 @@ namespace mamba::util
         [[nodiscard]] auto right(idx_type idx) const -> idx_type;
         [[nodiscard]] auto root() const -> idx_type;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
-        [[nodiscard]] auto operator==(const flat_binary_tree& other) const -> bool
-        {
-            return m_nodes == other.m_nodes && m_root == other.m_root;
-        }
-
-        [[nodiscard]] auto operator!=(const flat_binary_tree& other) const -> bool
-        {
-            return !(*this == other);
-        }
+        [[nodiscard]] auto operator==(const flat_binary_tree& other) const -> bool = default;
 
         template <typename Visitor>
         void dfs_raw(Visitor&& visitor, idx_type start) const;

@@ -5,10 +5,13 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <array>
+#include <cstdint>
+#include <fstream>
 #include <functional>
 
 #include <catch2/catch_all.hpp>
 
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
@@ -189,6 +192,51 @@ namespace
             }
         }
 
+        SECTION("exclude_newer_timestamp filters packages from add_repo_from_packages")
+        {
+            const std::uint64_t cutoff = 2000;
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ cutoff } }
+            );
+
+            auto old_pkg = specs::PackageInfo();
+            old_pkg.name = "old-pkg";
+            old_pkg.version = "1.0";
+            old_pkg.timestamp = 1000;
+
+            auto new_pkg = specs::PackageInfo();
+            new_pkg.name = "new-pkg";
+            new_pkg.version = "1.0";
+            new_pkg.timestamp = 3000;
+
+            auto pkgs = std::array{ old_pkg, new_pkg };
+            auto repo1 = db_filtered.add_repo_from_packages(pkgs, "repo1");
+            REQUIRE(repo1.package_count() == 1);
+
+            db_filtered.for_each_package_in_repo(
+                repo1,
+                [](const auto& p) { REQUIRE(p.name == "old-pkg"); }
+            );
+        }
+
+        SECTION("exclude_newer_timestamp normalizes millisecond timestamps")
+        {
+            const std::uint64_t cutoff = 2000000000;
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ cutoff } }
+            );
+
+            auto ms_pkg = specs::PackageInfo();
+            ms_pkg.name = "ms-pkg";
+            ms_pkg.version = "1.0";
+            ms_pkg.timestamp = 1500000000000;  // 1.5e12 ms → 1.5e9 seconds, below cutoff
+
+            auto repo1 = db_filtered.add_repo_from_packages(std::array{ ms_pkg }, "repo1");
+            REQUIRE(repo1.package_count() == 1);
+        }
+
         SECTION("Add repo from repodata with no extra pip")
         {
             const auto repodata = mambatests::test_data_dir
@@ -216,6 +264,293 @@ namespace
                 }
             );
             REQUIRE(found_python);
+        }
+
+        SECTION("exclude_newer_timestamp filters packages from repodata JSON")
+        {
+            const auto repodata = mambatests::test_data_dir
+                                  / "repodata/conda-forge-numpy-linux-64.json";
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser,
+                  ExcludeNewerPolicy{ /* .global_cutoff= */ std::uint64_t(1700000000) } }
+            );
+            auto repo1 = db_filtered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() < 33);
+            REQUIRE(repo1->package_count() > 0);
+
+            auto db_unfiltered = libsolv::Database({}, { matchspec_parser });
+            auto unfiltered_repo = db_unfiltered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(unfiltered_repo.has_value());
+            REQUIRE(unfiltered_repo->package_count() > repo1->package_count());
+        }
+
+        SECTION("exclude_newer_package overrides the global cutoff")
+        {
+            auto tmp_dir = TemporaryDirectory();
+            const auto repodata = tmp_dir.path() / "repodata.json";
+            std::ofstream out_file(repodata.std_path());
+            out_file << R"({
+                "packages": {
+                    "exempt-pkg-1.0-bld.tar.bz2": {
+                        "name": "exempt-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000
+                    },
+                    "filtered-pkg-1.0-bld.tar.bz2": {
+                        "name": "filtered-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000
+                    }
+                },
+                "packages.conda": {}
+            })";
+            out_file.close();
+
+            auto db_filtered = libsolv::Database(
+                {},
+                {
+                    matchspec_parser,
+                    ExcludeNewerPolicy{
+                        /* .global_cutoff= */ std::uint64_t(2000),
+                        /* .per_package_cutoff= */
+                        ExcludeNewerPackageCutoffs{
+                            { "exempt-pkg", std::nullopt },
+                        },
+                    },
+                }
+            );
+            auto repo1 = db_filtered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            db_filtered.for_each_package_in_repo(
+                *repo1,
+                [](const auto& p) { REQUIRE(p.name == "exempt-pkg"); }
+            );
+        }
+
+        SECTION("exclude_newer_timestamp prefers indexed_timestamp from repodata JSON")
+        {
+            auto tmp_dir = TemporaryDirectory();
+            const auto repodata = tmp_dir.path() / "repodata.json";
+            std::ofstream out_file(repodata.std_path());
+            // `timestamp > indexed_timestamp` for `included-pkg` is deliberate for testing
+            // purposes: the two packages timestamps point in opposite directions relative to the
+            // cutoff, so the result can only be correct if `indexed_timestamp` is preferred.
+            // CEP-47 recommends channel servers validate `timestamp <= indexed_timestamp`.
+            out_file << R"({
+                "packages": {
+                    "excluded-pkg-1.0-bld.tar.bz2": {
+                        "name": "excluded-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1000,
+                        "indexed_timestamp": 3000
+                    },
+                    "included-pkg-1.0-bld.tar.bz2": {
+                        "name": "included-pkg",
+                        "version": "1.0",
+                        "build": "bld",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 3000,
+                        "indexed_timestamp": 1000
+                    }
+                },
+                "packages.conda": {}
+            })";
+            out_file.close();
+
+            auto db_filtered = libsolv::Database(
+                {},
+                { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ std::uint64_t(2000) } }
+            );
+            auto repo1 = db_filtered.add_repo_from_repodata_json(
+                repodata,
+                "https://conda.anaconda.org/conda-forge/linux-64",
+                "conda-forge",
+                libsolv::PipAsPythonDependency::No
+            );
+            REQUIRE(repo1.has_value());
+            REQUIRE(repo1->package_count() == 1);
+
+            db_filtered.for_each_package_in_repo(
+                *repo1,
+                [](const auto& p) { REQUIRE(p.name == "included-pkg"); }
+            );
+        }
+
+        SECTION("exclude_newer date policies with package overrides")
+        {
+            auto tmp_dir = TemporaryDirectory();
+            const auto repodata = tmp_dir.path() / "repodata.json";
+            std::ofstream out_file(repodata.std_path());
+            out_file << R"({
+                "packages": {
+                    "mamba-2.0-0.tar.bz2": {
+                        "name": "mamba",
+                        "version": "2.0",
+                        "build": "0",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1764547200
+                    },
+                    "mamba-2.8-0.tar.bz2": {
+                        "name": "mamba",
+                        "version": "2.8",
+                        "build": "0",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1768435200
+                    },
+                    "numpy-2.0-0.tar.bz2": {
+                        "name": "numpy",
+                        "version": "2.0",
+                        "build": "0",
+                        "build_number": 0,
+                        "subdir": "linux-64",
+                        "depends": [],
+                        "timestamp": 1730000000
+                    }
+                },
+                "packages.conda": {}
+            })";
+            out_file.close();
+
+            const auto cutoff_2019 = resolve_exclude_newer_cutoff("2019-01-01", 0).value();
+            const auto cutoff_2026_jan = resolve_exclude_newer_cutoff("2026-01-01", 0).value();
+
+            SECTION("global 2019 cutoff excludes mamba 2.0 and numpy 2.0")
+            {
+                auto db_filtered = libsolv::Database(
+                    {},
+                    { matchspec_parser, ExcludeNewerPolicy{ /* .global_cutoff= */ cutoff_2019 } }
+                );
+                auto repo1 = db_filtered.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No
+                );
+                REQUIRE(repo1.has_value());
+
+                std::size_t mamba_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("mamba").value(),
+                    [&](const auto&) { ++mamba_count; }
+                );
+                std::size_t numpy_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("numpy").value(),
+                    [&](const auto&) { ++numpy_count; }
+                );
+                REQUIRE(mamba_count == 0);
+                REQUIRE(numpy_count == 0);
+            }
+
+            SECTION("numpy opt-out allows numpy 2.0 with same global 2019 cutoff")
+            {
+                auto db_filtered = libsolv::Database(
+                    {},
+                    {
+                        matchspec_parser,
+                        ExcludeNewerPolicy{
+                            /* .global_cutoff= */ cutoff_2019,
+                            /* .per_package_cutoff= */
+                            ExcludeNewerPackageCutoffs{
+                                { "numpy", std::nullopt },
+                            },
+                        },
+                    }
+                );
+                auto repo1 = db_filtered.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No
+                );
+                REQUIRE(repo1.has_value());
+
+                std::size_t mamba_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("mamba").value(),
+                    [&](const auto&) { ++mamba_count; }
+                );
+                std::size_t numpy_count = 0;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("numpy").value(),
+                    [&](const auto& p)
+                    {
+                        ++numpy_count;
+                        REQUIRE(p.version == "2.0");
+                    }
+                );
+                REQUIRE(mamba_count == 0);
+                REQUIRE(numpy_count == 1);
+            }
+
+            SECTION("mamba January 2026 package policy keeps 2.0 and excludes 2.8")
+            {
+                auto db_filtered = libsolv::Database(
+                    {},
+                    {
+                        matchspec_parser,
+                        ExcludeNewerPolicy{
+                            /* .global_cutoff= */ cutoff_2019,
+                            /* .per_package_cutoff= */
+                            ExcludeNewerPackageCutoffs{
+                                { "mamba", cutoff_2026_jan },
+                            },
+                        },
+                    }
+                );
+                auto repo1 = db_filtered.add_repo_from_repodata_json(
+                    repodata,
+                    "https://conda.anaconda.org/conda-forge/linux-64",
+                    "conda-forge",
+                    libsolv::PipAsPythonDependency::No
+                );
+                REQUIRE(repo1.has_value());
+
+                std::vector<std::string> mamba_versions;
+                db_filtered.for_each_package_matching(
+                    specs::MatchSpec::parse("mamba").value(),
+                    [&](const auto& p) { mamba_versions.push_back(p.version); }
+                );
+                REQUIRE(mamba_versions.size() == 1);
+                REQUIRE(mamba_versions[0] == "2.0");
+            }
         }
 
         SECTION("Add repo from repodata with extra pip")
@@ -309,156 +644,6 @@ namespace
             REQUIRE(repo1->package_count() == 33);
         }
 
-        SECTION("Add repo from repodata with verifying packages signatures")
-        {
-            const auto repodata = mambatests::test_data_dir
-                                  / "repodata/conda-forge-numpy-linux-64.json";
-            SECTION("Using mamba parser")
-            {
-                auto repo1 = db.add_repo_from_repodata_json(
-                    repodata,
-                    "https://conda.anaconda.org/conda-forge/linux-64",
-                    "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::Yes,
-                    libsolv::RepodataParser::Mamba
-                );
-                REQUIRE(repo1.has_value());
-                REQUIRE(repo1->package_count() == 33);
-
-                db.for_each_package_in_repo(
-                    repo1.value(),
-                    [&](const auto& p)
-                    {
-                        if (p.name == "_libgcc_mutex")
-                        {
-                            REQUIRE(
-                                p.signatures
-                                == R"({"signatures":{"0b7a133184c9c98333923dhfdg86031adc5db1fds54kfga941fe2c94a12fdjg8":{"signature":"0b83c91ddd8b81bbc7a67a586bde4a271bd8f97069c25306870e314f3664ab02083c91ddd8b0dfjsg763jbd0jh14671d960bb303d1eb787307c04c414ediz95a"}}})"
-                            );
-                        }
-                        else if (p.name == "bzip2")
-                        {
-                            REQUIRE(
-                                p.signatures
-                                == R"({"signatures":{"f7a651f55db194031a6c1240b7a133184c9c98333923dc9319d1fe2c94a1242d":{"signature":"058bf4b5d5cb738736870e314f3664b83c91ddd8b81bbc7a67a875d0454c14671d960a02858e059d154876dab6bde853d763c1a3bd8f97069c25304a2710200d"}}})"
-                            );
-                        }
-                        else
-                        {
-                            REQUIRE(p.signatures == "");
-                        }
-                    }
-                );
-            }
-
-            SECTION("Using libsolv parser")
-            {
-                auto repo1 = db.add_repo_from_repodata_json(
-                    repodata,
-                    "https://conda.anaconda.org/conda-forge/linux-64",
-                    "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::Yes,
-                    libsolv::RepodataParser::Libsolv
-                );
-
-                // Libsolv repodata parser only works with its own matchspec
-                if (matchspec_parser != libsolv::MatchSpecParser::Libsolv)
-                {
-                    REQUIRE_FALSE(repo1.has_value());
-                    return;
-                }
-
-                REQUIRE(repo1.has_value());
-                REQUIRE(repo1->package_count() == 33);
-
-                db.for_each_package_in_repo(
-                    repo1.value(),
-                    [&](const auto& p)
-                    {
-                        if (p.name == "_libgcc_mutex")
-                        {
-                            REQUIRE_THAT(
-                                p.signatures.c_str(),
-                                Catch::Matchers::ContainsSubstring(
-                                    R"("signatures":{"0b7a133184c9c98333923dhfdg86031adc5db1fds54kfga941fe2c94a12fdjg8":{"signature":"0b83c91ddd8b81bbc7a67a586bde4a271bd8f97069c25306870e314f3664ab02083c91ddd8b0dfjsg763jbd0jh14671d960bb303d1eb787307c04c414ediz95a"}})"
-                                )
-                            );
-                        }
-                        else if (p.name == "bzip2")
-                        {
-                            REQUIRE_THAT(
-                                p.signatures.c_str(),
-                                Catch::Matchers::ContainsSubstring(
-                                    R"("signatures":{"f7a651f55db194031a6c1240b7a133184c9c98333923dc9319d1fe2c94a1242d":{"signature":"058bf4b5d5cb738736870e314f3664b83c91ddd8b81bbc7a67a875d0454c14671d960a02858e059d154876dab6bde853d763c1a3bd8f97069c25304a2710200d"}})"
-                                )
-                            );
-                        }
-                        else
-                        {
-                            REQUIRE(p.signatures == "");
-                        }
-                    }
-                );
-            }
-        }
-
-        SECTION("Add repo from repodata without verifying packages signatures")
-        {
-            const auto repodata = mambatests::test_data_dir
-                                  / "repodata/conda-forge-numpy-linux-64.json";
-            SECTION("Using mamba parser")
-            {
-                auto repo1 = db.add_repo_from_repodata_json(
-                    repodata,
-                    "https://conda.anaconda.org/conda-forge/linux-64",
-                    "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::No,
-                    libsolv::RepodataParser::Mamba
-                );
-                REQUIRE(repo1.has_value());
-                REQUIRE(repo1->package_count() == 33);
-
-                db.for_each_package_in_repo(
-                    repo1.value(),
-                    [&](const auto& p) { REQUIRE(p.signatures == ""); }
-                );
-            }
-
-            SECTION("Using libsolv parser")
-            {
-                auto repo1 = db.add_repo_from_repodata_json(
-                    repodata,
-                    "https://conda.anaconda.org/conda-forge/linux-64",
-                    "conda-forge",
-                    libsolv::PipAsPythonDependency::No,
-                    libsolv::PackageTypes::CondaOrElseTarBz2,
-                    libsolv::VerifyPackages::No,
-                    libsolv::RepodataParser::Libsolv
-                );
-
-                // Libsolv repodata parser only works with its own matchspec
-                if (matchspec_parser != libsolv::MatchSpecParser::Libsolv)
-                {
-                    REQUIRE_FALSE(repo1.has_value());
-                    return;
-                }
-
-                REQUIRE(repo1.has_value());
-                REQUIRE(repo1->package_count() == 33);
-
-                db.for_each_package_in_repo(
-                    repo1.value(),
-                    [&](const auto& p) { REQUIRE(p.signatures == ""); }
-                );
-            }
-        }
-
         SECTION("Add repo from repodata with repodata_version 2")
         {
             const auto repodata = mambatests::test_data_dir
@@ -481,14 +666,14 @@ namespace
                     {
                         REQUIRE(
                             p.package_url
-                            == "https://repo.anaconda.com/repo/main/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
+                            == "https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2"
                         );
                     }
                     else if (p.name == "bzip2")
                     {
                         REQUIRE(
                             p.package_url
-                            == "https://repo.anaconda.com/repo/main/linux-64/bzip2-1.0.8-hd590300_5.conda"
+                            == "https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hd590300_5.conda"
                         );
                     }
                 }
@@ -530,6 +715,91 @@ namespace
                 }
             );
         }
+    }
+
+    TEST_CASE("Database preserves per-package repodata URLs", "[mamba::solver::libsolv]")
+    {
+        auto tmp_dir = TemporaryDirectory();
+        auto repodata = tmp_dir.path() / "repodata.json";
+        std::ofstream out_file(repodata.std_path());
+        out_file << R"({
+            "packages": {
+                "singular-1.0-0.tar.bz2": {
+                    "build": "0",
+                    "build_number": 0,
+                    "depends": [],
+                    "name": "singular",
+                    "url": "https://downloads.example.org/singular-1.0-0.tar.bz2",
+                    "version": "1.0"
+                },
+                "plural-1.0-0.tar.bz2": {
+                    "build": "0",
+                    "build_number": 0,
+                    "depends": [],
+                    "name": "plural",
+                    "urls": ["https://downloads.example.org/plural-1.0-0.tar.bz2"],
+                    "version": "1.0"
+                }
+            },
+            "packages.conda": {}
+        })";
+        out_file.close();
+
+        auto db = libsolv::Database({}, { libsolv::MatchSpecParser::Mamba });
+        auto repo = db.add_repo_from_repodata_json(
+            repodata,
+            "https://channel.example.org/linux-64",
+            "channel",
+            libsolv::PipAsPythonDependency::No,
+            libsolv::PackageTypes::CondaOrElseTarBz2,
+            libsolv::RepodataParser::Mamba
+        );
+        REQUIRE(repo.has_value());
+        REQUIRE(repo->package_count() == 2);
+
+        db.for_each_package_in_repo(
+            repo.value(),
+            [](const auto& pkg)
+            {
+                if (pkg.name == "singular")
+                {
+                    REQUIRE(pkg.package_url == "https://downloads.example.org/singular-1.0-0.tar.bz2");
+                }
+                else if (pkg.name == "plural")
+                {
+                    REQUIRE(pkg.package_url == "https://downloads.example.org/plural-1.0-0.tar.bz2");
+                }
+            }
+        );
+    }
+
+    TEST_CASE("Native serialization preserves per-package URLs", "[mamba::solver::libsolv]")
+    {
+        auto tmp_dir = TemporaryDirectory();
+        auto db = libsolv::Database({}, { libsolv::MatchSpecParser::Mamba });
+        auto package = mkpkg("package", "1.0");
+        package.build_string = "0";
+        package.filename = "package-1.0-0.tar.bz2";
+        package.package_url = "https://downloads.example.org/package-1.0-0.tar.bz2";
+        auto repo = db.add_repo_from_packages(std::array{ package }, "channel");
+
+        auto solv_file = tmp_dir.path() / "channel.solv";
+        auto origin = libsolv::RepodataOrigin{
+            /* .url= */ "https://channel.example.org/linux-64",
+            /* .etag= */ "etag",
+            /* .mod= */ "Fri, 11 Feb 2022 13:52:44 GMT",
+        };
+        REQUIRE(db.native_serialize_repo(repo, solv_file, origin).has_value());
+
+        auto loaded_repo = db.add_repo_from_native_serialization(solv_file, origin, "channel");
+        REQUIRE(loaded_repo.has_value());
+        REQUIRE(loaded_repo->package_count() == 1);
+
+        db.for_each_package_in_repo(
+            loaded_repo.value(),
+            [](const auto& pkg)
+            { REQUIRE(pkg.package_url == "https://downloads.example.org/package-1.0-0.tar.bz2"); }
+        );
     }
 
     /**

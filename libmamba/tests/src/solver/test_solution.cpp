@@ -39,8 +39,7 @@ namespace
                 for (const PackageInfo& pkg : as_const(solution).packages_to_remove())
                 {
                     remove_count++;
-                    const auto has_remove = util::ends_with(pkg.name, "remove")
-                                            || (pkg.name == "reinstall");
+                    const auto has_remove = pkg.name.ends_with("remove") || (pkg.name == "reinstall");
                     REQUIRE(has_remove);
                 }
                 REQUIRE(remove_count == 5);
@@ -52,7 +51,7 @@ namespace
                 for (const PackageInfo& pkg : as_const(solution).packages_to_install())
                 {
                     install_count++;
-                    const auto has_install = util::ends_with(pkg.name, "install")
+                    const auto has_install = pkg.name.ends_with("install")
                                              || (pkg.name == "reinstall");
                     REQUIRE(has_install);
                 }
@@ -65,7 +64,7 @@ namespace
                 for (const PackageInfo& pkg : as_const(solution).packages_to_omit())
                 {
                     omit_count++;
-                    REQUIRE(util::ends_with(pkg.name, "omit"));
+                    REQUIRE(pkg.name.ends_with("omit"));
                 }
                 REQUIRE(omit_count == 1);
             }

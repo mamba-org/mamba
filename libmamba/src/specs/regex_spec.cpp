@@ -44,8 +44,8 @@ namespace mamba::specs
         // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L134-L139.
         // See:
         // https://github.com/conda/conda/blob/52b6393d6331e8aa36b2e23ab65766a980f381d2/conda/models/match_spec.py#L889-L894
-        if (util::starts_with(raw_pattern, RegexSpec::pattern_start)
-            && util::ends_with(raw_pattern, RegexSpec::pattern_end))
+        if (raw_pattern.starts_with(RegexSpec::pattern_start)
+            && raw_pattern.ends_with(RegexSpec::pattern_end))
         {
             return raw_pattern;
         }
@@ -105,8 +105,8 @@ namespace mamba::specs
 
     auto RegexSpec::is_explicitly_free() const -> bool
     {
-        assert(util::starts_with(m_raw_pattern, pattern_start));
-        assert(util::ends_with(m_raw_pattern, pattern_end));
+        assert(m_raw_pattern.starts_with(pattern_start));
+        assert(m_raw_pattern.ends_with(pattern_end));
         return std::string_view(m_raw_pattern).substr(1, m_raw_pattern.size() - 2) == free_pattern;
     }
 
@@ -114,8 +114,8 @@ namespace mamba::specs
     {
         constexpr auto no_special_meaning = [](char c)
         { return util::is_alphanum(c) || (c == '-') || (c == '_'); };
-        assert(util::starts_with(m_raw_pattern, pattern_start));
-        assert(util::ends_with(m_raw_pattern, pattern_end));
+        assert(m_raw_pattern.starts_with(pattern_start));
+        assert(m_raw_pattern.ends_with(pattern_end));
         return std::all_of(m_raw_pattern.cbegin() + 1, m_raw_pattern.cend() - 1, no_special_meaning);
     }
 

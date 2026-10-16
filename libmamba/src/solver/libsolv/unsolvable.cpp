@@ -102,7 +102,17 @@ namespace mamba::solver::libsolv
             {
                 return std::nullopt;
             }
-            return { pool.dependency_to_string(id) };
+            // Reldeps and plain package-name string ids are both valid dependency ids.
+            // Do not gate on `get_solvable()`: string ids and solvable indices share the same
+            // numeric `Id` space in `libsolv`, so a legitimate dependency string id can
+            // coincide with a solvable index. Lock/verify jobs that pass a solvable id are
+            // detected via the job select mask (`SOLVER_SOLVABLE`) when building the problems
+            // graph.
+            if (pool.view().get_dependency(id).has_value())
+            {
+                return { pool.dependency_to_string(id) };
+            }
+            return { std::string(pool.get_string(id)) };
         }
 
         struct SolverProblem
@@ -116,6 +126,12 @@ namespace mamba::solver::libsolv
             std::optional<std::string> dep;
             std::string description;
         };
+
+        /** Job rules store the `libsolv` job `"how"` flags in `target_id`. */
+        auto is_solvable_selection_job(const SolverProblem& problem) -> bool
+        {
+            return (problem.target_id & SOLVER_SELECTMASK) == SOLVER_SOLVABLE;
+        }
 
         auto make_solver_problem(
             const solv::ObjSolver& solver,
@@ -172,10 +188,8 @@ namespace mamba::solver::libsolv
 
         void warn_unexpected_problem(const SolverProblem& problem)
         {
-            // TODO: Once the new error message are not experimental, we should consider
-            // reducing this level since it is not something the user has control over.
-            LOG_WARNING << "Unexpected empty optionals for problem type "
-                        << solv::enum_name(problem.type);
+            LOG_DEBUG << "Unexpected empty optionals for problem type "
+                      << solv::enum_name(problem.type);
         }
 
         class ProblemsGraphCreator
@@ -368,6 +382,16 @@ namespace mamba::solver::libsolv
                     )
                     .value();
             };
+            auto make_match_spec_from_problem =
+                [&](solv::DependencyId dep_id,
+                    const std::optional<std::string>& dep_str) -> specs::MatchSpec
+            {
+                if (dep_str.has_value())
+                {
+                    return make_match_spec_str(dep_str.value());
+                }
+                return make_match_spec(dep_id);
+            };
 
             // FIXME in practice we should extend the data structure with a PinNode rather than
             // patching the name.
@@ -375,6 +399,32 @@ namespace mamba::solver::libsolv
             {
                 fixup_pin_solvable(m_pool, pkg);
                 return pkg;
+            };
+
+            // Lock/verify jobs use `SOLVER_SOLVABLE`. `dep_id` is then a solvable id.
+            // Detect that via the job select mask (stored in `target_id`), not by
+            // probing `get_solvable(dep_id)`, which collides with string ids.
+            // Returns true when the problem was handled as such a job.
+            const auto try_add_root_locked_solvable = [&](const SolverProblem& problem) -> bool
+            {
+                if (!is_solvable_selection_job(problem))
+                {
+                    return false;
+                }
+                if (const auto locked = pool_id_to_package_info(m_pool, problem.dep_id))
+                {
+                    auto locked_id = add_solvable(
+                        problem.dep_id,
+                        PackageNode{ fixup_pkg(locked.value()) }
+                    );
+                    auto edge = make_match_spec_str(locked->name);
+                    m_graph.add_edge(m_root_node, locked_id, std::move(edge));
+                }
+                else
+                {
+                    warn_unexpected_problem(problem);
+                }
+                return true;
             };
 
             for (auto& problem : all_problems_structured(m_pool, m_solver))
@@ -409,9 +459,9 @@ namespace mamba::solver::libsolv
                         );
                         node_id cons_id = add_solvable(
                             problem.dep_id,
-                            ConstraintNode{ make_match_spec(problem.dep_id) }
+                            ConstraintNode{ make_match_spec_from_problem(problem.dep_id, problem.dep) }
                         );
-                        auto edge = make_match_spec(problem.dep_id);
+                        auto edge = make_match_spec_from_problem(problem.dep_id, problem.dep);
                         m_graph.add_edge(src_id, cons_id, std::move(edge));
                         add_conflict(cons_id, tgt_id);
                         break;
@@ -431,7 +481,7 @@ namespace mamba::solver::libsolv
                             problem.source_id,
                             PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
-                        auto edge = make_match_spec(problem.dep_id);
+                        auto edge = make_match_spec_from_problem(problem.dep_id, problem.dep);
                         bool added = add_expanded_deps_edges(src_id, problem.dep_id, edge);
                         if (!added)
                         {
@@ -441,16 +491,24 @@ namespace mamba::solver::libsolv
                         break;
                     }
                     case SOLVER_RULE_JOB:
+                    {
+                        // Handle `SOLVER_SOLVABLE` lock/verify jobs.
+                        // Otherwise fall through as a top-level dependency.
+                        if (try_add_root_locked_solvable(problem))
+                        {
+                            break;
+                        }
+                        [[fallthrough]];
+                    }
                     case SOLVER_RULE_PKG:
                     {
                         // A top level requirement.
-                        // The difference between JOB and PKG is unknown (possibly unused).
                         if (!dep)
                         {
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(problem.dep_id);
+                        auto edge = make_match_spec_from_problem(problem.dep_id, problem.dep);
                         bool added = add_expanded_deps_edges(m_root_node, problem.dep_id, edge);
                         if (!added)
                         {
@@ -465,15 +523,22 @@ namespace mamba::solver::libsolv
                     {
                         // A top level dependency does not exist.
                         // Could be a wrong name or missing channel.
+                        // `SOLVER_SOLVABLE` lock/verify jobs can also be classified as
+                        // `JOB_UNSUPPORTED`. Handle them like `SOLVER_RULE_JOB` above.
+                        if (try_add_root_locked_solvable(problem))
+                        {
+                            break;
+                        }
                         if (!dep)
                         {
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(problem.dep_id);
+                        auto edge = make_match_spec_from_problem(problem.dep_id, problem.dep);
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ make_match_spec(problem.dep_id) }
+                            UnresolvedDependencyNode{
+                                make_match_spec_from_problem(problem.dep_id, problem.dep) }
                         );
                         m_graph.add_edge(m_root_node, dep_id, std::move(edge));
                         break;
@@ -489,14 +554,15 @@ namespace mamba::solver::libsolv
                             warn_unexpected_problem(problem);
                             break;
                         }
-                        auto edge = make_match_spec(problem.dep_id);
+                        auto edge = make_match_spec_from_problem(problem.dep_id, problem.dep);
                         node_id src_id = add_solvable(
                             problem.source_id,
                             PackageNode{ fixup_pkg(std::move(source).value()) }
                         );
                         node_id dep_id = add_solvable(
                             problem.dep_id,
-                            UnresolvedDependencyNode{ make_match_spec(problem.dep_id) }
+                            UnresolvedDependencyNode{
+                                make_match_spec_from_problem(problem.dep_id, problem.dep) }
                         );
                         m_graph.add_edge(src_id, dep_id, std::move(edge));
                         break;

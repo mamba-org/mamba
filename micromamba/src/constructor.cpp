@@ -86,11 +86,11 @@ construct(Configuration& config, const fs::u8path& prefix, bool extract_conda_pk
         {
             try
             {
-                if (util::ends_with(fn, ".tar.bz2"))
+                if (fn.ends_with(".tar.bz2"))
                 {
                     return j.at("packages").at(fn);
                 }
-                else if (util::ends_with(fn, ".conda"))
+                else if (fn.ends_with(".conda"))
                 {
                     return j.at("packages.conda").at(fn);
                 }

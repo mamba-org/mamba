@@ -57,13 +57,11 @@ namespace mamba
             config.load();
 
             auto channel_context = ChannelContext::make_conda_compatible(ctx);
-            solver::libsolv::Database db{
-                channel_context.params(),
-                {
-                    ctx.experimental_matchspec_parsing ? solver::libsolv::MatchSpecParser::Mamba
-                                                       : solver::libsolv::MatchSpecParser::Libsolv,
-                },
-            };
+            auto db = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer_params
+            );
             add_logger_to_database(db);
 
             // bool installed = (type == QueryType::kDepends) || (type == QueryType::kWhoneeds);
@@ -129,7 +127,9 @@ namespace mamba
             switch (format)
             {
                 case QueryResultFormat::Json:
-                    out << res.groupby("name").json().dump(4);
+                    Console::instance().set_json_output(
+                        JSONEdit::from_json_object_members(res.groupby("name").json())
+                    );
                     break;
                 case QueryResultFormat::Pretty:
                     res.pretty(out, show_all_builds);
@@ -158,7 +158,7 @@ namespace mamba
                     res.tree(out, graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    out << res.json().dump(4);
+                    Console::instance().set_json_output(JSONEdit::from_json_object_members(res.json()));
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:
@@ -185,7 +185,7 @@ namespace mamba
                     res.tree(out, graphics_params);
                     break;
                 case QueryResultFormat::Json:
-                    out << res.json().dump(4);
+                    Console::instance().set_json_output(JSONEdit::from_json_object_members(res.json()));
                     break;
                 case QueryResultFormat::Table:
                 case QueryResultFormat::RecursiveTable:

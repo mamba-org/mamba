@@ -152,7 +152,6 @@ namespace
         pkg.size = 3200;
         pkg.timestamp = 4532;
         pkg.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
-        pkg.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
         pkg.md5 = "68b329da9893e34099c7d8ad5cb9c940";
         pkg.track_features = { "mkl", "blas" };
         pkg.dependencies = { "python>=3.7", "requests" };
@@ -197,10 +196,6 @@ namespace
             REQUIRE(
                 j.at("sha256") == "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
             );
-            REQUIRE(
-                j.at("signatures")
-                == R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})"
-            );
             REQUIRE(j.at("md5") == "68b329da9893e34099c7d8ad5cb9c940");
             REQUIRE(j.at("track_features") == "mkl,blas");
             REQUIRE(j.at("depends") == StrVec{ "python>=3.7", "requests" });
@@ -224,13 +219,21 @@ namespace
             j["size"] = 3200;
             j["timestamp"] = 4532;
             j["sha256"] = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
-            j["signatures"] = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
             j["md5"] = "68b329da9893e34099c7d8ad5cb9c940";
             j["track_features"] = "mkl,blas";
             j["depends"] = StrVec{ "python>=3.7", "requests" };
             j["constrains"] = StrVec{ "pip>=2.1" };
 
             REQUIRE(j.get<PackageInfo>() == pkg);
+
+            SECTION("urls fallback")
+            {
+                static constexpr auto package_url = "https://downloads.example.org/foo-4.0-mybld.conda";
+                j.erase("url");
+                j["urls"] = nl::json::array({ package_url });
+
+                REQUIRE(j.get<PackageInfo>().package_url == package_url);
+            }
 
             SECTION("noarch")
             {
@@ -286,7 +289,6 @@ namespace
             pkg2.size = 3200;
             pkg2.timestamp = 4532;
             pkg2.sha256 = "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b";
-            pkg2.signatures = R"("signatures": { "some_file.tar.bz2": { "a133184c9c7a651f55db194031a6c1240b798333923dc9319d1fe2c94a1242d": { "signature": "7a67a875d0454c14671d960a02858e059d154876dab6b3873304a27102063c9c25"}}})";
             pkg2.md5 = "68b329da9893e34099c7d8ad5cb9c940";
             pkg2.track_features = { "mkl", "blas" };
             pkg2.dependencies = { "python>=3.7", "requests" };
@@ -412,6 +414,37 @@ namespace
 
             CHECK(pkg.name == "numpy");
             CHECK(pkg.version == "1.24.0");
+        }
+
+        SECTION("Wheel package with dotless version (.whl)")
+        {
+            // Versions without dots (e.g. pywin32-312) must not be mistaken for build tags.
+            static constexpr std::string_view url = "https://files.pythonhosted.org/packages/ba/db/36a78e3403099d31d9746d13fdcde5accc43c1155f375a34d15983a479a7/pywin32-312-cp313-cp313-win_amd64.whl";
+            static constexpr std::string_view filename = "pywin32-312-cp313-cp313-win_amd64.whl";
+            auto pkg = PackageInfo::from_url(url).value();
+
+            REQUIRE(contains(pkg.defaulted_keys, defaulted_key::initialized));
+
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_number));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::license));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::timestamp));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::track_features));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::depends));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::constrains));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::build_string));
+            CHECK(contains(pkg.defaulted_keys, defaulted_key::subdir));
+
+            CHECK(pkg.name == "pywin32");
+            CHECK(pkg.version == "312");
+            CHECK(pkg.filename == filename);
+            CHECK(pkg.package_url == url);
+            CHECK(pkg.package_type == PackageType::Wheel);
+            CHECK(pkg.channel.empty());
+            CHECK(pkg.platform.empty());
+            CHECK(pkg.build_string.empty());
+            CHECK(pkg.md5.empty());
+            CHECK(pkg.sha256.empty());
         }
 
         SECTION("TarGz package (.tar.gz) has correct defaulted_keys")

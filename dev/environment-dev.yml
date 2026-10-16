@@ -1,13 +1,16 @@
+# Windows ARM64 uses a reduced subset (many packages are not on conda-forge yet):
+# see environment-dev-win-arm64.yml and https://github.com/mamba-org/mamba/issues/4393.
 channels:
   - conda-forge
 dependencies:
   # libmamba build dependencies
-  # Workaround `mamba-org/mamba#4043`
-  # TODO: Understand the linkage issue with GCC 14
-  - sel(linux): cxx-compiler <1.11 #       GCC 13
+  # Version of sysroot used globally for Linux (except riscv64)
+  # See: https://github.com/conda-forge/conda-forge-pinning-feedstock/blob/e7a00c91ec5446a771385d0ea5b0b6f0d64ffd59/recipe/conda_build_config.yaml#L19-L21
   - sel(linux): sysroot_linux-64==2.17
-  - sel(osx): cxx-compiler
-  - sel(win): cxx-compiler
+  # compilers >=2.0 install unprefixed compilers on PATH and no longer set CC/CXX.
+  # See: https://github.com/conda-forge/compilers-feedstock/pull/78
+  # See: https://github.com/conda-forge/conda-forge.github.io/pull/2595
+  - cxx-compiler
   - cmake >=3.16
   - pkg-config # Used by some CMake dependencies
   - ninja
@@ -28,6 +31,8 @@ dependencies:
   - spdlog >=1.16.0
   - yaml-cpp >=0.8.0
   - sel(win): winreg
+  # Replacement of `std::chrono::parse` (P0355R7) missing in libc++, see: https://github.com/llvm/llvm-project/issues/166051
+  - sel(osx): howardhinnant_date
   # libmamba test dependencies
   - catch2
   # micromamba dependencies
@@ -46,7 +51,6 @@ dependencies:
   - requests
   - sel(win): pywin32
   - sel(win): menuinst
-  - conda-content-trust
   - conda-package-handling
   - cryptography
   - securesystemslib

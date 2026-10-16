@@ -52,7 +52,8 @@ namespace mamba
     };
 
     /** Parse and validate a noarch:python entry point (``command = module:func``). */
-    auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>;
+    auto parse_entry_point(const std::string& ep_def)
+        -> expected_t<python_entry_point_parsed, mamba_aggregated_error>;
 
     class UnlinkPackage
     {

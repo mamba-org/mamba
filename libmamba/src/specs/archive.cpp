@@ -14,7 +14,7 @@ namespace mamba::specs
     {
         for (const auto& ext : ARCHIVE_EXTENSIONS)
         {
-            if (util::ends_with(path, ext))
+            if (path.ends_with(ext))
             {
                 return true;
             }

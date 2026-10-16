@@ -18,6 +18,7 @@
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/random.hpp"
+#include "mamba/util/string.hpp"
 #include "solv-cpp/pool.hpp"
 #include "solv-cpp/queue.hpp"
 
@@ -37,6 +38,7 @@ namespace mamba::solver::libsolv
         Settings settings;
         solv::ObjPool pool = {};
         Matcher matcher;
+        solv::ObjQueue virtual_package_lock_jobs = {};
     };
 
     Database::Database(specs::ChannelResolveParams channel_params)
@@ -153,12 +155,9 @@ namespace mamba::solver::libsolv
         const std::string& channel_id,
         PipAsPythonDependency add,
         PackageTypes package_types,
-        VerifyPackages verify_packages,
         RepodataParser repo_parser
     ) -> expected_t<RepoInfo>
     {
-        const auto verify_artifacts = static_cast<bool>(verify_packages);
-
         if (!fs::exists(path))
         {
             return make_unexpected(
@@ -181,7 +180,7 @@ namespace mamba::solver::libsolv
                     channel_id,
                     package_types,
                     settings().matchspec_parser,
-                    verify_artifacts
+                    settings().exclude_newer_policy
                 );
             }
 
@@ -194,7 +193,7 @@ namespace mamba::solver::libsolv
                     mamba_error_code::incorrect_usage
                 );
             }
-            return libsolv_read_json(repo, path, package_types, verify_artifacts)
+            return libsolv_read_json(repo, path, package_types)
                 .transform(
                     [&url, &channel_id](solv::ObjRepoView p_repo)
                     {
@@ -259,6 +258,10 @@ namespace mamba::solver::libsolv
     void
     Database::add_repo_from_packages_impl_loop(const RepoInfo& repo, const specs::PackageInfo& pkg)
     {
+        if (settings().exclude_newer_policy.excludes(pkg.name, normalize_conda_timestamp(pkg.timestamp)))
+        {
+            return;
+        }
         auto s_repo = solv::ObjRepoView(*repo.m_ptr);
         auto [id, solv] = s_repo.add_solvable();
         set_solvable(pool(), solv, pkg, settings().matchspec_parser);
@@ -313,6 +316,40 @@ namespace mamba::solver::libsolv
     void Database::set_installed_repo(RepoInfo repo)
     {
         pool().set_installed_repo(repo.id());
+    }
+
+    void Database::add_virtual_package_impl(const RepoInfo& repo, const specs::PackageInfo& pkg)
+    {
+        if (!pkg.name.starts_with("__"))
+        {
+            throw mamba_error(
+                fmt::format(R"(Package "{}" is not a virtual package)", pkg.name),
+                mamba_error_code::internal_failure
+            );
+        }
+        auto s_repo = solv::ObjRepoView(*repo.m_ptr);
+        auto [id, solv] = s_repo.add_solvable();
+        set_solvable(pool(), solv, pkg, settings().matchspec_parser);
+        // Virtual packages have no channel counterparts and no dependents, so libsolv treats them
+        // as orphans and may remove them during solving. That makes run constraints on other
+        // packages (e.g. ``cuda-version`` requiring ``__cuda >=13``) vacuous.
+        m_data->virtual_package_lock_jobs.push_back(SOLVER_VERIFY | SOLVER_SOLVABLE, id);
+        m_data->virtual_package_lock_jobs.push_back(SOLVER_LOCK | SOLVER_SOLVABLE, id);
+    }
+
+    void Database::internalize_repo(const RepoInfo& repo)
+    {
+        solv::ObjRepoView(*repo.m_ptr).internalize();
+    }
+
+    void Database::clear_virtual_package_lock_jobs()
+    {
+        m_data->virtual_package_lock_jobs.clear();
+    }
+
+    auto Database::virtual_package_lock_jobs() const -> const solv::ObjQueue&
+    {
+        return m_data->virtual_package_lock_jobs;
     }
 
     void Database::set_repo_priority(RepoInfo repo, Priorities priorities)
@@ -388,4 +425,18 @@ namespace mamba::solver::libsolv
         );
         return out;
     }
+
+    auto Database::has_package(const specs::MatchSpec& spec) -> bool
+    {
+        bool found = false;
+        for_each_package_matching(
+            spec,
+            [&](const auto&)
+            {
+                found = true;
+                return util::LoopControl::Break;
+            }
+        );
+        return found;
+    };
 }

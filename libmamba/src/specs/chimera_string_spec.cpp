@@ -19,8 +19,8 @@ namespace mamba::specs
     {
         [[nodiscard]] auto is_likely_regex(std::string_view pattern) -> bool
         {
-            return util::starts_with(pattern, RegexSpec::pattern_start)
-                   || util::ends_with(pattern, RegexSpec::pattern_end);
+            return pattern.starts_with(RegexSpec::pattern_start)
+                   || pattern.ends_with(RegexSpec::pattern_end);
         }
 
         [[nodiscard]] auto make_regex(std::string pattern) -> expected_parse_t<ChimeraStringSpec>

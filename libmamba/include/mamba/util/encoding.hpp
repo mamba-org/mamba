@@ -8,6 +8,7 @@
 #define MAMBA_UTIL_ENCODING_HPP
 
 #include <cstddef>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -31,12 +32,12 @@ namespace mamba::util
      *
      * The @p out parameter must be allocated with twice the size of the input byte buffer.
      */
-    void bytes_to_hex_to(const std::byte* first, const std::byte* last, char* out) noexcept;
+    void bytes_to_hex_to(std::span<const std::byte> bytes, char* out) noexcept;
 
     /**
      * Convert a buffer of bytes to a hexadecimal string.
      */
-    [[nodiscard]] auto bytes_to_hex_str(const std::byte* first, const std::byte* last) -> std::string;
+    [[nodiscard]] auto bytes_to_hex_str(std::span<const std::byte> bytes) -> std::string;
 
     /**
      * Convert a hexadecimal character to a lower nibble.

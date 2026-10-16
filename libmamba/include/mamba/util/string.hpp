@@ -72,12 +72,6 @@ namespace mamba::util
     extern template std::string to_upper(std::string&& str);
     extern template std::wstring to_upper(std::wstring&& str);
 
-    [[nodiscard]] auto starts_with(std::string_view str, std::string_view prefix) -> bool;
-    [[nodiscard]] auto starts_with(std::string_view str, std::string_view::value_type c) -> bool;
-
-    [[nodiscard]] auto ends_with(std::string_view str, std::string_view suffix) -> bool;
-    [[nodiscard]] auto ends_with(std::string_view str, std::string_view::value_type c) -> bool;
-
     [[nodiscard]] auto contains(std::string_view str, std::string_view sub_str) -> bool;
     [[nodiscard]] auto contains(std::string_view str, char c) -> bool;
     [[nodiscard]] auto contains(char c1, char c2) -> bool;
@@ -375,6 +369,32 @@ namespace mamba::util
     ) -> typename Range::value_type;
     ;
 
+    /**
+     * Compute the similarity ratio between two strings, as Python difflib does.
+     *
+     * This reproduces ``difflib.SequenceMatcher(None, a, b).ratio()``.
+     * The Ratcliff/Obershelp measure ``2 * M / T`` is computed,
+     * where ``T`` is the total number of elements in both sequences,
+     * and ``M`` is the number of matches. The result lies in ``[0, 1]``. Identical
+     * sequences have a ratio of 1.0, and sequences with no common elements have a ratio of 0.0.
+     */
+    [[nodiscard]] auto similarity_ratio(std::string_view a, std::string_view b) -> double;
+
+    /**
+     * Return the candidate strings that are "closest" to @p input, best match first.
+     *
+     * This mirrors ``difflib.get_close_matches`` : a candidate is considered when its
+     * @ref similarity_ratio with @p input is greater than or equal to @p cutoff. Matches are
+     * sorted by decreasing similarity ratio, breaking ties by the larger candidate string first.
+     * At most @p max_results are returned.
+     */
+    [[nodiscard]] auto closest_matches(
+        std::string_view input,
+        const std::vector<std::string>& candidates,
+        double cutoff = 0.6,
+        std::size_t max_results = 3
+    ) -> std::vector<std::string>;
+
     /************************
      *  Implementation misc *
      ************************/
@@ -394,7 +414,7 @@ namespace mamba::util
         return std::any_of(
             strs.cbegin(),
             strs.cend(),
-            [&prefix](const auto& s) { return starts_with(s, prefix); }
+            [&prefix](const auto& s) { return s.starts_with(prefix); }
         );
     }
 
@@ -419,7 +439,7 @@ namespace mamba::util
         return std::any_of(
             prefix.cbegin(),
             prefix.cend(),
-            [&str](const auto& p) { return starts_with(str, p); }
+            [&str](const auto& p) { return str.starts_with(p); }
         );
     }
 

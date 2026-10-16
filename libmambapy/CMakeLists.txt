@@ -9,11 +9,17 @@ include("../cmake/CompilerWarnings.cmake")
 
 project(libmambapy)
 
-if(NOT TARGET mamba::libmamba)
+# Python extension modules are shared objects. Prefer the shared libmamba so we do not link the
+# non-PIC static archive into the module. That combination is reached when BUILD_MICROMAMBA (hence
+# BUILD_STATIC) is on together with the shared preset, and fails to link with TLS local-exec
+# relocations (`R_X86_64_TPOFF32 ... local-exec is incompatible with -shared`).
+if(TARGET mamba::libmamba-dyn)
+    set(libmamba_target mamba::libmamba-dyn)
+elseif(TARGET mamba::libmamba)
+    set(libmamba_target mamba::libmamba)
+else()
     find_package(libmamba CONFIG REQUIRED)
     set(libmamba_target mamba::libmamba-dyn)
-else()
-    set(libmamba_target mamba::libmamba)
 endif()
 
 if(NOT TARGET mamba::libmamba-dyn-spdlog)

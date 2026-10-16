@@ -44,9 +44,13 @@ For Linux, macOS, or Git Bash on Windows install with:
 
 .. code:: bash
 
-   "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+   "${SHELL}" <(curl -L micro.mamba.pm)
 
-For NuShell users, run ``sh -c (curl -L micro.mamba.pm/install.sh)``.
+For NuShell users, run:
+
+.. code:: bash
+
+   sh -c (curl -L micro.mamba.pm)
 
 On Windows Powershell, use
 
@@ -91,6 +95,14 @@ Ensure that basic utilities are installed. We need ``curl`` and ``tar`` with sup
 Also you need a glibc based system like Ubuntu, Fedora or Centos (Alpine Linux does not work natively).
 
 The following magic URL always returns the latest available version of micromamba, and the ``bin/micromamba`` part is automatically extracted using ``tar``.
+
+On most systems you can use the output of ``uname`` to select the right platform automatically:
+
+.. code:: bash
+
+  curl -Ls https://micro.mamba.pm/api/micromamba/$(uname)-$(uname -m)/latest | tar -xvj bin/micromamba
+
+Alternatively, you can specify the platform explicitly:
 
 .. code:: bash
 
@@ -260,7 +272,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
    Use these paths to adapt the commands below to your specific installation.
 
 1. Remove shell initialization
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    If you initialized your shell with ``micromamba shell init``, you need to remove the initialization code from your shell configuration files.
    Run the following command for each shell you initialized:
@@ -283,7 +295,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
    This will remove the mamba initialization block from your shell configuration files (``.bashrc``, ``.zshrc``, ``config.fish``, etc.).
 
 2. Remove the micromamba executable
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    The location of the ``micromamba`` executable depends on your installation method:
 
@@ -299,7 +311,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
    Remove the directory where you extracted or installed the ``micromamba`` executable.
 
 3. Remove the root prefix directory and package cache
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    ``micromamba`` stores all environments, packages, and cache in specific directories.
    Check ``micromamba info`` to find the exact locations for your installation:
@@ -334,7 +346,7 @@ To completely remove ``micromamba`` from your system, follow these steps:
       This will delete all environments, installed packages, and cached data. Make sure you have backed up any important environments or data before removing this directory.
 
 4. Remove configuration files (optional)
-   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    Check ``micromamba info`` for the exact paths to your configuration files:
 

@@ -103,6 +103,67 @@ namespace
         msgpack_sbuffer_destroy(&sbuf);
         return compress_zstd(shard_msgpack);
     }
+
+    auto create_shard_with_boolean_noarch(
+        const std::string& package_name,
+        const std::string& version,
+        const std::string& build,
+        bool noarch
+    ) -> std::vector<std::uint8_t>
+    {
+        msgpack_sbuffer sbuf;
+        msgpack_sbuffer_init(&sbuf);
+        msgpack_packer pk;
+        msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
+
+        msgpack_pack_map(&pk, 1);
+        msgpack_pack_str(&pk, 8);
+        msgpack_pack_str_body(&pk, "packages", 8);
+
+        const std::string filename = package_name + "-" + version + "-" + build + ".tar.bz2";
+        msgpack_pack_map(&pk, 1);
+        msgpack_pack_str(&pk, filename.size());
+        msgpack_pack_str_body(&pk, filename.c_str(), filename.size());
+
+        msgpack_pack_map(&pk, 5);
+        msgpack_pack_str(&pk, 4);
+        msgpack_pack_str_body(&pk, "name", 4);
+        msgpack_pack_str(&pk, package_name.size());
+        msgpack_pack_str_body(&pk, package_name.c_str(), package_name.size());
+        msgpack_pack_str(&pk, 7);
+        msgpack_pack_str_body(&pk, "version", 7);
+        msgpack_pack_str(&pk, version.size());
+        msgpack_pack_str_body(&pk, version.c_str(), version.size());
+        msgpack_pack_str(&pk, 5);
+        msgpack_pack_str_body(&pk, "build", 5);
+        msgpack_pack_str(&pk, build.size());
+        msgpack_pack_str_body(&pk, build.c_str(), build.size());
+        msgpack_pack_str(&pk, 6);
+        msgpack_pack_str_body(&pk, "sha256", 6);
+        msgpack_pack_str(&pk, 64);
+        msgpack_pack_str_body(
+            &pk,
+            "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            64
+        );
+        msgpack_pack_str(&pk, 6);
+        msgpack_pack_str_body(&pk, "noarch", 6);
+        if (noarch)
+        {
+            msgpack_pack_true(&pk);
+        }
+        else
+        {
+            msgpack_pack_false(&pk);
+        }
+
+        std::vector<std::uint8_t> shard_msgpack(
+            reinterpret_cast<const std::uint8_t*>(sbuf.data),
+            reinterpret_cast<const std::uint8_t*>(sbuf.data + sbuf.size)
+        );
+        msgpack_sbuffer_destroy(&sbuf);
+        return compress_zstd(shard_msgpack);
+    }
 }
 
 TEST_CASE("Shards URL construction")
@@ -133,8 +194,8 @@ TEST_CASE("Shards URL construction")
 
         // shard_url should return absolute URL
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::starts_with(url, "https://shards.example.com"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.starts_with("https://shards.example.com"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Relative URL handling")
@@ -163,7 +224,7 @@ TEST_CASE("Shards URL construction")
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "anaconda.org"));
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Different host detection")
@@ -191,7 +252,7 @@ TEST_CASE("Shards URL construction")
 
         // Should handle different host correctly
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::starts_with(url, "https://different-host.com"));
+        REQUIRE(url.starts_with("https://different-host.com"));
     }
 }
 
@@ -789,7 +850,7 @@ TEST_CASE("Shards - Basic operations")
     SECTION("shard_url")
     {
         std::string url = shards.shard_url("pkg1");
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
         REQUIRE(util::contains(url, "anaconda.org"));
 
         REQUIRE_THROWS_AS(shards.shard_url("nonexistent"), std::runtime_error);
@@ -1248,9 +1309,9 @@ TEST_CASE("Shards - shards_base_url edge cases")
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
         REQUIRE_FALSE(util::contains(url, "repodata.json/"));
-        REQUIRE(util::starts_with(url, "https://anaconda.org/conda-forge/linux-64/"));
+        REQUIRE(url.starts_with("https://anaconda.org/conda-forge/linux-64/"));
     }
 
     SECTION("shards_base_url with trailing slash")
@@ -1265,7 +1326,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
         REQUIRE(util::contains(url, "shards"));
     }
 
@@ -1281,7 +1342,7 @@ TEST_CASE("Shards - shards_base_url edge cases")
         );
 
         std::string url = shards.shard_url("test-pkg");
-        REQUIRE(util::starts_with(url, "https://example.com/different/path/"));
+        REQUIRE(url.starts_with("https://example.com/different/path/"));
     }
 
     SECTION("Relative shards_base_url does not inherit repodata filename")
@@ -1297,8 +1358,8 @@ TEST_CASE("Shards - shards_base_url edge cases")
 
         const std::string url = shards.shard_url("test-pkg");
         REQUIRE_FALSE(util::contains(url, "repodata.json/"));
-        REQUIRE(util::starts_with(url, "https://conda.anaconda.org/conda-forge/linux-64/"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.starts_with("https://conda.anaconda.org/conda-forge/linux-64/"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 }
 
@@ -2307,7 +2368,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API - shard_url uses relative_shard_path internally
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Absolute URL with different host")
@@ -2324,7 +2385,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "different-host.com"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Relative URL with ./ prefix")
@@ -2341,7 +2402,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 
     SECTION("Relative URL with / prefix")
@@ -2358,7 +2419,7 @@ TEST_CASE("Shards - shard_url edge cases for relative_shard_path coverage")
         // Test through public API
         std::string url = shards.shard_url("test-pkg");
         REQUIRE(util::contains(url, "shards"));
-        REQUIRE(util::ends_with(url, ".msgpack.zst"));
+        REQUIRE(url.ends_with(".msgpack.zst"));
     }
 }
 
@@ -2485,10 +2546,7 @@ TEST_CASE("Shards - Disk caching")
 
         // Use wrong hash (different from index)
         std::vector<std::uint8_t> wrong_hash(32, 0xFF);
-        std::string wrong_hex_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(wrong_hash.data()),
-            reinterpret_cast<const std::byte*>(wrong_hash.data() + wrong_hash.size())
-        );
+        std::string wrong_hex_hash = util::bytes_to_hex_str(std::as_bytes(std::span{ wrong_hash }));
 
         // Write shard with wrong hash to cache
         auto cache_file = cache_dir / (wrong_hex_hash + ".msgpack.zst");
@@ -2518,10 +2576,7 @@ TEST_CASE("Shards - Disk caching")
         fs::create_directories(cache_dir);
 
         // Compute expected hash
-        std::string hex_hash = util::bytes_to_hex_str(
-            reinterpret_cast<const std::byte*>(hash_bytes.data()),
-            reinterpret_cast<const std::byte*>(hash_bytes.data() + hash_bytes.size())
-        );
+        std::string hex_hash = util::bytes_to_hex_str(std::as_bytes(std::span{ hash_bytes }));
 
         // Write corrupted data to cache
         auto cache_file = cache_dir / (hex_hash + ".msgpack.zst");
@@ -2760,5 +2815,71 @@ TEST_CASE("Shards - process_downloaded_shard")
             (util::contains(err_msg, "msgpack") || util::contains(err_msg, "parse")
              || util::contains(err_msg, "MAP"))
         );
+    }
+}
+
+// Regression for boolean noarch values invalid per CEP 34 (`noarch: Literal['generic', 'python']`;
+// cep-0034.md § `./info/index.json`) still present in repodata shards.
+// https://github.com/conda/ceps/blob/15879bf84d640fbad6dd80b028f47b04b2620291/cep-0034.md?plain=1#L57
+// https://github.com/conda-forge/tensorboard-feedstock/issues/93
+TEST_CASE("Shards - parse legacy boolean noarch field")
+{
+    ShardsIndexDict index;
+    index.info.base_url = "https://example.com/packages";
+    index.info.shards_base_url = "shards";
+    index.info.subdir = "noarch";
+    index.version = 1;
+    index.shards["tensorboard"] = std::vector<std::uint8_t>(32, 0xAB);
+
+    specs::Channel channel = make_simple_channel("https://anaconda.org/conda-forge");
+    specs::AuthenticationDataBase auth_info;
+    download::RemoteFetchParams remote_fetch_params;
+
+    Shards shards(
+        index,
+        "https://anaconda.org/conda-forge/noarch/repodata.json",
+        channel,
+        auth_info,
+        remote_fetch_params
+    );
+
+    SECTION("noarch true maps to Generic")
+    {
+        auto shard_data = create_shard_with_boolean_noarch("tensorboard", "2.1.1", "py38_0", true);
+
+        download::Success success;
+        success.content = download::Buffer{
+            std::string(reinterpret_cast<const char*>(shard_data.data()), shard_data.size())
+        };
+        success.transfer.downloaded_size = shard_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["tensorboard"] = fs::u8path("/dummy/tensorboard.msgpack.zst");
+
+        auto result = test_process_downloaded_shard(shards, "tensorboard", success, package_to_cache_path);
+
+        REQUIRE(result.has_value());
+        const auto& record = result.value().packages.at("tensorboard-2.1.1-py38_0.tar.bz2");
+        REQUIRE(record.noarch == specs::NoArchType::Generic);
+    }
+
+    SECTION("noarch false is ignored")
+    {
+        auto shard_data = create_shard_with_boolean_noarch("tensorboard", "2.1.1", "py38_0", false);
+
+        download::Success success;
+        success.content = download::Buffer{
+            std::string(reinterpret_cast<const char*>(shard_data.data()), shard_data.size())
+        };
+        success.transfer.downloaded_size = shard_data.size();
+
+        std::map<std::string, fs::u8path> package_to_cache_path;
+        package_to_cache_path["tensorboard"] = fs::u8path("/dummy/tensorboard.msgpack.zst");
+
+        auto result = test_process_downloaded_shard(shards, "tensorboard", success, package_to_cache_path);
+
+        REQUIRE(result.has_value());
+        const auto& record = result.value().packages.at("tensorboard-2.1.1-py38_0.tar.bz2");
+        REQUIRE_FALSE(record.noarch.has_value());
     }
 }

@@ -385,9 +385,10 @@ namespace mamba
                 file_duration tdiff = ref - last_write;
                 return tdiff;
             }
-            catch (std::exception&)
+            catch (std::exception& ex)
             {
                 // could not open the file...
+                LOG_DEBUG << "assuming cache miss because failed to get cache age of '" << cache_file << "': " << ex.what();
                 return file_duration::max();
             }
         }

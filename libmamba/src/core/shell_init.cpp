@@ -125,7 +125,7 @@ namespace mamba
         // Standard values are assumed to be `/bin/{shell_type}` or `/usr/bin/{shell_type}`
         if (util::get_env("SHELL").has_value())
         {
-            return util::split(util::get_env("SHELL").value(), "/").back();
+            return util::as_strings(std::views::split(util::get_env("SHELL").value(), '/')).back();
         }
 
         LOG_DEBUG << "Couldn't guess shell, returning empty.";
@@ -298,9 +298,10 @@ namespace mamba
         // remove the mamba hook from the autorun list
         std::wstringstream stringstream(prev_value);
         std::wstring segment;
-        std::vector<std::wstring> autorun_list;
 
-        autorun_list = util::split(std::wstring_view(prev_value), std::wstring_view(L"&"));
+        auto autorun_list = rangesext::to<std::vector<std::wstring>>(
+            std::views::split(std::wstring_view(prev_value), std::wstring_view(L"&"))
+        );
 
         // remove the mamba hook from the autorun list
         autorun_list.erase(
@@ -313,7 +314,7 @@ namespace mamba
         );
 
         // join the list back into a string
-        std::wstring new_value = util::join(L" & ", autorun_list);
+        auto new_value = util::join_with<std::wstring>(autorun_list, std::wstring_view(L" & "));
 
         // set modified registry key
         if (new_value != prev_value)

@@ -333,6 +333,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/parsers.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/path_manip.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/random.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/ranges.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/string.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/synchronized_value.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/tuple_hash.hpp

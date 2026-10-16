@@ -1034,7 +1034,7 @@ namespace mamba
 #ifdef _WIN32
                 // Special handling of entry points created by distlib, see:
                 // https://github.com/conda/conda/blob/22e5a28adebb32f2bd067d8a126597d769639702/conda/core/portability.py#L332-L347
-                static constexpr std::array pyzzer_file_extensions{ "exe"sv, "pyz"sv };
+                static constexpr std::array pyzzer_file_extensions{ ".exe"sv, ".pyz"sv };
                 // we ignore other non-pyz files in the bin directory
                 if (stdext::contains(pyzzer_file_extensions, src.extension().string()))
                 {

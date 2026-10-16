@@ -210,6 +210,80 @@ namespace mamba
             return "";
         }
 
+        namespace
+        {
+            // Parse a `major.minor` compute capability, e.g. "8.0".
+            auto parse_compute_cap(std::string_view str) -> std::optional<std::pair<int, int>>
+            {
+                // Bounded digits keep `std::stoi` from throwing on absurd input.
+                static const std::regex re("([0-9]{1,4})\\.([0-9]{1,4})");
+                const std::string s{ str };
+                std::smatch m;
+                if (!std::regex_match(s, m, re))
+                {
+                    return std::nullopt;
+                }
+                return std::pair{ std::stoi(m[1].str()), std::stoi(m[2].str()) };
+            }
+        }
+
+        std::string parse_min_compute_cap(std::string_view nvidia_smi_output)
+        {
+            // Compare numerically: "10.0" > "9.0".
+            std::optional<std::pair<int, int>> min_cap;
+            for (auto line : util::split(nvidia_smi_output, "\n"))
+            {
+                const auto cap = parse_compute_cap(util::strip(line));
+                if (cap && (!min_cap || *cap < *min_cap))
+                {
+                    min_cap = cap;
+                }
+            }
+            if (!min_cap)
+            {
+                return "";
+            }
+            return std::to_string(min_cap->first) + "." + std::to_string(min_cap->second);
+        }
+
+        std::string cuda_arch_version(const override_virtual_packages_map& overrides)
+        {
+            LOG_DEBUG << "Loading CUDA arch virtual package";
+
+            if (auto override_arch = get_virtual_package_override("cuda_arch", overrides))
+            {
+                const std::string arch{ util::strip(override_arch.value()) };
+                if (!arch.empty() && !parse_compute_cap(arch))
+                {
+                    LOG_WARNING << "Ignoring invalid CUDA arch override '" << arch
+                                << "', expected the form 'major.minor' (e.g. '8.0')";
+                    return "";
+                }
+                LOG_DEBUG << "CUDA arch set by override: " << arch;
+                return arch;
+            }
+
+            LOG_DEBUG << "Trying to find CUDA arch by running "
+                         "`nvidia-smi --query-gpu=compute_cap --format=csv,noheader`";
+
+            std::string out, err;
+            std::vector<std::string> args = { "nvidia-smi",
+                                              "--query-gpu=compute_cap",
+                                              "--format=csv,noheader" };
+            auto [status, ec] = reproc::run(
+                args,
+                reproc::options{},
+                reproc::sink::string(out),
+                reproc::sink::string(err)
+            );
+            if (ec || status != 0)
+            {
+                LOG_DEBUG << "CUDA arch not found";
+                return "";
+            }
+            return parse_min_compute_cap(out);
+        }
+
         auto make_virtual_package(  //
             std::string name,
             std::string subdir,
@@ -495,6 +569,13 @@ namespace mamba
         if (!cuda_ver.empty())
         {
             res.push_back(detail::make_virtual_package("__cuda", platform, cuda_ver));
+
+            // `__cuda_arch` must only exist when `__cuda` does.
+            auto cuda_arch = detail::cuda_arch_version(override_virtual_packages);
+            if (!cuda_arch.empty())
+            {
+                res.push_back(detail::make_virtual_package("__cuda_arch", platform, cuda_arch));
+            }
         }
 
         return res;

@@ -157,6 +157,7 @@ namespace mamba
 
                 // Suppress any host CUDA detection so the baseline is predictable.
                 util::set_env("CONDA_OVERRIDE_CUDA", "");
+                util::set_env("CONDA_OVERRIDE_CUDA_ARCH", "");
                 auto baseline = get_virtual_packages(platform, overrides);
                 const size_t baseline_count = baseline.size();
                 REQUIRE(baseline_count == 4);
@@ -180,7 +181,7 @@ namespace mamba
 
                 const override_virtual_packages_map overrides = {
                     { "cuda", "13.1" }, { "glibc", "2.15" },         { "linux", "5.7" },
-                    { "osx", "12.1" },  { "archspec", "x86_64_v4" },
+                    { "osx", "12.1" },  { "archspec", "x86_64_v4" }, { "cuda_arch", "" },
                 };
 
                 auto pkgs = get_virtual_packages("linux-64", overrides);
@@ -215,6 +216,7 @@ namespace mamba
                 // Keys with `__` prefix are accepted and applied.
                 const override_virtual_packages_map overrides = {
                     { "__cuda", "11.8" },
+                    { "__cuda_arch", "" },
                     { "__archspec", "x86_64_v2" },
                 };
 
@@ -230,7 +232,8 @@ namespace mamba
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
 
                 util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
-                const override_virtual_packages_map overrides = { { "cuda", "13.1" } };
+                const override_virtual_packages_map overrides = { { "cuda", "13.1" },
+                                                                  { "cuda_arch", "" } };
 
                 auto pkgs = get_virtual_packages("linux-64", overrides);
                 REQUIRE(pkgs.back().name == "__cuda");
@@ -323,6 +326,69 @@ namespace mamba
 
                 const auto pkgs = get_virtual_packages("linux-64", overrides);
                 REQUIRE_FALSE(has_virtual_package(pkgs, "__cuda"));
+            }
+
+            TEST_CASE("parse_min_compute_cap")
+            {
+                REQUIRE(detail::parse_min_compute_cap("8.0\n") == "8.0");
+                // Multi-GPU: lowest capability wins, compared numerically.
+                REQUIRE(detail::parse_min_compute_cap("12.0\n9.0\n10.0\n") == "9.0");
+                REQUIRE(detail::parse_min_compute_cap("8.6\r\n7.5\r\n") == "7.5");
+                // Malformed lines are ignored.
+                REQUIRE(detail::parse_min_compute_cap("garbage\n\n8.9\n[N/A]\n") == "8.9");
+                // Out-of-range numbers are ignored rather than throwing.
+                REQUIRE(detail::parse_min_compute_cap("99999999999.0\n8.9\n") == "8.9");
+                REQUIRE(detail::parse_min_compute_cap("99999999999.0\n").empty());
+                REQUIRE(detail::parse_min_compute_cap("").empty());
+                REQUIRE(detail::parse_min_compute_cap("garbage\n").empty());
+            }
+
+            TEST_CASE("cuda_arch_override")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                util::set_env("CONDA_OVERRIDE_CUDA", "12.0");
+
+                SECTION("valid override is placed right after __cuda")
+                {
+                    util::set_env("CONDA_OVERRIDE_CUDA_ARCH", "8.0");
+                    const auto pkgs = get_virtual_packages("linux-64", {});
+                    REQUIRE(pkgs.back().name == "__cuda_arch");
+                    REQUIRE(pkgs.back().version == "8.0");
+                    REQUIRE(pkgs.back().build_string == "0");
+                    REQUIRE(pkgs[pkgs.size() - 2].name == "__cuda");
+                }
+
+                SECTION("empty or invalid override suppresses the package")
+                {
+                    const auto value = GENERATE(as<std::string>{}, "", "80", "8.0a", "abc");
+                    util::set_env("CONDA_OVERRIDE_CUDA_ARCH", value);
+                    const auto pkgs = get_virtual_packages("linux-64", {});
+                    REQUIRE(has_virtual_package(pkgs, "__cuda"));
+                    REQUIRE_FALSE(has_virtual_package(pkgs, "__cuda_arch"));
+                }
+
+                SECTION("config keys, with and without dunder prefix")
+                {
+                    const auto key = GENERATE(as<std::string>{}, "cuda_arch", "__cuda_arch");
+                    const auto pkgs = get_virtual_packages("linux-64", { { key, "7.5" } });
+                    REQUIRE(require_virtual_package(pkgs, "__cuda_arch").version == "7.5");
+                }
+
+                SECTION("env takes precedence over config")
+                {
+                    util::set_env("CONDA_OVERRIDE_CUDA_ARCH", "9.0");
+                    const auto pkgs = get_virtual_packages("linux-64", { { "cuda_arch", "7.5" } });
+                    REQUIRE(require_virtual_package(pkgs, "__cuda_arch").version == "9.0");
+                }
+
+                SECTION("absent when __cuda is absent")
+                {
+                    util::set_env("CONDA_OVERRIDE_CUDA", "");
+                    util::set_env("CONDA_OVERRIDE_CUDA_ARCH", "8.0");
+                    const auto pkgs = get_virtual_packages("linux-64", {});
+                    REQUIRE_FALSE(has_virtual_package(pkgs, "__cuda"));
+                    REQUIRE_FALSE(has_virtual_package(pkgs, "__cuda_arch"));
+                }
             }
         }
     }

@@ -25,12 +25,12 @@
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/algorithm.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
-#include "mamba/util/algorithm.hpp"
 
 #include "./transaction_context.hpp"
 
@@ -1032,10 +1032,11 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
 
 #ifdef _WIN32
-                // Special handling of entry points created by distlib,
-                // see: https://github.com/conda/conda/blob/22e5a28adebb32f2bd067d8a126597d769639702/conda/core/portability.py#L332-L347
+                // Special handling of entry points created by distlib, see:
+                // https://github.com/conda/conda/blob/22e5a28adebb32f2bd067d8a126597d769639702/conda/core/portability.py#L332-L347
                 static constexpr std::array pyzzer_file_extensions{ "exe"sv, "pyz"sv };
-                if (stdext::contains(pyzzer_file_extensions, src.extension().string()))  // we ignore other non-pyz files in the bin directory
+                // we ignore other non-pyz files in the bin directory
+                if (stdext::contains(pyzzer_file_extensions, src.extension().string()))
                 {
                     auto has_pyzzer_entrypoint = [](const std::string& data)
                     { return data.rfind("PK\x05\x06"); };

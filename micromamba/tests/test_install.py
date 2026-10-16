@@ -1118,10 +1118,21 @@ def test_install_revision(tmp_home, tmp_root_prefix):
     assert xtl_regex.search(res)
     assert "nlohmann_json" in res
 
+
 @pytest.mark.parametrize("output_flag", ["", "--json", "--quiet"])
 def test_install_python_downgrade_315_314(tmp_home, tmp_root_prefix, tmp_path, output_flag):
-    env_prefix = tmp_path / "env-pythong-downgrade-315-314"
+    env_prefix = tmp_path / "env-python-downgrade-315-314"
 
     helpers.create("-p", env_prefix, "-c", "conda-forge", "python=3.15", "pip", "-y", output_flag)
     # We expect no mamba crash when downgrading this version of python
-    helpers.install("-p", env_prefix, "--override-channels", "-c", "defaults", "psutil", "python=3.14", "-y", output_flag)
+    helpers.install(
+        "-p",
+        env_prefix,
+        "--override-channels",
+        "-c",
+        "defaults",
+        "psutil",
+        "python=3.14",
+        "-y",
+        output_flag,
+    )

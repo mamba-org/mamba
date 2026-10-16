@@ -388,7 +388,8 @@ namespace mamba
             catch (std::exception& ex)
             {
                 // could not open the file...
-                LOG_DEBUG << "assuming cache miss because failed to get cache age of '" << cache_file << "': " << ex.what();
+                LOG_DEBUG << "assuming cache miss because failed to get cache age of '"
+                          << cache_file << "': " << ex.what();
                 return file_duration::max();
             }
         }

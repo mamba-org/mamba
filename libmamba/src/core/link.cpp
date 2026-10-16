@@ -25,6 +25,7 @@
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/algorithm.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -1031,51 +1032,75 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
 
 #ifdef _WIN32
-                auto has_pyzzer_entrypoint = [](const std::string& data)
-                { return data.rfind("PK\x05\x06"); };
-
-                // on win we only replace pyzzer entrypoints apparently
-                auto entry_point = has_pyzzer_entrypoint(buffer);
-
-                struct pyzzer_struct
+                // Special handling of entry points created by distlib, see:
+                // https://github.com/conda/conda/blob/22e5a28adebb32f2bd067d8a126597d769639702/conda/core/portability.py#L332-L347
+                static constexpr std::array pyzzer_file_extensions{ "exe"sv, "pyz"sv };
+                // we ignore other non-pyz files in the bin directory
+                if (stdext::contains(pyzzer_file_extensions, src.extension().string()))
                 {
-                    uint32_t cdr_size;
-                    uint32_t cdr_offset;
-                } pyzzer_entry;
+                    auto has_pyzzer_entrypoint = [](const std::string& data)
+                    { return data.rfind("PK\x05\x06"); };
 
-                if (entry_point != std::string::npos)
-                {
-                    std::string launcher, shebang;
-                    pyzzer_entry = *reinterpret_cast<const pyzzer_struct*>(
-                        buffer.c_str() + entry_point
-                    );
-                    std::size_t arc_pos = entry_point - pyzzer_entry.cdr_size
-                                          - pyzzer_entry.cdr_offset;
+                    // on win we only replace pyzzer entrypoints apparently
+                    auto entry_point = has_pyzzer_entrypoint(buffer);
 
-                    if (arc_pos > 0)
+                    if (entry_point != std::string::npos)
                     {
-                        auto pos = buffer.rfind("#!", arc_pos);
-                        if (pos != std::string::npos)
+                        // see
+                        // https://en.wikipedia.org/wiki/ZIP_(file_format)#End_of_central_directory_record_(EOCD)
+                        const std::byte* eocd_p = reinterpret_cast<const std::byte*>(buffer.data())
+                                                  + entry_point;
+                        constexpr size_t eocd_offset_to_size = 12;
+                        constexpr size_t eocd_offset_to_offset = 16;
+
+                        const uint32_t cdr_size = *reinterpret_cast<const uint32_t*>(
+                            eocd_p + eocd_offset_to_size
+                        );
+                        uint32_t cdr_offset = *reinterpret_cast<const uint32_t*>(
+                            eocd_p + eocd_offset_to_offset
+                        );
+
+                        // we're converting everything to bigger signed types here to avoid issues
+                        // due to unsigned ints overflows
+                        std::int64_t pyzzer_offset = int64_t(cdr_size) + int64_t(cdr_offset);
+
+                        // NOTE: If the offset doesnt make sense, we ignore the EOCD record.
+                        // Some binary files might contain zip archives which will appear with
+                        // the marker we expect, but then the offsets don't make sense.
+                        // In that case we can assume that this is not a actually a pyzzer
+                        // entry point but something else, and we should ignore it.
+                        if (pyzzer_offset < int64_t(entry_point))
                         {
-                            shebang = buffer.substr(pos, arc_pos);
-                            if (pos > 0)
+                            std::size_t arc_pos = entry_point - pyzzer_offset;
+                            std::string launcher, shebang;
+                            if (arc_pos > 0)
                             {
-                                launcher = buffer.substr(0, pos);
+                                auto pos = buffer.rfind("#!", arc_pos);
+                                if (pos != std::string::npos)
+                                {
+                                    shebang = buffer.substr(pos, arc_pos);
+                                    if (pos > 0)
+                                    {
+                                        launcher = buffer.substr(0, pos);
+                                    }
+                                }
                             }
+
+                            if (!shebang.empty() && !launcher.empty())
+                            {
+                                util::replace_all(shebang, path_data.prefix_placeholder, new_prefix);
+                                std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
+                                fo << launcher;
+                                fo << shebang;
+                                fo << (buffer.c_str() + arc_pos);
+                                fo.close();
+                            }
+                            return std::make_tuple(
+                                std::string(validation::sha256sum(dst)),
+                                rel_dst.generic_string()
+                            );
                         }
                     }
-
-                    if (!shebang.empty() && !launcher.empty())
-                    {
-                        util::replace_all(shebang, path_data.prefix_placeholder, new_prefix);
-                        std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
-                        fo << launcher << shebang << (buffer.c_str() + arc_pos);
-                        fo.close();
-                    }
-                    return std::make_tuple(
-                        std::string(validation::sha256sum(dst)),
-                        rel_dst.generic_string()
-                    );
                 }
 #else
                 std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size())

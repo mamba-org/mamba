@@ -4,9 +4,13 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <algorithm>
 #include <array>
+#include <cctype>
+#include <fstream>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include <fmt/ranges.h>
@@ -24,8 +28,27 @@
 #include "mamba/util/graph.hpp"
 #include "mamba/util/string.hpp"
 
+#include "transaction_context.hpp"
+
 namespace mamba
 {
+    namespace
+    {
+        // PEP 503 normalization: lowercase, and treat `-`, `_` and `.` as equivalent.
+        auto normalize_pypi_name(std::string_view name) -> std::string
+        {
+            std::string out(name);
+            std::transform(
+                out.begin(),
+                out.end(),
+                out.begin(),
+                [](unsigned char c)
+                { return (c == '_' || c == '.') ? '-' : static_cast<char>(std::tolower(c)); }
+            );
+            return out;
+        }
+    }
+
     auto
     PrefixData::create(const fs::u8path& prefix_path, ChannelContext& channel_context, bool no_pip)
         -> expected_t<PrefixData>
@@ -413,14 +436,90 @@ namespace mamba
             // when no Python executable is available in the target environment.
             const std::string platform = std::string(specs::build_platform_name());
 
+            // `uv pip list` reports every distribution visible in site-packages, including
+            // conda-installed ones (they ship a `.dist-info`/`.egg-info`). Those are not
+            // pip/uv-managed. A distribution is excluded from the pip records when:
+            //  - its (normalized) name matches an installed conda package, or
+            //  - it is found in site-packages and its `INSTALLER` marker is not `pip`/`uv`
+            //     (covers conda packages whose distribution name differs from the conda name,
+            //     e.g. `pytorch` vs `torch`). The exclusion name is derived from the entry
+            //     basename exactly like `uv pip list` reports it (the first `-`-delimited
+            //     segment of `<name>-<version>.dist-info`/`.egg-info`), and not from `METADATA`.
+            std::unordered_set<std::string> non_pip_names;
+
+            // conda-meta records are conda managed by definition
+            for (const auto& pair : m_package_records)
+            {
+                non_pip_names.insert(normalize_pypi_name(pair.first));
+            }
+
+            // Hardening for package name alias cases
+            if (const auto python_it = m_package_records.find("python");
+                python_it != m_package_records.end())
+            {
+                const fs::u8path site_packages = m_prefix_path
+                                                 / effective_python_site_packages_path(
+                                                     python_it->second
+                                                 );
+
+                std::error_code ec;
+                for (const auto& entry : fs::directory_iterator(site_packages, ec))
+                {
+                    const fs::u8path entry_path = entry.path();
+                    const std::string ext = entry_path.extension().string();
+                    if (ext != ".dist-info" && ext != ".egg-info")
+                    {
+                        continue;
+                    }
+
+                    // Positively pip/uv-managed distributions stay in the pip records.
+                    const std::string installer = [&]() -> std::string
+                    {
+                        const auto installer_path = entry_path / "INSTALLER";
+                        if (fs::exists(installer_path))
+                        {
+                            std::ifstream installer_file(installer_path.std_path());
+                            std::string installer_line;
+                            std::getline(installer_file, installer_line);
+                            return std::string(util::strip(installer_line));
+                        }
+                        return {};
+                    }();
+
+                    if (installer == "pip" || installer == "uv")
+                    {
+                        continue;
+                    }
+
+                    // Not positively pip/uv-managed: exclude the distribution.
+                    // Derive the name from the entry basename like `uv pip list`
+                    std::string name = entry_path.stem().string();
+                    name = name.substr(0, name.find('-'));
+                    if (!name.empty())
+                    {
+                        non_pip_names.insert(normalize_pypi_name(name));
+                    }
+                }
+                if (ec)
+                {
+                    LOG_DEBUG << "Cannot list python site packages '" << site_packages.string()
+                              << "': " << ec.message();
+                }
+            }
+
             for (const auto& package : inspection.packages)
             {
                 if (!package.contains("name") || !package.contains("version"))
                 {
                     continue;
                 }
+                const std::string name = package["name"].get<std::string>();
+                if (non_pip_names.contains(normalize_pypi_name(name)))
+                {
+                    continue;
+                }
                 auto prec = specs::PackageInfo(
-                    package["name"].get<std::string>(),
+                    name,
                     package["version"].get<std::string>(),
                     "pypi_0",
                     "pypi"

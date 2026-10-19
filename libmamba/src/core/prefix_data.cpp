@@ -473,15 +473,19 @@ namespace mamba
                     }
 
                     // Positively pip/uv-managed distributions stay in the pip records.
-                    std::string installer;
-                    const auto installer_path = entry_path / "INSTALLER";
-                    if (fs::exists(installer_path))
+                    const std::string installer = [&]() -> std::string
                     {
-                        std::ifstream installer_file(installer_path.std_path());
-                        std::string installer_line;
-                        std::getline(installer_file, installer_line);
-                        installer = std::string(util::strip(installer_line));
-                    }
+                        const auto installer_path = entry_path / "INSTALLER";
+                        if (fs::exists(installer_path))
+                        {
+                            std::ifstream installer_file(installer_path.std_path());
+                            std::string installer_line;
+                            std::getline(installer_file, installer_line);
+                            return std::string(util::strip(installer_line));
+                        }
+                        return {};
+                    }();
+
                     if (installer == "pip" || installer == "uv")
                     {
                         continue;
@@ -489,13 +493,17 @@ namespace mamba
 
                     // Not positively pip/uv-managed: exclude the distribution.
                     // Derive the name from the entry basename like `uv pip list`
-                    std::string name = entry_path.filename().string();
-                    name.erase(name.size() - ext.size());
+                    std::string name = entry_path.stem().string();
                     name = name.substr(0, name.find('-'));
                     if (!name.empty())
                     {
                         non_pip_names.insert(normalize_pypi_name(name));
                     }
+                }
+                if (ec)
+                {
+                    LOG_DEBUG << "Cannot list python site packages '" << site_packages.string()
+                              << "': " << ec.message();
                 }
             }
 

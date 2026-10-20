@@ -24,6 +24,7 @@
 #include "mamba/core/util_scope.hpp"
 #include "mamba/specs/conda_url.hpp"
 #include "mamba/specs/platform.hpp"
+#include "mamba/util/algorithm.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/graph.hpp"
 #include "mamba/util/string.hpp"
@@ -32,6 +33,8 @@
 
 namespace mamba
 {
+    using namespace std::literals::string_view_literals;
+
     namespace
     {
         // PEP 503 normalization: lowercase, and treat `-`, `_` and `.` as equivalent.
@@ -467,7 +470,8 @@ namespace mamba
                 {
                     const fs::u8path entry_path = entry.path();
                     const std::string ext = entry_path.extension().string();
-                    if (ext != ".dist-info" && ext != ".egg-info")
+                    constexpr std::array expected_extensions{ ".dist-info"sv, ".egg-info"sv };
+                    if (!stdext::contains(expected_extensions, ext))
                     {
                         continue;
                     }

@@ -21,7 +21,10 @@ def test_log_params():
     params.log_backtrace = 42
 
 class TestLogHandler:
-    pass
+    
+    def start_log_handling(*args):
+        pass
+    
 
 
 def test_log_handler_basics():
@@ -29,7 +32,7 @@ def test_log_handler_basics():
 
     no_log_handler = logging.AnyLogHandler()
     assert not no_log_handler
-    assert not log_handler.has_pyobject()
+    assert not no_log_handler.has_pyobject()
 
     log_handler = logging.AnyLogHandler(TestLogHandler())
     assert log_handler

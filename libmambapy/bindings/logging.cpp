@@ -11,6 +11,8 @@
 #include <pybind11/native_enum.h>
 #include <pybind11/stl.h>
 
+#include <fmt/std.h>
+
 #include "mamba/core/logging.hpp"
 #include "mamba/core/logging_tools.hpp"
 
@@ -26,7 +28,7 @@ namespace mambapy
     {
         struct pytype_hash
         {
-            std::size_t operator()(const pybind11::type& type) const noexcept
+            auto operator()(const pybind11::type& type) const noexcept
             {
                 return pybind11::hash(type);
             }
@@ -64,6 +66,14 @@ namespace mambapy
         }
     }
 
+    // TODO: DOC!!!
+    // auto has_log_handler_interface(const pybind11::object& object) -> bool
+    // {
+
+    // }
+
+    // auto check_log_handler_interface(const pybind11::object& object) -> 
+
     namespace
     {
 
@@ -80,12 +90,14 @@ namespace mambapy
             PyAnyLogHandler(PyAnyLogHandler&&) = default;
             PyAnyLogHandler& operator=(PyAnyLogHandler&&) = default;
 
-            explicit PyAnyLogHandler(pybind11::object object)
+            explicit PyAnyLogHandler(pybind11::object object, bool check_log_handler_interface = true)
                 : impl(std::move(object))
             {
-                // TODO: Consider checking the validity of the object early?
-                //       Removed for now because all Python discussions on the subject
-                //       I found recommend to not do this and let the calls fail instead.
+                // if(check_log_handler_interface 
+                // and not has_log_handler_interface(impl))
+                // {
+                //     throw std::runtime_error("python object doesnt have the expected ")
+                // }
             }
 
             auto is_none() const -> bool
@@ -169,7 +181,9 @@ namespace mambapy
 
         auto has_python_object(const logging::AnyLogHandler& handler) -> bool
         {
-            return handler.type_id() == typeid(PyAnyLogHandler);
+            auto maybe_type_id = handler.type_id();
+            std::cout << fmt::format("HACK: maybe_type_id = {}", maybe_type_id ? maybe_type_id->name() : "None") << std::endl; 
+            return maybe_type_id and maybe_type_id.value() == typeid(PyAnyLogHandler);
         }
 
         auto get_python_object(const logging::AnyLogHandler& handler)
@@ -190,10 +204,14 @@ namespace mambapy
             // move. When it's any other object, we assume it's a python log handler and wrap it
             // appropriately.
 
+            
             namespace py = pybind11;
-            const bool is_anyloghandler = py::type::of(pyobject).is(
-                py::type::of<logging::AnyLogHandler>()
-            );
+            if(pyobject.is_none())
+            {
+                return logging::AnyLogHandler{};
+            }
+
+            const bool is_anyloghandler = py::isinstance<logging::AnyLogHandler>(pyobject);
 
             if (is_anyloghandler)
             {
@@ -214,7 +232,6 @@ namespace mambapy
             namespace py = pybind11;
 
             constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
-
             py::class_<logging::AnyLogHandler>(module, "AnyLogHandler", doc_class)
                 .def(
                     py::init(&to_anyloghandler),

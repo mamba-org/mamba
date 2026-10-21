@@ -24,25 +24,102 @@ namespace mambapy
 {
     namespace logging = mamba::logging;
 
+    using InvalidInterfaceReport = std::vector<std::string>;
+
+    // TODO: DOC!!!
+    auto check_log_handler_interface(const pybind11::object& object, bool early_exit) -> std::optional<InvalidInterfaceReport>
+    {
+        using namespace std::literals;
+
+        std::optional<InvalidInterfaceReport> result;
+
+        const auto add_failure = [&](std::string failure_msg){
+            if(not result) result.emplace();
+            result->push_back(failure_msg);
+        };
+
+        struct FuncDesc
+        {
+            const char* name;
+            const char* signature;
+        };
+
+        static constexpr std::array expected_member_descs{
+            FuncDesc{ "start_log_handling", "(params: LogParams, sources: [LogSource])"},
+            FuncDesc{ "stop_log_handling", "()"},
+            FuncDesc{ "set_log_level", "(log_level: LogLevel)"},
+            FuncDesc{ "set_params", "(params: LogParams)"},
+            FuncDesc{ "log", "(record: LogRecord)"},
+            FuncDesc{ "enable_bacltrace", "(size: int)"},
+            FuncDesc{ "log_backtrace", "()"},
+            FuncDesc{ "log_backtrace_no_guards", "()"},
+            FuncDesc{ "flush", "(source: LogSource|None)"},
+            FuncDesc{ "set_flush_threshold", "(level: LogLevel)"}
+        };
+
+        for (const auto& desc : expected_member_descs)
+        {
+            if(object.attr(desc.name).is_none())
+            {
+                add_failure(std::format("member not found: {}{}", desc.name, desc.signature));
+                if(early_exit)
+                {
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+
+    // TODO: DOC!!!
+    auto has_log_handler_interface(const pybind11::object& object) -> bool
+    {
+        return not check_log_handler_interface(object, true).has_value();
+    }
+
+   auto validate_log_handler_interface(const pybind11::object& object) -> void
+   {
+        const auto maybe_errors = check_log_handler_interface(object, false);
+        if(maybe_errors)
+        {
+            throw std::invalid_argument(fmt::format("object does not have a LogHandler interface : {}", maybe_errors.value()));
+        }
+   }
+
+   namespace
+   {
+        bool is_log_handler_interface_validation_enabled = true;
+   }
+
+   auto enable_log_handler_interface_validation(bool enabled) -> void
+   {
+        is_log_handler_interface_validation_enabled = enabled;
+   }
+
     namespace details
     {
-        struct pytype_hash
-        {
-            auto operator()(const pybind11::type& type) const noexcept
+        namespace {
+            struct pytype_hash
             {
-                return pybind11::hash(type);
-            }
-        };
+                auto operator()(const pybind11::type& type) const noexcept
+                {
+                    return pybind11::hash(type);
+                }
+            };
 
-        struct pytype_equal
-        {
-            auto operator()(const pybind11::type& left, const pybind11::type& right) const -> bool
+            struct pytype_equal
             {
-                return left.is(right);
-            }
-        };
+                auto operator()(const pybind11::type& left, const pybind11::type& right) const -> bool
+                {
+                    return left.is(right);
+                }
+            };
 
-        static std::unordered_map<pybind11::type, AnyLogHandlerConstructor, pytype_hash, pytype_equal> registry_anyloghandler_constructors;
+            std::unordered_map<pybind11::type, AnyLogHandlerConstructor, pytype_hash, pytype_equal> registry_anyloghandler_constructors;
+
+        }
 
         auto register_anyloghandler_constructor(
             pybind11::type type_id,
@@ -66,14 +143,6 @@ namespace mambapy
         }
     }
 
-    // TODO: DOC!!!
-    // auto has_log_handler_interface(const pybind11::object& object) -> bool
-    // {
-
-    // }
-
-    // auto check_log_handler_interface(const pybind11::object& object) -> 
-
     namespace
     {
 
@@ -90,14 +159,13 @@ namespace mambapy
             PyAnyLogHandler(PyAnyLogHandler&&) = default;
             PyAnyLogHandler& operator=(PyAnyLogHandler&&) = default;
 
-            explicit PyAnyLogHandler(pybind11::object object, bool check_log_handler_interface = true)
+            explicit PyAnyLogHandler(pybind11::object object)
                 : impl(std::move(object))
             {
-                // if(check_log_handler_interface 
-                // and not has_log_handler_interface(impl))
-                // {
-                //     throw std::runtime_error("python object doesnt have the expected ")
-                // }
+                if(is_log_handler_interface_validation_enabled)
+                {
+                    validate_log_handler_interface(impl);
+                }
             }
 
             auto is_none() const -> bool
@@ -242,6 +310,11 @@ namespace mambapy
                 .def("__bool__", &has_valid_object)
                 .def("has_pyobject", &has_python_object)
                 .def("get_pyobject", &get_python_object);  // THINK: add other member functions?
+
+            module.def("check_log_handler_interface", &check_log_handler_interface);
+            module.def("has_log_handler_interface", &has_log_handler_interface);
+            module.def("validate_log_handler_interface", &validate_log_handler_interface);
+            module.def("enable_log_handler_interface_validation", &enable_log_handler_interface_validation);
         }
 
         void bind_loghandler_history(pybind11::module_ module)

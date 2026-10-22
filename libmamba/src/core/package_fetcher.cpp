@@ -50,7 +50,7 @@ namespace mamba
      *   url_path=platform/filename so the mirror can build a clean URL.
      *
      *   Package URLs of packages loaded from the repodata cache carry a masked
-     *   token (/t/*****) instead of the real one, since the cache metadata stores
+     *   token (five asterisks) instead of the real one, since the cache metadata stores
      *   the repodata URL with credentials hidden. These must also go through the
      *   channel mirror, which holds the real token; downloading the package_url
      *   as-is would send the literal mask to the server.

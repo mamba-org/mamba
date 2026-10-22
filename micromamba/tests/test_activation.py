@@ -117,6 +117,9 @@ def xonsh_shell_args(interpreter):
 
 
 def extract_vars(vxs, interpreter):
+    if interpreter == "tcsh":
+        # tcsh errors out on undefined variables
+        return [f'echo "{v}=`printenv {v}`"' for v in vxs]
     return [f"echo {v}={shvar(v, interpreter)}" for v in vxs]
 
 
@@ -213,7 +216,8 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         args = [os.path.join(os.environ["PROGRAMFILES"], "Git", "bin", "bash.exe"), f]
     else:
         args = [interpreter, f]
-        if interactive:
+        # tcsh sources ~/.tcshrc in every shell, and with -i it reads stdin, not the script
+        if interactive and interpreter != "tcsh":
             args.insert(1, "-i")
         if interactive and interpreter == "bash":
             args.insert(1, "-l")
@@ -594,7 +598,7 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         fp = Path(x[0][1:-1])
         assert fp.exists()
 
-    if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
+    if interpreter in ["bash", "zsh", "tcsh", "powershell", "cmd.exe"]:
         stdout, stderr = call(evars)
 
         s = [f"{umamba} --help"]
@@ -812,7 +816,7 @@ def test_unicode_activation(
         fp = Path(x[0][1:-1])
         assert fp.exists()
 
-    if interpreter in ["bash", "zsh", "powershell", "cmd.exe"]:
+    if interpreter in ["bash", "zsh", "tcsh", "powershell", "cmd.exe"]:
         stdout, stderr = call(evars)
 
         s = [f"{umamba} --help"]

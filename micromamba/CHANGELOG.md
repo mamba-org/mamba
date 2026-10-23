@@ -1,3 +1,39 @@
+## micromamba 2.10.0 (October 23, 2026)
+
+Enhancements:
+
+- Completed C++20 upgrade by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4413>
+- feat: Complete `exclude_newer` policy by @jjerphan in <https://github.com/mamba-org/mamba/pull/4344>
+- feat: Suggest closest command on typo by @faze-geek in <https://github.com/mamba-org/mamba/pull/4367>
+- feat: Inject channels+mirrors coming from mambajs env-lockfiles by @Klaim in <https://github.com/mamba-org/mamba/pull/4126>
+
+Bug fixes:
+
+- update_changelog: Handles issue number in PR titles by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4441>
+- Fix `update`/`install` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4431>
+- fix: incorrect pyzzer/distlib entry point scanning by @Klaim in <https://github.com/mamba-org/mamba/pull/4435>
+- Fix auth tests by @Hind-M in <https://github.com/mamba-org/mamba/pull/4425>
+- fix: Honor disabled pip injection when requesting Python by @maresb in <https://github.com/mamba-org/mamba/pull/4423>
+- fix: pass activation help through #4114 by @GruffElixir in <https://github.com/mamba-org/mamba/pull/4412>
+- fix: Assign channel priority in `ctx.channels` order by @black-desk in <https://github.com/mamba-org/mamba/pull/4395>
+- fix: remove any usage of `exit()` by @Klaim in <https://github.com/mamba-org/mamba/pull/4397>
+- Fix shell init with `cmd.exe` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4370>
+- fix: Correct extracted packages traversal when cleaning tarballs by @mikemhenry in <https://github.com/mamba-org/mamba/pull/4353>
+- fix: Escape MatchSpec quotes in `env export --json --from-history` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4376>
+
+CI fixes and doc:
+
+- ci: recreate coverage environment with cached downloads by @maresb in <https://github.com/mamba-org/mamba/pull/4424>
+- ci: Add Windows ARM64 shared-library test workflow  by @jjerphan in <https://github.com/mamba-org/mamba/pull/4383>
+- ci: Add `win-arm64` static builds workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4357>
+
+Maintenance:
+
+- Remove `mamba-content-trust` entirely by @Hind-M in <https://github.com/mamba-org/mamba/pull/4417>
+- build(deps): bump jlumbroso/free-disk-space from 1.3.1 to 2.0.0 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4408>
+- Add test for `shell hook` with `powershell` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4390>
+- maint: Use cxx-compiler <2 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4381>
+
 ## micromamba 2.9.0 (August 07, 2026)
 
 Enhancements:

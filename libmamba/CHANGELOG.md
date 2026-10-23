@@ -1,3 +1,56 @@
+## libmamba 2.10.0 (October 23, 2026)
+
+Enhancements:
+
+- Use `stdext::contains` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4437>
+- Completed C++20 upgrade by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4413>
+- feat: Complete `exclude_newer` policy by @jjerphan in <https://github.com/mamba-org/mamba/pull/4344>
+- feat: remove restriction that channels from conda env-lockfile were not taken into account by @Klaim in <https://github.com/mamba-org/mamba/pull/4396>
+- feat: Add `std::chrono::parse` polyfill for libc++ by @jjerphan in <https://github.com/mamba-org/mamba/pull/4402>
+- feat: Remove stop-reason mechanism from logging system by @Klaim in <https://github.com/mamba-org/mamba/pull/4399>
+- feat: Suggest closest command on typo by @faze-geek in <https://github.com/mamba-org/mamba/pull/4367>
+- feat: Inject channels+mirrors coming from mambajs env-lockfiles by @Klaim in <https://github.com/mamba-org/mamba/pull/4126>
+
+Bug fixes:
+
+- update_changelog: Handles issue number in PR titles by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4441>
+- fix: Tokens dropped on package download (broken since 2.9.0, 2026-08-07) by @hmaarrfk in <https://github.com/mamba-org/mamba/pull/4440>
+- fix: incorrect file extension check by @Klaim in <https://github.com/mamba-org/mamba/pull/4436>
+- Fix `update`/`install` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4431>
+- fix: incorrect pyzzer/distlib entry point scanning by @Klaim in <https://github.com/mamba-org/mamba/pull/4435>
+- Fix PowerShell syntax error of quotes (Fixes #3908) by @gghhffyy368 in <https://github.com/mamba-org/mamba/pull/4179>
+- fix: Ignore non-string values in shard index info map by @r3wretrhy in <https://github.com/mamba-org/mamba/pull/4421>
+- Fix auth tests by @Hind-M in <https://github.com/mamba-org/mamba/pull/4425>
+- fix: Honor disabled pip injection when requesting Python by @maresb in <https://github.com/mamba-org/mamba/pull/4423>
+- fix: pass activation help through #4114 by @GruffElixir in <https://github.com/mamba-org/mamba/pull/4412>
+- Preserve per-package repodata URLs by @GruffElixir in <https://github.com/mamba-org/mamba/pull/4406>
+- fix: Handle many missing top-level packages by @jjerphan in <https://github.com/mamba-org/mamba/pull/4361>
+- fix: Use RtlGetVersion for Windows long-path OS check by @r3wretrhy in <https://github.com/mamba-org/mamba/pull/4404>
+- fix: Honor `override_virtual_packages` configuration by @jjerphan in <https://github.com/mamba-org/mamba/pull/4364>
+- fix: Assign channel priority in `ctx.channels` order by @black-desk in <https://github.com/mamba-org/mamba/pull/4395>
+- Fix error code print by @Hind-M in <https://github.com/mamba-org/mamba/pull/4403>
+- Fix `softlink` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4398>
+- fix: remove any usage of `exit()` by @Klaim in <https://github.com/mamba-org/mamba/pull/4397>
+- Fix `nushell` detection by @Hind-M in <https://github.com/mamba-org/mamba/pull/4385>
+- fix: Make macOS ad-hoc codesign spawn reliably by @jjerphan in <https://github.com/mamba-org/mamba/pull/4387>
+- fix: Bound HTTP header value parsing in the curl callback by @jjerphan in <https://github.com/mamba-org/mamba/pull/4386>
+- Fix shell init with `cmd.exe` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4370>
+- fix: Correct extracted packages traversal when cleaning tarballs by @mikemhenry in <https://github.com/mamba-org/mamba/pull/4353>
+
+CI fixes and doc:
+
+- ci: recreate coverage environment with cached downloads by @maresb in <https://github.com/mamba-org/mamba/pull/4424>
+- ci: Add Windows ARM64 shared-library test workflow  by @jjerphan in <https://github.com/mamba-org/mamba/pull/4383>
+- Add comments and documentation for `exclude_newer` policy by @Hind-M in <https://github.com/mamba-org/mamba/pull/4409>
+- ci: Add `win-arm64` static builds workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4357>
+
+Maintenance:
+
+- Remove `mamba-content-trust` entirely by @Hind-M in <https://github.com/mamba-org/mamba/pull/4417>
+- Removed implementations of TUF by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4415>
+- build(deps): bump jlumbroso/free-disk-space from 1.3.1 to 2.0.0 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4408>
+- maint: Use cxx-compiler <2 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4381>
+
 ## libmamba 2.9.0 (August 07, 2026)
 
 Enhancements:

@@ -11,7 +11,9 @@
 #include <pybind11/native_enum.h>
 #include <pybind11/stl.h>
 
+#include <fmt/format.h>
 #include <fmt/std.h>
+#include <fmt/ranges.h>
 
 #include "mamba/core/logging.hpp"
 #include "mamba/core/logging_tools.hpp"
@@ -50,7 +52,7 @@ namespace mambapy
             FuncDesc{ "set_log_level", "(log_level: LogLevel)"},
             FuncDesc{ "set_params", "(params: LogParams)"},
             FuncDesc{ "log", "(record: LogRecord)"},
-            FuncDesc{ "enable_bacltrace", "(size: int)"},
+            FuncDesc{ "enable_backtrace", "(size: int)"},
             FuncDesc{ "log_backtrace", "()"},
             FuncDesc{ "log_backtrace_no_guards", "()"},
             FuncDesc{ "flush", "(source: LogSource|None)"},
@@ -59,7 +61,7 @@ namespace mambapy
 
         for (const auto& desc : expected_member_descs)
         {
-            if(object.attr(desc.name).is_none())
+            if(not pybind11::hasattr(object, desc.name))
             {
                 add_failure(std::format("member not found: {}{}", desc.name, desc.signature));
                 if(early_exit)
@@ -79,24 +81,26 @@ namespace mambapy
         return not check_log_handler_interface(object, true).has_value();
     }
 
-   auto validate_log_handler_interface(const pybind11::object& object) -> void
-   {
-        const auto maybe_errors = check_log_handler_interface(object, false);
+    // TOOD: DOC!!!!
+    auto validate_log_handler_interface(const pybind11::object& object) -> void
+    {
+        auto maybe_errors = check_log_handler_interface(object, false);
         if(maybe_errors)
         {
-            throw std::invalid_argument(fmt::format("object does not have a LogHandler interface : {}", maybe_errors.value()));
+            throw std::invalid_argument(fmt::format("object does not have a LogHandler interface : {}", std::move(maybe_errors).value()));
         }
-   }
+    }
 
-   namespace
-   {
-        bool is_log_handler_interface_validation_enabled = true;
-   }
+    namespace
+    {
+        bool is_log_handler_interface_validation_enabled = false;
+    }
 
-   auto enable_log_handler_interface_validation(bool enabled) -> void
-   {
-        is_log_handler_interface_validation_enabled = enabled;
-   }
+    // TOOD: DOC!!!!
+    auto enable_log_handler_interface_validation(bool enabled) -> bool
+    {
+        return std::exchange(is_log_handler_interface_validation_enabled, enabled);
+    }
 
     namespace details
     {

@@ -76,6 +76,21 @@ namespace mamba
 
             res = Console::instance().hide_secrets("root:secretpassword@myweb.com/test.repo");
             REQUIRE(res == "root:*****@myweb.com/test.repo");
+
+            // Already masked tokens are left as is
+            res = Console::instance().hide_secrets("http://myweb.com/t/*****/test.repo");
+            REQUIRE(res == "http://myweb.com/t/*****/test.repo");
+        }
+
+        TEST_CASE("token_regex")
+        {
+            REQUIRE(std::regex_search("http://myweb.com/t/my-12345-token/test.repo", token_regex()));
+            REQUIRE(std::regex_search("http://myweb.com/t/_m-12345-token/test.repo", token_regex()));
+            // Package URLs built from cached repodata metadata have the token masked
+            REQUIRE(std::regex_search("http://myweb.com/t/*****/test.repo", token_regex()));
+            REQUIRE_FALSE(std::regex_search("http://myweb.com/t/", token_regex()));
+            REQUIRE_FALSE(std::regex_search("http://myweb.com/t/*/test.repo", token_regex()));
+            REQUIRE_FALSE(std::regex_search("http://myweb.com/test.repo", token_regex()));
         }
 
         TEST_CASE("remove_secrets_and_login_credentials")

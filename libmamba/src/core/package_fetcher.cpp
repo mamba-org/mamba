@@ -48,21 +48,13 @@ namespace mamba
      * - Authenticated URLs: HTTPMirror must not receive credentials in the URL
      *   (they are set via libcurl CURLUPart). Returns mirror_name=channel and
      *   url_path=platform/filename so the mirror can build a clean URL.
-     *
-     *   Package URLs of packages loaded from the repodata cache carry a masked
-     *   token (five asterisks) instead of the real one, since the cache metadata stores
-     *   the repodata URL with credentials hidden. These must also go through the
-     *   channel mirror, which holds the real token; downloading the package_url
-     *   as-is would send the literal mask to the server.
      */
     auto get_download_request_components(const specs::PackageInfo& pkg) -> DownloadRequestComponents
     {
         constexpr std::string_view oci_scheme = "oci://";
-        constexpr std::string_view masked_token = "/t/*****/";
         const bool use_oci = pkg.package_url.starts_with(oci_scheme);
         const bool use_auth = std::regex_search(pkg.package_url, http_basicauth_regex())
-                              || std::regex_search(pkg.package_url, token_regex())
-                              || util::contains(pkg.package_url, masked_token);
+                              || std::regex_search(pkg.package_url, token_regex());
 
         if (use_oci || use_auth)
         {

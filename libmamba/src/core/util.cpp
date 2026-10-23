@@ -78,7 +78,10 @@ namespace mamba
     {
         // Usernames on anaconda.org can have a underscore, which influences the
         // first two characters.
-        static const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]*)" };
+        // Masked tokens (five asterisks, as produced by `hide_secrets` or by
+        // `CondaURL::Credentials::Hide`) are matched too: package URLs built from
+        // cached repodata metadata carry them, and must still be treated as authenticated.
+        static const std::regex token_regex{ "/t/(\\*{5}|[a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]+)" };
         return token_regex;
     }
 
@@ -1679,9 +1682,6 @@ namespace mamba
         if (util::contains(str, "/t/"))
         {
             copy = std::regex_replace(copy, token_regex(), "");
-            // Remove masked token pattern if present (escape * for regex)
-            static const std::regex masked_token_regex{ "/t/\\*{5}" };
-            copy = std::regex_replace(copy, masked_token_regex, "");
         }
 
         // Remove password from basic auth: user:password@domain -> preserve scheme and domain

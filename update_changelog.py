@@ -111,14 +111,13 @@ def main():
 
     release_version = version_info(release_version)
 
-    # Get commits to include in the release
-    log_cmd = "git log --since=" + commits_starting_date
+    # Get the subjects of the commits to include in the release
+    log_cmd = "git log --format=%s --since=" + commits_starting_date
     commits = subprocess_run(*log_cmd.split()).decode("utf-8")
 
-    # Create the regular expression pattern
-    opening_char = "(#"
-    closing_char = ")"
-    pattern = re.compile(re.escape(opening_char) + "(.*?)" + re.escape(closing_char))
+    # Only consider the PR number appended by GitHub at the end of the subject,
+    # since titles may also reference issues, e.g. "fix: ... (#4114) (#4412)"
+    pattern = re.compile(r"\(#(\d+)\)$", re.MULTILINE)
 
     # Get the PRs numbers
     prs_nbrs = re.findall(pattern, commits)

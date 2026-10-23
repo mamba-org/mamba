@@ -24,7 +24,7 @@ Bug fixes:
 CI fixes and doc:
 
 - ci: recreate coverage environment with cached downloads by @maresb in <https://github.com/mamba-org/mamba/pull/4424>
-- ci: Add Windows ARM64 shared-library test workflow  by @jjerphan in <https://github.com/mamba-org/mamba/pull/4383>
+- ci: Add Windows ARM64 shared-library test workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4383>
 - ci: Add `win-arm64` static builds workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4357>
 
 Maintenance:

@@ -138,7 +138,7 @@ def main():
     contents = contents[release_start:]
     for idx, line in enumerate(contents):
         if line.startswith("Release"):
-            release_re = re.compile(r"Release*:\s+(\d\.\d\.\d[\.\w]*)\s+\(([\w,\s]+)\)\s*")
+            release_re = re.compile(r"Release*:\s+(\d+\.\d+\.\d+[\.\w]*)\s+\(([\w,\s]+)\)\s*")
             matches = re.search(release_re, line)
             if matches:
                 if release_version is not None:

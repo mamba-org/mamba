@@ -684,6 +684,8 @@ namespace mambapy
                        decltype(PackageInfo::python_site_packages_path) python_site_packages_path,
                        decltype(PackageInfo::md5) md5,
                        decltype(PackageInfo::sha256) sha256,
+                       // Kept for backward compatibility; content trust was removed.
+                       std::string /* signatures */,
                        decltype(PackageInfo::track_features) track_features,
                        decltype(PackageInfo::dependencies) depends,
                        decltype(PackageInfo::constrains) constrains,
@@ -727,6 +729,7 @@ namespace mambapy
                 py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
+                py::arg("signatures") = std::string(),
                 py::arg("track_features") = decltype(PackageInfo::track_features)(),
                 py::arg("depends") = decltype(PackageInfo::dependencies)(),
                 py::arg("constrains") = decltype(PackageInfo::constrains)(),
@@ -770,6 +773,12 @@ namespace mambapy
             .def_readwrite("dependencies", &PackageInfo::dependencies)
             .def_readwrite("constrains", &PackageInfo::constrains)
             .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys)
+            .def_property(
+                // Kept for backward compatibility; content trust was removed.
+                "signatures",
+                [](py::handle) { return std::string(); },
+                [](py::handle, py::handle) {}
+            )
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__str__", &PackageInfo::str)

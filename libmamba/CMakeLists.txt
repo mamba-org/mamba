@@ -262,6 +262,7 @@ set(
     ${LIBMAMBA_SOURCE_DIR}/core/progress_bar.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/query.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/run.cpp
+    ${LIBMAMBA_SOURCE_DIR}/core/sbom.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.hpp
     ${LIBMAMBA_SOURCE_DIR}/core/shard_python_minor_prefilter.cpp
     ${LIBMAMBA_SOURCE_DIR}/core/shell_init.cpp
@@ -406,6 +407,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/progress_bar.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/query.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/run.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/core/sbom.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shell_init.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shards.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/core/shard_index_loader.hpp

@@ -27,7 +27,7 @@ namespace mamba
 
     std::string compute_short_python_version(const std::string& long_version)
     {
-        auto sv = util::split(long_version, ".");
+        auto sv = util::as_strings(std::views::split(long_version, '.'));
         if (sv.size() < 2)
         {
             LOG_ERROR << "Could not compute short python version from " << long_version;
@@ -364,7 +364,7 @@ namespace mamba
             complete_python_path.string(), "-Wi", "-m", "compileall", "-q", "-l", "-i", "-"
         };
 
-        auto py_ver_split = util::split(python_params().python_version, ".");
+        auto py_ver_split = util::as_strings(std::views::split(python_params().python_version, '.'));
 
         try
         {
@@ -424,7 +424,8 @@ namespace mamba
         );
         m_pyc_script_file = std::move(script_file);
 
-        LOG_INFO << "Running wrapped python compilation command " << util::join(" ", command);
+        LOG_INFO << "Running wrapped python compilation command "
+                 << util::join_with<std::string>(command, " ");
         std::error_code ec = m_pyc_process->start(wrapped_command, options);
 
         if (ec == std::errc::no_such_file_or_directory)

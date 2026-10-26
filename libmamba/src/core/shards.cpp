@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <optional>
+#include <string_view>
 #include <system_error>
 #include <thread>
 
@@ -187,6 +188,7 @@ namespace mamba
         auto parse_shard_package_record(const msgpack_object& obj, std::string_view package_filename)
             -> specs::RepoDataPackage
         {
+            using std::operator""sv;
             specs::RepoDataPackage record;
 
             if (obj.type != MSGPACK_OBJECT_MAP)
@@ -302,7 +304,9 @@ namespace mamba
                             const auto features_str = msgpack_object_to_string(val_obj);
                             if (!features_str.empty())
                             {
-                                record.track_features = util::split(features_str, ", ");
+                                record.track_features = util::as_strings(
+                                    std::views::split(features_str, ", "sv)
+                                );
                             }
                         }
                     }
@@ -698,22 +702,22 @@ namespace mamba
                       << "': " << shard.packages.size() << " .tar.bz2 packages, "
                       << shard.conda_packages.size() << " .conda packages";
 
-            for (const auto& [filename, record] : shard.packages)
+            auto print_dep =
+                [&package](const ShardDict::package_map& dict, std::string_view package_type)
             {
-                if (!record.depends.empty())
+                for (const auto& [filename, record] : dict)
                 {
-                    LOG_DEBUG << "Package '" << record.name << "' from shard '" << package
-                              << "' has dependencies: [" << util::join(", ", record.depends) << "]";
+                    if (!record.depends.empty())
+                    {
+                        LOG_DEBUG << package_type << " '" << record.name << "' from shard '"
+                                  << package << "' has dependencies: ["
+                                  << util::join_with<std::string>(record.depends, ", ") << "]";
+                    }
                 }
-            }
-            for (const auto& [filename, record] : shard.conda_packages)
-            {
-                if (!record.depends.empty())
-                {
-                    LOG_DEBUG << "Conda package '" << record.name << "' from shard '" << package
-                              << "' has dependencies: [" << util::join(", ", record.depends) << "]";
-                }
-            }
+            };
+
+            print_dep(shard.packages, "Package");
+            print_dep(shard.conda_packages, "Conda package");
         }
 
         m_visited[package] = shard;
@@ -1224,7 +1228,7 @@ namespace mamba
         );
 
         LOG_DEBUG << "Downloading " << requests.size() << " shard(s) for packages: ["
-                  << util::join(", ", packages_to_fetch) << "]";
+                  << util::join_with<std::string>(packages_to_fetch, ", ") << "]";
         download::Options download_options;
         download_options.download_threads = m_download_threads;
 

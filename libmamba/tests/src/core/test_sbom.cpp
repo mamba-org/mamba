@@ -181,6 +181,30 @@ TEST_CASE("sbom::detail::channel_home_url")
         REQUIRE(home.has_value());
         REQUIRE(*home == specs::CondaURL::parse("file:///srv/mirror/mychan").value());
     }
+
+    SECTION("returns nullopt when package_url has scheme but fails to parse and channel has no scheme")
+    {
+        auto pkg = conda_pkg("zlib", "1.2.13", "hcfbbd0e_0");
+        pkg.package_url = "http://user@40email.com:test@localhost/linux-64/zlib-1.2.13-hcfbbd0e_0.conda";
+        pkg.channel = "conda-forge";
+        REQUIRE_FALSE(sbom::detail::channel_home_url(pkg).has_value());
+    }
+
+    SECTION("returns nullopt when both package_url and channel have scheme but fail to parse")
+    {
+        auto pkg = conda_pkg("zlib", "1.2.13", "hcfbbd0e_0");
+        pkg.package_url = "http://user@40email.com:test@localhost/linux-64/zlib-1.2.13-hcfbbd0e_0.conda";
+        pkg.channel = "http://user@40email.com:test@localhost";
+        REQUIRE_FALSE(sbom::detail::channel_home_url(pkg).has_value());
+    }
+
+    SECTION("returns nullopt when channel has scheme but fails to parse and package_url is empty")
+    {
+        auto pkg = conda_pkg("zlib", "1.2.13", "hcfbbd0e_0");
+        pkg.package_url = {};
+        pkg.channel = "http://user@40email.com:test@localhost";
+        REQUIRE_FALSE(sbom::detail::channel_home_url(pkg).has_value());
+    }
 }
 
 TEST_CASE("sbom::detail::namespace_from_channel_home")
@@ -403,6 +427,22 @@ TEST_CASE("sbom::detail::channel_repository_url")
         pkg.package_url = {};
         pkg.channel = "https://my.mirror.example/chan/";
         REQUIRE(sbom::detail::channel_repository_url(pkg) == "https://my.mirror.example/chan");
+    }
+
+    SECTION("raw fallback when channel_home_url returns nullopt and channel has scheme")
+    {
+        auto pkg = conda_pkg("libx", "1.0", "0");
+        pkg.package_url = {};
+        pkg.channel = "http://user@40email.com:test@localhost";
+        REQUIRE(sbom::detail::channel_repository_url(pkg) == "http://user@40email.com:test@localhost");
+    }
+
+    SECTION("raw fallback with trailing slash when channel_home_url returns nullopt")
+    {
+        auto pkg = conda_pkg("libx", "1.0", "0");
+        pkg.package_url = {};
+        pkg.channel = "http://user@40email.com:test@localhost/";
+        REQUIRE(sbom::detail::channel_repository_url(pkg) == "http://user@40email.com:test@localhost");
     }
 }
 
@@ -743,5 +783,29 @@ TEST_CASE("make_conda_purl infers tar.bz2 type from package_url")
         sbom::make_conda_purl(pkg)
         == "pkg:conda/conda-forge/openssl@3.0.0?build=0&build_number=0"
            "&subdir=linux-64&type=tar.bz2"
+    );
+}
+
+TEST_CASE("make_conda_purl schemed channel that fails to parse uses raw repository_url")
+{
+    auto pkg = conda_pkg("libx", "1.0", "0");
+    pkg.package_url = {};
+    pkg.channel = "http://user@40email.com:test@localhost";
+    REQUIRE(
+        sbom::make_conda_purl(pkg)
+        == "pkg:conda/libx@1.0?build=0&build_number=0&subdir=linux-64&type=conda"
+           "&repository_url=http%3A%2F%2Fuser%4040email.com%3Atest%40localhost"
+    );
+}
+
+TEST_CASE("make_conda_purl schemed package_url that fails to parse falls back to channel")
+{
+    auto pkg = conda_pkg("libx", "1.0", "0");
+    pkg.package_url = "http://user@40email.com:test@localhost/linux-64/libx-1.0-0.conda";
+    pkg.channel = "http://user@40email.com:test@localhost";
+    REQUIRE(
+        sbom::make_conda_purl(pkg)
+        == "pkg:conda/libx@1.0?build=0&build_number=0&subdir=linux-64&type=conda"
+           "&repository_url=http%3A%2F%2Fuser%4040email.com%3Atest%40localhost"
     );
 }

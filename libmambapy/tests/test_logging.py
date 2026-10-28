@@ -2,7 +2,7 @@ import pytest
 
 import libmambapy
 import libmambapy.logging as logging
-
+import inspect
 
 def test_log_level():
     # TODO: check every values
@@ -146,6 +146,12 @@ def test_logging_api_basics():
         assert not no_log_handler
 
     logging.log(logging.LogRecord(message="A", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS ))
+    logging.log(logging.LogRecord(message="B", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS, location = inspect.currentframe() ))
+    logging.log(logging.LogRecord(message="C", level=logging.LogLevel.DEBUG))
+
+    assert len(log_handler._log_history) == 2
+    assert log_handler._log_history[0].message == "A"
+    assert log_handler._log_history[1].message == "B"
 
     last_log_handler = logging.stop_logging() # returns an `AnyLogHandler` wrapping `log_handler`
     assert last_log_handler.has_pyobject()

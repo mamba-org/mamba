@@ -254,7 +254,7 @@ namespace mambapy
         auto has_python_object(const logging::AnyLogHandler& handler) -> bool
         {
             auto maybe_type_id = handler.type_id();
-            std::cout << fmt::format("HACK: maybe_type_id = {}", maybe_type_id ? maybe_type_id->name() : "None") << std::endl; 
+            std::cout << fmt::format("HACK: maybe_type_id = {}", maybe_type_id ? maybe_type_id->name() : "None") << std::endl;
             return maybe_type_id and maybe_type_id.value() == typeid(PyAnyLogHandler);
         }
 
@@ -276,7 +276,7 @@ namespace mambapy
             // move. When it's any other object, we assume it's a python log handler and wrap it
             // appropriately.
 
-            
+
             namespace py = pybind11;
             if(pyobject.is_none())
             {
@@ -462,6 +462,50 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         }
 
         {
+            static constexpr auto doc_type = R"(MISSING DOC HERE`)";
+
+            py::class_<logging::SourceLocation>(module, "SourceLocation", doc_type)
+                .def(
+                    py::init(
+                        [](std::optional<py::object> frame_like_object)
+                        {
+                            if (not frame_like_object)
+                            {
+                                auto inspect_module = py::module_::import("inspect");
+                                frame_like_object = inspect_module.attr("currentframe")();
+                            }
+
+                            assert(frame_like_object);
+
+                            auto positions = frame_like_object->attr("positions");
+                            return logging::SourceLocation {
+                                frame_like_object->attr("filename").cast<std::string>(),
+                                    frame_like_object->attr("function").cast<std::string>(),
+                                    positions.attr("lineno").cast<std::uint_least32_t>(),
+                                    positions.attr("col_offset").cast<std::uint_least32_t>()
+                                };
+                        }
+                    ))
+                .def_property_readonly(
+                    "filename",
+                    [](const logging::SourceLocation& self) { return self.file_name(); }
+                )
+                .def_property_readonly(
+                    "function",
+                    [](const logging::SourceLocation& self) { return self.function_name(); }
+                )
+                .def_property_readonly(
+                    "lineno",
+                    [](const logging::SourceLocation& self) { return self.line(); }
+                )
+                // this member difers from `inspect.FrameInfo` interface but matches `std::source_location`
+                .def_property_readonly(
+                    "column",
+                    [](const logging::SourceLocation& self) { return self.file_name(); }
+                );
+        }
+
+        {
             static constexpr auto doc_logrecord = R"(All the information about a log.
     - see `libmamba.logging.log`
     - see `libmamba.logging.AnyLogHandler.log`)";
@@ -485,8 +529,8 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                     py::arg("message"),
                     py::arg("level"),
                     py::arg("source") = logging::log_source::external,
-                    py::arg("location") = std::source_location::current()
-                    
+                    py::arg("location") = logging::SourceLocation{}
+
                 )
                 .def_readwrite(
                     "message",

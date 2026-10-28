@@ -77,7 +77,7 @@ def test_hook_shell(
 
 @pytest.mark.parametrize(
     "shell_type",
-    ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "nu"],
+    ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "csh", "tcsh", "nu"],
 )
 def test_hook(tmp_home, tmp_root_prefix, shell_type):
     res = helpers.shell("hook", "-s", shell_type)
@@ -102,7 +102,7 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
         assert res.count(mamba_exe_posix) == 5
     elif shell_type == "cmd.exe":
         assert res == ""
-    elif shell_type == "tcsh":
+    elif shell_type in ("csh", "tcsh"):
         assert res.count(mamba_exe_posix) == 8
     elif shell_type == "nu":
         # insert dummy test, as the nu scripts contains

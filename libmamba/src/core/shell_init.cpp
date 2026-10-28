@@ -663,7 +663,7 @@ namespace mamba
         {
             conda_init_content = nu_content(conda_prefix, shell, mamba_exe);
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             conda_init_content = csh_content(conda_prefix, shell, mamba_exe);
         }
@@ -761,7 +761,7 @@ namespace mamba
             util::replace_all(contents, "${MAMBA_EXE}", util::path_to_posix(exe.string()));
             return contents;
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             std::string contents = data_mamba_csh;
             // Using /unix/like/paths on Unix shell (even on Windows)
@@ -970,7 +970,7 @@ namespace mamba
             std::ofstream sh_file = open_ofstream(sh_source_path);
             sh_file << data_mamba_sh;
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             CshActivator activator{ context };
             auto sh_source_path = activator.hook_source_path();
@@ -1067,7 +1067,7 @@ namespace mamba
             fs::remove(sh_source_path);
             LOG_INFO << "Removed " << sh_source_path << " file.";
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             CshActivator activator{ context };
             auto sh_source_path = activator.hook_source_path();
@@ -1312,7 +1312,7 @@ namespace mamba
             fs::u8path zshrc_path = home / ".zshrc";
             modify_rc_file(context, zshrc_path, conda_prefix, shell, mamba_exe);
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             fs::u8path cshrc_path = home / ".tcshrc";
             modify_rc_file(context, cshrc_path, conda_prefix, shell, mamba_exe);
@@ -1391,7 +1391,7 @@ namespace mamba
             fs::u8path xonshrc_path = home / ".xonshrc";
             reset_rc_file(context, xonshrc_path, shell, mamba_exe);
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             fs::u8path tcshrc_path = home / ".tcshrc";
             reset_rc_file(context, tcshrc_path, shell, mamba_exe);
@@ -1455,7 +1455,7 @@ namespace mamba
         {
             config_path = home / ".xonshrc";
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             config_path = home / ".tcshrc";
         }
@@ -1475,7 +1475,8 @@ namespace mamba
         fs::u8path home = util::user_home_dir();
 
         std::vector<std::string> result;
-        std::vector<std::string> supported_shells = { "bash", "zsh", "xonsh", "csh", "fish", "nu" };
+        std::vector<std::string> supported_shells = { "bash", "zsh",  "xonsh", "csh",
+                                                      "tcsh", "fish", "nu" };
         for (const std::string& shell : supported_shells)
         {
             fs::u8path config_path = config_path_for_shell(shell);

@@ -57,37 +57,29 @@ namespace mamba
             }
             throw std::invalid_argument(fmt::format("Shell type not handled: {}", name));
         }
-
-        // Shell initialization refers to tcsh as "csh".
-        auto init_shell_name(const std::string& shell_type) -> std::string
-        {
-            return (shell_type == "tcsh") ? "csh" : shell_type;
-        }
     }
 
     void shell_init(Context& ctx, const std::string& shell_type, const fs::u8path& prefix)
     {
-        const auto shell = init_shell_name(shell_type);
         if (prefix.empty() || prefix == "base")
         {
-            init_shell(ctx, shell, ctx.prefix_params.root_prefix);
+            init_shell(ctx, shell_type, ctx.prefix_params.root_prefix);
         }
         else
         {
-            init_shell(ctx, shell, fs::weakly_canonical(util::expand_home(prefix.string())));
+            init_shell(ctx, shell_type, fs::weakly_canonical(util::expand_home(prefix.string())));
         }
     }
 
     void shell_deinit(Context& ctx, const std::string& shell_type, const fs::u8path& prefix)
     {
-        const auto shell = init_shell_name(shell_type);
         if (prefix.empty() || prefix == "base")
         {
-            deinit_shell(ctx, shell, ctx.prefix_params.root_prefix);
+            deinit_shell(ctx, shell_type, ctx.prefix_params.root_prefix);
         }
         else
         {
-            deinit_shell(ctx, shell, fs::weakly_canonical(util::expand_home(prefix.string())));
+            deinit_shell(ctx, shell_type, fs::weakly_canonical(util::expand_home(prefix.string())));
         }
     }
 

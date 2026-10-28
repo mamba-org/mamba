@@ -29,6 +29,7 @@ suffixes = {
     "cmd.exe": ".bat",
     "bash": ".sh",
     "zsh": ".sh",
+    "csh": ".csh",
     "tcsh": ".csh",
     "xonsh": ".sh",
     "fish": ".fish",
@@ -95,6 +96,7 @@ paths = {
         "zsh": "~/.zshrc",
         "bash": "~/.bash_profile",
         "xonsh": "~/.xonshrc",
+        "csh": "~/.tcshrc",
         "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
         "nu": "~/.config/nushell/config.nu",
@@ -103,6 +105,7 @@ paths = {
         "zsh": "~/.zshrc",
         "bash": "~/.bashrc",
         "xonsh": "~/.xonshrc",
+        "csh": "~/.tcshrc",
         "tcsh": "~/.tcshrc",
         "fish": "~/.config/fish/config.fish",
         "nu": "~/.config/nushell/config.nu",
@@ -117,9 +120,6 @@ def xonsh_shell_args(interpreter):
 
 
 def extract_vars(vxs, interpreter):
-    if interpreter == "tcsh":
-        # tcsh errors out on undefined variables
-        return [f'echo "{v}=`printenv {v}`"' for v in vxs]
     return [f"echo {v}={shvar(v, interpreter)}" for v in vxs]
 
 
@@ -216,8 +216,8 @@ def call_interpreter(s, tmp_path, interpreter, interactive=False, env=None):
         args = [os.path.join(os.environ["PROGRAMFILES"], "Git", "bin", "bash.exe"), f]
     else:
         args = [interpreter, f]
-        # tcsh sources ~/.tcshrc in every shell, and with -i it reads stdin, not the script
-        if interactive and interpreter != "tcsh":
+        # csh and tcsh source ~/.tcshrc in every shell, and with -i it reads stdin, not the script
+        if interactive and interpreter not in ["csh", "tcsh"]:
             args.insert(1, "-i")
         if interactive and interpreter == "bash":
             args.insert(1, "-l")
@@ -300,8 +300,11 @@ def get_self_update_interpreters():
 
 
 def shvar(v, interpreter):
-    if interpreter in ["bash", "zsh", "xonsh", "fish", "tcsh", "dash"]:
+    if interpreter in ["bash", "zsh", "xonsh", "fish", "dash"]:
         return f"${v}"
+    elif interpreter in ["csh", "tcsh"]:
+        # csh and tcsh error out on an undefined $v
+        return f"`printenv {v}`"
     elif interpreter == "powershell":
         return f"$Env:{v}"
     elif interpreter == "cmd.exe":
@@ -598,7 +601,7 @@ def test_env_activation(tmp_home, winreg_value, tmp_root_prefix, tmp_path, inter
         fp = Path(x[0][1:-1])
         assert fp.exists()
 
-    if interpreter in ["bash", "zsh", "tcsh", "powershell", "cmd.exe"]:
+    if interpreter in ["bash", "zsh", "csh", "tcsh", "powershell", "cmd.exe"]:
         stdout, stderr = call(evars)
 
         s = [f"{umamba} --help"]
@@ -816,7 +819,7 @@ def test_unicode_activation(
         fp = Path(x[0][1:-1])
         assert fp.exists()
 
-    if interpreter in ["bash", "zsh", "tcsh", "powershell", "cmd.exe"]:
+    if interpreter in ["bash", "zsh", "csh", "tcsh", "powershell", "cmd.exe"]:
         stdout, stderr = call(evars)
 
         s = [f"{umamba} --help"]

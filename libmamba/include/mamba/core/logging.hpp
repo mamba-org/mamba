@@ -67,6 +67,7 @@
 #include <string>
 #include <typeindex>
 #include <utility>
+#include <variant>
 #include <vector>
 
 
@@ -160,8 +161,8 @@ namespace mamba
         libsolv,
         tests,  // only used for library testing
 
-        external, // doesnt come from this library or from it's dependencies,
-                  // reserved for library user's logs if it's logging records here
+        external,  // doesnt come from this library or from it's dependencies,
+                   // reserved for library user's logs if it's logging records here
     };
 
     constexpr auto operator<=>(log_source left, std::size_t right) noexcept
@@ -186,6 +187,102 @@ namespace mamba
         return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
     }
 
+    /// Same as `std::source_location` but we can specify it manually.
+    /// Used to allow logging with source locations from other languages than C++.
+    class SourceLocation
+    {
+    public:
+        static auto current() -> SourceLocation
+        {
+            return SourceLocation{ std::source_location::current() };
+        }
+
+        SourceLocation() = default;
+        SourceLocation(const SourceLocation&) = default;
+        SourceLocation(SourceLocation&&) = default;
+        SourceLocation& operator=(const SourceLocation&) noexcept = default;
+        SourceLocation& operator=(SourceLocation&&) noexcept = default;
+
+        SourceLocation(std::source_location location)
+            : m_value{ std::move(location) }
+        {
+        }
+
+        SourceLocation(
+            std::string file_name,
+            std::string function_name,
+            std::uint_least32_t line,
+            std::uint_least32_t column
+        )
+            : m_value{ ManualValue{
+                  .m_file_name = std::move(file_name),
+                  .m_function_name = std::move(function_name),
+                  .m_line = line,
+                  .m_column = column,
+              } }
+        {
+        }
+
+        auto file_name() const -> const char*
+        {
+            return std::visit([](auto&& value) { return value.file_name(); }, m_value);
+        }
+
+        auto function_name() const -> const char*
+        {
+            return std::visit([](auto&& value) { return value.function_name(); }, m_value);
+        }
+
+        auto line() const -> std::uint_least32_t
+        {
+            return std::visit([](auto&& value) { return value.line(); }, m_value);
+        }
+
+        auto column() const -> std::uint_least32_t
+        {
+            return std::visit([](auto&& value) { return value.column(); }, m_value);
+        }
+
+    public:
+
+        struct ManualValue
+        {
+            std::string m_file_name;      // assuming utf-8 path here
+            std::string m_function_name;  // assuming utf-8 name
+            std::uint_least32_t m_line;
+            std::uint_least32_t m_column;
+
+            auto file_name() const -> const char*
+            {
+                return m_file_name.c_str();
+            }
+
+            auto function_name() const -> const char*
+            {
+                return m_function_name.c_str();
+            }
+
+            auto line() const -> std::uint_least32_t
+            {
+                return m_line;
+            }
+
+            auto column() const -> std::uint_least32_t
+            {
+                return m_column;
+            }
+        };
+
+        std::variant<std::source_location, ManualValue> m_value;
+    };
+
+    inline constexpr bool operator==(const SourceLocation& left, const SourceLocation& right)
+    {
+        return std::string_view(left.file_name()) == std::string_view(right.file_name())
+               && std::string_view(left.function_name()) == std::string_view(right.function_name())
+               && left.line() == right.line() && left.column() == right.column();
+    }
+
     namespace logging
     {
         using ::mamba::log_level;
@@ -193,22 +290,13 @@ namespace mamba
         using ::mamba::name_of;
         using ::mamba::all_log_sources;
         using ::mamba::LoggingParams;
+        using ::mamba::SourceLocation;
 
         // TODO: this is a placeholder, replace it by the real thing once available.
         // The intent is to have a type doing SBO when possible, but act as unique_ptr otherwise.
         // Might require allowing to use shared_ptr too, or some kind of value_ptr.
         template <typename Interface, std::size_t local_storage_size = sizeof(std::shared_ptr<Interface>)>
         using SBO_storage = std::unique_ptr<Interface>;
-
-        // Helper comparison of source locations, to help with testing.
-        inline constexpr bool
-        operator==(const std::source_location& left, const std::source_location& right)
-        {
-            return std::string_view(left.file_name()) == std::string_view(right.file_name())
-                   && std::string_view(left.function_name())
-                          == std::string_view(right.function_name())
-                   && left.line() == right.line() && left.column() == right.column();
-        }
 
         /** All the information about a log.
 
@@ -230,7 +318,7 @@ namespace mamba
             log_source source = log_source::libmamba;
 
             /** Source location of this log if available, otherwise empty. */
-            std::source_location location = {};  // assigned explicitly to please apple-clang
+            SourceLocation location = {};  // assigned explicitly to please apple-clang
 
             // comparisons are mainly used for testing
             auto operator==(const LogRecord& other) const noexcept -> bool = default;
@@ -935,8 +1023,7 @@ namespace mamba
         public:
 
             MessageLogger(
-                log_level level,
-                std::source_location location = std::source_location::current()
+                log_level level, SourceLocation location = std::source_location::current()
             );
             ~MessageLogger();
 
@@ -955,7 +1042,7 @@ namespace mamba
 
             log_level m_level;
             std::stringstream m_stream;
-            std::source_location m_location;
+            SourceLocation m_location;
 
             static void emit(LogRecord log_record);
         };

@@ -481,7 +481,12 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                                 .location = location,
                             };
                         }
-                    )
+                    ),
+                    py::arg("message"),
+                    py::arg("level"),
+                    py::arg("source") = logging::log_source::external,
+                    py::arg("location") = std::source_location::current()
+                    
                 )
                 .def_readwrite(
                     "message",
@@ -511,14 +516,17 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                 "set_log_handler",
                 [](py::object handler,
                    std::optional<logging::LoggingParams> maybe_new_params,
-                   std::vector<logging::log_source> new_log_sources) -> logging::AnyLogHandler
+                   std::optional<std::vector<logging::log_source>> new_log_sources) -> logging::AnyLogHandler
                 {
                     return logging::set_log_handler(
                         to_anyloghandler(handler),
                         std::move(maybe_new_params),
-                        std::move(new_log_sources)
+                        new_log_sources ? std::move(*new_log_sources) : std::vector<logging::log_source>{}
                     );
                 },
+                py::arg("log_handler"),
+                py::arg("params") = std::nullopt,
+                py::arg("sources") = std::nullopt,
                 py::return_value_policy::move
             );
 

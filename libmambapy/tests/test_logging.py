@@ -1,11 +1,10 @@
 import pytest
 
 import libmambapy
+import libmambapy.logging as logging
 
 
 def test_log_level():
-    import libmambapy.logging as logging
-
     # TODO: check every values
     log_level = libmambapy.logging.LogLevel.DEBUG
     assert log_level.name == "DEBUG"
@@ -14,55 +13,89 @@ def test_log_level():
     # TODO: check comparisons
 
 def test_log_params():
-    import libmambapy.logging as logging
-
     params = logging.LoggingParams()
     params.logging_level = libmambapy.logging.LogLevel.DEBUG
     params.log_backtrace = 42
 
 class TestLogHandler:
-    
-    def start_log_handling(*args):
-        pass
+    ### LogHandler implementation designed for testing purposes.
 
-    def stop_log_handling():
-        pass
+    class Counters:
+        start_log_handling = 0
+        stop_log_handling = 0
+        set_log_level = 0
+        set_params = 0
+        log = 0
+        enable_backtrace = 0
+        log_backtrace = 0
+        log_backtrace_no_guards = 0
+        flush = 0
+        set_flush_threshold = 0
 
-    def set_log_level(*args):
-        pass
+    _counters = Counters()
+    _log_history = []
+    _backtrace = []
+    _backtrace_size = 0
+    _params = logging.LoggingParams()
 
-    def set_params(*args):
-        pass
+
+    def start_log_handling(self, params : logging.LoggingParams, sources : []):
+        self._counters.start_log_handling += 1
+        self._params = params
+
+    def stop_log_handling(self):
+        self._counters.stop_log_handling += 1
+
+    def set_log_level(self, new_level: logging.LogLevel):
+        self._counters.set_log_level += 1
+        self._params.logging_level = new_level
+
+    def set_params(self, params : logging.LoggingParams):
+        self._counters.set_params += 1
+        self._params = params
         
-    def log(*args):
-        pass
+    def log(self, log_record: logging.LogRecord):
+        self._counters.log += 1
 
-    def enable_backtrace(*args):
-        pass
+        if self._params.logging_level == logging.LogLevel.OFF:
+            return
+
+        if self._params.logging_level == logging.LogLevel.ALL or self._params.logging_level >= log_record.logging_level:
+            # NOTE: we ignore the backtrace feature here, we are not testing this implementation but the bindings
+            self._log_history.append(log_record)
+
+
+
+    def enable_backtrace(self, new_backtrace_size: int):
+        self._counters.enable_backtrace += 1
+        # NOTE: we ignore the backtrace feature here, we are not testing this implementation but the bindings
     
-    def log_backtrace():
-        pass
+    def log_backtrace(self):
+        self._counters.log_backtrace += 1
+        # NOTE: we ignore the backtrace feature here, we are not testing this implementation but the bindings
         
-    def log_backtrace_no_guards():
-        pass
+    def log_backtrace_no_guards(self):
+        self._counters.log_backtrace_no_guards += 1
+        # NOTE: we ignore the backtrace feature here, we are not testing this implementation but the bindings
 
-    def flush(*args):
-        pass
+    def flush(self, *args):
+        self._counters.flush += 1
     
-    def set_flush_threshold(*args):
-        pass
+    def set_flush_threshold(self, *args):
+        self._counters.set_flush_threshold += 1
         
 class LogHandlerInterfaceValidation:
+    ### Tool enabling log handler objects interfaces check in logigng functions
+    ### for the durection of a `with` scope.
+
     def __init__(self, enabled:bool):
         self._enabled = enabled
         self._previous_value = False
 
     def __enter__(self):
-        import libmambapy.logging as logging
         self._previous_value = logging.enable_log_handler_interface_validation(self._enabled)
 
     def __exit__(self, *args):
-        import libmambapy.logging as logging
         logging.enable_log_handler_interface_validation(self._previous_value)
 
 
@@ -71,8 +104,6 @@ class NotALogHandler:
     pass
 
 def test_log_handler_interface_checks():
-    import libmambapy.logging as logging
-
 
     log_handler = TestLogHandler()
     not_log_handler = NotALogHandler()
@@ -90,7 +121,6 @@ def test_log_handler_interface_checks():
 
 
 def test_log_handler_basics():
-    import libmambapy.logging as logging
 
     no_log_handler = logging.AnyLogHandler()
     assert not no_log_handler
@@ -106,17 +136,19 @@ def test_log_handler_basics():
 
 
 def test_logging_api_basics():
-    import libmambapy.logging as logging
 
     log_handler = TestLogHandler()
     params = logging.LoggingParams(logging_level = logging.LogLevel.DEBUG)
 
     previous_log_handler = logging.stop_logging()
     with LogHandlerInterfaceValidation(True):
-        no_log_handler = logging.set_log_handler(log_handler, params, [ logging.LogSource.TESTS ])
+        no_log_handler = logging.set_log_handler(log_handler, params=params, sources=[ logging.LogSource.TESTS ])
         assert not no_log_handler
+
+    logging.log(logging.LogRecord(message="A", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS ))
 
     last_log_handler = logging.stop_logging() # returns an `AnyLogHandler` wrapping `log_handler`
     assert last_log_handler.has_pyobject()
     assert last_log_handler.get_pyobject() == log_handler
+
 

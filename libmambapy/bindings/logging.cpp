@@ -467,9 +467,9 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
             py::class_<logging::SourceLocation>(module, "SourceLocation", doc_type)
                 .def(
                     py::init(
-                        [](std::optional<py::object> frame_like_object)
+                        [](py::object frame_like_object)
                         {
-                            if (not frame_like_object)
+                            if (frame_like_object.is_none())
                             {
                                 auto inspect_module = py::module_::import("inspect");
                                 frame_like_object = inspect_module.attr("currentframe")();
@@ -477,15 +477,16 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
 
                             assert(frame_like_object);
 
-                            auto positions = frame_like_object->attr("positions");
+                            auto positions = frame_like_object.attr("positions");
                             return logging::SourceLocation {
-                                frame_like_object->attr("filename").cast<std::string>(),
-                                    frame_like_object->attr("function").cast<std::string>(),
+                                frame_like_object.attr("filename").cast<std::string>(),
+                                    frame_like_object.attr("function").cast<std::string>(),
                                     positions.attr("lineno").cast<std::uint_least32_t>(),
                                     positions.attr("col_offset").cast<std::uint_least32_t>()
                                 };
                         }
-                    ))
+                    )
+                , py::arg("frame") = py::none{})
                 .def_property_readonly(
                     "filename",
                     [](const logging::SourceLocation& self) { return self.file_name(); }

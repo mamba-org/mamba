@@ -192,23 +192,23 @@ namespace mamba
     class SourceLocation
     {
     public:
-        static auto current() -> SourceLocation
+        constexpr static auto current() -> SourceLocation
         {
             return SourceLocation{ std::source_location::current() };
         }
 
-        SourceLocation() = default;
-        SourceLocation(const SourceLocation&) = default;
-        SourceLocation(SourceLocation&&) = default;
-        SourceLocation& operator=(const SourceLocation&) noexcept = default;
-        SourceLocation& operator=(SourceLocation&&) noexcept = default;
+        constexpr SourceLocation() = default;
+        constexpr SourceLocation(const SourceLocation&) = default;
+        constexpr SourceLocation(SourceLocation&&) = default;
+        constexpr SourceLocation& operator=(const SourceLocation&) noexcept = default;
+        constexpr SourceLocation& operator=(SourceLocation&&) noexcept = default;
 
-        SourceLocation(std::source_location location)
+        constexpr SourceLocation(std::source_location location)
             : m_value{ std::move(location) }
         {
         }
 
-        SourceLocation(
+        constexpr SourceLocation(
             std::string file_name,
             std::string function_name,
             std::uint_least32_t line,
@@ -223,22 +223,22 @@ namespace mamba
         {
         }
 
-        auto file_name() const -> const char*
+        constexpr auto file_name() const -> const char*
         {
             return std::visit([](auto&& value) { return value.file_name(); }, m_value);
         }
 
-        auto function_name() const -> const char*
+        constexpr auto function_name() const -> const char*
         {
             return std::visit([](auto&& value) { return value.function_name(); }, m_value);
         }
 
-        auto line() const -> std::uint_least32_t
+        constexpr auto line() const -> std::uint_least32_t
         {
             return std::visit([](auto&& value) { return value.line(); }, m_value);
         }
 
-        auto column() const -> std::uint_least32_t
+        constexpr auto column() const -> std::uint_least32_t
         {
             return std::visit([](auto&& value) { return value.column(); }, m_value);
         }
@@ -252,22 +252,22 @@ namespace mamba
             std::uint_least32_t m_line;
             std::uint_least32_t m_column;
 
-            auto file_name() const -> const char*
+            constexpr auto file_name() const -> const char*
             {
                 return m_file_name.c_str();
             }
 
-            auto function_name() const -> const char*
+            constexpr auto function_name() const -> const char*
             {
                 return m_function_name.c_str();
             }
 
-            auto line() const -> std::uint_least32_t
+            constexpr auto line() const -> std::uint_least32_t
             {
                 return m_line;
             }
 
-            auto column() const -> std::uint_least32_t
+            constexpr auto column() const -> std::uint_least32_t
             {
                 return m_column;
             }

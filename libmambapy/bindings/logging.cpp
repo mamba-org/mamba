@@ -378,7 +378,7 @@ namespace mambapy
     - see `libmambapy.logging.LoggingParams`
     - see `libmambapy.logging.LogRecord`
     - see `libmambapy.logging.set_log_level`)";
-            py::native_enum<mamba::log_level>(module, "LogLevel", "enum.Enum", doc_log_level)
+            py::native_enum<mamba::log_level>(module, "LogLevel", "enum.IntEnum", doc_log_level)
                 .value("TRACE", mamba::log_level::trace)
                 .value("DEBUG", mamba::log_level::debug)
                 .value("INFO", mamba::log_level::info)
@@ -552,6 +552,7 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         }
 
         bind_any_log_handler(module);
+        bind_loghandler_history(module);
 
         {
             // TODO: add documentation + args

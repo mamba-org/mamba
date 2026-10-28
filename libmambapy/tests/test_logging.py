@@ -60,7 +60,7 @@ class TestLogHandler:
         if self._params.logging_level == logging.LogLevel.OFF:
             return
 
-        if self._params.logging_level == logging.LogLevel.ALL or self._params.logging_level >= log_record.logging_level:
+        if self._params.logging_level == logging.LogLevel.ALL or self._params.logging_level >= log_record.level:
             # NOTE: we ignore the backtrace feature here, we are not testing this implementation but the bindings
             self._log_history.append(log_record)
 

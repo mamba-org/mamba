@@ -379,6 +379,11 @@ namespace mambapy
 
         assert(not frame_like_object.is_none());
 
+        if(pybind11::isinstance<logging::SourceLocation>(frame_like_object))
+        {
+            return frame_like_object.cast<logging::SourceLocation>();
+        }
+
         auto frame_info = inspect_module.attr("getframeinfo")(frame_like_object);
 
         auto positions = frame_info.attr("positions");

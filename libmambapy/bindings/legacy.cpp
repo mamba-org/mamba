@@ -442,7 +442,7 @@ bind_submodule_impl(pybind11::module_ m)
 
     auto pySubdirIndexLoader = py::class_<SubdirIndexLoader>(m, "SubdirIndexLoader");
 
-    auto pyOutputParams = py::class_<Context::OutputParams>(pyContext, "OutputParams");
+    auto pyOutputParams = py::class_<Context::OutputParams, mamba::logging::LoggingParams>(pyContext, "OutputParams");
 
     auto pyCommandParams = py::class_<CommandParams>(pyContext, "CommandParams");
 
@@ -890,15 +890,6 @@ bind_submodule_impl(pybind11::module_ m)
         .value("Disabled", VerificationLevel::Disabled)
         .value("Warn", VerificationLevel::Warn)
         .value("Enabled", VerificationLevel::Enabled);
-
-    py::enum_<mamba::log_level>(m, "LogLevel")
-        .value("TRACE", mamba::log_level::trace)
-        .value("DEBUG", mamba::log_level::debug)
-        .value("INFO", mamba::log_level::info)
-        .value("WARNING", mamba::log_level::warn)
-        .value("ERROR", mamba::log_level::err)
-        .value("CRITICAL", mamba::log_level::critical)
-        .value("OFF", mamba::log_level::off);
 
     pyChannelContext.def_static("make_simple", &ChannelContext::make_simple)
         .def_static("make_conda_compatible", &ChannelContext::make_conda_compatible)

@@ -147,23 +147,24 @@ def test_logging_api_basics():
         assert not no_log_handler
 
     logging.log(logging.LogRecord(message="A", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS ))
-    frame = inspect.currentframe()
-    logging.log(logging.LogRecord(message="B", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS, location = frame ))
+
+    # NOTE: for testing purpose we capture the source location instead
+    # of the frame because the frame will be modified each line
+    source_location = logging.SourceLocation(inspect.currentframe())
+    logging.log(logging.LogRecord(message="B", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS, location = source_location ))
+
+    # this one will be filtered out
     logging.log(logging.LogRecord(message="C", level=logging.LogLevel.DEBUG))
 
     assert len(log_handler._log_history) == 2, log_handler._log_history
     assert log_handler._log_history[0].message == "A"
     assert log_handler._log_history[1].message == "B"
     
-    frame_info = inspect.getframeinfo(frame)
     b_location = log_handler._log_history[1].location
-    assert b_location.filename == frame_info.filename
-    assert b_location.function == frame_info.function
-
-    # NOTE: we cannot check the lines because frame/info are modified after each line here, they are not copies of the info of the frame :/
-    # assert b_location.lineno == frame_info.lineno
-    # assert b_location.lineno == frame_info.positions.lineno
-    # assert b_location.column == frame_info.positions.col_offset
+    assert b_location.filename == source_location.filename
+    assert b_location.function == source_location.function
+    assert b_location.lineno == source_location.lineno
+    assert b_location.column == source_location.column
 
     last_log_handler = logging.stop_logging() # returns an `AnyLogHandler` wrapping `log_handler`
     assert last_log_handler.has_pyobject()

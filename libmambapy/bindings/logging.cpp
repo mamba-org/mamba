@@ -369,6 +369,28 @@ namespace mambapy
         }
     }
 
+    auto py_frame_to_source_location(pybind11::object frame_like_object) -> logging::SourceLocation
+    {
+        auto inspect_module = pybind11::module_::import("inspect");
+        if (frame_like_object.is_none())
+        {
+            frame_like_object = inspect_module.attr("currentframe")();
+        }
+
+        assert(not frame_like_object.is_none());
+
+        auto frame_info = inspect_module.attr("getframeinfo")(frame_like_object);
+
+        auto positions = frame_info.attr("positions");
+        return logging::SourceLocation {
+            frame_info.attr("filename").cast<std::string>(),
+                frame_info.attr("function").cast<std::string>(),
+                positions.attr("lineno").cast<std::uint_least32_t>(),
+                positions.attr("col_offset").cast<std::uint_least32_t>()
+            };
+    
+    }
+
     void bind_submodule_logging(pybind11::module_ module)
     {
         namespace py = pybind11;
@@ -466,26 +488,7 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
 
             py::class_<logging::SourceLocation>(module, "SourceLocation", doc_type)
                 .def(
-                    py::init(
-                        [](py::object frame_like_object)
-                        {
-                            if (frame_like_object.is_none())
-                            {
-                                auto inspect_module = py::module_::import("inspect");
-                                frame_like_object = inspect_module.attr("currentframe")();
-                            }
-
-                            assert(frame_like_object);
-
-                            auto positions = frame_like_object.attr("positions");
-                            return logging::SourceLocation {
-                                frame_like_object.attr("filename").cast<std::string>(),
-                                    frame_like_object.attr("function").cast<std::string>(),
-                                    positions.attr("lineno").cast<std::uint_least32_t>(),
-                                    positions.attr("col_offset").cast<std::uint_least32_t>()
-                                };
-                        }
-                    )
+                    py::init(&py_frame_to_source_location)
                 , py::arg("frame") = py::none{})
                 .def_property_readonly(
                     "filename",
@@ -504,6 +507,8 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                     "column",
                     [](const logging::SourceLocation& self) { return self.file_name(); }
                 );
+
+                py::implicitly_convertible<py::object, logging::SourceLocation>();
         }
 
         {

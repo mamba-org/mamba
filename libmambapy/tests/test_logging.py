@@ -60,8 +60,9 @@ class TestLogHandler:
         if self._params.logging_level == logging.LogLevel.OFF:
             return
 
-        if self._params.logging_level == logging.LogLevel.ALL or self._params.logging_level >= log_record.level:
+        if self._params.logging_level == logging.LogLevel.ALL or log_record.level >= self._params.logging_level:
             # NOTE: we ignore the backtrace feature here, we are not testing this implementation but the bindings
+            print("append log record")
             self._log_history.append(log_record)
 
 
@@ -138,7 +139,7 @@ def test_log_handler_basics():
 def test_logging_api_basics():
 
     log_handler = TestLogHandler()
-    params = logging.LoggingParams(logging_level = logging.LogLevel.DEBUG)
+    params = logging.LoggingParams(logging_level = logging.LogLevel.INFO)
 
     previous_log_handler = logging.stop_logging()
     with LogHandlerInterfaceValidation(True):
@@ -146,12 +147,23 @@ def test_logging_api_basics():
         assert not no_log_handler
 
     logging.log(logging.LogRecord(message="A", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS ))
-    logging.log(logging.LogRecord(message="B", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS, location = inspect.currentframe() ))
+    frame = inspect.currentframe()
+    logging.log(logging.LogRecord(message="B", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS, location = frame ))
     logging.log(logging.LogRecord(message="C", level=logging.LogLevel.DEBUG))
 
-    assert len(log_handler._log_history) == 2
+    assert len(log_handler._log_history) == 2, log_handler._log_history
     assert log_handler._log_history[0].message == "A"
     assert log_handler._log_history[1].message == "B"
+    
+    frame_info = inspect.getframeinfo(frame)
+    b_location = log_handler._log_history[1].location
+    assert b_location.filename == frame_info.filename
+    assert b_location.function == frame_info.function
+
+    # NOTE: we cannot check the lines because frame/info are modified after each line here, they are not copies of the info of the frame :/
+    # assert b_location.lineno == frame_info.lineno
+    # assert b_location.lineno == frame_info.positions.lineno
+    # assert b_location.column == frame_info.positions.col_offset
 
     last_log_handler = logging.stop_logging() # returns an `AnyLogHandler` wrapping `log_handler`
     assert last_log_handler.has_pyobject()

@@ -65,6 +65,10 @@ namespace mamba
         {
             return "zsh";
         }
+        if (util::contains(pp_name_lower, "tcsh"))
+        {
+            return "tcsh";
+        }
         if (util::contains(pp_name_lower, "csh"))
         {
             return "csh";

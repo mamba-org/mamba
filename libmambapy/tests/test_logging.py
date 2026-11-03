@@ -86,7 +86,7 @@ class TestLogHandler:
         self._counters.set_flush_threshold += 1
         
 class LogHandlerInterfaceValidation:
-    ### Tool enabling log handler objects interfaces check in logigng functions
+    ### Tool enabling log handler objects interfaces check in logging functions
     ### for the durection of a `with` scope.
 
     def __init__(self, enabled:bool):

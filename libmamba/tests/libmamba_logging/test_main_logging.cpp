@@ -1,5 +1,12 @@
 #include <catch2/catch_session.hpp>
 
+
+#include <memory>
+
+#include <mamba/core/logging.hpp>
+#include <mamba/testing/test_logging_common.hpp>
+
+
 int
 main(int argc, char* argv[])
 {
@@ -19,9 +26,6 @@ main(int argc, char* argv[])
     // Run tests
     return session.run();
 }
-
-#include <mamba/core/logging.hpp>
-#include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging
 {
@@ -70,9 +74,9 @@ namespace mamba::logging
             );
         }
         {
-            auto unique_not_movable = std::make_sunique<testing::LogHandler_NotMovable>();
+            auto unique_not_movable = std::make_unique<testing::LogHandler_NotMovable>();
             const auto results = testing::test_classic_inline_logging_api_usage(
-                std::move(shared_not_movable),
+                std::move(unique_not_movable),
                 { .log_count = 1234 }
             );
         }

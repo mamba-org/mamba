@@ -161,7 +161,7 @@ namespace mamba
         libsolv,
         tests,  // only used for library testing
 
-        external,  // doesnt come from this library or from it's dependencies,
+        external,  // doesnt come from this library or from its dependencies,
                    // reserved for library user's logs if it's logging records here
     };
 

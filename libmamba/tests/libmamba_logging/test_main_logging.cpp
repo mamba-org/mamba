@@ -60,6 +60,22 @@ namespace mamba::logging
                 { .log_count = 1234 }
             );
         }
+
+        // supports standard smart pointers to non-movable log handlers
+        {
+            auto shared_not_movable = std::make_shared<testing::LogHandler_NotMovable>();
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                shared_not_movable,
+                { .log_count = 1234 }
+            );
+        }
+        {
+            auto unique_not_movable = std::make_sunique<testing::LogHandler_NotMovable>();
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                std::move(shared_not_movable),
+                { .log_count = 1234 }
+            );
+        }
     }
 
 }

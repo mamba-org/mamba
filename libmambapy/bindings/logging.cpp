@@ -5,22 +5,19 @@
 // The full license is in the file LICENSE, distributed with this software.
 
 #include <string>
-#include <vector>
 #include <unordered_map>
-
-#include <pybind11/native_enum.h>
-#include <pybind11/stl.h>
+#include <vector>
 
 #include <fmt/format.h>
-#include <fmt/std.h>
 #include <fmt/ranges.h>
+#include <fmt/std.h>
+#include <pybind11/native_enum.h>
+#include <pybind11/stl.h>
 
 #include "mamba/core/logging.hpp"
 #include "mamba/core/logging_tools.hpp"
 
 #include "logging.hpp"
-
-
 
 namespace mambapy
 {
@@ -29,14 +26,19 @@ namespace mambapy
     using InvalidInterfaceReport = std::vector<std::string>;
 
     // TODO: DOC!!!
-    auto check_log_handler_interface(const pybind11::object& object, bool early_exit) -> std::optional<InvalidInterfaceReport>
+    auto check_log_handler_interface(const pybind11::object& object, bool early_exit)
+        -> std::optional<InvalidInterfaceReport>
     {
         using namespace std::literals;
 
         std::optional<InvalidInterfaceReport> result;
 
-        const auto add_failure = [&](std::string failure_msg){
-            if(not result) result.emplace();
+        const auto add_failure = [&](std::string failure_msg)
+        {
+            if (not result)
+            {
+                result.emplace();
+            }
             result->push_back(failure_msg);
         };
 
@@ -47,24 +49,24 @@ namespace mambapy
         };
 
         static constexpr std::array expected_member_descs{
-            FuncDesc{ "start_log_handling", "(params: LogParams, sources: [LogSource])"},
-            FuncDesc{ "stop_log_handling", "()"},
-            FuncDesc{ "set_log_level", "(log_level: LogLevel)"},
-            FuncDesc{ "set_params", "(params: LogParams)"},
-            FuncDesc{ "log", "(record: LogRecord)"},
-            FuncDesc{ "enable_backtrace", "(size: int)"},
-            FuncDesc{ "log_backtrace", "()"},
-            FuncDesc{ "log_backtrace_no_guards", "()"},
-            FuncDesc{ "flush", "(source: LogSource|None)"},
-            FuncDesc{ "set_flush_threshold", "(level: LogLevel)"}
+            FuncDesc{ "start_log_handling", "(params: LogParams, sources: [LogSource])" },
+            FuncDesc{ "stop_log_handling", "()" },
+            FuncDesc{ "set_log_level", "(log_level: LogLevel)" },
+            FuncDesc{ "set_params", "(params: LogParams)" },
+            FuncDesc{ "log", "(record: LogRecord)" },
+            FuncDesc{ "enable_backtrace", "(size: int)" },
+            FuncDesc{ "log_backtrace", "()" },
+            FuncDesc{ "log_backtrace_no_guards", "()" },
+            FuncDesc{ "flush", "(source: LogSource|None)" },
+            FuncDesc{ "set_flush_threshold", "(level: LogLevel)" }
         };
 
         for (const auto& desc : expected_member_descs)
         {
-            if(not pybind11::hasattr(object, desc.name))
+            if (not pybind11::hasattr(object, desc.name))
             {
                 add_failure(std::format("member not found: {}{}", desc.name, desc.signature));
-                if(early_exit)
+                if (early_exit)
                 {
                     break;
                 }
@@ -74,20 +76,24 @@ namespace mambapy
         return result;
     }
 
-
     // TODO: DOC!!!
     auto has_log_handler_interface(const pybind11::object& object) -> bool
     {
         return not check_log_handler_interface(object, true).has_value();
     }
 
-    // TOOD: DOC!!!!
+    // TODO: DOC!!!!
     auto validate_log_handler_interface(const pybind11::object& object) -> void
     {
         auto maybe_errors = check_log_handler_interface(object, false);
-        if(maybe_errors)
+        if (maybe_errors)
         {
-            throw std::invalid_argument(fmt::format("object does not have a LogHandler interface : {}", std::move(maybe_errors).value()));
+            throw std::invalid_argument(
+                fmt::format(
+                    "object does not have a LogHandler interface : {}",
+                    std::move(maybe_errors).value()
+                )
+            );
         }
     }
 
@@ -96,7 +102,7 @@ namespace mambapy
         bool is_log_handler_interface_validation_enabled = false;
     }
 
-    // TOOD: DOC!!!!
+    // TODO: DOC!!!!
     auto enable_log_handler_interface_validation(bool enabled) -> bool
     {
         return std::exchange(is_log_handler_interface_validation_enabled, enabled);
@@ -104,7 +110,8 @@ namespace mambapy
 
     namespace details
     {
-        namespace {
+        namespace
+        {
             struct pytype_hash
             {
                 auto operator()(const pybind11::type& type) const noexcept
@@ -121,20 +128,21 @@ namespace mambapy
                 }
             };
 
-            std::unordered_map<pybind11::type, AnyLogHandlerConstructor, pytype_hash, pytype_equal> registry_anyloghandler_constructors;
+            std::unordered_map<pybind11::type, AnyLogHandlerConstructor, pytype_hash, pytype_equal>
+                registry_anyloghandler_constructors;
 
         }
 
-        auto register_anyloghandler_constructor(
-            pybind11::type type_id,
-            AnyLogHandlerConstructor constructor
-        ) -> void
+        auto
+        register_anyloghandler_constructor(pybind11::type type_id, AnyLogHandlerConstructor constructor)
+            -> void
         {
             registry_anyloghandler_constructors.emplace(type_id, constructor);
         }
 
         // note: we take `pyobject` by reference to be able to conditionally move it
-        auto make_anyloghandler_from_cpp_loghandler_type(pybind11::object& pyobject) -> std::optional<mamba::logging::AnyLogHandler>
+        auto make_anyloghandler_from_cpp_loghandler_type(pybind11::object& pyobject)
+            -> std::optional<mamba::logging::AnyLogHandler>
         {
             auto found_it = registry_anyloghandler_constructors.find(pybind11::type::of(pyobject));
             if (found_it == registry_anyloghandler_constructors.end())
@@ -166,7 +174,7 @@ namespace mambapy
             explicit PyAnyLogHandler(pybind11::object object)
                 : impl(std::move(object))
             {
-                if(is_log_handler_interface_validation_enabled)
+                if (is_log_handler_interface_validation_enabled)
                 {
                     validate_log_handler_interface(impl);
                 }
@@ -254,7 +262,10 @@ namespace mambapy
         auto has_python_object(const logging::AnyLogHandler& handler) -> bool
         {
             auto maybe_type_id = handler.type_id();
-            std::cout << fmt::format("HACK: maybe_type_id = {}", maybe_type_id ? maybe_type_id->name() : "None") << std::endl;
+            std::cout << fmt::format(
+                "HACK: maybe_type_id = {}",
+                maybe_type_id ? maybe_type_id->name() : "None"
+            ) << std::endl;
             return maybe_type_id and maybe_type_id.value() == typeid(PyAnyLogHandler);
         }
 
@@ -278,7 +289,7 @@ namespace mambapy
 
 
             namespace py = pybind11;
-            if(pyobject.is_none())
+            if (pyobject.is_none())
             {
                 return logging::AnyLogHandler{};
             }
@@ -318,7 +329,10 @@ namespace mambapy
             module.def("check_log_handler_interface", &check_log_handler_interface);
             module.def("has_log_handler_interface", &has_log_handler_interface);
             module.def("validate_log_handler_interface", &validate_log_handler_interface);
-            module.def("enable_log_handler_interface_validation", &enable_log_handler_interface_validation);
+            module.def(
+                "enable_log_handler_interface_validation",
+                &enable_log_handler_interface_validation
+            );
         }
 
         void bind_loghandler_history(pybind11::module_ module)
@@ -379,7 +393,7 @@ namespace mambapy
 
         assert(not frame_like_object.is_none());
 
-        if(pybind11::isinstance<logging::SourceLocation>(frame_like_object))
+        if (pybind11::isinstance<logging::SourceLocation>(frame_like_object))
         {
             return frame_like_object.cast<logging::SourceLocation>();
         }
@@ -387,13 +401,10 @@ namespace mambapy
         auto frame_info = inspect_module.attr("getframeinfo")(frame_like_object);
 
         auto positions = frame_info.attr("positions");
-        return logging::SourceLocation {
-            frame_info.attr("filename").cast<std::string>(),
-                frame_info.attr("function").cast<std::string>(),
-                positions.attr("lineno").cast<std::uint_least32_t>(),
-                positions.attr("col_offset").cast<std::uint_least32_t>()
-            };
-    
+        return logging::SourceLocation{ frame_info.attr("filename").cast<std::string>(),
+                                        frame_info.attr("function").cast<std::string>(),
+                                        positions.attr("lineno").cast<std::uint_least32_t>(),
+                                        positions.attr("col_offset").cast<std::uint_least32_t>() };
     }
 
     void bind_submodule_logging(pybind11::module_ module)
@@ -422,7 +433,7 @@ namespace mambapy
                 [](mamba::log_level value)
                 {
                     // NOTE: this is necessary because this function is constexpr and doesnt have a
-                    // runtime address until instanciated here.
+                    // runtime address until instantiated here.
                     return mamba::name_of(value);
                 },
                 "Provides the name that will be used in `LogRecord`s for the specified LogLevel.",
@@ -447,7 +458,7 @@ This is mainly useful for debugging issues coming from dependencies that have lo
                 [](mamba::log_source value)
                 {
                     // NOTE: this is necessary because this function is constexpr and doesnt have a
-                    // runtime address until instanciated here.
+                    // runtime address until instantiated here.
                     return mamba::name_of(value);
                 },
                 "Provides the name that will be used in `LogRecord`s for the specified LogLevel.",
@@ -456,8 +467,7 @@ This is mainly useful for debugging issues coming from dependencies that have lo
         }
 
         {
-            static constexpr auto
-                doc_loggingparams_logging_level = "Minimum level a log record must have to not be filtered out.";
+            static constexpr auto doc_loggingparams_logging_level = "Minimum level a log record must have to not be filtered out.";
             static constexpr auto doc_loggingparams_log_backtrace = R"(Number of log records to keep in the backtrace history.
 The backtrace feature will be enabled only if the value is different from `0`.)";
             static constexpr auto default_loggingparams = logging::LoggingParams{};
@@ -492,9 +502,7 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
             static constexpr auto doc_type = R"(MISSING DOC HERE`)";
 
             py::class_<logging::SourceLocation>(module, "SourceLocation", doc_type)
-                .def(
-                    py::init(&py_frame_to_source_location)
-                , py::arg("frame") = py::none{})
+                .def(py::init(&py_frame_to_source_location), py::arg("frame") = py::none{})
                 .def_property_readonly(
                     "filename",
                     [](const logging::SourceLocation& self) { return self.file_name(); }
@@ -507,13 +515,14 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                     "lineno",
                     [](const logging::SourceLocation& self) { return self.line(); }
                 )
-                // this member difers from `inspect.FrameInfo` interface but matches `std::source_location`
+                // this member difers from `inspect.FrameInfo` interface but matches
+                // `std::source_location`
                 .def_property_readonly(
                     "column",
                     [](const logging::SourceLocation& self) { return self.file_name(); }
                 );
 
-                py::implicitly_convertible<py::object, logging::SourceLocation>();
+            py::implicitly_convertible<py::object, logging::SourceLocation>();
         }
 
         {
@@ -577,7 +586,8 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                     return logging::set_log_handler(
                         to_anyloghandler(handler),
                         std::move(maybe_new_params),
-                        new_log_sources ? std::move(*new_log_sources) : std::vector<logging::log_source>{}
+                        new_log_sources ? std::move(*new_log_sources)
+                                        : std::vector<logging::log_source>{}
                     );
                 },
                 py::arg("log_handler"),
@@ -588,7 +598,7 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
 
             // WARNING:
             // Do not expose this function for now as we are not sure if it's useful and it might
-            // cause UB easilly.
+            // cause UB easily.
             // module.def("get_log_handler", &logging::get_log_handler,
             // py::return_value_policy::reference);
 

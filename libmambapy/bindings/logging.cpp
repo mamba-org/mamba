@@ -334,53 +334,6 @@ namespace mambapy
                 &enable_log_handler_interface_validation
             );
         }
-
-        void bind_loghandler_history(pybind11::module_ module)
-        {
-            namespace py = pybind11;
-
-            using Options = logging::LogHandler_History::Options;
-            {
-                constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
-
-                py::class_<Options>(module, "LogHandler_History.Options", doc_class)
-                    .def(
-                        py::init(
-                            [](size_t max_records_count, bool clear_on_stop)
-                            {
-                                return Options{ .max_records_count = max_records_count,
-                                                .clear_on_stop = clear_on_stop };
-                            }
-                        ),
-                        py::arg("max_records_count") = size_t{ 0 },
-                        py::arg("clear_on_stop") = false
-                    )
-                    .def_readwrite("max_records_count", &Options::max_records_count)
-                    .def_readwrite("clear_on_stop", &Options::clear_on_stop);
-            }
-
-            {
-                constexpr auto doc_class = "TODO: DOCUMENTATION HERE.";
-
-                py::class_<logging::LogHandler_History>(module, "LogHandler_History", doc_class)
-                    .def(
-                        py::init([](Options options)
-                                 { return logging::LogHandler_History{ std::move(options) }; }),
-                        py::arg("options") = Options{},
-                        py::return_value_policy::move
-                    )
-                    .def("capture_history", &logging::LogHandler_History::capture_history)
-                    .def("clear_history", &logging::LogHandler_History::clear_history)
-                    .def("is_started", &logging::LogHandler_History::is_started)
-                    .def(
-                        "get_options",
-                        &logging::LogHandler_History::get_options,
-                        py::return_value_policy::copy
-                    );
-            }
-
-            register_cpp_loghandler_type_for_anyloghandler<logging::LogHandler_History>();
-        }
     }
 
     auto py_frame_to_source_location(pybind11::object frame_like_object) -> logging::SourceLocation
@@ -572,7 +525,6 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         }
 
         bind_any_log_handler(module);
-        bind_loghandler_history(module);
 
         {
             // TODO: add documentation + args

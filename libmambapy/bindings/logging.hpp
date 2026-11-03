@@ -27,6 +27,11 @@ namespace mambapy
             -> void;
     }
 
+    // Registers a C++ type satisfying `LogHandler` to enable extracting an instance of this type from
+    // a python object when passed into an `AnyLogHandler` constructor.
+    // This helps avoid ending up with a python object which wrapps an `AnyObject` which wraps a python
+    // object which wraps a C++ `LogHandler` implementation with python bindings. Instead, the `AnyObject`
+    // will directly wrapp that `LogHander` implementation.
     template <mamba::logging::LogHandler T>
     auto register_cpp_loghandler_type_for_anyloghandler() -> void
     {

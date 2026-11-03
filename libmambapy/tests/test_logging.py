@@ -133,14 +133,14 @@ def test_log_handler_basics():
     assert log_handler.has_pyobject()
 
     with pytest.raises(ValueError), LogHandlerInterfaceValidation(True):
-        should_fail = logging.AnyLogHandler(NotALogHandler())
+        _should_fail = logging.AnyLogHandler(NotALogHandler())
 
 
 def test_logging_api_basics():
     log_handler = TestLogHandler()
     params = logging.LoggingParams(logging_level=logging.LogLevel.INFO)
 
-    previous_log_handler = logging.stop_logging()
+    _previous_log_handler = logging.stop_logging()
     with LogHandlerInterfaceValidation(True):
         no_log_handler = logging.set_log_handler(
             log_handler, params=params, sources=[logging.LogSource.TESTS]

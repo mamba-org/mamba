@@ -192,7 +192,8 @@ namespace mamba
     class SourceLocation
     {
     public:
-        constexpr static auto current() -> SourceLocation
+
+        static constexpr auto current() -> SourceLocation
         {
             return SourceLocation{ std::source_location::current() };
         }
@@ -1022,9 +1023,7 @@ namespace mamba
         {
         public:
 
-            MessageLogger(
-                log_level level, SourceLocation location = std::source_location::current()
-            );
+            MessageLogger(log_level level, SourceLocation location = std::source_location::current());
             ~MessageLogger();
 
             std::stringstream& stream()

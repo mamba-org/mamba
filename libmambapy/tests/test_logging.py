@@ -87,7 +87,7 @@ class TestLogHandler:
         
 class LogHandlerInterfaceValidation:
     ### Tool enabling log handler objects interfaces check in logging functions
-    ### for the durection of a `with` scope.
+    ### for the duration of a `with` scope.
 
     def __init__(self, enabled:bool):
         self._enabled = enabled

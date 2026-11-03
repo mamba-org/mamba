@@ -25,15 +25,15 @@ namespace mambapy
 
     using InvalidInterfaceReport = std::vector<std::string>;
 
-    static constexpr auto doc_check_log_handler_interface = 
-R"(Checks that the provided object's interface matches the expected interface for a `LogHandler`.
+    static constexpr auto doc_check_log_handler_interface =
+        R"(Checks that the provided object's interface matches the expected interface for a `LogHandler`.
 Returns a list of errors as string specifying missing member functions. If the list is empty
 there is no error and the type matches the expected interface (or at least the member names).
 )
 
   early_exit : if `True`, the function will return after finding the first error.
 )";
-    
+
     auto check_log_handler_interface(const pybind11::object& object, bool early_exit)
         -> std::optional<InvalidInterfaceReport>
     {
@@ -84,8 +84,8 @@ there is no error and the type matches the expected interface (or at least the m
         return result;
     }
 
-    static constexpr auto doc_has_log_handler_interface = 
-R"(Returns `True` if the provided object's interface satisfy the interface requirements for a `LogHandler`.
+    static constexpr auto doc_has_log_handler_interface =
+        R"(Returns `True` if the provided object's interface satisfy the interface requirements for a `LogHandler`.
 This is equivalent to `check_log_handler_interface(object, early_exit = true)`.
 )";
 
@@ -96,6 +96,7 @@ This is equivalent to `check_log_handler_interface(object, early_exit = true)`.
 
     static constexpr auto doc_validate_log_handler_interface = R"(Throws an exception with detailed message if `check_log_handler_interface(pyobject, early_exit=true)` returns an error.)
     Mainly used to make sure an object has the complete expected interface for a `LogHandler`.)";
+
     auto validate_log_handler_interface(const pybind11::object& object) -> void
     {
         auto maybe_errors = check_log_handler_interface(object, false);
@@ -116,8 +117,8 @@ This is equivalent to `check_log_handler_interface(object, early_exit = true)`.
         bool is_log_handler_interface_validation_enabled = false;
     }
 
-    static constexpr auto doc_enable_log_handler_interface_validation = 
-    R"(Enables or disable automatic interface runtime validat of python objects wrapped into `AnyLogHandler`.
+    static constexpr auto doc_enable_log_handler_interface_validation =
+        R"(Enables or disable automatic interface runtime validate of python objects wrapped into `AnyLogHandler`.
 If enabled, will call `validate_log_handler_interface(pyobject)` every time a python object is passed to
 `libmambapy.logging.set_log_handler()` or when an `AnyLogHandler` is constructed.
 In this case, if the object doesn'have the complete expected interface, an exception will be raised.
@@ -126,6 +127,7 @@ If disabled, missing functions will be found only when called and could be never
 Enabling this is mainly useful in tests and debugging and is disabled by default.
 
 Returns the previous value.)";
+
     auto enable_log_handler_interface_validation(bool enabled) -> bool
     {
         return std::exchange(is_log_handler_interface_validation_enabled, enabled);
@@ -151,8 +153,9 @@ Returns the previous value.)";
                 }
             };
 
-            using AnyLogHandlerConstructorRegistry = std::unordered_map<pybind11::type, AnyLogHandlerConstructor, pytype_hash, pytype_equal>;
-            
+            using AnyLogHandlerConstructorRegistry = std::
+                unordered_map<pybind11::type, AnyLogHandlerConstructor, pytype_hash, pytype_equal>;
+
             AnyLogHandlerConstructorRegistry registry_anyloghandler_constructors;
 
         }
@@ -272,7 +275,8 @@ Returns the previous value.)";
 
         static_assert(logging::LogHandler_Moveable<PyAnyLogHandler>);
 
-        // Returns `true` if the provided AnyLogHandler contains a value even if it was defined in Python, `false` otherwise.
+        // Returns `true` if the provided AnyLogHandler contains a value even if it was defined in
+        // Python, `false` otherwise.
         auto has_valid_object(const logging::AnyLogHandler& handler) -> bool
         {
             const auto stored_type_id = handler.type_id();
@@ -283,14 +287,16 @@ Returns the previous value.)";
             return stored_type_id.has_value();
         }
 
-        // Returns `true`  if the provided AnyLogHandler contains a value that was defined in Python even if it's `None`, `false` otherwise.
+        // Returns `true`  if the provided AnyLogHandler contains a value that was defined in Python
+        // even if it's `None`, `false` otherwise.
         auto has_python_object(const logging::AnyLogHandler& handler) -> bool
         {
             auto maybe_type_id = handler.type_id();
             return maybe_type_id and maybe_type_id.value() == typeid(PyAnyLogHandler);
         }
 
-        // Returns a python object if the provided AnyLogHandler contains one that was defined in Python, nullopt otherwise.
+        // Returns a python object if the provided AnyLogHandler contains one that was defined in
+        // Python, nullopt otherwise.
         auto get_python_object(const logging::AnyLogHandler& handler)
             -> std::optional<pybind11::object>
         {
@@ -306,8 +312,8 @@ Returns the previous value.)";
         // Constructs an `AnyLogHandler` from a python object.
         // If the python object is wrapping a binded C++ `LogHandler` type,
         // we also attempt to extract the C++ type to store it into the `AnyLogHandler` returned.
-        // This is to avoid ending up with a python object wrapping an `AnyLogHanlder` wrapping
-        // a python object wrapping a C++ `LogHandler` implementation. Instead we end up 
+        // This is to avoid ending up with a python object wrapping an `AnyLogHandler` wrapping
+        // a python object wrapping a C++ `LogHandler` implementation. Instead we end up
         // with an `AnyLogHandler` wrapping directly the C++ implementation.
         // If the object was defined in Python, we wrap it (using `PyAnyLogHandler`)
         // so that it satisfies the compile-time requirements of `AnyLogHandler` and
@@ -345,8 +351,8 @@ Returns the previous value.)";
         {
             namespace py = pybind11;
 
-            static constexpr auto doc_class = 
-R"(Stores or refers to a log handler implementation object which must satisfy the
+            static constexpr auto doc_class =
+                R"(Stores or refers to a log handler implementation object which must satisfy the
 requirements from `mamba::logging::LogHandler` (see `check_log_handler_interface()`).
 
 Used in the logging system functions to register a log handler implementation.
@@ -368,18 +374,31 @@ Only operations specified as such are thread-safe.)";
                 .def("has_pyobject", &has_python_object)
                 .def("get_pyobject", &get_python_object);  // THINK: add other member functions?
 
-            module.def("check_log_handler_interface", &check_log_handler_interface, doc_check_log_handler_interface);
-            module.def("has_log_handler_interface", &has_log_handler_interface, doc_has_log_handler_interface);
-            module.def("validate_log_handler_interface", &validate_log_handler_interface, doc_validate_log_handler_interface);
+            module.def(
+                "check_log_handler_interface",
+                &check_log_handler_interface,
+                doc_check_log_handler_interface
+            );
+            module.def(
+                "has_log_handler_interface",
+                &has_log_handler_interface,
+                doc_has_log_handler_interface
+            );
+            module.def(
+                "validate_log_handler_interface",
+                &validate_log_handler_interface,
+                doc_validate_log_handler_interface
+            );
             module.def(
                 "enable_log_handler_interface_validation",
-                &enable_log_handler_interface_validation, doc_enable_log_handler_interface_validation
+                &enable_log_handler_interface_validation,
+                doc_enable_log_handler_interface_validation
             );
         }
     }
 
-    // Translates a python frame object (see `inspect.currentframe()`) into a C++ source location value.
-    // If the object is `None`, we use `inspect.currentframe()` instead.
+    // Translates a python frame object (see `inspect.currentframe()`) into a C++ source location
+    // value. If the object is `None`, we use `inspect.currentframe()` instead.
     auto py_frame_to_source_location(pybind11::object frame_like_object) -> logging::SourceLocation
     {
         auto inspect_module = pybind11::module_::import("inspect");

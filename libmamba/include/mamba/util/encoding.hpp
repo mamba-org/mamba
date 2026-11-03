@@ -40,45 +40,6 @@ namespace mamba::util
     [[nodiscard]] auto bytes_to_hex_str(std::span<const std::byte> bytes) -> std::string;
 
     /**
-     * Convert a hexadecimal character to a lower nibble.
-     */
-    [[nodiscard]] auto hex_to_nibble(char c, EncodingError& error) noexcept -> std::byte;
-
-    /**
-     * Convert a hexadecimal character to a lower nibble.
-     */
-    [[nodiscard]] auto hex_to_nibble(char c) noexcept -> tl::expected<std::byte, EncodingError>;
-
-    /**
-     * Convert two hexadecimal characters to a byte.
-     */
-    [[nodiscard]] auto two_hex_to_byte(char high, char low, EncodingError& error) noexcept
-        -> std::byte;
-
-    /**
-     * Convert two hexadecimal characters to a byte.
-     */
-    [[nodiscard]] auto two_hex_to_byte(char high, char low) noexcept
-        -> tl::expected<std::byte, EncodingError>;
-
-    /**
-     * Convert hexadecimal characters to a bytes and write it to the given output.
-     *
-     * The number of hexadecimal characters must be even and out must be allocated with half the
-     * number of hexadecimal characters.
-     */
-    void hex_to_bytes_to(std::string_view hex, std::byte* out, EncodingError& error) noexcept;
-
-    /**
-     * Convert hexadecimal characters to a bytes and write it to the given output.
-     *
-     * The number of hexadecimal characters must be even and out must be allocated with half the
-     * number of hexadecimal characters.
-     */
-    [[nodiscard]] auto hex_to_bytes_to(std::string_view hex, std::byte* out) noexcept
-        -> tl::expected<void, EncodingError>;
-
-    /**
      * Escape reserved URL reserved characters with '%' encoding.
      *
      * The second argument can be used to specify characters to exclude from encoding,

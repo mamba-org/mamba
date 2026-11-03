@@ -32,13 +32,6 @@ namespace mamba::util
         {
             return (b >> 4) & nibble_low_mask;
         }
-
-        [[nodiscard]] auto concat_nibbles(std::byte high, std::byte low) noexcept -> std::byte
-        {
-            high <<= 4;
-            high |= low & nibble_low_mask;
-            return high;
-        }
     }
 
     auto nibble_to_hex(std::byte b) noexcept -> char
@@ -65,96 +58,6 @@ namespace mamba::util
         auto out = std::string(bytes.size() * 2, 'x');
         bytes_to_hex_to(bytes, out.data());
         return out;
-    }
-
-    auto hex_to_nibble(char c, EncodingError& error) noexcept -> std::byte
-    {
-        using int_t = std::int_fast8_t;
-        static constexpr auto val_0 = static_cast<int_t>('0');
-        static constexpr auto val_9 = static_cast<int_t>('9');
-        static constexpr auto val_a = static_cast<int_t>('a');
-        static constexpr auto val_f = static_cast<int_t>('f');
-        static constexpr auto val_A = static_cast<int_t>('A');
-        static constexpr auto val_F = static_cast<int_t>('F');
-        static constexpr auto val_error = static_cast<int_t>(16);
-
-        const auto val = static_cast<int_t>(c);
-        auto num = if_else<int_t>(
-            (val_0 <= val) && (val <= val_9),
-            static_cast<int_t>(val - val_0),
-            if_else<int_t>(
-                (val_a <= val) && (val <= val_f),
-                static_cast<int_t>(val - val_a + 10),
-                if_else<int_t>(  //
-                    (val_A <= val) && (val <= val_F),
-                    static_cast<int_t>(val - val_A + 10),
-                    val_error
-                )
-            )
-        );
-        // We mapped errors onto val_error, if no error leave unset so that user can chain
-        error = if_else(num == val_error, EncodingError::InvalidInput, error);
-        // Promised a nibble so we do not write higher nibble
-        num = if_else(num == val_error, int_t(0), num);
-        return static_cast<std::byte>(num);
-    }
-
-    auto hex_to_nibble(char c) noexcept -> tl::expected<std::byte, EncodingError>
-    {
-        auto error = EncodingError::Ok;
-        auto nibble = hex_to_nibble(c, error);
-        if (error != EncodingError::Ok)
-        {
-            return tl::make_unexpected(error);
-        }
-        return nibble;
-    }
-
-    auto two_hex_to_byte(char high, char low, EncodingError& error) noexcept -> std::byte
-    {
-        return concat_nibbles(hex_to_nibble(high, error), hex_to_nibble(low, error));
-    }
-
-    auto two_hex_to_byte(char high, char low) noexcept -> tl::expected<std::byte, EncodingError>
-    {
-        auto error = EncodingError::Ok;
-        auto b = two_hex_to_byte(high, low, error);
-        if (error != EncodingError::Ok)
-        {
-            return tl::make_unexpected(error);
-        }
-        return b;
-    }
-
-    // TODO(C++20): use iterators return type
-    void hex_to_bytes_to(std::string_view hex, std::byte* out, EncodingError& error) noexcept
-    {
-        if (hex.size() % 2 == 0)
-        {
-            const auto end = hex.cend();
-            for (auto it = hex.cbegin(); it < end; it += 2)
-            {
-                *out = two_hex_to_byte(it[0], it[1], error);
-                ++out;
-            }
-        }
-        else
-        {
-            error = EncodingError::InvalidInput;
-        }
-    }
-
-    // TODO(C++20): use iterators return type
-    auto hex_to_bytes_to(std::string_view hex, std::byte* out) noexcept
-        -> tl::expected<void, EncodingError>
-    {
-        auto error = EncodingError::Ok;
-        hex_to_bytes_to(hex, out, error);
-        if (error != EncodingError::Ok)
-        {
-            return tl::make_unexpected(error);
-        }
-        return {};
     }
 
     namespace

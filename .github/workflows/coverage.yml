@@ -96,7 +96,7 @@ jobs:
           sudo apt-get install -y lcov
       - name: Generate C++ coverage report
         run: |
-          lcov --directory . --capture --output-file cpp_coverage.info
+          lcov --directory . --capture --output-file cpp_coverage.info --demangle-cpp
           lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' 'libmamba/tests/*' --output-file cpp_coverage.info --ignore-errors unused
           lcov --summary cpp_coverage.info --ignore-errors mismatch --rc geninfo_unexecuted_blocks=1
 

@@ -67,7 +67,6 @@ class TestLogHandler:
             or log_record.level >= self._params.logging_level
         ):
             # NOTE: we ignore the backtrace feature here, we are not testing this implementation but the bindings
-            print("append log record")
             self._log_history.append(log_record)
 
     def enable_backtrace(self, new_backtrace_size: int):

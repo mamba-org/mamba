@@ -180,7 +180,7 @@ def test_logging_api_basics():
     logging.set_log_level(logging.LogLevel.INFO)
     assert log_handler._counters.set_log_level == 2
 
-    logging.set_params(params)
+    logging.set_logging_params(params)
     assert log_handler._counters.set_params == 1
 
     # this one will be filtered out
@@ -199,10 +199,10 @@ def test_logging_api_basics():
     logging.log_traceback_no_guards()
     assert log_handler._counters.log_backtrace_no_guards == 1
 
-    logging.flush()
+    logging.flush_logs()
     assert log_handler._counters.flush == 1
 
-    logging.flush(logging.LogSource.TESTS)
+    logging.flush_logs(logging.LogSource.TESTS)
     assert log_handler._counters.flush == 2
 
     logging.set_flush_threshold(logging.LogLevel.DEBUG)

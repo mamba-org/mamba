@@ -14,7 +14,7 @@
 #include <tuple>
 #include <utility>
 
-#include "mamba/util/metaprog.hpp" 
+#include "mamba/util/metaprog.hpp"
 
 namespace mamba::util
 {

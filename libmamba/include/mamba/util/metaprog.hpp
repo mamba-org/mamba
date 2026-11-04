@@ -7,7 +7,6 @@
 #ifndef MAMBA_UTIL_METAPROG_HPP
 #define MAMBA_UTIL_METAPROG_HPP
 
-
 namespace mamba::util
 {
     /////////////////////////////

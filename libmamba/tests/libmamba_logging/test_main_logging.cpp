@@ -1,11 +1,9 @@
-#include <catch2/catch_session.hpp>
-
-
 #include <memory>
+
+#include <catch2/catch_session.hpp>
 
 #include <mamba/core/logging.hpp>
 #include <mamba/testing/test_logging_common.hpp>
-
 
 int
 main(int argc, char* argv[])

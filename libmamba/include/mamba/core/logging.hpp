@@ -453,9 +453,11 @@ namespace mamba
         template <typename T>
         concept LogHandlerPtr = std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>;
 
+        // clang-format off
         template <typename T>
-        concept LogHandlerSmartPtr = (util::is_type_instance_of_v<T, std::shared_ptr> 
-            or util::is_type_instance_of_v<T, std::unique_ptr>) and LogHandler<typename T::element_type>;
+        concept LogHandlerSmartPtr = (util::is_type_instance_of_v<T,std::shared_ptr> or util::is_type_instance_of_v<T, std::unique_ptr>)
+                                     and LogHandler<typename T::element_type>;
+        // clang-format on
 
         /** Matches either a type of a log handler implementation satisfying the requirements of
             `mamba::logging::LogHandler`, or a pointer to such type.
@@ -552,10 +554,9 @@ namespace mamba
 
             /** Construction by storing the provided smart pointer to a log handler implementation.
 
-                This will take shared or unique ownership of the pointed object depending on the smart
-                pointer type (`std::shared_ptr` or `std::unique_ptr`).
-                The pointed object MUST be valid and it's lifetime MUST be greater than the lifetime
-                of `this`.
+                This will take shared or unique ownership of the pointed object depending on the
+               smart pointer type (`std::shared_ptr` or `std::unique_ptr`). The pointed object MUST
+               be valid and it's lifetime MUST be greater than the lifetime of `this`.
 
                 This is mainly useful for situations where  users cannot or do not want to move the
                 implementation, or when the implementation must be shared.
@@ -567,8 +568,9 @@ namespace mamba
                 post-conditions:
                     - `has_value() == true`
 
-                @param handler_ptr A standard smart-pointer (`std::shared_ptr` or `std::unique_ptr`) 
-                                   to a log handler object which type satisfies `mamba::logging::LogHandler` requirements.
+                @param handler_ptr A standard smart-pointer (`std::shared_ptr` or `std::unique_ptr`)
+                                   to a log handler object which type satisfies
+               `mamba::logging::LogHandler` requirements.
 
                 @see `mamba::logging::LogHandler`
             */
@@ -627,9 +629,9 @@ namespace mamba
 
             /** Stores the provided smart pointer to a log handler implementation.
 
-                This will take shared or unique ownership of the pointed object depending on the type of smart pointer.
-                The pointed object MUST be valid and it's lifetime MUST be greater than the lifetime
-                of `this`.
+                This will take shared or unique ownership of the pointed object depending on the
+               type of smart pointer. The pointed object MUST be valid and it's lifetime MUST be
+               greater than the lifetime of `this`.
 
                 If `this` already stores an object before this call, it is destroyed before we store
                 the provided pointer.
@@ -1154,7 +1156,7 @@ namespace mamba::logging
         Wrapper(T new_object)
             : object(std::move(new_object))
         {
-            if constexpr(LogHandlerPtr<T> or LogHandlerSmartPtr<T>)
+            if constexpr (LogHandlerPtr<T> or LogHandlerSmartPtr<T>)
             {
                 assert(object);
             }

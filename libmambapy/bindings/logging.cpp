@@ -480,6 +480,8 @@ This is mainly useful for debugging issues coming from dependencies that have lo
                 "Provides the name that will be used in `LogRecord`s for the specified LogLevel.",
                 py::arg("log_level")
             );
+
+            module.def("all_log_sources", &mamba::all_log_sources, "Returns all log sources used in libmamba.");
         }
 
         {
@@ -515,7 +517,7 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         }
 
         {
-            static constexpr auto doc_type = R"(MISSING DOC HERE`)";
+            static constexpr auto doc_type = R"(Represents a location in a source file.)";
 
             py::class_<logging::SourceLocation>(module, "SourceLocation", doc_type)
                 .def(py::init(&py_frame_to_source_location), py::arg("frame") = py::none{})
@@ -614,7 +616,7 @@ provided as argument, this function will call this handler's
 This call is NOT thread-safe.
 
 Parameters:
-- handler: The log handler implementation to use when the other operations of the
+- log_handler: The log handler implementation to use when the other operations of the
     logging system are called, or `None` to stop the logging system.
 - maybe_new_params: Optional new parameters to the logging system. If provided,
     overwrites the current parameters. If not, the previous parameters
@@ -781,18 +783,17 @@ See `libmamba.logging.log`.)";
                 "set_log_handler",
                 [](py::object handler,
                    std::optional<logging::LoggingParams> maybe_new_params,
-                   std::optional<std::vector<logging::log_source>> new_log_sources) -> logging::AnyLogHandler
+                   std::vector<logging::log_source> new_log_sources) -> logging::AnyLogHandler
                 {
                     return logging::set_log_handler(
                         to_anyloghandler(handler),
                         std::move(maybe_new_params),
-                        new_log_sources ? std::move(*new_log_sources)
-                                        : std::vector<logging::log_source>{}
+                        std::move(new_log_sources)
                     );
                 },
                 py::arg("log_handler"),
                 py::arg("params") = std::nullopt,
-                py::arg("sources") = std::nullopt,
+                py::arg("sources") = mamba::all_log_sources(),
                 doc_set_log_handler,
                 py::return_value_policy::move
             );
@@ -805,7 +806,8 @@ See `libmamba.logging.log`.)";
             module.def("set_log_level", &logging::set_log_level, doc_set_log_level);
             module.def("get_log_level", &logging::get_log_level, doc_get_log_level);
             module.def("get_logging_params", &logging::get_logging_params, doc_get_logging_params);
-            module.def("set_logging_params", &logging::set_logging_params, doc_set_logging_params);
+            module.def("set_logging_params", &logging::set_logging_params, doc_set_logging_params, 
+                py::arg("params"), py::arg("update_log_handler") = false);
             module.def("log", &logging::log, doc_log);
             module.def("enable_backtrace", &logging::enable_backtrace, doc_enable_backtrace);
             module.def("disable_backtrace", &logging::disable_backtrace, doc_disable_backtrace);

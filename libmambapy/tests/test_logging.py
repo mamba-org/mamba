@@ -210,7 +210,6 @@ def test_logging_api_basics():
     logging.set_flush_threshold(logging.LogLevel.DEBUG)
     assert log_handler._counters.set_flush_threshold == 1
 
-
     assert len(log_handler._log_history) == 3, log_handler._log_history
     assert log_handler._log_history[0].message == "A"
     assert log_handler._log_history[1].message == "B"

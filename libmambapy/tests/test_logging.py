@@ -186,16 +186,19 @@ def test_logging_api_basics():
     logging.log(logging.LogRecord(message="E", level=logging.LogLevel.DEBUG))
     assert log_handler._counters.log == 5
 
-    logging.enable_traceback(42)
+    logging.enable_backtrace(42)
     assert log_handler._counters.enable_backtrace == 1
 
-    logging.enable_traceback(0)
+    logging.enable_backtrace(0)
     assert log_handler._counters.enable_backtrace == 2
 
-    logging.log_traceback()
+    logging.disable_backtrace()
+    assert log_handler._counters.enable_backtrace == 3
+
+    logging.log_backtrace()
     assert log_handler._counters.log_backtrace == 1
 
-    logging.log_traceback_no_guards()
+    logging.log_backtrace_no_guards()
     assert log_handler._counters.log_backtrace_no_guards == 1
 
     logging.flush_logs()

@@ -807,13 +807,13 @@ See `libmamba.logging.log`.)";
             module.def("get_log_level", &logging::get_log_level, doc_get_log_level);
             module.def("get_logging_params", &logging::get_logging_params, doc_get_logging_params);
             module.def("set_logging_params", &logging::set_logging_params, doc_set_logging_params, 
-                py::arg("params"), py::arg("update_log_handler") = false);
+                py::arg("params"), py::arg("update_log_handler") = true);
             module.def("log", &logging::log, doc_log);
             module.def("enable_backtrace", &logging::enable_backtrace, doc_enable_backtrace);
             module.def("disable_backtrace", &logging::disable_backtrace, doc_disable_backtrace);
             module.def("log_backtrace", &logging::log_backtrace, doc_log_backtrace);
             module.def("log_backtrace_no_guards", &logging::log_backtrace_no_guards, doc_log_backtrace_no_guards);
-            module.def("flush_logs", &logging::flush_logs, doc_flush_logs);
+            module.def("flush_logs", &logging::flush_logs,py::arg("source") = std::nullopt, doc_flush_logs);
             module.def("set_flush_threshold", &logging::set_flush_threshold, doc_set_flush_threshold);
         }
     }

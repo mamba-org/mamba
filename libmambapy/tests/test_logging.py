@@ -146,10 +146,12 @@ def test_logging_api_basics():
             log_handler, params=params, sources=[logging.LogSource.TESTS]
         )
         assert not no_log_handler
+        assert log_handler._counters.start_log_handling == 1
 
     logging.log(
         logging.LogRecord(message="A", level=logging.LogLevel.INFO, source=logging.LogSource.TESTS)
     )
+    assert log_handler._counters.log == 1
 
     # NOTE: for testing purpose we capture the source location instead
     # of the frame because the frame will be modified each line
@@ -162,13 +164,55 @@ def test_logging_api_basics():
             location=source_location,
         )
     )
+    assert log_handler._counters.log == 2
 
     # this one will be filtered out
     logging.log(logging.LogRecord(message="C", level=logging.LogLevel.DEBUG))
+    assert log_handler._counters.log == 3
 
-    assert len(log_handler._log_history) == 2, log_handler._log_history
+    logging.set_log_level(logging.LogLevel.DEBUG)
+    assert log_handler._counters.set_log_level == 1
+
+    # this one will NOT be filtered out
+    logging.log(logging.LogRecord(message="D", level=logging.LogLevel.DEBUG))
+    assert log_handler._counters.log == 4
+
+    logging.set_log_level(logging.LogLevel.INFO)
+    assert log_handler._counters.set_log_level == 2
+
+    logging.set_params(params)
+    assert log_handler._counters.set_params == 1
+
+    # this one will be filtered out
+    logging.log(logging.LogRecord(message="E", level=logging.LogLevel.DEBUG))
+    assert log_handler._counters.log == 5
+
+    logging.enable_traceback(42)
+    assert log_handler._counters.enable_backtrace == 1
+
+    logging.enable_traceback(0)
+    assert log_handler._counters.enable_backtrace == 2
+
+    logging.log_traceback()
+    assert log_handler._counters.log_backtrace == 1
+
+    logging.log_traceback_no_guards()
+    assert log_handler._counters.log_backtrace_no_guards == 1
+
+    logging.flush()
+    assert log_handler._counters.flush == 1
+
+    logging.flush(logging.LogSource.TESTS)
+    assert log_handler._counters.flush == 2
+
+    logging.set_flush_threshold(logging.LogLevel.DEBUG)
+    assert log_handler._counters.set_flush_threshold == 1
+
+
+    assert len(log_handler._log_history) == 3, log_handler._log_history
     assert log_handler._log_history[0].message == "A"
     assert log_handler._log_history[1].message == "B"
+    assert log_handler._log_history[2].message == "D"
 
     b_location = log_handler._log_history[1].location
     assert b_location.filename == source_location.filename
@@ -177,5 +221,6 @@ def test_logging_api_basics():
     assert b_location.column == source_location.column
 
     last_log_handler = logging.stop_logging()  # returns an `AnyLogHandler` wrapping `log_handler`
+    assert log_handler._counters.stop_log_handling == 1
     assert last_log_handler.has_pyobject()
     assert last_log_handler.get_pyobject() == log_handler

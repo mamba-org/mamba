@@ -590,8 +590,193 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
         bind_any_log_handler(module);
 
         {
-            // TODO: add documentation + args
-            module.def("stop_logging", &logging::stop_logging, py::return_value_policy::move);
+            static constexpr auto doc_stop_logging =
+R"(Stops the logging system.
+
+Unregisters the current log handler if any is registered.
+This is equivalent to `libmamba.logging.set_log_handler(None)`,
+@see `set_log_handler` for  details.
+
+This call is NOT thread-safe.
+
+Returns An `AnyLogHandler` containing the registered log handler if any.)";
+
+            static constexpr auto doc_set_log_handler =
+R"(Registers a log handler to use in the logging system, or `None` to stop the logging system.
+
+The other logging operations will be no-op if no log handler is registered.
+
+If a log handler is registered before this call, this function call
+`stop_logging` with the same arguments. If a log handler object is
+provided as argument, this function will call this handler's
+`start_logging` function with the same `LoggingParams` as argument.
+
+This call is NOT thread-safe.
+
+Parameters:
+- handler: The log handler implementation to use when the other operations of the
+    logging system are called, or `None` to stop the logging system.
+- maybe_new_params: Optional new parameters to the logging system. If provided,
+    overwrites the current parameters. If not, the previous parameters
+    will be used.
+- new_log_sources: List of possible `LogRecords` origins used by libmamba. This is
+    mostly used in implementations that need to setup separate log
+    sinks depending on the source.
+
+Returns An `libmamba.logging.AnyLogHandler` containing the previously registered log handler if any.
+)";
+
+
+            static constexpr auto doc_set_log_level =
+R"(Changes the logging system logging level.
+
+After this call, if a log handler is registered and `libmamba.logging.log(log_record)` is called, the
+provided log record will be ignored if it's log level is lesser than the current logging
+system log level.
+
+If a log handler is registered, this function call it's `set_log_level` with
+the same arguments.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.
+
+Returns The previous log level of the logging system.
+)";
+
+            static constexpr auto doc_get_log_level =
+R"(Returns the current log level of the logging system.
+This call is thread-safe but the returned value must be considered immediately obsolete.)";
+
+            static constexpr auto doc_get_logging_params =
+R"(Returns the current configuration of the logging system.
+This call is thread-safe but the returned value must be considered immediately obsolete.)";
+
+            static constexpr auto doc_set_logging_params =
+R"(Changes the logging system configuration.
+
+If a log handler is registered and the parameter `update_log_handler` is `true`,
+this function calls it's `set_params` member with the same arguments.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.
+
+Warning: `update_log_handler = false` should only be used when implementing
+other operations that need to update the params and then update the log handler
+themselves, separately.
+
+Returns the previous configuration of the logging system.)";
+
+            static constexpr auto doc_log =
+R"(Process a log record to be sent in a logging sink to be printed if the necessary conditions are met.
+
+If a log handler is registered, this function calls it's `log` member with the same
+arguments, otherwise this function will do nothing.
+
+The implementation must ignore log records with a log level lower then the current
+logging system logging level, see `libmamba.logging.get_log_level`.
+
+If the log record is not ignored, it must be either sent in a logging sink, or
+if backtrace is enabled, it must be pushed in the backtrace history,
+see `enable_backtrace` for details.
+
+The implementation is free to flush or not it's internal sinks when the provided log
+records has a lower logging level than the current flush threshold.
+However if the log record has a level greater or equal than the current flush threshold,
+the implementation must flush the sink related to the log record's source.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.)";
+
+            static constexpr auto doc_enable_backtrace =
+R"(Enabling, configuring or disabling the backtrace functionality.
+
+If a log handler is registered, this function calls it's `enable_backtrace` member
+with the same arguments, otherwise this function will do nothing.
+
+A specified size of zero means disabling the backtrace feature.
+Any other values means the backtrace functionality is enabled.
+
+If the feature is enabled, log records which are not filtered out by their log levels
+must be kept in order in an history buffer of the specified size, see
+`log`.
+
+The implementation shall keep track of only the last log records pushed in the
+backtrace. If the history size is already equal to the specified size and
+a new log should be pushed in the history, the implementation must remove the oldest
+log record and push the new log record in the history.
+
+Log records in the backtrace must only be sent to logging sinks once either
+`libmamba.logging.log_backtrace` or `libmamba.logging.log_backtrace_no_guards` is called, see
+`libmamba.logging.log_backtrace`.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.
+
+Parameters:
+- records_buffer_size:  Size of the history buffer that will contain the log records.
+    A size of zero means disabling the backtrace feature.
+    Any other values means the backtrace functionality is enabled.)";
+
+            static constexpr auto doc_disable_backtrace = R"(Equivalent to `libmamba.logging.enable_backtrace(0)`.)";
+
+            static constexpr auto doc_log_backtrace =
+R"(Sends the log records in the backtrace history to the implementation's logging sinks.
+
+If a log handler is registered, this function calls it's `log_backtrace` member,
+otherwise this function will do nothing.
+
+After this call, the backtrace history shall be empty.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.)";
+
+            static constexpr auto doc_log_backtrace_no_guards =
+R"(Sends the log records in the backtrace history to the implementation's logging sinks,
+but with filtering the logging level of the log records as if they were logged now.
+
+If a log handler is registered, this function calls
+it's `log_backtrace_no_guards` member, otherwise this function will do nothing.
+
+After this call, the backtrace history shall be empty.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.)";
+
+            static constexpr auto doc_flush_logs =
+R"(Flushes all the logging sinks.
+
+If a log handler is registered, this function calls it's `flush` member with the same
+argument, otherwise this function will do nothing.
+
+The implementation is also free to flush at any other time but must guarantee
+the flush is done after then end of this operation.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.)";
+
+            static constexpr auto doc_set_flush_threshold =
+R"(Set a flush threshold, a logging level for which log records pushed in `log` will
+trigger a flush of logging sinks.
+
+If a log handler is registered, this function calls it's `set_flush_threshold` member
+with the same argument, otherwise this function will do nothing.
+
+The flush threshold is the logging level for which if a log record is pushed
+and has this logging level or higher, the implementation must flush it's sinks
+immediately.
+
+If the specified level is "all", the implementation must flush at every call to
+`libmamba.logging.log`.
+
+The implementation is also free to flush at any other time but must guarantee
+the flush is done after then end of this operation.
+
+This call is thread safe as long as the log handler implementation fulfills the
+thread-safety requirements.
+
+See `libmamba.logging.log`.)";
+
+            module.def("stop_logging", &logging::stop_logging, doc_stop_logging, py::return_value_policy::move);
             module.def(
                 "set_log_handler",
                 [](py::object handler,
@@ -608,26 +793,26 @@ The backtrace feature will be enabled only if the value is different from `0`.)"
                 py::arg("log_handler"),
                 py::arg("params") = std::nullopt,
                 py::arg("sources") = std::nullopt,
+                doc_set_log_handler,
                 py::return_value_policy::move
             );
 
             // WARNING:
             // Do not expose this function for now as we are not sure if it's useful and it might
             // cause UB easily.
-            // module.def("get_log_handler", &logging::get_log_handler,
-            // py::return_value_policy::reference);
+            // module.def("get_log_handler", &logging::get_log_handler, py::return_value_policy::reference);
 
-            module.def("set_log_level", &logging::set_log_level);
-            module.def("get_log_level", &logging::get_log_level);
-            module.def("get_logging_params", &logging::get_logging_params);
-            module.def("set_logging_params", &logging::set_logging_params);
-            module.def("log", &logging::log);
-            module.def("enable_backtrace", &logging::enable_backtrace);
-            module.def("disable_backtrace", &logging::disable_backtrace);
-            module.def("log_backtrace", &logging::log_backtrace);
-            module.def("log_backtrace_no_guards", &logging::log_backtrace_no_guards);
-            module.def("flush_logs", &logging::flush_logs);
-            module.def("set_flush_threshold", &logging::set_flush_threshold);
+            module.def("set_log_level", &logging::set_log_level, doc_set_log_level);
+            module.def("get_log_level", &logging::get_log_level, doc_get_log_level);
+            module.def("get_logging_params", &logging::get_logging_params, doc_get_logging_params);
+            module.def("set_logging_params", &logging::set_logging_params, doc_set_logging_params);
+            module.def("log", &logging::log, doc_log);
+            module.def("enable_backtrace", &logging::enable_backtrace, doc_enable_backtrace);
+            module.def("disable_backtrace", &logging::disable_backtrace, doc_disable_backtrace);
+            module.def("log_backtrace", &logging::log_backtrace, doc_log_backtrace);
+            module.def("log_backtrace_no_guards", &logging::log_backtrace_no_guards, doc_log_backtrace_no_guards);
+            module.def("flush_logs", &logging::flush_logs, doc_flush_logs);
+            module.def("set_flush_threshold", &logging::set_flush_threshold, doc_set_flush_threshold);
         }
     }
 }

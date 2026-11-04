@@ -113,8 +113,8 @@ This is equivalent to `check_log_handler_interface(object, early_exit = true)`.
 
     namespace
     {
-        // THINK: should this be atomic, knowing only python code will change it?
-        bool is_log_handler_interface_validation_enabled = false;
+        // Recent versions of Python can be used without the GIL so we need to make this thread-safe.
+        std::atomic<bool> is_log_handler_interface_validation_enabled = false;
     }
 
     static constexpr auto doc_enable_log_handler_interface_validation =
@@ -130,7 +130,7 @@ Returns the previous value.)";
 
     auto enable_log_handler_interface_validation(bool enabled) -> bool
     {
-        return std::exchange(is_log_handler_interface_validation_enabled, enabled);
+        return is_log_handler_interface_validation_enabled.exchange(enabled);
     }
 
     namespace details

@@ -228,7 +228,7 @@ Returns the previous value.)";
 
             auto stop_log_handling() -> void
             {
-                impl.attr("stop_log_handling");
+                impl.attr("stop_log_handling")();
             }
 
             auto set_log_level(logging::log_level level) -> void
@@ -253,12 +253,12 @@ Returns the previous value.)";
 
             auto log_backtrace() -> void
             {
-                impl.attr("log_backtrace");
+                impl.attr("log_backtrace")();
             }
 
             auto log_backtrace_no_guards() -> void
             {
-                impl.attr("log_backtrace_no_guards");
+                impl.attr("log_backtrace_no_guards")();
             }
 
             auto flush(std::optional<logging::log_source> source_to_flush = std::nullopt) -> void

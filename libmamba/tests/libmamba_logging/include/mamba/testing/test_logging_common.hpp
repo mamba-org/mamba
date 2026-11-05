@@ -215,7 +215,7 @@ namespace mamba::logging::testing
     };
 
     template <LogHandlerOrPtr T>
-    auto test_classic_inline_logging_api_usage(T&& handler, const LogHandlerTestsOptions options = {})
+    auto test_classic_inline_logging_api_usage(T handler, const LogHandlerTestsOptions options = {})
         -> LogHandlerTestsResult
     {
         if (options.log_sources.empty())

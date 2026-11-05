@@ -70,6 +70,7 @@
 #include <variant>
 #include <vector>
 
+#include "mamba/util/metaprog.hpp"
 
 // TODO: rename these macros in a more friendly/conflict-averse manner, with a mamba prefix for
 // example.
@@ -549,11 +550,17 @@ namespace mamba
         template <typename T>
         concept LogHandlerPtr = std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>;
 
+        // clang-format off
+        template <typename T>
+        concept LogHandlerSmartPtr = (util::is_type_instance_of_v<T,std::shared_ptr> or util::is_type_instance_of_v<T, std::unique_ptr>)
+                                     and LogHandler<typename T::element_type>;
+        // clang-format on
+
         /** Matches either a type of a log handler implementation satisfying the requirements of
             `mamba::logging::LogHandler`, or a pointer to such type.
         */
         template <typename T>
-        concept LogHandlerOrPtr = LogHandler_Moveable<T> or LogHandlerPtr<T>;
+        concept LogHandlerOrPtr = LogHandler_Moveable<T> or LogHandlerPtr<T> or LogHandlerSmartPtr<T>;
 
         /** Stores or refers to a log handler implementation object which must satisfy the
             requirements from `mamba::logging::LogHandler`.
@@ -642,6 +649,33 @@ namespace mamba
                         and LogHandler<T>  //
             AnyLogHandler(T* handler_ptr);
 
+            /** Construction by storing the provided smart pointer to a log handler implementation.
+
+                This will take shared or unique ownership of the pointed object depending on the
+               smart pointer type (`std::shared_ptr` or `std::unique_ptr`). The pointed object MUST
+               be valid and it's lifetime MUST be greater than the lifetime of `this`.
+
+                This is mainly useful for situations where  users cannot or do not want to move the
+                implementation, or when the implementation must be shared.
+
+                pre-conditions:
+                    - `handler_ptr != nullptr`
+                    - `handler_ptr` must point to a valid object.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param handler_ptr A standard smart-pointer (`std::shared_ptr` or `std::unique_ptr`)
+                                   to a log handler object which type satisfies
+               `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandlerSmartPtr<T>  //
+            AnyLogHandler(T handler_ptr);
+
             /** Stores a provided moved log handler implementation.
 
                 This will take ownership of the moved object.
@@ -689,6 +723,35 @@ namespace mamba
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
                         and LogHandler<T>  //
             AnyLogHandler& operator=(T* new_handler_ptr);
+
+            /** Stores the provided smart pointer to a log handler implementation.
+
+                This will take shared or unique ownership of the pointed object depending on the
+               type of smart pointer. The pointed object MUST be valid and it's lifetime MUST be
+               greater than the lifetime of `this`.
+
+                If `this` already stores an object before this call, it is destroyed before we store
+                the provided pointer.
+
+                This is mainly useful for situations where users cannot or do not want to move the
+                implementation or when the implementation must be shared.
+
+                pre-conditions:
+                    - `new_handler_ptr != nullptr`
+                    - `new_handler_ptr` must point to a valid object.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param new_handler_ptr A smart pointer to a log handler object which type satisfies
+               `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandlerSmartPtr<T>  //
+            AnyLogHandler& operator=(T new_handler_ptr);
 
             /** Calls the same function with the same arguments (if any) in the implementation
                 object pointed or stored in `this`,
@@ -1160,13 +1223,20 @@ namespace mamba::logging
     };
 
     template <LogHandler T>
-    T& as_ref(T& object)
+    auto as_ref(T& object) -> T&
     {
         return object;
     }
 
     template <LogHandler T>
-    T& as_ref(T* object)
+    auto as_ref(T* object) -> T&
+    {
+        assert(object);
+        return *object;
+    }
+
+    template <LogHandlerSmartPtr T>
+    auto as_ref(T& object) -> T::element_type&
     {
         assert(object);
         return *object;
@@ -1180,6 +1250,10 @@ namespace mamba::logging
         Wrapper(T new_object)
             : object(std::move(new_object))
         {
+            if constexpr (LogHandlerPtr<T> or LogHandlerSmartPtr<T>)
+            {
+                assert(object);
+            }
         }
 
         void start_log_handling(LoggingParams params, std::vector<log_source> sources) override
@@ -1250,7 +1324,13 @@ namespace mamba::logging
     AnyLogHandler::AnyLogHandler(T* handler_ptr)
         : m_storage(std::make_unique<Wrapper<T*>>(handler_ptr))
     {
-        assert(handler_ptr);
+    }
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandlerSmartPtr<T>
+    AnyLogHandler::AnyLogHandler(T handler_ptr)
+        : m_storage(std::make_unique<Wrapper<T>>(std::move(handler_ptr)))
+    {
     }
 
     template <class T>
@@ -1280,6 +1360,22 @@ namespace mamba::logging
         else
         {
             m_storage = std::make_unique<Wrapper<T*>>(new_handler_ptr);
+        }
+        return *this;
+    }
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandlerSmartPtr<T>
+    AnyLogHandler& AnyLogHandler::operator=(T new_handler_ptr)
+    {
+        assert(new_handler_ptr);
+        if (m_storage and typeid(T) == m_storage->type_id())
+        {
+            static_cast<Wrapper<T>*>(m_storage.get())->object = std::move(new_handler_ptr);
+        }
+        else
+        {
+            m_storage = std::make_unique<Wrapper<T>>(std::move(new_handler_ptr));
         }
         return *this;
     }

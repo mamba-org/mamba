@@ -41,30 +41,96 @@ namespace mamba::sbom
 
     namespace detail
     {
-        [[nodiscard]] auto archive_type(const specs::PackageInfo& pkg) -> std::string_view;
+        /**
+         * Conda package archive type.
+         */
+        enum class ArchiveType
+        {
+            conda,
+            tar_bz2,
+        };
 
-        /** The canonical channel "home" URL, i.e. the base URL of the channel without the package
-         * name, the platform segment, trailing slashes, the token, credentials, the query, or the
-         * fragment.
+        /**
+         * Return the string value for an archive type (`conda` or `tar.bz2`).
+         */
+        [[nodiscard]] constexpr auto archive_type_str(ArchiveType type) -> std::string_view
+        {
+            switch (type)
+            {
+                case ArchiveType::conda:
+                    return "conda";
+                case ArchiveType::tar_bz2:
+                    return "tar.bz2";
+            }
+            return {};
+        }
+
+        /**
+         * Return the conda archive type of a package.
          *
-         * Returns ``std::nullopt`` if neither the package URL nor the channel provide a valid
-         * URL with an explicit scheme. */
+         * Returns `ArchiveType::conda` or `ArchiveType::tar_bz2` based on the package filename
+         * or package URL extension, or `std::nullopt` if the archive type cannot be determined.
+         */
+        [[nodiscard]] auto archive_type(const specs::PackageInfo& pkg) -> std::optional<ArchiveType>;
+
+        /** Return the canonical channel "home" URL, i.e. the base URL of the channel without the
+         * package name, the platform segment, trailing slashes, the token, credentials, the query,
+         * or the fragment.
+         *
+         * Returns `std::nullopt` if neither the package URL nor the channel provide a valid
+         * URL with an explicit scheme.
+         */
         [[nodiscard]] auto channel_home_url(const specs::PackageInfo& pkg)
             -> std::optional<specs::CondaURL>;
 
-        /** A channel is encoded in the PURL namespace only when it is relative
+        /** Derive a PURL namespace from a canonical channel home URL.
+         *
+         * A channel is encoded in the PURL namespace only when it is relative
          * to the default repository (https://conda.anaconda.org) and is a single path segment
          * (an implementation choice in `mamba`).
          * The namespace must not be "defaults" or "local", nor a recognized channel subdir
-         * name (following CEP-49). */
+         * name (following CEP-49).
+         *
+         * Returns `std::nullopt` for non-default hosts or invalid/multi-segment paths.
+         * In those cases, the channel is represented via the `repository_url` qualifier instead.
+         */
         [[nodiscard]] auto namespace_from_channel_home(const specs::CondaURL& home)
             -> std::optional<std::string>;
 
+        /**
+         * Return the PURL namespace of a conda package, if any.
+         *
+         * This is derived from `channel_home_url` and `namespace_from_channel_home` when the
+         * package URL or channel provides a valid URL with an explicit scheme. If no home URL is
+         * available, a bare channel name may be used as the namespace when it is a valid
+         * single-segment name (not "defaults", "local", or a channel subdir name). Returns
+         * `std::nullopt` when the channel should be expressed via the `repository_url`
+         * qualifier instead.
+         */
         [[nodiscard]] auto channel_namespace(const specs::PackageInfo& pkg)
             -> std::optional<std::string>;
 
+        /**
+         * Return the canonical repository base URL of a conda package.
+         *
+         * When `channel_home_url` is available, this is the home URL pretty printed without
+         * credentials. If the package or channel URL cannot be parsed but the channel contains an
+         * explicit scheme, the raw channel string (with trailing slashes removed) is returned.
+         * Bare channel names are resolved relative to the default repository
+         * (`https://conda.anaconda.org`). If the channel is empty, the default repository URL
+         * is returned.
+         */
         [[nodiscard]] auto channel_repository_url(const specs::PackageInfo& pkg) -> std::string;
 
+        /**
+         * Build the PURL qualifiers string for a conda package.
+         *
+         * Emits qualifiers as `?key=value&...`. Always includes `build_number`.
+         * Included when present: `build`, `subdir`, `type`, `checksum` (sha256),
+         * and `repository_url`.
+         *
+         * Qualifier order is not normative per CEP-49.
+         */
         [[nodiscard]] auto
         collect_qualifiers(const specs::PackageInfo& pkg, std::optional<std::string_view> repository_url)
             -> std::string;

@@ -27,18 +27,18 @@ namespace mamba::sbom
         inline constexpr std::string_view default_repository_url = "https://conda.anaconda.org";
         inline constexpr std::string_view default_repository_host = "conda.anaconda.org";
 
-        auto archive_type(const specs::PackageInfo& pkg) -> std::string_view
+        auto archive_type(const specs::PackageInfo& pkg) -> std::optional<ArchiveType>
         {
             const auto& filename = pkg.filename.empty() ? pkg.package_url : pkg.filename;
             if (filename.ends_with(".tar.bz2"))
             {
-                return "tar.bz2";
+                return ArchiveType::tar_bz2;
             }
             if (filename.ends_with(".conda"))
             {
-                return "conda";
+                return ArchiveType::conda;
             }
-            return {};
+            return std::nullopt;
         }
 
         auto channel_home_url(const specs::PackageInfo& pkg) -> std::optional<specs::CondaURL>
@@ -74,6 +74,7 @@ namespace mamba::sbom
             url->clear_fragment();
             url->clear_package();
             url->clear_platform();
+            // Normalize trailing slashes in the channel path; keep root '/' unchanged.
             if (const auto path = url->path(specs::CondaURL::Decode::no); path.size() > 1)
             {
                 url->set_path(std::string{ util::rstrip(path, '/') }, specs::CondaURL::Encode::no);
@@ -161,9 +162,9 @@ namespace mamba::sbom
             {
                 quals.push_back(fmt::format("subdir={}", util::encode_percent(pkg.platform)));
             }
-            if (const auto type = archive_type(pkg); !type.empty())
+            if (const auto type = archive_type(pkg); type.has_value())
             {
-                quals.push_back(fmt::format("type={}", type));
+                quals.push_back(fmt::format("type={}", archive_type_str(*type)));
             }
             if (!pkg.sha256.empty())
             {

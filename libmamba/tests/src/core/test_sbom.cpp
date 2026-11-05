@@ -51,14 +51,14 @@ TEST_CASE("sbom::detail::archive_type")
     SECTION(".conda filename")
     {
         const auto pkg = conda_pkg("zlib", "1.2.13", "hcfbbd0e_0");
-        REQUIRE(sbom::detail::archive_type(pkg) == "conda");
+        REQUIRE(sbom::detail::archive_type(pkg) == sbom::detail::ArchiveType::conda);
     }
 
     SECTION(".tar.bz2 filename")
     {
         auto pkg = conda_pkg("openssl", "3.0.0", "h0b41bf4_0");
         pkg.filename = "openssl-3.0.0-h0b41bf4_0.tar.bz2";
-        REQUIRE(sbom::detail::archive_type(pkg) == "tar.bz2");
+        REQUIRE(sbom::detail::archive_type(pkg) == sbom::detail::ArchiveType::tar_bz2);
     }
 
     SECTION("infers .tar.bz2 from package_url when filename is empty")
@@ -67,26 +67,32 @@ TEST_CASE("sbom::detail::archive_type")
         pkg.filename = {};
         pkg.package_url = "https://conda.anaconda.org/conda-forge/linux-64/"
                           "openssl-3.0.0-h0b41bf4_0.tar.bz2";
-        REQUIRE(sbom::detail::archive_type(pkg) == "tar.bz2");
+        REQUIRE(sbom::detail::archive_type(pkg) == sbom::detail::ArchiveType::tar_bz2);
     }
 
     SECTION("infers .conda from package_url when filename is empty")
     {
         auto pkg = conda_pkg("zlib", "1.2.13", "hcfbbd0e_0");
         pkg.filename = {};
-        REQUIRE(sbom::detail::archive_type(pkg) == "conda");
+        REQUIRE(sbom::detail::archive_type(pkg) == sbom::detail::ArchiveType::conda);
     }
 
-    SECTION("returns empty when the format is unknown")
+    SECTION("returns nullopt when the format is unknown")
     {
         auto pkg = conda_pkg("zlib", "1.2.13", "hcfbbd0e_0");
         pkg.filename = {};
         pkg.package_url = {};
-        REQUIRE(sbom::detail::archive_type(pkg) == "");
+        REQUIRE_FALSE(sbom::detail::archive_type(pkg).has_value());
 
         pkg.filename = "zlib-1.2.13-hcfbbd0e_0.zip";
-        REQUIRE(sbom::detail::archive_type(pkg) == "");
+        REQUIRE_FALSE(sbom::detail::archive_type(pkg).has_value());
     }
+}
+
+TEST_CASE("sbom::detail::archive_type_str")
+{
+    REQUIRE(sbom::detail::archive_type_str(sbom::detail::ArchiveType::conda) == "conda");
+    REQUIRE(sbom::detail::archive_type_str(sbom::detail::ArchiveType::tar_bz2) == "tar.bz2");
 }
 
 TEST_CASE("sbom::detail::channel_home_url")

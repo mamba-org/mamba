@@ -96,9 +96,9 @@ jobs:
           sudo apt-get install -y lcov
       - name: Generate C++ coverage report
         run: |
-          lcov --directory . --capture --output-file cpp_coverage.info
-          lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' 'libmamba/tests/*' --output-file cpp_coverage.info --ignore-errors unused
-          lcov --summary cpp_coverage.info --ignore-errors mismatch --rc geninfo_unexecuted_blocks=1
+          lcov --directory . --capture --output-file cpp_coverage.info --rc check_data_consistency=0
+          lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' 'libmamba/tests/*' --output-file cpp_coverage.info --ignore-errors unused --rc check_data_consistency=0
+          lcov --summary cpp_coverage.info --ignore-errors mismatch --rc geninfo_unexecuted_blocks=1 --rc check_data_consistency=0
 
       # TODO: Those steps need adaptations so that the coverage reports from the C++ and the python test suites are consolidated.
       # - name: Install libmambapy

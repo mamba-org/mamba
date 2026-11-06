@@ -977,7 +977,7 @@ namespace mamba
             if (!envs_path.empty())
             {
                 auto paths_separator = util::pathsep();
-                auto paths = util::split(envs_path, paths_separator);
+                auto paths = util::as_strings(std::views::split(envs_path, paths_separator));
 
                 dirs.reserve(dirs.size() + paths.size());
                 dirs.insert(dirs.begin(), paths.rbegin(), paths.rend());
@@ -2373,7 +2373,8 @@ namespace mamba
             {
                 if (at(n).locked())
                 {
-                    LOG_ERROR << "Circular import: " << util::join("->", locks) << "->" << n;
+                    LOG_ERROR << "Circular import: " << util::join_with<std::string>(locks, "->")
+                              << "->" << n;
                     throw std::runtime_error("Circular import detected in configuration. Aborting.");
                 }
                 add_to_loading_sequence(seq, n, locks);

@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -411,59 +412,22 @@ namespace
             REQUIRE(rsplit_once_on_any("hello/my//world", "//") == Out{ "hello/my/", "world" });
         }
 
-        TEST_CASE("split")
-        {
-            std::string a = "hello.again.it's.me.mario";
-            std::vector<std::string> e1 = { "hello", "again", "it's", "me", "mario" };
-            REQUIRE(split(a, ".") == e1);
-
-            std::vector<std::string> s2 = { "hello", "again", "it's.me.mario" };
-            REQUIRE(split(a, ".", 2) == s2);
-
-            REQUIRE(rsplit(a, ".") == e1);
-            std::vector<std::string> r2 = { "hello.again.it's", "me", "mario" };
-            REQUIRE(rsplit(a, ".", 2) == r2);
-
-            std::string b = "...";
-            auto es1 = std::vector<std::string>{ "", "", "", "" };
-            auto es2 = std::vector<std::string>{ "", ".." };
-            REQUIRE(split(b, ".") == es1);
-            REQUIRE(split(b, ".", 1) == es2);
-
-            std::vector<std::string> v = { "xtensor==0.12.3" };
-            REQUIRE(split(v[0], ":") == v);
-            REQUIRE(rsplit(v[0], ":") == v);
-            REQUIRE(split(v[0], ":", 2) == v);
-            REQUIRE(rsplit(v[0], ":", 2) == v);
-
-            std::vector<std::string> v2 = { "conda-forge/linux64", "", "xtensor==0.12.3" };
-            REQUIRE(split("conda-forge/linux64::xtensor==0.12.3", ":", 2) == v2);
-            REQUIRE(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 2) == v2);
-            std::vector<std::string> v21 = { "conda-forge/linux64:", "xtensor==0.12.3" };
-
-            REQUIRE(rsplit("conda-forge/linux64::xtensor==0.12.3", ":", 1) == v21);
-
-            std::vector<std::string> es3 = { "" };
-            REQUIRE(split(es3[0], ".") == es3);
-            REQUIRE(rsplit(es3[0], ".") == es3);
-        }
-
-        TEST_CASE("join")
+        TEST_CASE("join_with")
         {
             {
                 std::vector<std::string> to_join = { "a", "bc", "d" };
-                auto joined = join("-", to_join);
+                auto joined = join_with<std::string>(to_join, "-");
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
                 REQUIRE(joined == "a-bc-d");
             }
             {
                 std::vector<mamba::fs::u8path> to_join = { "/a", "bc", "d" };
-                auto joined = join("/", to_join);
+                auto joined = join_with<mamba::fs::u8path>(to_join, '/');
                 static_assert(std::is_same<decltype(joined), decltype(to_join)::value_type>::value);
                 REQUIRE(joined == "/a/bc/d");
             }
             {
-                REQUIRE(join(",", std::vector<std::string>()) == "");
+                REQUIRE(join_with<std::string>(std::vector<std::string>(), ",") == "");
             }
         }
 

@@ -371,7 +371,7 @@ namespace mamba
                 );
             }
 
-            return util::join("\n", messages);
+            return util::join_with<std::string>(messages, '\n');
         }
 
         auto is_path_length_related_error(const std::error_code& ec) -> bool
@@ -729,7 +729,7 @@ namespace mamba
 
         if (auto version = util::windows_version())
         {
-            auto split_out = util::split(version.value(), '.');
+            auto split_out = util::as_strings(std::views::split(version.value(), '.'));
             if (split_out.size() >= 3 && std::stoull(split_out[0]) >= 10
                 && std::stoull(split_out[2]) >= 15063)
             {

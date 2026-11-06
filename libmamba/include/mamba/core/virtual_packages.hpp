@@ -46,6 +46,12 @@ namespace mamba
 
         std::string cuda_version(const override_virtual_packages_map& override_virtual_packages);
 
+        /** Lowest `major.minor` compute capability in `nvidia-smi --query-gpu` output. */
+        std::string parse_min_compute_cap(std::string_view nvidia_smi_output);
+
+        /** Minimum compute capability of all CUDA devices, or empty if unknown. */
+        std::string cuda_arch_version(const override_virtual_packages_map& override_virtual_packages);
+
         auto make_virtual_package(
             std::string name,
             std::string subdir,

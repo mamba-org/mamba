@@ -118,14 +118,27 @@ RC files have their own precedence order and use the same resolution process as 
         { root_prefix }/condarc
         { root_prefix }/condarc.d
         { root_prefix }/.mambarc
+
+	{ $XDG_CONFIG_HOME | ~/.config}/conda/.condarc
+	{ $XDG_CONFIG_HOME | ~/.config}/conda/condarc
+	{ $XDG_CONFIG_HOME | ~/.config}/condarc.d
         ~/.conda/.condarc
         ~/.conda/condarc
         ~/.conda/condarc.d
         ~/.condarc
+
+        { $XDG_CONFIG_HOME | ~/.config}/mamba/.mambarc
+        { $XDG_CONFIG_HOME | ~/.config}/mamba/mambarc
+	{ $XDG_CONFIG_HOME | ~/.config}/mamba/mambarc.d
+        ~/.mamba/.mambarc
+        ~/.mamba/mambarc
+        ~/.mamba/mambarc.d
         ~/.mambarc
+
         { target_prefix }/.condarc
         { target_prefix }/condarc
         { target_prefix }/condarc.d
         { target_prefix }/.mambarc
+
         $CONDARC,
         $MAMBARC;

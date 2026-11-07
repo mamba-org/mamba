@@ -35,6 +35,7 @@ pybind11_add_module(
     bindings/longpath.manifest
     # Entry point to all submodules
     bindings/bindings.cpp
+    bindings/bindings.hpp
     # All bindings used to live in a global module
     bindings/legacy.cpp
     # Submodules
@@ -42,6 +43,14 @@ pybind11_add_module(
     bindings/specs.cpp
     bindings/solver.cpp
     bindings/solver_libsolv.cpp
+    bindings/logging.cpp
+    bindings/logging.hpp
+    # Tooling
+    bindings/bind_utils.hpp
+    bindings/flat_set_caster.hpp
+    bindings/expected_caster.hpp
+    bindings/path_caster.hpp
+    bindings/weakening_map_bind.hpp
 )
 # TODO: remove when `SubdirData::cache_path()` is removed
 if(

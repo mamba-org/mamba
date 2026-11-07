@@ -28,7 +28,7 @@ namespace mamba::logging
     };
 
     /** Transforms a source location into a human-readable string ready for logging purpose. */
-    inline auto as_log(const std::source_location& location) -> std::string
+    inline auto as_log(const SourceLocation& location) -> std::string
     {
         return fmt::format(
             "{}:{}:{} {}",

@@ -44,7 +44,7 @@ namespace mamba
         // dont accept `constinit` here, so until this is fixed we'll lose performance using
         // `std::mutex` when we mostly are reading data, not modifying,
         // but at least we maintain correctness and avoid static-init fiasco.
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_LIBCPP_VERSION)
         using params_mutex = std::mutex;
 #else
         using params_mutex = std::shared_mutex;

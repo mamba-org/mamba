@@ -22,7 +22,7 @@ include(CheckCXXSourceCompiles)
 # If this program compiles, then libc++ is being used.
 check_cxx_source_compiles("
     #include <version>
-    #ifndef _LIB_CPP_VERSION
+    #ifndef _LIBCPP_VERSION
     #error Not using libc++
     #endif
 

@@ -9,7 +9,9 @@
 // Private libmamba header
 #include "core/link.hpp"
 // Private libmamba header
+
 #include "mamba/core/context_params.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/specs/package_info.hpp"
 
@@ -290,6 +292,47 @@ namespace mamba
             REQUIRE(ps_path_str == "bin/some_random_file");
             REQUIRE(ps_path_gen_str == "bin/some_random_file");
 #endif
+        }
+
+        TEST_CASE("TransactionContext normalizes extract_threads")
+        {
+            const auto make_trans_context = [](int extract_threads)
+            {
+                TransactionParams tx_params{
+                    .is_mamba_exe = false,
+                    .json_output = false,
+                    .verbosity = 0,
+                    .shortcuts = false,
+                    .envs_dirs = {},
+                    .platform = "noarch",
+                    .prefix_params = {},
+                    .link_params = {},
+                    .threads_params = { .download_threads = 5, .extract_threads = extract_threads },
+                };
+                return TransactionContext(tx_params, { "", "" }, "", {});
+            };
+
+            SECTION("zero is resolved to the automatic value, at most 10")
+            {
+                const auto extract_threads = make_trans_context(0)
+                                                 .transaction_params()
+                                                 .threads_params.extract_threads;
+                REQUIRE(extract_threads == static_cast<int>(normalize_to_affinity_concurrency(0)));
+                REQUIRE(extract_threads <= 10);
+            }
+
+            SECTION("positive is kept as requested")
+            {
+                REQUIRE(make_trans_context(4).transaction_params().threads_params.extract_threads == 4);
+            }
+
+            SECTION("negative is resolved relative to the affinity")
+            {
+                REQUIRE(
+                    make_trans_context(-2).transaction_params().threads_params.extract_threads
+                    == static_cast<int>(normalize_to_affinity_concurrency(-2))
+                );
+            }
         }
 
         TEST_CASE("unlink noarch metadata paths")

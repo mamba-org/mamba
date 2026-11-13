@@ -898,10 +898,10 @@ namespace mamba
             populate_state_file(prefix, env_vars, no_env);
 
             Console::instance().print(
-                util::join(
-                    "",
+                util::join_with<std::string>(
                     std::vector<std::string>({ "Empty environment created at prefix: ",
-                                               prefix.string() })
+                                               prefix.string() }),
+                    ""
                 )
             );
             Console::instance().set_json_output_success(true);

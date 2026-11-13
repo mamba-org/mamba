@@ -80,6 +80,15 @@ init_list_parser(CLI::App* subcom, Configuration& config)
         Configurable("revisions", false).group("cli").description("List the revision history.")
     );
     subcom->add_flag("--revisions", revisions.get_cli_config<bool>(), revisions.description());
+
+    auto& auth = config.insert(
+        Configurable("auth", false)
+            .group("cli")
+            .description(
+                "Keep authentication (token, username/password) in the URL when using --explicit. Ignored if --revisions is also provided."
+            )
+    );
+    subcom->add_flag("--auth", auth.get_cli_config<bool>(), auth.description());
 }
 
 void

@@ -13,11 +13,37 @@ project(libmamba)
 # https://github.com/llvm/llvm-project/issues/166051
 
 # TODO: drop Howard Hinnant fallback once libc++ implements P0355.
-if(APPLE)
-    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE ON)
+
+
+# Until P0355 is implemented, check if we're running libc++ and fallback to Hinnant's date.
+
+
+include(CheckCXXSourceCompiles)
+# If this program compiles, then libc++ is being used.
+check_cxx_source_compiles("
+    #include <version>
+    #ifndef _LIBCPP_VERSION
+    #error Not using libc++
+    #endif
+
+    int main() { return 0; }
+" LIBMAMBA_USING_LIBCXX)
+
+# If we're on Apple, or on Linux with libc++, use date.
+if (APPLE OR (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND LIBMAMBA_USING_LIBCXX))
+    # Set `date` on by default on libc++ builds, or they will break.
+    set(LIBMAMBA_DATE_DEFAULT ON)
 else()
-    set(LIBMAMBA_USE_HOWARD_HINNANT_DATE OFF)
+    # `date` is unnecessary if built against libstdc++.
+    set(LIBMAMBA_DATE_DEFAULT OFF)
 endif()
+
+# Allow the user to configure whether they use Hinnant's date rather than hard-coding it; set this off for libc++ builds by default. 
+option(
+    LIBMAMBA_USE_HOWARD_HINNANT_DATE
+    "Use Howard Hinnant's date instead of std::chrono::parse"
+    ${LIBMAMBA_DATE_DEFAULT}
+)
 
 if(LIBMAMBA_USE_HOWARD_HINNANT_DATE)
     find_package(date CONFIG REQUIRED)
@@ -857,3 +883,4 @@ install(
     COMPONENT Mamba_Development
 )
 export(EXPORT ${PROJECT_NAME}Targets NAMESPACE mamba::)
+

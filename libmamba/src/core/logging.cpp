@@ -27,7 +27,7 @@ namespace mamba::logging
     namespace details
     {
         // see singletons.cpp
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(_LIBCPP_VERSION)
         using params_mutex = std::mutex;
 #else
         using params_mutex = std::shared_mutex;

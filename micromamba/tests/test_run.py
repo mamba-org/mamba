@@ -86,7 +86,9 @@ class TestRun:
         malformed_record.write_text(record)
         valid_record = proc_dir / f"{os.getpid()}.json"
         valid_record.write_text(
-            json.dumps({"name": "existing-process", "command": ["true"], "prefix": self.current_prefix})
+            json.dumps(
+                {"name": "existing-process", "command": ["true"], "prefix": self.current_prefix}
+            )
         )
 
         assert umamba_run(*label_flags, "true") == ""

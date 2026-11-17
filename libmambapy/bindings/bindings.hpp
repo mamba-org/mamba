@@ -9,6 +9,8 @@
 
 #include <pybind11/pybind11.h>
 
+#include "logging.hpp"
+
 namespace mambapy
 {
     void bind_submodule_utils(pybind11::module_ m);

@@ -32,7 +32,7 @@
         must provide to be usable by libmamba.
 
     - `mamba::logging::AnyLogHandler`:
-        A type-erasing type that can store a on object
+        A type-erasing type that can store an object
         which type satisfies `LogHandler` or a pointer to such type.
 
     - `mamba::logging::set_log_handler`:
@@ -67,8 +67,10 @@
 #include <string>
 #include <typeindex>
 #include <utility>
+#include <variant>
 #include <vector>
 
+#include "mamba/util/metaprog.hpp"
 
 // TODO: rename these macros in a more friendly/conflict-averse manner, with a mamba prefix for
 // example.
@@ -158,8 +160,10 @@ namespace mamba
         libmamba,  // default
         libcurl,
         libsolv,
+        tests,  // only used for library testing
 
-        tests,  // only used for testing
+        external,  // doesnt come from this library or from its dependencies,
+                   // reserved for library user's logs if it's logging records here
     };
 
     constexpr auto operator<=>(log_source left, std::size_t right) noexcept
@@ -184,23 +188,117 @@ namespace mamba
         return { log_source::libmamba, log_source::libcurl, log_source::libsolv };
     }
 
+    /// Same as `std::source_location` but we can specify it manually.
+    /// Used to allow logging with source locations from other languages than C++.
+    class SourceLocation
+    {
+    public:
+
+        static constexpr auto current() -> SourceLocation
+        {
+            return SourceLocation{ std::source_location::current() };
+        }
+
+        constexpr SourceLocation() = default;
+        constexpr SourceLocation(const SourceLocation&) = default;
+        constexpr SourceLocation(SourceLocation&&) = default;
+        constexpr SourceLocation& operator=(const SourceLocation&) noexcept = default;
+        constexpr SourceLocation& operator=(SourceLocation&&) noexcept = default;
+
+        constexpr SourceLocation(std::source_location location)
+            : m_value{ std::move(location) }
+        {
+        }
+
+        constexpr SourceLocation(
+            std::string file_name,
+            std::string function_name,
+            std::uint_least32_t line,
+            std::uint_least32_t column
+        )
+            : m_value{ ManualValue{
+                  .m_file_name = std::move(file_name),
+                  .m_function_name = std::move(function_name),
+                  .m_line = line,
+                  .m_column = column,
+              } }
+        {
+        }
+
+        constexpr auto file_name() const -> const char*
+        {
+            return std::visit([](auto&& value) { return value.file_name(); }, m_value);
+        }
+
+        constexpr auto function_name() const -> const char*
+        {
+            return std::visit([](auto&& value) { return value.function_name(); }, m_value);
+        }
+
+        constexpr auto line() const -> std::uint_least32_t
+        {
+            return std::visit([](auto&& value) { return value.line(); }, m_value);
+        }
+
+        constexpr auto column() const -> std::uint_least32_t
+        {
+            return std::visit([](auto&& value) { return value.column(); }, m_value);
+        }
+
+    public:
+
+        struct ManualValue
+        {
+            std::string m_file_name;      // assuming utf-8 path here
+            std::string m_function_name;  // assuming utf-8 name
+            std::uint_least32_t m_line;
+            std::uint_least32_t m_column;
+
+            constexpr auto file_name() const -> const char*
+            {
+                return m_file_name.c_str();
+            }
+
+            constexpr auto function_name() const -> const char*
+            {
+                return m_function_name.c_str();
+            }
+
+            constexpr auto line() const -> std::uint_least32_t
+            {
+                return m_line;
+            }
+
+            constexpr auto column() const -> std::uint_least32_t
+            {
+                return m_column;
+            }
+        };
+
+        std::variant<std::source_location, ManualValue> m_value;
+    };
+
+    inline constexpr bool operator==(const SourceLocation& left, const SourceLocation& right)
+    {
+        return std::string_view(left.file_name()) == std::string_view(right.file_name())
+               && std::string_view(left.function_name()) == std::string_view(right.function_name())
+               && left.line() == right.line() && left.column() == right.column();
+    }
+
     namespace logging
     {
+        using ::mamba::log_level;
+        using ::mamba::log_source;
+        using ::mamba::name_of;
+        using ::mamba::all_log_sources;
+        using ::mamba::LoggingParams;
+        using ::mamba::SourceLocation;
+
         // TODO: this is a placeholder, replace it by the real thing once available.
         // The intent is to have a type doing SBO when possible, but act as unique_ptr otherwise.
         // Might require allowing to use shared_ptr too, or some kind of value_ptr.
         template <typename Interface, std::size_t local_storage_size = sizeof(std::shared_ptr<Interface>)>
         using SBO_storage = std::unique_ptr<Interface>;
-
-        // Helper comparison of source locations, to help with testing.
-        inline constexpr bool
-        operator==(const std::source_location& left, const std::source_location& right)
-        {
-            return std::string_view(left.file_name()) == std::string_view(right.file_name())
-                   && std::string_view(left.function_name())
-                          == std::string_view(right.function_name())
-                   && left.line() == right.line() && left.column() == right.column();
-        }
 
         /** All the information about a log.
 
@@ -222,7 +320,7 @@ namespace mamba
             log_source source = log_source::libmamba;
 
             /** Source location of this log if available, otherwise empty. */
-            std::source_location location = {};  // assigned explicitly to please apple-clang
+            SourceLocation location = {};  // assigned explicitly to please apple-clang
 
             // comparisons are mainly used for testing
             auto operator==(const LogRecord& other) const noexcept -> bool = default;
@@ -452,11 +550,17 @@ namespace mamba
         template <typename T>
         concept LogHandlerPtr = std::is_pointer_v<T> and LogHandler<std::remove_pointer_t<T>>;
 
+        // clang-format off
+        template <typename T>
+        concept LogHandlerSmartPtr = (util::is_type_instance_of_v<T,std::shared_ptr> or util::is_type_instance_of_v<T, std::unique_ptr>)
+                                     and LogHandler<typename T::element_type>;
+        // clang-format on
+
         /** Matches either a type of a log handler implementation satisfying the requirements of
             `mamba::logging::LogHandler`, or a pointer to such type.
         */
         template <typename T>
-        concept LogHandlerOrPtr = LogHandler_Moveable<T> or LogHandlerPtr<T>;
+        concept LogHandlerOrPtr = LogHandler_Moveable<T> or LogHandlerPtr<T> or LogHandlerSmartPtr<T>;
 
         /** Stores or refers to a log handler implementation object which must satisfy the
             requirements from `mamba::logging::LogHandler`.
@@ -545,6 +649,33 @@ namespace mamba
                         and LogHandler<T>  //
             AnyLogHandler(T* handler_ptr);
 
+            /** Construction by storing the provided smart pointer to a log handler implementation.
+
+                This will take shared or unique ownership of the pointed object depending on the
+               smart pointer type (`std::shared_ptr` or `std::unique_ptr`). The pointed object MUST
+               be valid and it's lifetime MUST be greater than the lifetime of `this`.
+
+                This is mainly useful for situations where  users cannot or do not want to move the
+                implementation, or when the implementation must be shared.
+
+                pre-conditions:
+                    - `handler_ptr != nullptr`
+                    - `handler_ptr` must point to a valid object.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param handler_ptr A standard smart-pointer (`std::shared_ptr` or `std::unique_ptr`)
+                                   to a log handler object which type satisfies
+               `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandlerSmartPtr<T>  //
+            AnyLogHandler(T handler_ptr);
+
             /** Stores a provided moved log handler implementation.
 
                 This will take ownership of the moved object.
@@ -592,6 +723,35 @@ namespace mamba
                 requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
                         and LogHandler<T>  //
             AnyLogHandler& operator=(T* new_handler_ptr);
+
+            /** Stores the provided smart pointer to a log handler implementation.
+
+                This will take shared or unique ownership of the pointed object depending on the
+               type of smart pointer. The pointed object MUST be valid and it's lifetime MUST be
+               greater than the lifetime of `this`.
+
+                If `this` already stores an object before this call, it is destroyed before we store
+                the provided pointer.
+
+                This is mainly useful for situations where users cannot or do not want to move the
+                implementation or when the implementation must be shared.
+
+                pre-conditions:
+                    - `new_handler_ptr != nullptr`
+                    - `new_handler_ptr` must point to a valid object.
+
+                post-conditions:
+                    - `has_value() == true`
+
+                @param new_handler_ptr A smart pointer to a log handler object which type satisfies
+               `mamba::logging::LogHandler` requirements.
+
+                @see `mamba::logging::LogHandler`
+            */
+            template <class T>
+                requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>)
+                        and LogHandlerSmartPtr<T>  //
+            AnyLogHandler& operator=(T new_handler_ptr);
 
             /** Calls the same function with the same arguments (if any) in the implementation
                 object pointed or stored in `this`,
@@ -926,10 +1086,7 @@ namespace mamba
         {
         public:
 
-            MessageLogger(
-                log_level level,
-                std::source_location location = std::source_location::current()
-            );
+            MessageLogger(log_level level, SourceLocation location = std::source_location::current());
             ~MessageLogger();
 
             std::stringstream& stream()
@@ -947,7 +1104,7 @@ namespace mamba
 
             log_level m_level;
             std::stringstream m_stream;
-            std::source_location m_location;
+            SourceLocation m_location;
 
             static void emit(LogRecord log_record);
         };
@@ -1066,13 +1223,20 @@ namespace mamba::logging
     };
 
     template <LogHandler T>
-    T& as_ref(T& object)
+    auto as_ref(T& object) -> T&
     {
         return object;
     }
 
     template <LogHandler T>
-    T& as_ref(T* object)
+    auto as_ref(T* object) -> T&
+    {
+        assert(object);
+        return *object;
+    }
+
+    template <LogHandlerSmartPtr T>
+    auto as_ref(T& object) -> T::element_type&
     {
         assert(object);
         return *object;
@@ -1086,6 +1250,10 @@ namespace mamba::logging
         Wrapper(T new_object)
             : object(std::move(new_object))
         {
+            if constexpr (LogHandlerPtr<T> or LogHandlerSmartPtr<T>)
+            {
+                assert(object);
+            }
         }
 
         void start_log_handling(LoggingParams params, std::vector<log_source> sources) override
@@ -1156,7 +1324,13 @@ namespace mamba::logging
     AnyLogHandler::AnyLogHandler(T* handler_ptr)
         : m_storage(std::make_unique<Wrapper<T*>>(handler_ptr))
     {
-        assert(handler_ptr);
+    }
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandlerSmartPtr<T>
+    AnyLogHandler::AnyLogHandler(T handler_ptr)
+        : m_storage(std::make_unique<Wrapper<T>>(std::move(handler_ptr)))
+    {
     }
 
     template <class T>
@@ -1186,6 +1360,22 @@ namespace mamba::logging
         else
         {
             m_storage = std::make_unique<Wrapper<T*>>(new_handler_ptr);
+        }
+        return *this;
+    }
+
+    template <class T>
+        requires(not std::is_same_v<std::remove_cvref_t<T>, AnyLogHandler>) and LogHandlerSmartPtr<T>
+    AnyLogHandler& AnyLogHandler::operator=(T new_handler_ptr)
+    {
+        assert(new_handler_ptr);
+        if (m_storage and typeid(T) == m_storage->type_id())
+        {
+            static_cast<Wrapper<T>*>(m_storage.get())->object = std::move(new_handler_ptr);
+        }
+        else
+        {
+            m_storage = std::make_unique<Wrapper<T>>(std::move(new_handler_ptr));
         }
         return *this;
     }

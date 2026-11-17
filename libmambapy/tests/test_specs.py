@@ -847,6 +847,12 @@ def test_PackageInfo():
     custom_pkg = PackageInfo(name="foo", defaulted_keys=["_initialized", "license", "timestamp"])
     assert custom_pkg.defaulted_keys == ["_initialized", "license", "timestamp"]
 
+    # Deprecated signatures are accepted and ignored (used by conda-libmamba-solver)
+    signed_pkg = PackageInfo(name="foo", signatures="sig")
+    assert signed_pkg.signatures == ""
+    signed_pkg.signatures = "sig"
+    assert signed_pkg.signatures == ""
+
 
 def test_PackageInfo_V2Migrator():
     """Explicit migration help added from v1 to v2."""

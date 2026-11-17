@@ -96,6 +96,37 @@ namespace
             // Should correspond to PackageFetcher::url_path()
             REQUIRE(req.url_path == "linux-64/xtensor-0.25.0-h00ab1b0_0.conda");
         }
+
+        SECTION("From token channel")
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/t/xy-12345678-1234-1234-1234-123456789012/private/linux-64/pkg-6.4-bld.conda";
+            auto pkg_info = specs::PackageInfo::from_url(url).value();
+            pkg_info.channel = "https://conda.anaconda.org/private";
+
+            PackageFetcher pkg_fetcher{ pkg_info, package_caches };
+
+            auto req = pkg_fetcher.build_download_request();
+            // The token must not be passed in the URL, the channel mirror provides it
+            REQUIRE(req.mirror_name == "https://conda.anaconda.org/private");
+            REQUIRE(req.url_path == "linux-64/pkg-6.4-bld.conda");
+        }
+
+        SECTION("From token channel with masked token")
+        {
+            // Package URLs built from cached repodata metadata have the token hidden
+            static constexpr std::string_view url = "https://conda.anaconda.org/t/*****/private/linux-64/pkg-6.4-bld.conda";
+            specs::PackageInfo pkg_info{ "pkg", "6.4", "bld", "https://conda.anaconda.org/private" };
+            pkg_info.package_url = url;
+            pkg_info.filename = "pkg-6.4-bld.conda";
+            pkg_info.platform = "linux-64";
+
+            PackageFetcher pkg_fetcher{ pkg_info, package_caches };
+
+            auto req = pkg_fetcher.build_download_request();
+            // Downloading the package URL as-is would send the literal "*****" as the token
+            REQUIRE(req.mirror_name == "https://conda.anaconda.org/private");
+            REQUIRE(req.url_path == "linux-64/pkg-6.4-bld.conda");
+        }
     }
 
     TEST_CASE("extract_creates_repodata_record_with_dependencies")

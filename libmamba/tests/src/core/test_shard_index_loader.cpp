@@ -447,6 +447,64 @@ TEST_CASE("ShardIndexLoader::parse_shard_index - Edge cases")
         REQUIRE(result.value().version > 0);
     }
 
+    SECTION("Non-string info values are ignored")
+    {
+        // A non-string value in the "info" map must not be read as a string
+        msgpack_sbuffer sbuf;
+        msgpack_sbuffer_init(&sbuf);
+        msgpack_packer pk;
+        msgpack_packer_init(&pk, &sbuf, msgpack_sbuffer_write);
+
+        msgpack_pack_map(&pk, 3);
+
+        // info
+        msgpack_pack_str(&pk, 4);
+        msgpack_pack_str_body(&pk, "info", 4);
+        msgpack_pack_map(&pk, 3);
+        msgpack_pack_str(&pk, 8);
+        msgpack_pack_str_body(&pk, "base_url", 8);
+        msgpack_pack_uint64(&pk, 0x4141414141);
+        msgpack_pack_str(&pk, 15);
+        msgpack_pack_str_body(&pk, "shards_base_url", 15);
+        msgpack_pack_array(&pk, 0);
+        msgpack_pack_str(&pk, 6);
+        msgpack_pack_str_body(&pk, "subdir", 6);
+        msgpack_pack_str(&pk, 8);
+        msgpack_pack_str_body(&pk, "linux-64", 8);
+
+        // version
+        msgpack_pack_str(&pk, 7);
+        msgpack_pack_str_body(&pk, "version", 7);
+        msgpack_pack_uint64(&pk, 1);
+
+        // shards
+        msgpack_pack_str(&pk, 6);
+        msgpack_pack_str_body(&pk, "shards", 6);
+        msgpack_pack_map(&pk, 0);
+
+        std::vector<std::uint8_t> msgpack_data(
+            reinterpret_cast<const std::uint8_t*>(sbuf.data),
+            reinterpret_cast<const std::uint8_t*>(sbuf.data + sbuf.size)
+        );
+        msgpack_sbuffer_destroy(&sbuf);
+
+        auto compressed_data = compress_zstd(msgpack_data);
+        const auto tmp_dir = TemporaryDirectory();
+        auto temp_file = tmp_dir.path() / "non_string_info.msgpack.zst";
+        std::ofstream file(temp_file.string(), std::ios::binary);
+        file.write(
+            reinterpret_cast<const char*>(compressed_data.data()),
+            static_cast<std::streamsize>(compressed_data.size())
+        );
+        file.close();
+
+        auto result = ShardIndexLoader::parse_shard_index(temp_file);
+        REQUIRE(result.has_value());
+        REQUIRE(result.value().info.base_url.empty());
+        REQUIRE(result.value().info.shards_base_url.empty());
+        REQUIRE(result.value().info.subdir == "linux-64");
+    }
+
     SECTION("Missing shards field")
     {
         // Create msgpack without "shards" field

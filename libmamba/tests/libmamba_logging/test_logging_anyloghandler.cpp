@@ -212,16 +212,56 @@ namespace mamba::logging
             REQUIRE(handler.pimpl->stats.value() == Stats{ .start_count = 1, .stop_count = 1 });
             REQUIRE(original_impl_ptr == handler.pimpl.get());
         }
+
+        SECTION("shared ownership of pointed handler")
+        {
+            auto handler = std::make_shared<testing::LogHandler_Tester>();
+
+            AnyLogHandler x{ handler };
+            REQUIRE(handler->pimpl.get() != nullptr);
+            REQUIRE(x.has_value());
+            REQUIRE(static_cast<bool>(x) == true);
+            REQUIRE(x.type_id().has_value());
+            REQUIRE(x.type_id().value() == typeid(handler));
+            REQUIRE(handler->pimpl->stats.value() == Stats{});
+
+            x.start_log_handling({}, {});
+            REQUIRE(x.has_value());
+            REQUIRE(static_cast<bool>(x) == true);
+            REQUIRE(x.type_id().has_value());
+            REQUIRE(x.type_id().value() == typeid(handler));
+            REQUIRE(handler->pimpl->stats.value() == Stats{ .start_count = 1 });
+
+            AnyLogHandler y = std::move(x);
+            REQUIRE(y.has_value());
+            REQUIRE(static_cast<bool>(y) == true);
+            REQUIRE(y.type_id().has_value());
+            REQUIRE(y.type_id().value() == typeid(handler));
+            REQUIRE(not x.has_value());
+            REQUIRE(not static_cast<bool>(x) == true);
+            REQUIRE(not x.type_id().has_value());
+            REQUIRE(handler->pimpl->stats.value() == Stats{ .start_count = 1 });
+
+            y.stop_log_handling();
+            REQUIRE(y.has_value());
+            REQUIRE(static_cast<bool>(y) == true);
+            REQUIRE(y.type_id().has_value());
+            REQUIRE(y.type_id().value() == typeid(handler));
+            REQUIRE(not x.has_value());
+            REQUIRE(not static_cast<bool>(x) == true);
+            REQUIRE(not x.type_id().has_value());
+            REQUIRE(handler->pimpl->stats.value() == Stats{ .start_count = 1, .stop_count = 1 });
+        }
     }
 
     TEST_CASE("AnyLogHandler LogHandler operations")
     {
         using Stats = testing::Stats;
 
-        testing::LogHandler_Tester handler;
-        auto& stats = handler.pimpl->stats;
+        auto handler = std::make_shared<testing::LogHandler_Tester>();
+        auto& stats = handler->pimpl->stats;
 
-        AnyLogHandler x{ std::move(handler) };
+        AnyLogHandler x{ handler };
         REQUIRE(stats == Stats{});
 
         // All `LogHandler` operations should be forwarded to the implementation.

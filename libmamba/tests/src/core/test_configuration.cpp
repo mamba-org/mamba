@@ -11,6 +11,8 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/package_fetcher.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
@@ -1233,6 +1235,42 @@ namespace mamba
                 util::unset_env("MAMBA_ALWAYS_SOFTLINK");
 
                 load_test_config("always_softlink: false\nalways_copy: false");
+            }
+
+            TEST_CASE_METHOD(Configuration, "extract_threads normalization")
+            {
+                util::unset_env("MAMBA_EXTRACT_THREADS");
+
+                SECTION("default resolves to the affinity based automatic value, at most 10")
+                {
+                    load_test_config("channels:\n  - test1");
+                    const auto expected = normalize_to_affinity_concurrency(0);
+                    REQUIRE(expected <= 10);
+                    REQUIRE(config.at("extract_threads").value<int>() == static_cast<int>(expected));
+                    REQUIRE(ctx.threads_params.extract_threads == static_cast<int>(expected));
+                    REQUIRE(
+                        PackageFetcherSemaphore::get_max() == static_cast<std::ptrdiff_t>(expected)
+                    );
+                }
+
+                SECTION("positive values are kept as requested")
+                {
+                    load_test_config("extract_threads: 4");
+                    REQUIRE(config.at("extract_threads").value<int>() == 4);
+                    REQUIRE(ctx.threads_params.extract_threads == 4);
+                    REQUIRE(PackageFetcherSemaphore::get_max() == 4);
+                }
+
+                SECTION("negative values are relative to the affinity")
+                {
+                    load_test_config("extract_threads: -2");
+                    const auto expected = normalize_to_affinity_concurrency(-2);
+                    REQUIRE(config.at("extract_threads").value<int>() == static_cast<int>(expected));
+                    REQUIRE(ctx.threads_params.extract_threads == static_cast<int>(expected));
+                    REQUIRE(
+                        PackageFetcherSemaphore::get_max() == static_cast<std::ptrdiff_t>(expected)
+                    );
+                }
             }
 
             TEST_CASE_METHOD(Configuration, "safety_checks")

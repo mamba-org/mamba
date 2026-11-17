@@ -77,7 +77,7 @@ def test_hook_shell(
 
 @pytest.mark.parametrize(
     "shell_type",
-    ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "nu"],
+    ["bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "csh", "tcsh", "nu"],
 )
 def test_hook(tmp_home, tmp_root_prefix, shell_type):
     res = helpers.shell("hook", "-s", shell_type)
@@ -102,8 +102,8 @@ def test_hook(tmp_home, tmp_root_prefix, shell_type):
         assert res.count(mamba_exe_posix) == 5
     elif shell_type == "cmd.exe":
         assert res == ""
-    elif shell_type == "tcsh":
-        assert res.count(mamba_exe_posix) == 5
+    elif shell_type in ("csh", "tcsh"):
+        assert res.count(mamba_exe_posix) == 8
     elif shell_type == "nu":
         # insert dummy test, as the nu scripts contains
         # no mention of mamba_exe; path is added in config.nu
@@ -338,6 +338,19 @@ def test_init(tmp_home, tmp_root_prefix, shell_type, prefix_selector, multiple_t
         assert (tmp_root_prefix / "etc" / "profile.d").is_dir()
     else:
         assert (tmp_root_prefix / "condabin").is_dir()
+
+
+@pytest.mark.skipif(platform.system() == "Windows", reason="Unix only")
+@pytest.mark.parametrize("shell_type", ["csh", "tcsh"])
+def test_init_csh(tmp_home, tmp_root_prefix, shell_type):
+    hook_file = tmp_root_prefix / "etc" / "profile.d" / "mamba.csh"
+
+    assert helpers.shell("-y", "init", "-s", shell_type, "-r", tmp_root_prefix)
+    assert hook_file.is_file()
+    assert str(hook_file.relative_to(tmp_root_prefix)) in (tmp_home / ".tcshrc").read_text()
+
+    assert helpers.shell("-y", "deinit", "-s", shell_type, "-r", tmp_root_prefix)
+    assert not hook_file.exists()
 
 
 def test_shell_init_with_env_var(tmp_home, tmp_root_prefix):

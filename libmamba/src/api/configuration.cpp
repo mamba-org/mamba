@@ -1043,9 +1043,12 @@ namespace mamba
             value = normalize_to_affinity_concurrency(static_cast<int>(value));
         }
 
-        void extract_threads_hook(const Context& context)
+        void extract_threads_hook(int& value)
         {
-            PackageFetcherSemaphore::set_max(context.threads_params.extract_threads);
+            // Normalize the extraction threads stored in the context, then configure the
+            // extraction semaphore from the same resolved value.
+            value = static_cast<int>(normalize_to_affinity_concurrency(value));
+            PackageFetcherSemaphore::set_max(value);
         }
     }
 
@@ -1789,13 +1792,13 @@ namespace mamba
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
                         If set to 0, the number of threads is chosen automatically as the
-                        minimum between 10 and the number of CPUs available to the process.")));
+                        minimum between 10 and the number of CPUs available to the process.)")));
 
         insert(Configurable("extract_threads", &m_context.threads_params.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_context_hook([this] { return detail::extract_threads_hook(m_context); })
+                   .set_post_merge_hook(detail::extract_threads_hook)
                    .description("Defines the number of threads for package extraction")
                    .long_description(unindent(R"(
                         Defines the number of threads for package extraction.
@@ -1803,7 +1806,7 @@ namespace mamba
                         Negative values are interpreted as (available CPUs for this process
                         minus the absolute value).
                         If set to 0, the number of threads is chosen automatically as the
-                        minimum between 10 and the number of CPUs available to the process)")));
+                        minimum between 10 and the number of CPUs available to the process.)")));
 
         insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")
@@ -2807,7 +2810,7 @@ namespace mamba
 
     void print_dump(const Configuration& config, int dump_opts, std::vector<std::string> dump_names)
     {
-        const std::string dump_text = hide_secrets(config.dump(dump_opts, std::move(dump_names)));
+        const std::string dump_text = config.dump(dump_opts, std::move(dump_names));
         if (config.context().output_params.json)
         {
             // merge the output with existing json output

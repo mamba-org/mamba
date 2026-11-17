@@ -63,6 +63,16 @@ namespace mamba
                 assert_guess_shell_with_parent_process_name("bash", "bash");
             }
 
+            SECTION("Parent named csh")
+            {
+                assert_guess_shell_with_parent_process_name("csh", "csh");
+            }
+
+            SECTION("Parent named tcsh")
+            {
+                assert_guess_shell_with_parent_process_name("tcsh", "tcsh");
+            }
+
             SECTION("Parent named nu")
             {
                 assert_guess_shell_with_parent_process_name("nu", "nu");
@@ -105,6 +115,12 @@ namespace mamba
             {
                 util::set_env("SHELL", "/bin/csh");
                 assert_guess_shell_with_parent_process_name("mamba-test", "csh");
+            }
+
+            SECTION("tcsh")
+            {
+                util::set_env("SHELL", "/bin/tcsh");
+                assert_guess_shell_with_parent_process_name("mamba-test", "tcsh");
             }
 
             SECTION("dash")

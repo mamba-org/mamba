@@ -187,8 +187,7 @@ namespace mamba::logging
 
     namespace
     {
-        auto
-        make_safe_log_record(std::string_view message, log_level level, std::source_location location)
+        auto make_safe_log_record(std::string_view message, log_level level, SourceLocation location)
         {
             // THINK: maybe remove as much locals as possible to enable optimizations with
             // temporaries
@@ -206,7 +205,7 @@ namespace mamba::logging
 
     }
 
-    MessageLogger::MessageLogger(log_level level, std::source_location location)
+    MessageLogger::MessageLogger(log_level level, SourceLocation location)
         : m_level(level)
         , m_location(std::move(location))
     {

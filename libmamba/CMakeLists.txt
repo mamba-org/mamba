@@ -325,6 +325,7 @@ set(
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/iterator.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/json.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/loop_control.hpp
+    ${LIBMAMBA_INCLUDE_DIR}/mamba/util/metaprog.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_linux.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_osx.hpp
     ${LIBMAMBA_INCLUDE_DIR}/mamba/util/os_unix.hpp

@@ -34,7 +34,7 @@ namespace
             ->check(
                 CLI::IsMember(
                     std::set<std::string>(
-                        { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash", "nu" }
+                        { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "csh", "tcsh", "dash", "nu" }
                     )
                 )
             )

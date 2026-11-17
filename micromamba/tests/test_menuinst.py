@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import create, random_string, remove
+from .helpers import create, find_message_in_json_logs, random_string, remove
 
 if sys.platform.startswith("win"):
     import menuinst
@@ -123,3 +123,26 @@ class TestMenuinst:
         )
         assert os.path.exists(lnk)
         assert os.path.exists(reset_lnk)
+
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="skipping windows-only tests",
+    )
+    def test_nebi_shortcut_no_error(self):
+        env_name = random_string()
+        json_output = create(
+            "nebi=0.16",
+            "-n",
+            env_name,
+            "--json",
+            no_dry_run=True,
+        )
+
+        # TODO remove the print when verified
+        print("json output: ", json_output)
+        assert json_output["success"]
+        assert (
+            find_message_in_json_logs(json_output, "Creation of shortcut was not successful")
+            is None
+        )
+        assert find_message_in_json_logs(json_output, "json.exception.type_error.305") is None

@@ -4,7 +4,9 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <array>
 #include <string>
+#include <string_view>
 
 #include "mamba/util/path_manip.hpp"
 
@@ -76,13 +78,15 @@ namespace mamba
                       << "\n  Description: " << description << "\n  Filename: " << filename
                       << "\n  Arguments: " << arguments << "\n  Working Directory: " << work_dir
                       << "\n  Icon Path: " << icon_path << "\n  Icon Index: " << icon_index;
+
+            hres = CoInitialize(nullptr);
+            if (FAILED(hres))
+            {
+                LOG_ERROR << "Could not initialize COM";
+                return;
+            }
             try
             {
-                hres = CoInitialize(nullptr);
-                if (FAILED(hres))
-                {
-                    throw std::runtime_error("Could not initialize COM");
-                }
                 hres = CoCreateInstance(
                     CLSID_ShellLink,
                     nullptr,
@@ -156,21 +160,17 @@ namespace mamba
             }
             catch (const std::runtime_error& e)
             {
-                if (pPersistFile)
-                {
-                    pPersistFile->Release();
-                }
-                if (pShellLink)
-                {
-                    pShellLink->Release();
-                }
-                CoUninitialize();
-
                 LOG_ERROR << e.what();
             }
 
-            pPersistFile->Release();
-            pShellLink->Release();
+            if (pPersistFile)
+            {
+                pPersistFile->Release();
+            }
+            if (pShellLink)
+            {
+                pShellLink->Release();
+            }
 
             CoUninitialize();
         }
@@ -261,6 +261,11 @@ namespace mamba
             Version2 = 2,
         };
 
+        const std::array<std::string, 9> override_keys = {
+            "name",      "description", "command",  "icon",    "precommand",
+            "precreate", "working_dir", "activate", "terminal"
+        };
+
         void create_remove_shortcut_impl(
             const fs::u8path& json_file,
             const TransactionContext& context,
@@ -287,6 +292,8 @@ namespace mamba
             }
 
 #ifdef _WIN32
+
+            const bool target_is_base = (pp.target_prefix == pp.root_prefix);
 
             // {
             //     "menu_name": "Miniforge${PY_VER}",
@@ -330,17 +337,19 @@ namespace mamba
             auto extend_script_args = [](const auto& item, auto& arguments)
             {
                 // this is pretty bad ...
-                if (item.contains("scriptargument"))
+                if (item.contains("scriptargument") && item["scriptargument"].is_string())
                 {
-                    arguments.push_back(item["scriptargument"]);
+                    arguments.push_back(item["scriptargument"].get<std::string>());
                 }
 
-                if (item.contains("scriptarguments"))
+                if (item.contains("scriptarguments") && item["scriptarguments"].is_array())
                 {
-                    std::vector<std::string> tmp_args = item["scriptarguments"];
-                    for (auto& arg : tmp_args)
+                    for (const auto& arg : item["scriptarguments"])
                     {
-                        arguments.push_back(arg);
+                        if (arg.is_string())
+                        {
+                            arguments.push_back(arg.get<std::string>());
+                        }
                     }
                 }
             };
@@ -353,6 +362,12 @@ namespace mamba
                 menuinst_version = MenuInstVersion::Version2;  // v2
             }
 
+            if (!j.contains("menu_items") || !j["menu_items"].is_array())
+            {
+                LOG_WARNING << "No valid 'menu_items' found in " << json_file.string();
+                return;
+            }
+
             for (auto& item : j["menu_items"])
             {
                 std::string name;
@@ -363,39 +378,45 @@ namespace mamba
                 // cf. https://github.com/conda/menuinst/pull/180
                 if (menuinst_version == MenuInstVersion::Version1)
                 {
-                    name = item["name"];  // Should be a string
+                    if (!item.contains("name") || !item["name"].is_string())
+                    {
+                        throw std::runtime_error(
+                            "Menu item missing valid 'name' in " + json_file.string()
+                        );
+                    }
+                    name = item["name"].get<std::string>();
                     workdir = item.value("work_dir", "");
 
-                    if (item.contains("pywscript"))
+                    if (item.contains("pywscript") && item["pywscript"].is_string())
                     {
                         script = root_pyw;
                         arguments = cwp_pyw_args;
-                        auto tmp = util::split(item["pywscript"], " ");
+                        auto tmp = util::split(item["pywscript"].get<std::string>(), " ");
                         std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     }
-                    else if (item.contains("pyscript"))
+                    else if (item.contains("pyscript") && item["pyscript"].is_string())
                     {
                         script = root_py;
                         arguments = cwp_py_args;
-                        auto tmp = util::split(item["pyscript"], " ");
+                        auto tmp = util::split(item["pyscript"].get<std::string>(), " ");
                         std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                     }
-                    else if (item.contains("webbrowser"))
+                    else if (item.contains("webbrowser") && item["webbrowser"].is_string())
                     {
                         script = root_pyw;
-                        arguments = { "-m", "webbrowser", "-t", item["webbrowser"] };
+                        arguments = { "-m", "webbrowser", "-t", item["webbrowser"].get<std::string>() };
                     }
-                    else if (item.contains("script"))
+                    else if (item.contains("script") && item["script"].is_string())
                     {
                         script = root_py;
                         arguments = { cwp_path.string(), target_prefix.string() };
-                        auto tmp = util::split(item["script"], " ");
+                        auto tmp = util::split(item["script"].get<std::string>(), " ");
                         std::copy(tmp.begin(), tmp.end(), back_inserter(arguments));
                         extend_script_args(item, arguments);
                     }
-                    else if (item.contains("system"))
+                    else if (item.contains("system") && item["system"].is_string())
                     {
-                        auto tmp = util::split(item["system"], " ");
+                        auto tmp = util::split(item["system"].get<std::string>(), " ");
                         script = tmp[0];
                         if (tmp.size() > 1)
                         {
@@ -411,24 +432,91 @@ namespace mamba
                 }
                 else  // MenuInstVersion::Version2
                 {
-                    workdir = item.value("working_dir", "");
-                    // `item["name"]` should be either a string
-                    // or an object containing items with "target_environment_is_base"
-                    // and "target_environment_is_not_base"(default) as keys.
-                    // cf.
-                    // https://conda.github.io/menuinst/reference/#menuinst._schema.MenuItem.name
-                    if (item["name"].is_string())
+                    if (!item.contains("platforms") || !item["platforms"].is_object())
                     {
-                        name = item["name"].get<std::string>();
+                        LOG_DEBUG << "Skipping v2 menu item without valid 'platforms' in "
+                                  << json_file.string();
+                        continue;
                     }
-                    else if (item["name"].is_object())
+                    const auto& platforms = item["platforms"];
+                    if (!platforms.contains("win") || !platforms["win"].is_object())
                     {
-                        name = item["name"]["target_environment_is_not_base"].get<std::string>();
+                        LOG_DEBUG << "Skipping menu item not enabled for Windows in "
+                                  << json_file.string();
+                        continue;
+                    }
+
+                    const auto& win = platforms["win"];
+                    for (const auto& key : override_keys)
+                    {
+                        // Override top-level elements with platforms content if not null
+                        if (win.contains(key) && !win[key].is_null())
+                        {
+                            item[key] = win[key];
+                        }
+                    }
+
+                    if (!item.contains("name"))
+                    {
+                        throw std::runtime_error("Menu item missing 'name' in " + json_file.string());
+                    }
+
+                    const auto& name_node = item["name"];
+                    if (name_node.is_string())
+                    {
+                        name = name_node.get<std::string>();
+                    }
+                    else if (name_node.is_object())
+                    {
+                        constexpr std::string_view base_name_key = "target_environment_is_base";
+                        constexpr std::string_view non_base_name_key = "target_environment_is_not_base";
+
+                        const std::string selected_key{ target_is_base ? base_name_key
+                                                                       : non_base_name_key };
+
+                        const auto it = name_node.find(selected_key);
+                        if (it == name_node.end() || !it->is_string())
+                        {
+                            throw std::runtime_error(
+                                "Menu item 'name' object missing valid '" + selected_key + "' in "
+                                + json_file.string()
+                            );
+                        }
+                        name = it->get<std::string>();
+                    }
+                    else
+                    {
+                        throw std::runtime_error(
+                            "Menu item 'name' must be a string or object in " + json_file.string()
+                        );
+                    }
+
+                    if (name.empty())
+                    {
+                        throw std::runtime_error(
+                            "Menu item 'name' must not be empty in " + json_file.string()
+                        );
+                    }
+
+                    workdir = item.value("working_dir", "");
+
+                    if (!item.contains("command") || !item["command"].is_array()
+                        || item["command"].empty())
+                    {
+                        throw std::runtime_error(
+                            "Menu item missing valid 'command' array in " + json_file.string()
+                        );
                     }
                     // cf.
                     // https://conda.github.io/menuinst/defining-shortcuts/#migrating-pywscript-and-pyscript-to-menuinst-v2
                     for (const auto& el : item["command"])
                     {
+                        if (!el.is_string())
+                        {
+                            throw std::runtime_error(
+                                "Menu item 'command' elements must be strings in " + json_file.string()
+                            );
+                        }
                         arguments.push_back(el.get<std::string>());
                     }
                     script = arguments[0];

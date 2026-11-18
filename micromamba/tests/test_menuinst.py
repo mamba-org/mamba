@@ -137,9 +137,6 @@ class TestMenuinst:
             "--json",
             no_dry_run=True,
         )
-
-        # TODO remove the print when verified
-        print("json output: ", json_output)
         assert json_output["success"]
         assert (
             find_message_in_json_logs(json_output, "Creation of shortcut was not successful")

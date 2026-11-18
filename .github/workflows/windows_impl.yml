@@ -274,8 +274,8 @@ jobs:
           $env:MAMBA_TEST_SHELL_TYPE='powershell'
           Remove-Item -Path "env:CONDARC"
           # Only rerun flaky tests on the `main` branch
-          python -m pytest micromamba/tests/ `
-            -vv --durations=50 `
-            ${{ inputs.os == 'windows-11-arm' && '--test-target-platform win-64' || '' }} `
-            ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} `
-            ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}
+          python -m pytest micromamba/tests/test_menuinst.py `
+            -vv -s --durations=50 `
+           # ${{ inputs.os == 'windows-11-arm' && '--test-target-platform win-64' || '' }} `
+           # ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} `
+           # ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

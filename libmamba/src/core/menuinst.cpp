@@ -261,11 +261,6 @@ namespace mamba
             Version2 = 2,
         };
 
-        const std::array<std::string, 9> override_keys = {
-            "name",      "description", "command",  "icon",    "precommand",
-            "precreate", "working_dir", "activate", "terminal"
-        };
-
         void create_remove_shortcut_impl(
             const fs::u8path& json_file,
             const TransactionContext& context,
@@ -293,8 +288,6 @@ namespace mamba
 
 #ifdef _WIN32
 
-            const bool target_is_base = (pp.target_prefix == pp.root_prefix);
-
             // {
             //     "menu_name": "Miniforge${PY_VER}",
             //     "menu_items":
@@ -308,8 +301,15 @@ namespace mamba
             //     ]
             // }
 
+            const std::array<std::string, 9> override_keys = {
+                "name",      "description", "command",  "icon",    "precommand",
+                "precreate", "working_dir", "activate", "terminal"
+            };
+
             const fs::u8path root_prefix = pp.root_prefix;
             const fs::u8path target_prefix = pp.target_prefix;
+
+            const bool target_is_base = (target_prefix == root_prefix);
 
             // using legacy stuff here
             const fs::u8path root_py = root_prefix / "python.exe";

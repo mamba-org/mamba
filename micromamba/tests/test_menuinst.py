@@ -111,7 +111,7 @@ class TestMenuinst:
     )
     def test_spyder_shortcut(self):
         env_name = random_string()
-        create("python=3.12", "spyder=6.0.3", "-n", env_name, no_dry_run=True)
+        create("python=3.12", "spyder=6.1.0", "-n", env_name, no_dry_run=True)
         d = menuinst.win32.dirs_src["user"]["start"][0]
         lnk = os.path.join(
             d, "{{ DISTRIBUTION_NAME }} spyder", "Spyder 6 ({{ ENV_NAME }}) (" + env_name + ").lnk"

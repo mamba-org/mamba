@@ -44,7 +44,13 @@ namespace mamba
         // dont accept `constinit` here, so until this is fixed we'll lose performance using
         // `std::mutex` when we mostly are reading data, not modifying,
         // but at least we maintain correctness and avoid static-init fiasco.
-#if defined(__APPLE__)
+
+// `using params_mutex = std::shared_mutex` will fail on LLVM builds.
+//  LLVM's implementation of `shared_mutex` does not allow compile-time initialization, so the `constinit` expression below will fail.
+
+// The `defined(__APPLE__)` check can be removed once the build is tested on Apple hardware without it. 
+
+#if defined(__APPLE__) || defined(_LIBCPP_VERSION)
         using params_mutex = std::mutex;
 #else
         using params_mutex = std::shared_mutex;

@@ -428,6 +428,11 @@ namespace
             REQUIRE("*"_vs.contains("1.7.1"_v));
             REQUIRE("1.5.*|>1.7,<1.8"_vs.contains("1.7.1"_v));
             REQUIRE_FALSE("1.5.*|>1.7,<1.7.1"_vs.contains("1.7.1"_v));
+            // "," (and) binds tighter than "|" (or): "<1|>3,>=2" is "<1|(>3,>=2)"
+            REQUIRE("<1|>3,>=2"_vs.contains("0.5"_v));
+            REQUIRE_FALSE("<1|>3,>=2"_vs.contains("2.5"_v));
+            REQUIRE_FALSE("<1|>3,>=2"_vs.contains("1.5"_v));
+            REQUIRE("<1|>3,>=2"_vs.contains("4"_v));
             REQUIRE("1.7.0.post123"_vs.contains("1.7.0.post123"_v));
             REQUIRE("1.7.0.post123.gabcdef9"_vs.contains("1.7.0.post123.gabcdef9"_v));
             REQUIRE("1.7.0.post123+gabcdef9"_vs.contains("1.7.0.post123+gabcdef9"_v));

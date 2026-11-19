@@ -451,6 +451,53 @@ namespace
         }
     }
 
+    TEST_CASE("Infix operator precedence")
+    {
+        SECTION("and binds tighter than or")
+        {
+            // Infix:  x0 or x1 and x2  ==  x0 or (x1 and x2)
+            auto parser = InfixParser<std::size_t, BoolOperator>{};
+            REQUIRE(parser.push_variable(0));
+            REQUIRE(parser.push_operator(BoolOperator::logical_or));
+            REQUIRE(parser.push_variable(1));
+            REQUIRE(parser.push_operator(BoolOperator::logical_and));
+            REQUIRE(parser.push_variable(2));
+            REQUIRE(parser.finalize());
+            auto tree = flat_bool_expr_tree(std::move(parser).tree());
+
+            static constexpr std::size_t n_vars = 3;
+            for (std::size_t x = 0; x < (1 << n_vars); ++x)
+            {
+                const auto values = integer_to_bools<n_vars>(x);
+                CAPTURE(values);
+                const auto eval = [&values](std::size_t idx) { return values[idx]; };
+                REQUIRE(tree.evaluate(eval) == (values[0] || (values[1] && values[2])));
+            }
+        }
+
+        SECTION("and binds tighter than or on the right")
+        {
+            // Infix:  x0 and x1 or x2  ==  (x0 and x1) or x2
+            auto parser = InfixParser<std::size_t, BoolOperator>{};
+            REQUIRE(parser.push_variable(0));
+            REQUIRE(parser.push_operator(BoolOperator::logical_and));
+            REQUIRE(parser.push_variable(1));
+            REQUIRE(parser.push_operator(BoolOperator::logical_or));
+            REQUIRE(parser.push_variable(2));
+            REQUIRE(parser.finalize());
+            auto tree = flat_bool_expr_tree(std::move(parser).tree());
+
+            static constexpr std::size_t n_vars = 3;
+            for (std::size_t x = 0; x < (1 << n_vars); ++x)
+            {
+                const auto values = integer_to_bools<n_vars>(x);
+                CAPTURE(values);
+                const auto eval = [&values](std::size_t idx) { return values[idx]; };
+                REQUIRE(tree.evaluate(eval) == ((values[0] && values[1]) || values[2]));
+            }
+        }
+    }
+
     TEST_CASE("Infix traversal")
     {
         auto parser = InfixParser<std::size_t, BoolOperator>{};

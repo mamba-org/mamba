@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from .helpers import create, random_string, remove
+from .helpers import create, find_message_in_json_logs, random_string, remove
 
 if sys.platform.startswith("win"):
     import menuinst
@@ -111,7 +111,7 @@ class TestMenuinst:
     )
     def test_spyder_shortcut(self):
         env_name = random_string()
-        create("python=3.12", "spyder=6.0.3", "-n", env_name, no_dry_run=True)
+        create("python=3.12", "spyder=6.1.0", "-n", env_name, no_dry_run=True)
         d = menuinst.win32.dirs_src["user"]["start"][0]
         lnk = os.path.join(
             d, "{{ DISTRIBUTION_NAME }} spyder", "Spyder 6 ({{ ENV_NAME }}) (" + env_name + ").lnk"
@@ -123,3 +123,23 @@ class TestMenuinst:
         )
         assert os.path.exists(lnk)
         assert os.path.exists(reset_lnk)
+
+    @pytest.mark.skipif(
+        not sys.platform.startswith("win"),
+        reason="skipping windows-only tests",
+    )
+    def test_nebi_shortcut_no_error(self):
+        env_name = random_string()
+        json_output = create(
+            "nebi=0.16",
+            "-n",
+            env_name,
+            "--json",
+            no_dry_run=True,
+        )
+        assert json_output["success"]
+        assert (
+            find_message_in_json_logs(json_output, "Creation of shortcut was not successful")
+            is None
+        )
+        assert find_message_in_json_logs(json_output, "json.exception.type_error.305") is None

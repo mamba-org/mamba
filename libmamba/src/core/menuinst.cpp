@@ -56,7 +56,7 @@ namespace mamba
          *   description: string that is displayed
          *   filename: Link destination filename
          *   arguments: args to the executable (optional)
-         *   work_dir (in v1) or working_dir (in v2): working directory for the executable
+         *   work_dir: workdir for the executable
          *   icon_path: path to an .ico file
          *   icon_index: index for icon
          */
@@ -356,6 +356,7 @@ namespace mamba
 
             // Check menuinst schema version (through the presence of "$schema" key)
             // cf. https://github.com/conda/ceps/blob/3da0fb0ece/cep-11.md#backwards-compatibility
+            // and https://github.com/mamba-org/mamba/pull/3846#discussion_r2037823736
             auto menuinst_version = MenuInstVersion::Version1;  // v1-legacy
             if (j.contains("$schema"))
             {
@@ -375,7 +376,6 @@ namespace mamba
                 fs::u8path script;
                 fs::u8path workdir;
 
-                // cf. https://github.com/conda/menuinst/pull/180
                 if (menuinst_version == MenuInstVersion::Version1)
                 {
                     if (!item.contains("name") || !item["name"].is_string())
@@ -385,7 +385,7 @@ namespace mamba
                         );
                     }
                     name = item["name"].get<std::string>();
-                    workdir = item.value("work_dir", "");
+                    workdir = item.value("workdir", "");
 
                     if (item.contains("pywscript") && item["pywscript"].is_string())
                     {
@@ -466,6 +466,7 @@ namespace mamba
                     {
                         name = name_node.get<std::string>();
                     }
+                    // cf. https://github.com/conda/menuinst/pull/180
                     else if (name_node.is_object())
                     {
                         constexpr std::string_view base_name_key = "target_environment_is_base";

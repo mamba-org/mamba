@@ -353,6 +353,14 @@ init_link_options(CLI::App* subcom, Configuration& config)
 }
 
 void
+init_platform_options(CLI::App* subcom, Configuration& config)
+{
+    auto& platform = config.at("platform");
+    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
+        ->option_text("PLATFORM");
+}
+
+void
 init_install_options(CLI::App* subcom, Configuration& config)
 {
     using string_list = std::vector<std::string>;
@@ -395,6 +403,21 @@ init_install_options(CLI::App* subcom, Configuration& config)
         "--allow-downgrade,!--no-allow-downgrade",
         allow_downgrade.get_cli_config<bool>(),
         allow_downgrade.description()
+    );
+
+    auto& exclude_newer = config.at("exclude_newer");
+    subcom->add_option(
+        "--exclude-newer",
+        exclude_newer.get_cli_config<std::string>(),
+        exclude_newer.description()
+    );
+
+    auto& exclude_newer_package = config.at("exclude_newer_package");
+    subcom->add_option_function<std::string>(
+        "--exclude-newer-package",
+        [&exclude_newer_package](const std::string& value)
+        { exclude_newer_package.set_cli_yaml_value(value); },
+        exclude_newer_package.description()
     );
 
     auto& allow_softlinks = config.at("allow_softlinks");
@@ -451,20 +474,6 @@ init_install_options(CLI::App* subcom, Configuration& config)
         extra_safety_checks.description()
     );
 
-    auto& av = config.at("verify_artifacts");
-    subcom->add_flag("--verify-artifacts", av.get_cli_config<bool>(), av.description());
-
-    auto& trusted_channels = config.at("trusted_channels");
-    // Allowing unlimited number of args (may be modified later if needed using `type_size` and
-    // `allow_extra_args`)
-    subcom
-        ->add_option(
-            "--trusted-channels",
-            trusted_channels.get_cli_config<string_list>(),
-            trusted_channels.description()
-        )
-        ->option_text("CHANNEL1 CHANNEL2...");
-
     auto& repo_parsing = config.at("mamba_repodata_parsing");
     subcom->add_flag(
         "--mamba-repodata-parsing, !--no-mamba-repodata-parsing",
@@ -472,9 +481,7 @@ init_install_options(CLI::App* subcom, Configuration& config)
         repo_parsing.description()
     );
 
-    auto& platform = config.at("platform");
-    subcom->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
-        ->option_text("PLATFORM");
+    init_platform_options(subcom, config);
 
     auto& no_deps = config.at("no_deps");
     subcom->add_flag("--no-deps", no_deps.get_cli_config<bool>(), no_deps.description());

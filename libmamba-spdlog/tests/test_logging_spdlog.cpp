@@ -28,7 +28,7 @@ namespace mamba::logging
         spdlogimpl::LogHandler_spdlog handler{ testing_options };
 
         // we need this handler to cleanup loggers properly at the end of this test
-        on_scope_exit _{ [&] { handler.stop_log_handling(stop_reason::manual_stop); } };
+        on_scope_exit _{ [&] { handler.stop_log_handling(); } };
 
         REQUIRE(not handler.is_started());
         handler.start_log_handling({}, testing::testing_log_sources());
@@ -40,7 +40,7 @@ namespace mamba::logging
             handler.start_log_handling({}, testing::testing_log_sources());
             REQUIRE(handler.is_started());
 
-            handler.stop_log_handling(stop_reason::manual_stop);
+            handler.stop_log_handling();
             REQUIRE(not handler.is_started());
         }
 
@@ -61,16 +61,7 @@ namespace mamba::logging
     TEST_CASE("LogHandler_spdlog logging API basic tests")
     {
         static constexpr std::size_t arbitrary_log_count = 123;
-        static const testing::LogHandlerTestsOptions options{
-            .log_count = arbitrary_log_count,
-
-            // spdlog's log handler only cleanup explicitly when
-            // the stop is manual, otherwise it assumes spdlog will
-            // do the proper cleanup at program exit.
-            // Because we are in tests we need the cleanups between
-            // each test run, so we want all stops to be manual.
-            .last_stop_reason = stop_reason::manual_stop
-        };
+        static const testing::LogHandlerTestsOptions options{ .log_count = arbitrary_log_count };
 
         spdlogimpl::LogHandler_spdlog handler{ testing_options };
 

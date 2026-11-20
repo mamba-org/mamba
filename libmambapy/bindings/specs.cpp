@@ -498,13 +498,13 @@ namespace mambapy
                     return Channel::resolve(
                         what,
                         ChannelResolveParamsView{
-                            /* .platforms= */ platforms,
-                            /* .channel_alias= */ channel_alias,
-                            /* .custom_channels= */ custom_channels,
-                            /* .custom_multichannels= */ custom_multichannels,
-                            /* .authentication_db= */ authentication_db,
-                            /* .home_dir= */ home_dir,
-                            /* .current_working_dir= */ current_working_dir,
+                            .platforms = platforms,
+                            .channel_alias = channel_alias,
+                            .custom_channels = custom_channels,
+                            .custom_multichannels = custom_multichannels,
+                            .authentication_db = authentication_db,
+                            .home_dir = home_dir,
+                            .current_working_dir = current_working_dir,
                         }
                     );
                 },
@@ -684,7 +684,8 @@ namespace mambapy
                        decltype(PackageInfo::python_site_packages_path) python_site_packages_path,
                        decltype(PackageInfo::md5) md5,
                        decltype(PackageInfo::sha256) sha256,
-                       decltype(PackageInfo::signatures) signatures,
+                       // Kept for backward compatibility; content trust was removed.
+                       std::string /* signatures */,
                        decltype(PackageInfo::track_features) track_features,
                        decltype(PackageInfo::dependencies) depends,
                        decltype(PackageInfo::constrains) constrains,
@@ -706,7 +707,6 @@ namespace mambapy
                         pkg.python_site_packages_path = std::move(python_site_packages_path);
                         pkg.md5 = std::move(md5);
                         pkg.sha256 = std::move(sha256);
-                        pkg.signatures = std::move(signatures);
                         pkg.track_features = std::move(track_features);
                         pkg.dependencies = std::move(depends);
                         pkg.constrains = std::move(constrains);
@@ -729,7 +729,7 @@ namespace mambapy
                 py::arg("python_site_packages_path") = decltype(PackageInfo::python_site_packages_path)(),
                 py::arg("md5") = decltype(PackageInfo::md5)(),
                 py::arg("sha256") = decltype(PackageInfo::sha256)(),
-                py::arg("signatures") = decltype(PackageInfo::signatures)(),
+                py::arg("signatures") = std::string(),
                 py::arg("track_features") = decltype(PackageInfo::track_features)(),
                 py::arg("depends") = decltype(PackageInfo::dependencies)(),
                 py::arg("constrains") = decltype(PackageInfo::constrains)(),
@@ -772,8 +772,13 @@ namespace mambapy
             .def_readwrite("track_features", &PackageInfo::track_features)
             .def_readwrite("dependencies", &PackageInfo::dependencies)
             .def_readwrite("constrains", &PackageInfo::constrains)
-            .def_readwrite("signatures", &PackageInfo::signatures)
             .def_readwrite("defaulted_keys", &PackageInfo::defaulted_keys)
+            .def_property(
+                // Kept for backward compatibility; content trust was removed.
+                "signatures",
+                [](py::handle) { return std::string(); },
+                [](py::handle, py::handle) {}
+            )
             .def(py::self == py::self)
             .def(py::self != py::self)
             .def("__str__", &PackageInfo::str)

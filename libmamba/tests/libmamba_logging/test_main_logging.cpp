@@ -1,4 +1,9 @@
+#include <memory>
+
 #include <catch2/catch_session.hpp>
+
+#include <mamba/core/logging.hpp>
+#include <mamba/testing/test_logging_common.hpp>
 
 int
 main(int argc, char* argv[])
@@ -19,9 +24,6 @@ main(int argc, char* argv[])
     // Run tests
     return session.run();
 }
-
-#include <mamba/core/logging.hpp>
-#include <mamba/testing/test_logging_common.hpp>
 
 namespace mamba::logging
 {
@@ -57,6 +59,22 @@ namespace mamba::logging
             testing::LogHandler_NotMovable not_movable;
             const auto results = testing::test_classic_inline_logging_api_usage(
                 &not_movable,
+                { .log_count = 1234 }
+            );
+        }
+
+        // supports standard smart pointers to non-movable log handlers
+        {
+            auto shared_not_movable = std::make_shared<testing::LogHandler_NotMovable>();
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                shared_not_movable,
+                { .log_count = 1234 }
+            );
+        }
+        {
+            auto unique_not_movable = std::make_unique<testing::LogHandler_NotMovable>();
+            const auto results = testing::test_classic_inline_logging_api_usage(
+                std::move(unique_not_movable),
                 { .log_count = 1234 }
             );
         }

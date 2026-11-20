@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "mamba/core/error_handling.hpp"
+#include "mamba/core/exclude_newer.hpp"
 #include "mamba/solver/libsolv/parameters.hpp"
 #include "mamba/solver/libsolv/repo_info.hpp"
 #include "mamba/specs/channel.hpp"
@@ -65,7 +66,7 @@ namespace mamba::solver::libsolv
         struct Settings
         {
             MatchSpecParser matchspec_parser = MatchSpecParser::Libsolv;
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt;
+            ExcludeNewerPolicy exclude_newer_policy = {};
         };
 
         using logger_type = std::function<void(LogLevel, std::string_view)>;
@@ -92,7 +93,6 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             PipAsPythonDependency add = PipAsPythonDependency::No,
             PackageTypes package_types = PackageTypes::CondaOrElseTarBz2,
-            VerifyPackages verify_packages = VerifyPackages::No,
             RepodataParser repo_parser = RepodataParser::Mamba
         ) -> expected_t<RepoInfo>;
 
@@ -153,6 +153,8 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto package_count() const -> std::size_t;
 
+        [[nodiscard]] auto has_package(const specs::MatchSpec& spec) -> bool;
+
         template <typename Func>
         void for_each_package_in_repo(RepoInfo repo, Func&&) const;
 
@@ -203,6 +205,9 @@ namespace mamba::solver::libsolv
 
         [[nodiscard]] auto packages_depending_on_ids(const specs::MatchSpec& ms)
             -> std::vector<PackageId>;
+
+        template <std::ranges::range R, typename Func>
+        void for_each_package_impl(R&& r, Func&& func) const;
     };
 
     /********************
@@ -255,47 +260,27 @@ namespace mamba::solver::libsolv
     template <typename Func>
     void Database::for_each_package_in_repo(RepoInfo repo, Func&& func) const
     {
-        for (auto id : packages_in_repo(repo))
-        {
-            if constexpr (std::is_same_v<decltype(func(package_id_to_package_info(id))), util::LoopControl>)
-            {
-                if (func(package_id_to_package_info(id)) == util::LoopControl::Break)
-                {
-                    break;
-                }
-            }
-            else
-            {
-                func(package_id_to_package_info(id));
-            }
-        }
+        for_each_package_impl(packages_in_repo(repo), std::forward<Func>(func));
     }
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>
     void Database::for_each_package_matching(const specs::MatchSpec& ms, Func&& func)
     {
-        for (auto id : packages_matching_ids(ms))
-        {
-            if constexpr (std::is_same_v<decltype(func(package_id_to_package_info(id))), util::LoopControl>)
-            {
-                if (func(package_id_to_package_info(id)) == util::LoopControl::Break)
-                {
-                    break;
-                }
-            }
-            else
-            {
-                func(package_id_to_package_info(id));
-            }
-        }
+        for_each_package_impl(packages_matching_ids(ms), std::forward<Func>(func));
     }
 
     // TODO(C++20): Use ranges::transform
     template <typename Func>
     void Database::for_each_package_depending_on(const specs::MatchSpec& ms, Func&& func)
     {
-        for (auto id : packages_depending_on_ids(ms))
+        for_each_package_impl(packages_depending_on_ids(ms), std::forward<Func>(func));
+    }
+
+    template <std::ranges::range R, typename Func>
+    void Database::for_each_package_impl(R&& r, Func&& func) const
+    {
+        for (auto id : r)
         {
             if constexpr (std::is_same_v<decltype(func(package_id_to_package_info(id))), util::LoopControl>)
             {

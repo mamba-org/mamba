@@ -8,15 +8,21 @@
 #ifndef LIBMAMBATESTS_UTIL_HPP
 #define LIBMAMBATESTS_UTIL_HPP
 
+#include <algorithm>
 #include <concepts>
 #include <functional>
+#include <ranges>
 #include <string_view>
 #include <thread>
 #include <utility>
+#include <vector>
+
+#include <catch2/catch_test_macros.hpp>
 
 #include "mamba/core/channel_context.hpp"
 #include "mamba/specs/channel.hpp"
 #include "mamba/specs/conda_url.hpp"
+#include "mamba/specs/package_info.hpp"
 #include "mamba/specs/unresolved_channel.hpp"
 
 namespace mambatests
@@ -36,6 +42,16 @@ namespace mambatests
         )
             .value()
             .front();
+    }
+
+    /** Find a virtual package by name, failing the test if it is missing. */
+    [[nodiscard]] inline auto
+    require_virtual_package(const std::vector<mamba::specs::PackageInfo>& pkgs, std::string_view name)
+        -> const mamba::specs::PackageInfo&
+    {
+        const auto it = std::ranges::find_if(pkgs, [&](const auto& pkg) { return pkg.name == name; });
+        REQUIRE(it != pkgs.end());
+        return *it;
     }
 
     /** Throws a string immediately, used in tests for code that should not be reachable. */

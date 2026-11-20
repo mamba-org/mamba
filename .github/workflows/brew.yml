@@ -19,6 +19,7 @@ jobs:
           brew install --overwrite
           fmt libarchive libsolv lz4 openssl@3 reproc simdjson xz yaml-cpp zstd
           cli11 nlohmann-json spdlog tl-expected pkgconfig python msgpack
+          howard-hinnant-date
 
       - name: Configure to build mamba
         run: >

@@ -43,7 +43,11 @@ try_answer_as_uv_pip_list_json(int argc, char** argv)
     {
         return false;
     }
-    std::cout << R"([{"name":"demo-pkg","version":"1.2.3"}])" << '\n';
+    std::cout << R"([
+        {"name": "demo-pkg", "version": "1.2.3"},
+        {"name": "demo-uv-pkg", "version": "1.3.0"},
+        {"name": "torch", "version": "1.4.1"}
+    ])" << '\n';
     return true;
 }
 

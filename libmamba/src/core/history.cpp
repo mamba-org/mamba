@@ -112,7 +112,7 @@ namespace mamba
         {
             req.cmd = value;
         }
-        else if (util::ends_with(key, " specs"))
+        else if (key.ends_with(" specs"))
         {
             std::string action = key.substr(0, key.find_first_of(" "));
             // small parser for pythonic lists

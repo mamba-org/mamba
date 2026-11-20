@@ -11,12 +11,16 @@
 
 #include "mamba/api/configuration.hpp"
 #include "mamba/core/context.hpp"
+#include "mamba/core/package_fetcher.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/virtual_packages.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
 
 #include "mambatests.hpp"
+#include "mambatests_utils.hpp"
 
 namespace mamba
 {
@@ -135,6 +139,8 @@ namespace mamba
 
         namespace
         {
+            using mambatests::require_virtual_package;
+
             TEST_CASE_METHOD(Configuration, "target_prefix_options")
             {
                 REQUIRE((!MAMBA_ALLOW_EXISTING_PREFIX) == 0);
@@ -861,6 +867,94 @@ namespace mamba
                 REQUIRE(config.dump() == "proxy_servers:\n  http: foo\n  https: bar");
             }
 
+            TEST_CASE_METHOD(Configuration, "override_virtual_packages")
+            {
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "13.1"
+                        glibc: "2.15"
+                        archspec: "x86_64_v4")");
+                load_test_config(rc);
+                auto& actual = config.at("override_virtual_packages")
+                                   .value<override_virtual_packages_map>();
+                override_virtual_packages_map expected = {
+                    { "cuda", "13.1" },
+                    { "glibc", "2.15" },
+                    { "archspec", "x86_64_v4" },
+                };
+                REQUIRE(actual == expected);
+                REQUIRE(ctx.override_virtual_packages == expected);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "13.1");
+                REQUIRE(require_virtual_package(pkgs, "__glibc").version == "2.15");
+                REQUIRE(require_virtual_package(pkgs, "__archspec").build_string == "x86_64_v4");
+            }
+
+            TEST_CASE_METHOD(Configuration, "override_virtual_packages_dunder_keys")
+            {
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        __cuda: "11.8"
+                        __glibc: "2.17"
+                        __archspec: "x86_64_v2")");
+                load_test_config(rc);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "11.8");
+                REQUIRE(require_virtual_package(pkgs, "__glibc").version == "2.17");
+                REQUIRE(require_virtual_package(pkgs, "__archspec").build_string == "x86_64_v2");
+            }
+
+            TEST_CASE_METHOD(Configuration, "override_virtual_packages_env_takes_precedence")
+            {
+                util::set_env("CONDA_OVERRIDE_CUDA", "9.0");
+                util::set_env("CONDA_OVERRIDE_GLIBC", "2.12");
+                util::set_env("CONDA_OVERRIDE_ARCHSPEC", "x86_64");
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "13.1"
+                        glibc: "2.15"
+                        archspec: "x86_64_v4")");
+                load_test_config(rc);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                REQUIRE(require_virtual_package(pkgs, "__cuda").version == "9.0");
+                REQUIRE(require_virtual_package(pkgs, "__glibc").version == "2.12");
+                REQUIRE(require_virtual_package(pkgs, "__archspec").build_string == "x86_64");
+            }
+
+            TEST_CASE_METHOD(Configuration, "conda_parity_empty_rc_cuda_suppresses_package")
+            {
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "")");
+                load_test_config(rc);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                const auto it = std::ranges::find_if(
+                    pkgs,
+                    [](const auto& pkg) { return pkg.name == "__cuda"; }
+                );
+                REQUIRE(it == pkgs.end());
+            }
+
+            TEST_CASE_METHOD(Configuration, "conda_parity_empty_env_overrides_rc")
+            {
+                util::set_env("CONDA_OVERRIDE_CUDA", "");
+                std::string rc = unindent(R"(
+                    override_virtual_packages:
+                        cuda: "13.1")");
+                load_test_config(rc);
+
+                const auto pkgs = get_virtual_packages("linux-64", ctx.override_virtual_packages);
+                const auto it = std::ranges::find_if(
+                    pkgs,
+                    [](const auto& pkg) { return pkg.name == "__cuda"; }
+                );
+                REQUIRE(it == pkgs.end());
+            }
+
             TEST_CASE_METHOD(Configuration, "platform")
             {
                 mambatests::ScopedContextChange context_change{ ctx };
@@ -1141,6 +1235,42 @@ namespace mamba
                 util::unset_env("MAMBA_ALWAYS_SOFTLINK");
 
                 load_test_config("always_softlink: false\nalways_copy: false");
+            }
+
+            TEST_CASE_METHOD(Configuration, "extract_threads normalization")
+            {
+                util::unset_env("MAMBA_EXTRACT_THREADS");
+
+                SECTION("default resolves to the affinity based automatic value, at most 10")
+                {
+                    load_test_config("channels:\n  - test1");
+                    const auto expected = normalize_to_affinity_concurrency(0);
+                    REQUIRE(expected <= 10);
+                    REQUIRE(config.at("extract_threads").value<int>() == static_cast<int>(expected));
+                    REQUIRE(ctx.threads_params.extract_threads == static_cast<int>(expected));
+                    REQUIRE(
+                        PackageFetcherSemaphore::get_max() == static_cast<std::ptrdiff_t>(expected)
+                    );
+                }
+
+                SECTION("positive values are kept as requested")
+                {
+                    load_test_config("extract_threads: 4");
+                    REQUIRE(config.at("extract_threads").value<int>() == 4);
+                    REQUIRE(ctx.threads_params.extract_threads == 4);
+                    REQUIRE(PackageFetcherSemaphore::get_max() == 4);
+                }
+
+                SECTION("negative values are relative to the affinity")
+                {
+                    load_test_config("extract_threads: -2");
+                    const auto expected = normalize_to_affinity_concurrency(-2);
+                    REQUIRE(config.at("extract_threads").value<int>() == static_cast<int>(expected));
+                    REQUIRE(ctx.threads_params.extract_threads == static_cast<int>(expected));
+                    REQUIRE(
+                        PackageFetcherSemaphore::get_max() == static_cast<std::ptrdiff_t>(expected)
+                    );
+                }
             }
 
             TEST_CASE_METHOD(Configuration, "safety_checks")

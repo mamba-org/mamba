@@ -1,3 +1,139 @@
+## micromamba 2.10.0 (October 23, 2026)
+
+Enhancements:
+
+- Completed C++20 upgrade by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4413>
+- feat: Complete `exclude_newer` policy by @jjerphan in <https://github.com/mamba-org/mamba/pull/4344>
+- feat: Suggest closest command on typo by @faze-geek in <https://github.com/mamba-org/mamba/pull/4367>
+- feat: Inject channels+mirrors coming from mambajs env-lockfiles by @Klaim in <https://github.com/mamba-org/mamba/pull/4126>
+
+Bug fixes:
+
+- update_changelog: Handles issue number in PR titles by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4441>
+- Fix `update`/`install` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4431>
+- fix: incorrect pyzzer/distlib entry point scanning by @Klaim in <https://github.com/mamba-org/mamba/pull/4435>
+- Fix auth tests by @Hind-M in <https://github.com/mamba-org/mamba/pull/4425>
+- fix: Honor disabled pip injection when requesting Python by @maresb in <https://github.com/mamba-org/mamba/pull/4423>
+- fix: pass activation help through #4114 by @GruffElixir in <https://github.com/mamba-org/mamba/pull/4412>
+- fix: Assign channel priority in `ctx.channels` order by @black-desk in <https://github.com/mamba-org/mamba/pull/4395>
+- fix: remove any usage of `exit()` by @Klaim in <https://github.com/mamba-org/mamba/pull/4397>
+- Fix shell init with `cmd.exe` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4370>
+- fix: Correct extracted packages traversal when cleaning tarballs by @mikemhenry in <https://github.com/mamba-org/mamba/pull/4353>
+- fix: Escape MatchSpec quotes in `env export --json --from-history` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4376>
+
+CI fixes and doc:
+
+- ci: recreate coverage environment with cached downloads by @maresb in <https://github.com/mamba-org/mamba/pull/4424>
+- ci: Add Windows ARM64 shared-library test workflow by @jjerphan in <https://github.com/mamba-org/mamba/pull/4383>
+- ci: Add `win-arm64` static builds workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4357>
+
+Maintenance:
+
+- Remove `mamba-content-trust` entirely by @Hind-M in <https://github.com/mamba-org/mamba/pull/4417>
+- build(deps): bump jlumbroso/free-disk-space from 1.3.1 to 2.0.0 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4408>
+- Add test for `shell hook` with `powershell` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4390>
+- maint: Use cxx-compiler <2 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4381>
+
+## micromamba 2.9.0 (August 07, 2026)
+
+Enhancements:
+
+- Refactor and clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4359>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+Bug fixes:
+
+- fix: Remove duplicate deactivate from shell completion by @henriquesimoes in <https://github.com/mamba-org/mamba/pull/4371>
+- fix: Accept non-standard quoted noarch entry points by @jjerphan in <https://github.com/mamba-org/mamba/pull/4354>
+- fix: Add `deactivate` command to the help message by @faze-geek in <https://github.com/mamba-org/mamba/pull/4350>
+- Fix init/deinit test with `fish` on `macos` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4348>
+- Fix `update` behavior by @Hind-M in <https://github.com/mamba-org/mamba/pull/4345>
+- fix: Lock virtual packages in libsolv's repo by @jjerphan in <https://github.com/mamba-org/mamba/pull/4312>
+- Handle pre/post-link/unlink scripts by @Hind-M in <https://github.com/mamba-org/mamba/pull/4313>
+- fix: Don't log if `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4202>
+
+CI fixes and doc:
+
+- test: Adapt `test_python_abi_preserved_with_freethreading` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4362>
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- test: Adapt `test_parsable_env_history_with_metadata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4319>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+
+## micromamba 2.9.0.rc1 (August 05, 2026)
+
+Enhancements:
+
+- Refactor and clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4359>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+Bug fixes:
+
+- fix: Accept non-standard quoted noarch entry points by @jjerphan in <https://github.com/mamba-org/mamba/pull/4354>
+- fix: Add `deactivate` command to the help message by @faze-geek in <https://github.com/mamba-org/mamba/pull/4350>
+- Fix init/deinit test with `fish` on `macos` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4348>
+- Fix `update` behavior by @Hind-M in <https://github.com/mamba-org/mamba/pull/4345>
+- fix: Lock virtual packages in libsolv's repo by @jjerphan in <https://github.com/mamba-org/mamba/pull/4312>
+- Handle pre/post-link/unlink scripts by @Hind-M in <https://github.com/mamba-org/mamba/pull/4313>
+- fix: Don't log if `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4202>
+
+CI fixes and doc:
+
+- test: Adapt `test_python_abi_preserved_with_freethreading` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4362>
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- test: Adapt `test_parsable_env_history_with_metadata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4319>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+
+## micromamba 2.9.0.rc0 (July 31, 2026)
+
+Enhancements:
+
+- Refactor and clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4359>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+Bug fixes:
+
+- fix: Accept non-standard quoted noarch entry points by @jjerphan in <https://github.com/mamba-org/mamba/pull/4354>
+- fix: Add `deactivate` command to the help message by @faze-geek in <https://github.com/mamba-org/mamba/pull/4350>
+- Fix init/deinit test with `fish` on `macos` by @Hind-M in <https://github.com/mamba-org/mamba/pull/4348>
+- Fix `update` behavior by @Hind-M in <https://github.com/mamba-org/mamba/pull/4345>
+- fix: Lock virtual packages in libsolv's repo by @jjerphan in <https://github.com/mamba-org/mamba/pull/4312>
+- Handle pre/post-link/unlink scripts by @Hind-M in <https://github.com/mamba-org/mamba/pull/4313>
+- fix: Don't log if `--json` or `--quiet` by @Klaim in <https://github.com/mamba-org/mamba/pull/4202>
+
+CI fixes and doc:
+
+- test: Adapt `test_python_abi_preserved_with_freethreading` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4362>
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- test: Adapt `test_parsable_env_history_with_metadata` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4319>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+
 ## micromamba 2.8.1 (June 08, 2026)
 
 Maintenance:

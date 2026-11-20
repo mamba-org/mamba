@@ -34,8 +34,6 @@
 #include "mamba/core/virtual_packages.hpp"
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/spdlog/logging_spdlog.hpp"
-#include "mamba/validation/tools.hpp"
-#include "mamba/validation/update_framework_v0_6.hpp"
 
 #include "bind_utils.hpp"
 #include "bindings.hpp"
@@ -444,10 +442,10 @@ bind_submodule_impl(pybind11::module_ m)
 
     auto pySubdirIndexLoader = py::class_<SubdirIndexLoader>(m, "SubdirIndexLoader");
 
-    // only used in a return type; does it belong in the module?
-    auto pyRootRole = py::class_<validation::RootRole>(m, "RootRole");
-
-    auto pyOutputParams = py::class_<Context::OutputParams>(pyContext, "OutputParams");
+    auto pyOutputParams = py::class_<Context::OutputParams, mamba::logging::LoggingParams>(
+        pyContext,
+        "OutputParams"
+    );
 
     auto pyCommandParams = py::class_<CommandParams>(pyContext, "CommandParams");
 
@@ -896,15 +894,6 @@ bind_submodule_impl(pybind11::module_ m)
         .value("Warn", VerificationLevel::Warn)
         .value("Enabled", VerificationLevel::Enabled);
 
-    py::enum_<mamba::log_level>(m, "LogLevel")
-        .value("TRACE", mamba::log_level::trace)
-        .value("DEBUG", mamba::log_level::debug)
-        .value("INFO", mamba::log_level::info)
-        .value("WARNING", mamba::log_level::warn)
-        .value("ERROR", mamba::log_level::err)
-        .value("CRITICAL", mamba::log_level::critical)
-        .value("OFF", mamba::log_level::off);
-
     pyChannelContext.def_static("make_simple", &ChannelContext::make_simple)
         .def_static("make_conda_compatible", &ChannelContext::make_conda_compatible)
         .def(
@@ -1169,27 +1158,19 @@ bind_submodule_impl(pybind11::module_ m)
         .def(
             py::init(
                 [](decltype(ValidationParams::safety_checks) safety_checks,
-                   decltype(ValidationParams::extra_safety_checks) extra_safety_checks,
-                   decltype(ValidationParams::verify_artifacts) verify_artifacts,
-                   decltype(ValidationParams::trusted_channels) trusted_channels) -> ValidationParams
+                   decltype(ValidationParams::extra_safety_checks) extra_safety_checks) -> ValidationParams
                 {
                     return {
                         .safety_checks = std::move(safety_checks),
                         .extra_safety_checks = std::move(extra_safety_checks),
-                        .verify_artifacts = std::move(verify_artifacts),
-                        .trusted_channels = std::move(trusted_channels),
                     };
                 }
             ),
             py::arg("safety_checks") = default_validation_params.safety_checks,
-            py::arg("extra_safety_checks") = default_validation_params.extra_safety_checks,
-            py::arg("verify_artifacts") = default_validation_params.verify_artifacts,
-            py::arg("trusted_channels") = default_validation_params.trusted_channels
+            py::arg("extra_safety_checks") = default_validation_params.extra_safety_checks
         )
         .def_readwrite("safety_checks", &ValidationParams::safety_checks)
-        .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks)
-        .def_readwrite("verify_artifacts", &ValidationParams::verify_artifacts)
-        .def_readwrite("trusted_channels", &ValidationParams::trusted_channels);
+        .def_readwrite("extra_safety_checks", &ValidationParams::extra_safety_checks);
 
     pyContext.def_readwrite("remote_fetch_params", &Context::remote_fetch_params)
         .def_readwrite("output_params", &Context::output_params)
@@ -1482,32 +1463,6 @@ bind_submodule_impl(pybind11::module_ m)
                 deprecated("Use `validation_params.extra_safety_checks` instead.");
                 self.validation_params.extra_safety_checks = esc;
             }
-        )
-        .def_property(
-            "verify_artifacts",
-            [](const Context& self)
-            {
-                deprecated("Use `validation_params.verify_artifacts` instead.");
-                return self.validation_params.verify_artifacts;
-            },
-            [](Context& self, bool va)
-            {
-                deprecated("Use `validation_params.verify_artifacts` instead.");
-                self.validation_params.verify_artifacts = va;
-            }
-        )
-        .def_property(
-            "trusted_channels",
-            [](const Context& self)
-            {
-                deprecated("Use `validation_params.trusted_channels` instead.");
-                return self.validation_params.trusted_channels;
-            },
-            [](Context& self, std::vector<std::string> tc)
-            {
-                deprecated("Use `validation_params.trusted_channels` instead.");
-                self.validation_params.trusted_channels = tc;
-            }
         );
 
     ////////////////////////////////////////////
@@ -1579,121 +1534,6 @@ bind_submodule_impl(pybind11::module_ m)
         .def_property_readonly("package_records", &PrefixData::records)
         .def("add_packages", &PrefixData::add_packages);
 
-    // Content trust - Package signature and verification
-    m.def("generate_ed25519_keypair", &validation::generate_ed25519_keypair_hex);
-    m.def(
-        "sign",
-        [](const std::string& data, const std::string& sk)
-        {
-            std::string signature;
-            if (!validation::sign(data, sk, signature))
-            {
-                throw std::runtime_error("Signing failed");
-            }
-            return signature;
-        },
-        py::arg("data"),
-        py::arg("secret_key")
-    );
-
-    py::class_<validation::Key>(m, "Key")
-        .def_readwrite("keytype", &validation::Key::keytype)
-        .def_readwrite("scheme", &validation::Key::scheme)
-        .def_readwrite("keyval", &validation::Key::keyval)
-        .def_property_readonly(
-            "json_str",
-            [](const validation::Key& key)
-            {
-                nlohmann::json j;
-                validation::to_json(j, key);
-                return j.dump();
-            }
-        )
-        .def_static("from_ed25519", &validation::Key::from_ed25519);
-
-    py::class_<validation::RoleFullKeys>(m, "RoleFullKeys")
-        .def(py::init<>())
-        .def(
-            py::init<const std::map<std::string, validation::Key>&, const std::size_t&>(),
-            py::arg("keys"),
-            py::arg("threshold")
-        )
-        .def_readwrite("keys", &validation::RoleFullKeys::keys)
-        .def_readwrite("threshold", &validation::RoleFullKeys::threshold);
-
-    py::class_<validation::TimeRef>(m, "TimeRef")
-        .def(py::init<>())
-        .def(py::init<std::time_t>())
-        .def("set_now", &validation::TimeRef::set_now)
-        .def("set", &validation::TimeRef::set)
-        .def("timestamp", &validation::TimeRef::timestamp);
-
-    py::class_<validation::SpecBase, std::shared_ptr<validation::SpecBase>>(m, "SpecBase");
-
-    py::class_<validation::RoleBase, std::shared_ptr<validation::RoleBase>>(m, "RoleBase")
-        .def_property_readonly("type", &validation::RoleBase::type)
-        .def_property_readonly("version", &validation::RoleBase::version)
-        .def_property_readonly("spec_version", &validation::RoleBase::spec_version)
-        .def_property_readonly("file_ext", &validation::RoleBase::file_ext)
-        .def_property_readonly("expires", &validation::RoleBase::expires)
-        .def_property_readonly("expired", &validation::RoleBase::expired)
-        .def("all_keys", &validation::RoleBase::all_keys);
-
-    py::class_<validation::v0_6::V06RoleBaseExtension, std::shared_ptr<validation::v0_6::V06RoleBaseExtension>>(
-        m,
-        "RoleBaseExtension"
-    )
-        .def_property_readonly("timestamp", &validation::v0_6::V06RoleBaseExtension::timestamp);
-
-    py::class_<validation::v0_6::SpecImpl, validation::SpecBase, std::shared_ptr<validation::v0_6::SpecImpl>>(
-        m,
-        "SpecImpl"
-    )
-        .def(py::init<>());
-
-    py::class_<
-        validation::v0_6::KeyMgrRole,
-        validation::RoleBase,
-        validation::v0_6::V06RoleBaseExtension,
-        std::shared_ptr<validation::v0_6::KeyMgrRole>>(m, "KeyMgr")
-        .def(
-            py::init<
-                const std::string&,
-                const validation::RoleFullKeys&,
-                const std::shared_ptr<validation::SpecBase>>()
-        );
-
-    py::class_<
-        validation::v0_6::PkgMgrRole,
-        validation::RoleBase,
-        validation::v0_6::V06RoleBaseExtension,
-        std::shared_ptr<validation::v0_6::PkgMgrRole>>(m, "PkgMgr")
-        .def(
-            py::init<
-                const std::string&,
-                const validation::RoleFullKeys&,
-                const std::shared_ptr<validation::SpecBase>>()
-        );
-
-    py::class_<
-        validation::v0_6::RootImpl,
-        validation::RoleBase,
-        validation::v0_6::V06RoleBaseExtension,
-        std::shared_ptr<validation::v0_6::RootImpl>>(m, "RootImpl")
-        .def(py::init<const std::string&>(), py::arg("json_str"))
-        .def(
-            "update",
-            [](validation::v0_6::RootImpl& role, const std::string& json_str)
-            { return role.update(nlohmann::json::parse(json_str)); },
-            py::arg("json_str")
-        )
-        .def(
-            "create_key_mgr",
-            [](validation::v0_6::RootImpl& role, const std::string& json_str)
-            { return role.create_key_mgr(nlohmann::json::parse(json_str)); },
-            py::arg("json_str")
-        );
-
     m.def(
         "clean",
         [](Context&, int flags) { return clean(mambapy::singletons().config(), flags); },
@@ -1747,7 +1587,8 @@ bind_submodule_impl(pybind11::module_ m)
 
     m.def(
         "get_virtual_packages",
-        [](Context& context) { return get_virtual_packages(context.platform); }
+        [](Context& context)
+        { return get_virtual_packages(context.platform, context.override_virtual_packages); }
     );
 
     m.def("cancel_json_output", [](Context&) { mambapy::singletons().console().cancel_json_print(); });

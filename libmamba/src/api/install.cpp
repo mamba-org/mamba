@@ -43,18 +43,18 @@ namespace mamba
             { "linux", false },
         };
 
-        if (util::starts_with(platform, "win"))
+        if (platform.starts_with("win"))
         {
             vals["win"] = true;
         }
         else
         {
             vals["unix"] = true;
-            if (util::starts_with(platform, "linux"))
+            if (platform.starts_with("linux"))
             {
                 vals["linux"] = true;
             }
-            else if (util::starts_with(platform, "osx"))
+            else if (platform.starts_with("osx"))
             {
                 vals["osx"] = true;
             }
@@ -66,7 +66,7 @@ namespace mamba
     {
         bool eval_selector(const std::string& selector, const std::string& platform)
         {
-            if (!(util::starts_with(selector, "sel(") && selector[selector.size() - 1] == ')'))
+            if (!(selector.starts_with("sel(") && selector[selector.size() - 1] == ')'))
             {
                 throw std::runtime_error(
                     "Couldn't parse selector. Needs to start with sel( and end with )"
@@ -184,7 +184,7 @@ namespace mamba
                     for (const auto& map_el : *it)
                     {
                         std::string key = map_el.first.as<std::string>();
-                        if (util::starts_with(key, "sel("))
+                        if (key.starts_with("sel("))
                         {
                             bool selected = detail::eval_selector(key, platform);
                             if (selected)
@@ -367,6 +367,7 @@ namespace mamba
     {
         bool freeze_installed = false;
         bool prefix_data_interoperability = false;
+        bool add_pip_as_python_dependency = true;
     };
 
     auto create_install_request(
@@ -377,10 +378,11 @@ namespace mamba
     {
         using Request = solver::Request;
 
-        // When the user explicitly asks for ``python`` in the requested specs, also inject a
-        // plain ``pip`` request unless it is already present. This complements
-        // ``add_pip_as_python_dependency`` at the repo level and makes sure that the Request
-        // is in phase with the root packages including both ``python`` and ``pip`` when requested.
+        // When the user explicitly asks for ``python`` in the requested specs and
+        // ``add_pip_as_python_dependency`` is enabled, also inject a plain ``pip`` request
+        // unless it is already present. This complements ``add_pip_as_python_dependency``
+        // at the repo level and makes sure that the Request is in phase with the root
+        // packages including both ``python`` and ``pip`` when requested.
         bool wants_python = false;
         bool wants_pip = false;
         for (const auto& s : specs)
@@ -399,7 +401,7 @@ namespace mamba
                 wants_pip = true;
             }
         }
-        if (wants_python && !wants_pip)
+        if (options.add_pip_as_python_dependency && wants_python && !wants_pip)
         {
             specs.emplace_back("pip");
         }
@@ -596,8 +598,11 @@ namespace mamba
             auto request = create_install_request(
                 prefix_data,
                 raw_specs,
-                InstallRequestOptions{ .freeze_installed = freeze_installed,
-                                       .prefix_data_interoperability = ctx.prefix_data_interoperability }
+                InstallRequestOptions{
+                    .freeze_installed = freeze_installed,
+                    .prefix_data_interoperability = ctx.prefix_data_interoperability,
+                    .add_pip_as_python_dependency = ctx.add_pip_as_python_dependency,
+                }
             );
 
             add_pins_to_request(request, ctx, prefix_data, raw_specs, no_pin, no_py_pin);
@@ -740,7 +745,11 @@ namespace mamba
             bool remove_prefix_on_failure
         )
         {
-            auto database = make_solver_database(ctx.experimental_matchspec_parsing, channel_context);
+            auto database = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer_params
+            );
 
             init_channels(ctx, channel_context);
             // Some use cases provide a list of explicit specs, but an empty
@@ -854,6 +863,7 @@ namespace mamba
             {
                 return create_explicit_transaction_from_lockfile(
                     ctx,
+                    channel_context,
                     db,
                     file,
                     categories,
@@ -1007,7 +1017,7 @@ namespace mamba
                 // read specs from file :)
                 if (is_env_lockfile_name(file))
                 {
-                    if (util::starts_with(file, "http"))
+                    if (file.starts_with("http"))
                     {
                         context.env_lockfile = file;
                     }
@@ -1109,7 +1119,7 @@ namespace mamba
                     for (std::size_t i = 0; i < file_contents.size(); ++i)
                     {
                         auto& line = file_contents[i];
-                        if (util::starts_with(line, "@EXPLICIT"))
+                        if (line.starts_with("@EXPLICIT"))
                         {
                             // this is an explicit env
                             // we can check if the platform is correct with the previous line
@@ -1119,7 +1129,7 @@ namespace mamba
                                 for (std::size_t j = 0; j < i; ++j)
                                 {
                                     platform = file_contents[j];
-                                    if (util::starts_with(platform, "# platform: "))
+                                    if (platform.starts_with("# platform: "))
                                     {
                                         platform = platform.substr(12);
                                         break;
@@ -1209,8 +1219,17 @@ namespace mamba
         {
             const auto ms = pkg.second.name + "==" + pkg.second.version + " ="
                             + pkg.second.build_string;
+            auto match_specs = specs::MatchSpec::parse(ms);
+            if (not match_specs)
+            {
+                throw mamba_error(
+                    fmt::format("failed to parse specs '{}' : {}", ms, match_specs.error().what()),
+                    mamba_error_code::invalid_spec
+                );
+            }
+
             db.for_each_package_matching(
-                specs::MatchSpec::parse(ms).value(),
+                match_specs.value(),
                 [&](specs::PackageInfo&& pkg_info) { pkg.second = pkg_info; }
             );
         }
@@ -1232,7 +1251,11 @@ namespace mamba
 
             MultiPackageCache package_caches{ ctx.pkgs_dirs, ctx.validation_params };
 
-            solver::libsolv::Database db{ channel_context.params() };
+            auto db = make_solver_database(
+                channel_context,
+                ctx.experimental_matchspec_parsing,
+                ctx.exclude_newer_params
+            );
             add_logger_to_database(db);
 
             auto maybe_load = load_channels(ctx, channel_context, db, package_caches);
@@ -1254,15 +1277,14 @@ namespace mamba
 
             auto execute_transaction = [&](MTransaction& transaction)
             {
-                if (ctx.output_params.json)
-                {
-                    transaction.log_json();
-                }
-
                 auto prompt_entry = transaction.prompt(ctx, channel_context);
                 if (prompt_entry)
                 {
                     transaction.execute(ctx, channel_context, prefix_data);
+                }
+                if (ctx.output_params.json)
+                {
+                    transaction.log_json();
                 }
                 return prompt_entry;
             };

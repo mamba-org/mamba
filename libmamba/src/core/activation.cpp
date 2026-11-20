@@ -243,7 +243,7 @@ namespace mamba
             bool no_condabin = std::none_of(
                 path_list.begin(),
                 path_list.end(),
-                [](const fs::u8path& s) { return util::ends_with(s.string(), "condabin"); }
+                [](const fs::u8path& s) { return s.string().ends_with("condabin"); }
             );
             if (no_condabin)
             {
@@ -709,7 +709,15 @@ namespace mamba
         auto has_prefix = util::get_env("CONDA_PREFIX");
         if (m_context.auto_activate_base && !has_prefix.has_value())
         {
-            builder << get_self_exe_path().stem() << " activate base\n";
+            // use invocation operator to run commands represented by strings
+            if (is_powershell(this))
+            {
+                builder << "& " << get_self_exe_path().stem() << " activate base\n";
+            }
+            else
+            {
+                builder << get_self_exe_path().stem() << " activate base\n";
+            }
         }
         builder << hook_postamble() << "\n";
         return builder.str();
@@ -1123,7 +1131,7 @@ namespace mamba
 
         for (const std::string& uvar : env_transform.unset_vars)
         {
-            out << "del $" << uvar << "\n";
+            out << "try:\n  del $" << uvar << "\nexcept KeyError:\n  pass\n";
         }
 
         for (const auto& [skey, svar] : env_transform.set_vars)

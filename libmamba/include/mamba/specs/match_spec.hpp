@@ -133,8 +133,8 @@ namespace mamba::specs
         /**
          * Check if the MatchSpec matches the given package.
          *
-         * The check exclude anything related to the channel, du to the difficulties in
-         * comparing unresolved channels and the fact that this check can be also be done once
+         * The check excludes anything related to the channel, due to the difficulties in
+         * comparing unresolved channels and the fact that this check can also be done once
          * at a repository level when the user knows how packages are organised.
          *
          * This function is written as a generic template, to accommodate various uses: the fact
@@ -177,24 +177,7 @@ namespace mamba::specs
             string_set track_features = {};
             bool optional = false;
 
-            // TODO(C++20): replace by the `= default` implementation of `operator==`
-            [[nodiscard]] auto operator==(const ExtraMembers& other) const -> bool
-            {
-                return filename == other.filename                 //
-                       && subdirs == other.subdirs                //
-                       && md5 == other.md5                        //
-                       && sha256 == other.sha256                  //
-                       && license == other.license                //
-                       && license_family == other.license_family  //
-                       && features == other.features              //
-                       && track_features == other.track_features  //
-                       && optional == other.optional;
-            }
-
-            [[nodiscard]] auto operator!=(const ExtraMembers& other) const -> bool
-            {
-                return !(*this == other);
-            }
+            [[nodiscard]] auto operator==(const ExtraMembers& other) const -> bool = default;
 
             friend struct std::hash<ExtraMembers>;
         };

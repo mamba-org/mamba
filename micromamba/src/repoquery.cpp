@@ -38,10 +38,7 @@ namespace
 
         subcmd->add_option("specs", options.specs, "Specs to search")->required();
 
-        auto& platform = config.at("platform");
-        subcmd
-            ->add_option("--platform", platform.get_cli_config<std::string>(), platform.description())
-            ->option_text("PLATFORM");
+        init_platform_options(subcmd, config);
     }
 
     template <typename Iter>

@@ -205,7 +205,7 @@ namespace mamba
             }
             for (const auto& entry : fs::directory_iterator(px))
             {
-                if (util::ends_with(entry.path().filename().string(), ".token"))
+                if (entry.path().filename().string().ends_with(".token"))
                 {
                     found_tokens.push_back(entry.path());
                     std::string token_url = util::decode_percent(entry.path().filename().string());

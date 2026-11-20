@@ -125,7 +125,6 @@ namespace mamba::solver::libsolv
         out.md5 = s.md5();
         out.sha256 = s.sha256();
         out.python_site_packages_path = s.python_site_packages_path();
-        out.signatures = s.signatures();
 
         const auto dep_to_str = [&pool](solv::DependencyId id)
         { return pool.dependency_to_string(id); };
@@ -168,44 +167,6 @@ namespace mamba::solver::libsolv
             return util::lstrip_if_parts(tail, [&](char c) { return !is_sep(c); });
         }
 
-        void set_solv_signatures(
-            solv::ObjSolvableView solv,
-            const std::string& filename,
-            const std::optional<nlohmann::json>& signatures
-        )
-        {
-            // NOTE We need to use an intermediate nlohmann::json object to store signatures
-            // as simdjson objects are not conceived to be modified smoothly
-            // and we need an equivalent structure to how libsolv is storing the signatures
-            nlohmann::json glob_sigs;
-            if (signatures)
-            {
-                if (auto signatures_for_file = signatures->find(filename);
-                    signatures_for_file != signatures->end())
-                {
-                    glob_sigs["signatures"] = *signatures_for_file;
-
-                    solv.set_signatures(glob_sigs.dump());
-                    LOG_INFO << "Signatures for '" << filename
-                             << "' are set in corresponding solvable.";
-                }
-            }
-        }
-
-        template <class SimdJSONValue>
-        std::optional<nlohmann::json> extract_signatures(std::optional<SimdJSONValue>& signatures)
-        {
-            if (!signatures || signatures->error())
-            {
-                return {};
-            }
-
-            const std::string raw_json(signatures->raw_json().value());
-            auto all_signatures = nlohmann::json::parse(raw_json);
-
-            return all_signatures;
-        }
-
         template <class JSONObject>
         [[nodiscard]] auto set_solvable(
             solv::ObjPool& pool,
@@ -214,14 +175,40 @@ namespace mamba::solver::libsolv
             solv::ObjSolvableView solv,
             const std::string& filename,
             JSONObject&& pkg,
-            const std::optional<nlohmann::json>& signatures,
             const std::string& default_subdir,
             MatchSpecParser parser,
             std::uint64_t* out_timestamp = nullptr
         ) -> bool
         {
-            // Not available from RepoDataPackage
-            solv.set_url((repo_url / filename).str(specs::CondaURL::Credentials::Show));
+            const auto package_url = [&]
+            {
+                if (auto url = pkg["url"]; !url.error())
+                {
+                    if (auto value = url.get_string();
+                        !value.error() && !value.value_unsafe().empty())
+                    {
+                        return std::string(value.value_unsafe());
+                    }
+                }
+
+                if (auto urls = pkg["urls"]; !urls.error())
+                {
+                    if (auto values = urls.get_array(); !values.error())
+                    {
+                        for (auto value : values)
+                        {
+                            if (auto url = value.get_string();
+                                !url.error() && !url.value_unsafe().empty())
+                            {
+                                return std::string(url.value_unsafe());
+                            }
+                        }
+                    }
+                }
+
+                return (repo_url / filename).str(specs::CondaURL::Credentials::Show);
+            }();
+            solv.set_url(package_url);
             solv.set_channel(channel_id);
 
             solv.set_file_name(filename);
@@ -429,10 +416,6 @@ namespace mamba::solver::libsolv
                 }
             }
 
-            // Setting signatures in solvable if they are available and `verify-artifacts` flag is
-            // enabled
-            set_solv_signatures(solv, filename, signatures);
-
             // Channel repodata is authoritative — only `_initialized` needed.
             // See `PackageInfo::defaulted_keys`.
             solv.set_defaulted_keys({ std::string(specs::defaulted_key::initialized) });
@@ -449,11 +432,10 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            const std::optional<nlohmann::json>& signatures,
             Filter&& filter,
             OnParsed&& on_parsed,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerPolicy exclude_newer_policy = {}
         )
         {
             auto packages_as_object = packages.get_object();
@@ -471,14 +453,13 @@ namespace mamba::solver::libsolv
                         solv,
                         filename,
                         pkg_field.value(),
-                        signatures,
                         default_subdir,
                         parser,
                         &pkg_timestamp
                     );
                     if (parsed)
                     {
-                        if (exclude_newer_timestamp && pkg_timestamp > *exclude_newer_timestamp)
+                        if (exclude_newer_policy.excludes(solv.name(), pkg_timestamp))
                         {
                             repo.remove_solvable(id, /* reuse_id= */ true);
                         }
@@ -504,9 +485,8 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            const std::optional<nlohmann::json>& signatures,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerPolicy exclude_newer_policy = {}
         )
         {
             return set_repo_solvables_impl(
@@ -516,11 +496,10 @@ namespace mamba::solver::libsolv
                 channel_id,
                 default_subdir,
                 packages,
-                signatures,
                 /* filter= */ [](const auto&) { return true; },
                 /* on_parsed= */ [](const auto&) {},
                 parser,
-                exclude_newer_timestamp
+                exclude_newer_policy
             );
         }
 
@@ -532,9 +511,8 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            const std::optional<nlohmann::json>& signatures,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerPolicy exclude_newer_policy = {}
         ) -> util::flat_set<std::string>
         {
             auto filenames = util::flat_set<std::string>();
@@ -545,13 +523,12 @@ namespace mamba::solver::libsolv
                 channel_id,
                 default_subdir,
                 packages,
-                signatures,
                 /* filter= */ [](const auto&) { return true; },
                 /* on_parsed= */
                 [&](const auto& fn)
                 { filenames.insert(std::string(specs::strip_archive_extension(fn))); },
                 parser,
-                exclude_newer_timestamp
+                exclude_newer_policy
             );
             // Sort only once
             return filenames;
@@ -565,10 +542,9 @@ namespace mamba::solver::libsolv
             const std::string& channel_id,
             const std::string& default_subdir,
             JSONObject& packages,
-            const std::optional<nlohmann::json>& signatures,
             const SortedStringRange& added,
             MatchSpecParser parser,
-            std::optional<std::uint64_t> exclude_newer_timestamp = std::nullopt
+            ExcludeNewerPolicy exclude_newer_policy = {}
         )
         {
             return set_repo_solvables_impl(
@@ -578,22 +554,17 @@ namespace mamba::solver::libsolv
                 channel_id,
                 default_subdir,
                 packages,
-                signatures,
                 /* filter= */
                 [&](const auto& fn) { return !added.contains(specs::strip_archive_extension(fn)); },
                 /* on_parsed= */ [&](const auto&) {},
                 parser,
-                exclude_newer_timestamp
+                exclude_newer_policy
             );
         }
     }
 
-    auto libsolv_read_json(
-        solv::ObjRepoView repo,
-        const fs::u8path& filename,
-        PackageTypes types,
-        bool verify_artifacts
-    ) -> expected_t<solv::ObjRepoView>
+    auto libsolv_read_json(solv::ObjRepoView repo, const fs::u8path& filename, PackageTypes types)
+        -> expected_t<solv::ObjRepoView>
     {
         if ((types != PackageTypes::TarBz2Only) && (types != PackageTypes::CondaOrElseTarBz2))
         {
@@ -608,12 +579,6 @@ namespace mamba::solver::libsolv
                  << " using libsolv";
 
         int flags = (types == PackageTypes::TarBz2Only) ? CONDA_ADD_USE_ONLY_TAR_BZ2 : 0;
-        if (verify_artifacts)
-        {
-            // cf.
-            // https://github.com/openSUSE/libsolv/commit/cc2da2e789f651b2d0d55fe31c258426bf9e984d
-            flags |= CONDA_ADD_WITH_SIGNATUREDATA;
-        }
 
         const auto lock = LockFile(filename);
 
@@ -648,8 +613,7 @@ namespace mamba::solver::libsolv
         const std::string& channel_id,
         PackageTypes package_types,
         MatchSpecParser ms_parser,
-        bool verify_artifacts,
-        std::optional<std::uint64_t> exclude_newer_timestamp
+        ExcludeNewerPolicy exclude_newer_policy
     ) -> expected_t<solv::ObjRepoView>
     {
         LOG_INFO << "Reading repodata.json file " << filename << " for repo " << repo.name()
@@ -735,23 +699,6 @@ namespace mamba::solver::libsolv
                                     .or_else([](specs::ParseError&& err) { throw std::move(err); })
                                     .value();
 
-        auto signatures = [&]
-        {
-            auto maybe_sigs = repodata_doc["signatures"];
-            if (!maybe_sigs.error() && verify_artifacts)
-            {
-                return std::make_optional(maybe_sigs);
-            }
-            else
-            {
-                LOG_DEBUG << "No signatures available or requested. Downloading without verifying artifacts.";
-                return decltype(std::make_optional(maybe_sigs)){};
-            }
-        }();
-
-
-        const auto json_signatures = extract_signatures(signatures);
-
         if (package_types == PackageTypes::CondaOrElseTarBz2)
         {
             auto added = util::flat_set<std::string>();
@@ -764,9 +711,8 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    json_signatures,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
             if (auto pkgs = repodata_doc["packages"]; !pkgs.error())
@@ -778,10 +724,9 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    json_signatures,
                     added,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
         }
@@ -797,9 +742,8 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    json_signatures,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
 
@@ -813,9 +757,8 @@ namespace mamba::solver::libsolv
                     channel_id,
                     default_subdir,
                     pkgs,
-                    json_signatures,
                     ms_parser,
-                    exclude_newer_timestamp
+                    exclude_newer_policy
                 );
             }
         }
@@ -971,19 +914,21 @@ namespace mamba::solver::libsolv
     void
     set_solvables_url(solv::ObjRepoView repo, const std::string& repo_url, const std::string& channel_id)
     {
-        // WARNING cannot call ``url()`` at this point because it has not been internalized.
-        // Setting the channel url on where the solvable so that we can retrace
-        // where it came from
         const auto url = specs::CondaURL::parse(repo_url)
                              .or_else([](specs::ParseError&& err) { throw std::move(err); })
                              .value();
+        // The legacy parser may set solvable attributes before they are available for lookup.
+        // Internalize them before deciding whether a fallback URL is needed.
+        repo.internalize();
         repo.for_each_solvable(
             [&](solv::ObjSolvableView s)
             {
-                // The solvable url, this is not set in libsolv parsing so we set it manually
-                // while we still rely on libsolv for parsing
-                // TODO
-                s.set_url((url / s.file_name()).str(specs::CondaURL::Credentials::Show));
+                // Libsolv does not populate the URL for packages without one in repodata.
+                // Preserve an explicitly advertised package URL when it is available.
+                if (s.url().empty())
+                {
+                    s.set_url((url / s.file_name()).str(specs::CondaURL::Credentials::Show));
+                }
                 // The name of the channel where it came from, may be different from repo name
                 // for instance with the installed repo
                 s.set_channel(channel_id);
@@ -1297,7 +1242,7 @@ namespace mamba::solver::libsolv
                     // solvables (SOLVER_LOCK or SOLVER_USERINSTALLED?).
                     // In the meantime (and probably later for safety) we filter all virtual
                     // packages out.
-                    if (util::starts_with(pkginfo.name, "__"))  // i.e. is_virtual_package
+                    if (pkginfo.name.starts_with("__"))  // i.e. is_virtual_package
                     {
                         return;
                     }

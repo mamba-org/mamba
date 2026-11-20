@@ -22,13 +22,27 @@ jobs:
     steps:
       - name: Checkout mamba repository
         uses: actions/checkout@v7
+      # Native ARM64 on windows-11-arm; x64 elsewhere. Default is x64 and
+      # linking ARM64 conda libs with an x64 linker fails with LNK4272.
+      - name: Set up MSVC
+        if: inputs.os == 'windows-11-arm'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v3
         with:
-          environment-file: ./dev/environment-dev.yml
+          # win-arm64 uses a reduced env until missing conda-forge packages land:
+          # https://github.com/mamba-org/mamba/issues/4393
+          environment-file: ${{ inputs.os == 'windows-11-arm' && './dev/environment-dev-win-arm64.yml' || './dev/environment-dev.yml' }}
           environment-name: build_env
           cache-environment: true
           init-shell: cmd.exe
+      - name: Set conda library prefix
+        if: inputs.os == 'windows-11-arm'
+        run: |
+          echo CMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library>> %GITHUB_ENV%
+          echo LIBRARY_PREFIX=%CONDA_PREFIX%\Library>> %GITHUB_ENV%
       - uses: hendrikmuhs/ccache-action@main
         with:
           variant: sccache
@@ -44,6 +58,7 @@ jobs:
             -D CMAKE_C_COMPILER_LAUNCHER=sccache ^
             -D BUILD_LIBMAMBAPY=OFF ^
             -D BUILD_LIBMAMBA_SPDLOG=ON ^
+            -D BUILD_LIBMAMBA_TESTS=ON ^
             -D BUILD_LIBMAMBA_SPDLOG_TESTS=ON ^
             -D ENABLE_MAMBA_ROOT_PREFIX_FALLBACK=OFF
           if %errorlevel% neq 0 exit /b %errorlevel%
@@ -115,12 +130,22 @@ jobs:
           action: restore
           path: build/
           key_suffix: ${{ inputs.os }}-${{ inputs.build_type }}
+      - name: Set up MSVC
+        if: inputs.os == 'windows-11-arm'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
       - name: Create build environment
         uses: mamba-org/setup-micromamba@v3
         with:
           environment-file: ./build/environment.lock
           environment-name: build_env
           init-shell: bash cmd.exe
+      - name: Set conda library prefix
+        if: inputs.os == 'windows-11-arm'
+        run: |
+          echo CMAKE_PREFIX_PATH=%CONDA_PREFIX%\Library>> %GITHUB_ENV%
+          echo LIBRARY_PREFIX=%CONDA_PREFIX%\Library>> %GITHUB_ENV%
       - name: Install libmambapy
         run: |
           cmake --install build/ --prefix %CONDA_PREFIX%
@@ -157,7 +182,90 @@ jobs:
         shell: bash -elo pipefail {0}
         run: |
           cmake --install build/ --prefix local/
-      - name: mamba python based tests with pwsh
+      - name: Native Windows ARM64 package lifecycle
+        if: inputs.os == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          $env:PYTHONIOENCODING='UTF-8'
+          $env:MAMBA_ROOT_PREFIX = Join-Path -Path $pwd -ChildPath 'mambaroot'
+          $env:TEST_MAMBA_EXE = Join-Path -Path $pwd -ChildPath 'local\bin\mamba.exe'
+          $env:MAMBA_TEST_SHELL_TYPE='powershell'
+          Remove-Item -Path "env:CONDARC"
+          $nativePrefix = Join-Path -Path $pwd -ChildPath 'win-arm64-native'
+          $nativeClone = Join-Path -Path $pwd -ChildPath 'win-arm64-native-clone'
+          & $env:TEST_MAMBA_EXE create `
+            --prefix $nativePrefix `
+            --channel conda-forge `
+            --platform win-arm64 `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & $env:TEST_MAMBA_EXE update `
+            --prefix $nativePrefix `
+            --channel conda-forge `
+            --platform win-arm64 `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $nativeListJson = & $env:TEST_MAMBA_EXE list --prefix $nativePrefix --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $nativePackages = $nativeListJson | ConvertFrom-Json
+          $nativeZlib = @(
+            $nativePackages.packages |
+              Where-Object { $_.name -eq 'zlib' -and $_.platform -eq 'win-arm64' }
+          )
+          if ($nativeZlib.Count -ne 1) {
+            throw 'Native environment does not contain exactly one win-arm64 zlib package'
+          }
+
+          & $env:TEST_MAMBA_EXE create `
+            --prefix $nativeClone `
+            --clone $nativePrefix `
+            --platform win-arm64 `
+            --yes --no-rc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $cloneListJson = & $env:TEST_MAMBA_EXE list --prefix $nativeClone --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $clonePackages = $cloneListJson | ConvertFrom-Json
+          $cloneZlib = @(
+            $clonePackages.packages |
+              Where-Object { $_.name -eq 'zlib' -and $_.platform -eq 'win-arm64' }
+          )
+          if ($cloneZlib.Count -ne 1) {
+            throw 'Cloned environment does not preserve its win-arm64 zlib package'
+          }
+
+          & $env:TEST_MAMBA_EXE remove `
+            --prefix $nativeClone `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $removedListJson = & $env:TEST_MAMBA_EXE list --prefix $nativeClone --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $removedPackages = $removedListJson | ConvertFrom-Json
+          if ('zlib' -in $removedPackages.packages.name) {
+            throw 'Native package removal left zlib installed'
+          }
+
+          & $env:TEST_MAMBA_EXE install `
+            --prefix $nativeClone `
+            --channel conda-forge `
+            --platform win-arm64 `
+            --yes --no-rc zlib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $installedListJson = & $env:TEST_MAMBA_EXE list --prefix $nativeClone --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $installedPackages = $installedListJson | ConvertFrom-Json
+          $installedZlib = @(
+            $installedPackages.packages |
+              Where-Object { $_.name -eq 'zlib' -and $_.platform -eq 'win-arm64' }
+          )
+          if ($installedZlib.Count -ne 1) {
+            throw 'Native package installation did not restore win-arm64 zlib'
+          }
+      - name: ${{ inputs.os == 'windows-11-arm' && 'Mamba Python tests against win-64 package inventory' || 'Mamba Python tests' }}
         shell: pwsh
         run: |
           $env:PYTHONIOENCODING='UTF-8'
@@ -168,5 +276,6 @@ jobs:
           # Only rerun flaky tests on the `main` branch
           python -m pytest micromamba/tests/ `
             -vv --durations=50 `
+            ${{ inputs.os == 'windows-11-arm' && '--test-target-platform win-64' || '' }} `
             ${{ runner.debug == 'true' && '--capture=tee-sys' || '' }} `
             ${{ github.ref == 'refs/heads/main' && '--reruns 3' || '' }}

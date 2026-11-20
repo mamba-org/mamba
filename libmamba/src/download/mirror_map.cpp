@@ -6,6 +6,7 @@
 
 #include "mamba/download/mirror.hpp"
 #include "mamba/download/mirror_map.hpp"
+#include "mamba/specs/channel.hpp"
 
 #include "mirror_impl.hpp"
 
@@ -36,29 +37,40 @@ namespace mamba::download
 
     namespace
     {
-        template <class It>
-        bool contains(It first, It last, MirrorID id)
+        template <std::ranges::input_range R>
+        bool contains_mirror(const R& r, const MirrorID& id)
         {
-            return std::find_if(first, last, [id](const auto& mirror) { return id == mirror->id(); })
-                   != last;
+            return std::ranges::any_of(r, [&](const auto& mirror) { return mirror->id() == id; });
         }
     }
 
-    bool mirror_map::add_unique_mirror(std::string_view mirror_name, mirror_ptr mirror)
+    bool mirror_map::add_unique_mirror(
+        std::string_view mirror_name,
+        mirror_ptr mirror,
+        specs::Channel::UrlPriority priority
+    )
     {
+        auto insert_mirror = [&](mirror_set& mirror_list)
+        {
+            auto insert_it = priority == specs::Channel::UrlPriority::high ? mirror_list.begin()
+                                                                           : mirror_list.end();
+            mirror_list.insert(insert_it, std::move(mirror));
+        };
+
         auto find_it = m_mirrors.find(std::string(mirror_name));
         if (find_it != m_mirrors.end())
         {
             auto& mirrors = find_it->second;
-            if (contains(mirrors.begin(), mirrors.end(), mirror->id()))
+            if (contains_mirror(mirrors, mirror->id()))
             {
                 return false;
             }
-            mirrors.push_back(std::move(mirror));
+
+            insert_mirror(mirrors);
         }
         else
         {
-            m_mirrors[std::string(mirror_name)].push_back(std::move(mirror));
+            insert_mirror(m_mirrors[std::string(mirror_name)]);
         }
         return true;
     }

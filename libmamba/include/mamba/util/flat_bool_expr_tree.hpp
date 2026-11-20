@@ -9,6 +9,7 @@
 
 #include <cassert>
 #include <functional>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -125,10 +126,17 @@ namespace mamba::util
         [[nodiscard]] auto push_operator_impl(O&& op) -> bool;
     };
 
+    /**
+     * Boolean operators, declared in increasing order of precedence.
+     *
+     * The default ``InfixParser`` comparator (``std::less<>``) orders operators by their
+     * enumeration value, so ``logical_and`` must come after ``logical_or`` for ``and`` to bind
+     * tighter than ``or`` (``a or b and c`` is ``a or (b and c)``).
+     */
     enum struct BoolOperator
     {
-        logical_and,
-        logical_or
+        logical_or,
+        logical_and
     };
 
     template <typename Variable>
@@ -172,16 +180,7 @@ namespace mamba::util
         template <typename UnaryFunc>
         void infix_for_each(UnaryFunc&& func) const;
 
-        // TODO(C++20): replace by the `= default` implementation of `operator==`
-        [[nodiscard]] auto operator==(const self_type& other) const -> bool
-        {
-            return m_tree == other.m_tree;
-        }
-
-        [[nodiscard]] auto operator!=(const self_type& other) const -> bool
-        {
-            return !(*this == other);
-        }
+        [[nodiscard]] auto operator==(const self_type& other) const -> bool = default;
 
     private:
 
@@ -336,7 +335,8 @@ namespace mamba::util
     template <typename T>
     void InfixParser<V, O, C>::stack_push(T&& elem)
     {
-        m_op_stack.push_back(std::forward<T>(elem));
+        // in_place avoids a GCC -Wmaybe-uninitialized false positive on empty tag types in variant
+        m_op_stack.emplace_back(std::in_place_type<std::decay_t<T>>, std::forward<T>(elem));
     }
 
     template <typename V, typename O, typename C>

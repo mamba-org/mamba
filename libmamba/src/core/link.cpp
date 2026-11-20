@@ -25,6 +25,7 @@
 #include "mamba/core/menuinst.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/specs/match_spec.hpp"
+#include "mamba/util/algorithm.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
@@ -102,7 +103,7 @@ namespace mamba
                 );
             }
 
-            if (util::starts_with(command, ".."))
+            if (command.starts_with(".."))
             {
                 return make_unexpected(
                     fmt::format("Invalid entry point command name '{}': must not start with '..'", command),
@@ -161,7 +162,7 @@ namespace mamba
             }
 
             const std::string rel_str = rel.generic_string();
-            if (rel_str.empty() || rel_str == "." || util::starts_with(rel_str, "..")
+            if (rel_str.empty() || rel_str == "." || rel_str.starts_with("..")
                 || util::contains(rel_str, "/../") || util::contains(rel_str, "\\..\\"))
             {
                 return make_unexpected(
@@ -235,31 +236,51 @@ namespace mamba
         }
     }
 
-    auto parse_entry_point(const std::string& ep_def) -> expected_t<python_entry_point_parsed>
+    auto parse_entry_point(const std::string& ep_def)
+        -> expected_t<python_entry_point_parsed, mamba_aggregated_error>
     {
         // def looks like: "wheel = wheel.cli:main"
-        auto cmd_mod_func = util::rsplit(ep_def, ":", 1);
-        if (cmd_mod_func.size() != 2)
+        // Same approach as conda's parse_entry_point_def (conda/conda#16340):
+        //   1. split on the first '=' into command and RHS
+        //   2. strip whitespace and surrounding quotes from the RHS
+        //      (some packages, e.g. findpython, ship `cmd = "mod:func"`)
+        //   3. rsplit the stripped RHS on the last ':' into module and callable
+        // Always return mamba_aggregated_error (even for a single failure) so the error is not
+        // sliced when stored in expected_t (mamba-org/mamba#4352).
+        auto make_parse_error = [](auto&&... errs)
         {
-            return make_unexpected(
-                fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
-                mamba_error_code::invalid_spec
+            return tl::unexpected(mamba_aggregated_error(
+                std::vector<mamba_error>{ std::forward<decltype(errs)>(errs)... },
+                /*with_bug_report_info=*/false
+            ));
+        };
+
+        const auto [command, defn] = util::split_once(ep_def, '=');
+        if (!defn)
+        {
+            return make_parse_error(
+                mamba_error{ fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
+                             mamba_error_code::invalid_spec }
             );
         }
 
-        auto command_module = util::rsplit(cmd_mod_func[0], "=", 1);
-        if (command_module.size() != 2)
+        // Step 2: strip whitespace/quotes from the module:callable side (conda#16340).
+        constexpr std::string_view entry_point_rhs_strip_chars = " \t\r\n\"'";
+        const auto module_func = util::strip(*defn, entry_point_rhs_strip_chars);
+        // Step 3: rsplit the stripped RHS on the last ':' into module and callable.
+        const auto [module, func] = util::rsplit_once(module_func, ':');
+        if (!module)
         {
-            return make_unexpected(
-                fmt::format("Invalid entry point definition '{}': missing '='", ep_def),
-                mamba_error_code::invalid_spec
+            return make_parse_error(
+                mamba_error{ fmt::format("Invalid entry point definition '{}': missing ':'", ep_def),
+                             mamba_error_code::invalid_spec }
             );
         }
 
         python_entry_point_parsed result;
-        result.command = util::strip(command_module[0]);
-        result.module = util::strip(command_module[1]);
-        result.func = util::strip(cmd_mod_func[1]);
+        result.command = util::strip(command);
+        result.module = util::strip(*module);
+        result.func = util::strip(func);
 
         std::vector<mamba_error> errors;
         auto record_error = [&](const tl::expected<void, mamba_error>& check)
@@ -274,13 +295,11 @@ namespace mamba
         record_error(check_python_identifier_chain(result.module, "module"));
         record_error(check_python_identifier_chain(result.func, "callable"));
 
-        if (errors.size() == 1)
+        if (!errors.empty())
         {
-            return tl::unexpected(std::move(errors.front()));
-        }
-        if (errors.size() > 1)
-        {
-            return tl::unexpected(mamba_aggregated_error(std::move(errors)));
+            return tl::unexpected(
+                mamba_aggregated_error(std::move(errors), /*with_bug_report_info=*/false)
+            );
         }
 
         return result;
@@ -1013,51 +1032,75 @@ namespace mamba
                 buffer = read_contents(src, std::ios::in | std::ios::binary);
 
 #ifdef _WIN32
-                auto has_pyzzer_entrypoint = [](const std::string& data)
-                { return data.rfind("PK\x05\x06"); };
-
-                // on win we only replace pyzzer entrypoints apparently
-                auto entry_point = has_pyzzer_entrypoint(buffer);
-
-                struct pyzzer_struct
+                // Special handling of entry points created by distlib, see:
+                // https://github.com/conda/conda/blob/22e5a28adebb32f2bd067d8a126597d769639702/conda/core/portability.py#L332-L347
+                static constexpr std::array pyzzer_file_extensions{ ".exe"sv, ".pyz"sv };
+                // we ignore other non-pyz files in the bin directory
+                if (stdext::contains(pyzzer_file_extensions, src.extension().string()))
                 {
-                    uint32_t cdr_size;
-                    uint32_t cdr_offset;
-                } pyzzer_entry;
+                    auto has_pyzzer_entrypoint = [](const std::string& data)
+                    { return data.rfind("PK\x05\x06"); };
 
-                if (entry_point != std::string::npos)
-                {
-                    std::string launcher, shebang;
-                    pyzzer_entry = *reinterpret_cast<const pyzzer_struct*>(
-                        buffer.c_str() + entry_point
-                    );
-                    std::size_t arc_pos = entry_point - pyzzer_entry.cdr_size
-                                          - pyzzer_entry.cdr_offset;
+                    // on win we only replace pyzzer entrypoints apparently
+                    auto entry_point = has_pyzzer_entrypoint(buffer);
 
-                    if (arc_pos > 0)
+                    if (entry_point != std::string::npos)
                     {
-                        auto pos = buffer.rfind("#!", arc_pos);
-                        if (pos != std::string::npos)
+                        // see
+                        // https://en.wikipedia.org/wiki/ZIP_(file_format)#End_of_central_directory_record_(EOCD)
+                        const std::byte* eocd_p = reinterpret_cast<const std::byte*>(buffer.data())
+                                                  + entry_point;
+                        constexpr size_t eocd_offset_to_size = 12;
+                        constexpr size_t eocd_offset_to_offset = 16;
+
+                        const uint32_t cdr_size = *reinterpret_cast<const uint32_t*>(
+                            eocd_p + eocd_offset_to_size
+                        );
+                        uint32_t cdr_offset = *reinterpret_cast<const uint32_t*>(
+                            eocd_p + eocd_offset_to_offset
+                        );
+
+                        // we're converting everything to bigger signed types here to avoid issues
+                        // due to unsigned ints overflows
+                        std::int64_t pyzzer_offset = int64_t(cdr_size) + int64_t(cdr_offset);
+
+                        // NOTE: If the offset doesnt make sense, we ignore the EOCD record.
+                        // Some binary files might contain zip archives which will appear with
+                        // the marker we expect, but then the offsets don't make sense.
+                        // In that case we can assume that this is not a actually a pyzzer
+                        // entry point but something else, and we should ignore it.
+                        if (pyzzer_offset < int64_t(entry_point))
                         {
-                            shebang = buffer.substr(pos, arc_pos);
-                            if (pos > 0)
+                            std::size_t arc_pos = entry_point - pyzzer_offset;
+                            std::string launcher, shebang;
+                            if (arc_pos > 0)
                             {
-                                launcher = buffer.substr(0, pos);
+                                auto pos = buffer.rfind("#!", arc_pos);
+                                if (pos != std::string::npos)
+                                {
+                                    shebang = buffer.substr(pos, arc_pos);
+                                    if (pos > 0)
+                                    {
+                                        launcher = buffer.substr(0, pos);
+                                    }
+                                }
                             }
+
+                            if (!shebang.empty() && !launcher.empty())
+                            {
+                                util::replace_all(shebang, path_data.prefix_placeholder, new_prefix);
+                                std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
+                                fo << launcher;
+                                fo << shebang;
+                                fo << (buffer.c_str() + arc_pos);
+                                fo.close();
+                            }
+                            return std::make_tuple(
+                                std::string(validation::sha256sum(dst)),
+                                rel_dst.generic_string()
+                            );
                         }
                     }
-
-                    if (!shebang.empty() && !launcher.empty())
-                    {
-                        util::replace_all(shebang, path_data.prefix_placeholder, new_prefix);
-                        std::ofstream fo = open_ofstream(dst, std::ios::out | std::ios::binary);
-                        fo << launcher << shebang << (buffer.c_str() + arc_pos);
-                        fo.close();
-                    }
-                    return std::make_tuple(
-                        std::string(validation::sha256sum(dst)),
-                        rel_dst.generic_string()
-                    );
                 }
 #else
                 std::size_t padding_size = (path_data.prefix_placeholder.size() > new_prefix.size())
@@ -1112,7 +1155,7 @@ namespace mamba
         if ((path_data.path_type == PathType::HARDLINK) || path_data.no_link)
         {
             bool copy = path_data.no_link || m_context->link_params().always_copy;
-            bool softlink = m_context->link_params().always_softlink;
+            bool softlink = m_context->link_params().always_softlink && !path_data.no_link;
 
             if (!copy && !softlink)
             {
@@ -1146,6 +1189,12 @@ namespace mamba
             }
             if (copy)
             {
+                if (path_data.no_link && m_context->link_params().always_softlink)
+                {
+                    LOG_WARNING
+                        << "File '" << subtarget
+                        << "' is marked as `no_link`, ignoring --always-softlink and forcing copy.";
+                }
                 fs::copy(src, dst);
                 LOG_TRACE << "copied '" << src.string() << "'" << std::endl
                           << " --> '" << dst.string() << "'";
@@ -1423,6 +1472,8 @@ namespace mamba
                     auto entry_point_parsed = parse_entry_point(ep_def);
                     if (!entry_point_parsed)
                     {
+                        // Contextual wrapper uses invalid_spec (not the aggregated error_code) so
+                        // we do not create a sliced plain mamba_error carrying aggregated.
                         throw mamba_error(
                             fmt::format(
                                 "Invalid noarch:python entry point '{}' in package '{}' ({}): {}\n"
@@ -1433,7 +1484,7 @@ namespace mamba
                                 m_pkg_info.build_string,
                                 entry_point_parsed.error().what()
                             ),
-                            entry_point_parsed.error().error_code()
+                            mamba_error_code::invalid_spec
                         );
                     }
                     auto entry_point_path = get_bin_directory_short_path()

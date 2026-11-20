@@ -16,6 +16,11 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
+#include <cstdlib>
+#include <exception>
+#include <iostream>
+#include <optional>
 
 #include <CLI/CLI.hpp>
 
@@ -83,13 +88,105 @@ decide_log_handler(const ContextOptions& options) -> mamba::logging::AnyLogHandl
     return mamba::logging::spdlogimpl::LogHandler_spdlog{};
 }
 
+void
+report_error(
+    const std::optional<ContextOptions>& options,
+    const std::string& message,
+    const bool constructed_console
+)
+{
+    // Classic case, nothing is destroyed/lost
+    if (Console::is_available())
+    {
+        LOG_CRITICAL << message;
+        return;
+    }
+
+    // If `Console` was constructed and then destroyed
+    // (i.e `not Console::is_available()` and `constructed_console`),
+    // we should use `cerr` (last `if` branch) and not create another json
+    // object (already one dumped in `Console` destructor, if `--json` is given).
+    // `cerr` is also used in the following cases: no `--json` and no `--quiet`.
+    // In the opposite case, when `Console` has not been created and logging macros
+    // are not yet usable, we must still create a json object (unique in this case)
+    // containing the error (and be consistent with `--json` output).
+    if (options and options->output_params and options->output_params->json
+        and not constructed_console)
+    {
+        const auto log_record = logging::LogRecord{
+            .message = message,
+            .level = log_level::critical,
+            .source = log_source::libmamba,
+            .location = std::source_location::current(),
+        };
+        const nlohmann::json record_json = logging::to_json(log_record);
+
+        nlohmann::json output{
+            { "success", false },
+            { "log_history", nlohmann::json::array({ record_json }) },
+        };
+        std::cout << output.dump(4) << std::endl;
+        return;
+    }
+
+    if (not options or not options->output_params or not options->output_params->quiet)
+    {
+        std::cerr << "critical: " << message << std::endl;
+    }
+}
+
+namespace
+{
+    std::atomic<bool> constructed_console{ false };
+    std::optional<ContextOptions> pre_config_options;
+
+    [[noreturn]] void mamba_terminate_handler() noexcept
+    {
+        const bool constructed_console_on_termination = constructed_console;
+        try
+        {
+            if (const auto exception = std::current_exception())
+            {
+                std::rethrow_exception(exception);
+            }
+            else
+            {
+                report_error(
+                    pre_config_options,
+                    "Unexpected error  - aborting",
+                    constructed_console_on_termination
+                );
+            }
+        }
+        catch (const std::exception& e)
+        {
+            report_error(pre_config_options, e.what(), constructed_console_on_termination);
+        }
+        catch (...)
+        {
+            report_error(
+                pre_config_options,
+                "Unhandled error - aborting",
+                constructed_console_on_termination
+            );
+        }
+        logging::flush_logs();
+        std::abort();
+    }
+}
+
 int
 main(int argc, char** argv)
 {
+    pre_config_options = decide_preconfig_context_options(argc, argv);
+    std::set_terminate(mamba_terminate_handler);
+
     mamba::MainExecutor scoped_threads;
-    const auto pre_config_options = decide_preconfig_context_options(argc, argv);
-    mamba::Context ctx{ pre_config_options, decide_log_handler(pre_config_options) };
+    mamba::Context ctx{ pre_config_options.value(), decide_log_handler(pre_config_options.value()) };
     mamba::Console console{ ctx };
+    // TODO: think of a more elegant way to track Console's lifetime stages.
+    // See comments and discussion in https://github.com/mamba-org/mamba/pull/4370
+    constructed_console = true;
     mamba::Configuration config{ ctx };
 
     init_console();
@@ -97,7 +194,7 @@ main(int argc, char** argv)
 
     ctx.command_params.is_mamba_exe = true;
 
-    CLI::App app{ "Version: " + version() + "\n" };
+    CLI::App app{ umamba::app_name_with_version() };
     set_umamba_command(&app, config);
 
     char** utf8argv;
@@ -165,16 +262,34 @@ main(int argc, char** argv)
             config.load();
             Console::instance().print(app.get_subcommand("config")->help());
         }
+        if (auto maybe_exit_code = umamba::get_requested_exit_code())  // a subcommand was executed
+                                                                       // and requested the program
+                                                                       // to exit with an exit code
+        {
+            return_value = maybe_exit_code.value();
+        }
+    }
+    catch (const mamba::mamba_early_exit_request&)
+    {
+        // Gracefully exit the program without noise.
+        LOG_DEBUG << "early exit request received, exiting now";
     }
     catch (const mamba::mamba_error& e)
     {
-        // We treat interruptions (ctrl-c) specially by not logging a critical error.s
+        // We treat interruptions (ctrl-c) specially by not logging a critical error.
         const bool is_interruption = [&]
         {
             if (e.error_code() == mamba::mamba_error_code::aggregated)
             {
-                const auto& aggregated_error = static_cast<const mamba::mamba_aggregated_error&>(e);
-                return aggregated_error.has_only_error(mamba::mamba_error_code::user_interrupted);
+                // Prefer dynamic_cast: a plain mamba_error can incorrectly carry
+                // error_code::aggregated after object slicing (mamba-org/mamba#4352).
+                if (const auto* aggregated_error = dynamic_cast<const mamba::mamba_aggregated_error*>(
+                        &e
+                    ))
+                {
+                    return aggregated_error->has_only_error(mamba::mamba_error_code::user_interrupted);
+                }
+                return false;
             }
             else
             {
@@ -198,18 +313,24 @@ main(int argc, char** argv)
         // We only preserve CLI11 output behavior when errors from CLI11
         // occurs because of `--help` or `--version` is used. Otherwise we follow the
         // logic that `--json` outputs everything as JSON.
-        static constexpr std::array non_error_request_names = { "CallForHelp"sv,
-                                                                "CallForAllHelp"sv,
-                                                                "CallForVersion"sv };
-        const bool is_non_error_request = std::ranges::find(non_error_request_names, e.get_name())
+        static constexpr std::array non_error_request_names = { "CallForHelp"sv, "CallForAllHelp"sv };
+        static constexpr auto version_print_request = "CallForVersion"sv;
+        const auto error_name = e.get_name();
+        const bool is_non_error_request = std::ranges::find(non_error_request_names, error_name)
                                           != non_error_request_names.end();
+        const bool is_version_print_request = version_print_request == error_name;
 
-        if (ctx.output_params.json and not is_non_error_request)
+        if (ctx.output_params.json and (not is_non_error_request or is_version_print_request))
         {
             // we want the output to end up in the json log history
             std::stringstream output;
             return_value = app.exit(e, output, output);
-            LOG_WARNING << output.str();
+            if (not is_version_print_request)
+            {
+                // when using json output and just wanting the version, we don't need to report the
+                // rest of the output
+                LOG_WARNING << output.str();
+            }
         }
         else
         {

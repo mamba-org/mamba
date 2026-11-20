@@ -18,6 +18,7 @@
 #include <fmt/ostream.h>
 #include <reproc++/run.hpp>
 
+#include "mamba/api/channel_loader.hpp"
 #include "mamba/core/channel_context.hpp"
 #include "mamba/core/context.hpp"
 #include "mamba/core/download_progress_bar.hpp"
@@ -26,17 +27,18 @@
 #include "mamba/core/execution.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
-#include "mamba/core/repo_checker_store.hpp"
+#include "mamba/core/package_handling.hpp"
 #include "mamba/core/thread_utils.hpp"
 #include "mamba/core/transaction.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/core/util_scope.hpp"
 #include "mamba/solver/libsolv/database.hpp"
 #include "mamba/specs/match_spec.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/path_manip.hpp"
 #include "mamba/util/string.hpp"
-#include "mamba/util/variant_cmp.hpp"
+#include "mamba/util/variant_util.hpp"
 
 #include "solver/helpers.hpp"
 
@@ -56,21 +58,61 @@ namespace mamba
                    && caches.get_tarball_path(pkg_info).empty();
         }
 
-        // TODO duplicated function, consider moving it to Pool
-        auto database_has_package(solver::libsolv::Database& database, const specs::MatchSpec& spec)
-            -> bool
+        /**
+         * Resolve the extracted package cache directory for linking.
+         *
+         * Clears stale negative cache entries (e.g. from before fetch/extract in the same
+         * transaction) and, if needed, re-extracts from a cached tarball at link time.
+         */
+        fs::u8path resolve_extracted_cache_path(
+            const specs::PackageInfo& pkg,
+            MultiPackageCache& caches,
+            const Context& ctx
+        )
         {
-            bool found = false;
-            database.for_each_package_matching(
-                spec,
-                [&](const auto&)
+            auto lookup = [&]() { return caches.get_extracted_dir_path(pkg); };
+
+            if (auto path = lookup(); !path.empty())
+            {
+                return path;
+            }
+
+            caches.clear_query_cache(pkg);
+            if (auto path = lookup(); !path.empty())
+            {
+                return path;
+            }
+
+            // Drop invalid or partial extracted directories so a cached tarball can be
+            // re-extracted (e.g. after a failed extraction left stale files behind).
+            caches.remove_extracted_package(pkg);
+
+            PackageFetcher fetcher(pkg, caches);
+            if (fetcher.needs_download())
+            {
+                LOG_ERROR << "Cannot find a valid extracted directory cache for '" << pkg.filename
+                          << "'";
+                throw std::runtime_error("Package cache error.");
+            }
+
+            if (fetcher.needs_extract())
+            {
+                const auto extract_options = ExtractOptions::from_context(ctx);
+                if (!fetcher.extract(extract_options))
                 {
-                    found = true;
-                    return util::LoopControl::Break;
+                    LOG_ERROR << "Failed to extract package '" << pkg.filename << "' for linking";
+                    throw std::runtime_error("Package cache error.");
                 }
-            );
-            return found;
-        };
+                caches.clear_query_cache(pkg);
+                if (auto path = lookup(); !path.empty())
+                {
+                    return path;
+                }
+            }
+
+            LOG_ERROR << "Cannot find a valid extracted directory cache for '" << pkg.filename << "'";
+            throw std::runtime_error("Package cache error.");
+        }
 
         auto explicit_spec(const specs::PackageInfo& pkg) -> specs::MatchSpec
         {
@@ -169,7 +211,7 @@ namespace mamba
         for (const auto& pkg : pkgs_to_remove)
         {
             auto spec = explicit_spec(pkg);
-            if (!database_has_package(database, spec))
+            if (!database.has_package(spec))
             {
                 not_found << "\n - " << spec.to_string();
             }
@@ -300,7 +342,7 @@ namespace mamba
     MTransaction::MTransaction(
         const Context& ctx,
         solver::libsolv::Database& database,
-        std::unordered_set<specs::PackageInfo> packages,
+        std::vector<specs::PackageInfo> packages,
         MultiPackageCache& caches
     )
         : MTransaction(ctx.command_params, caches)
@@ -323,12 +365,12 @@ namespace mamba
         );
 
         m_solution.actions.reserve(packages.size());
-        // TODO(C++23): Use std::flat_set instead of std::unordered_set for `packages`
-        for (auto it = packages.begin(); it != packages.end();)
-        {
-            auto node = packages.extract(it++);
-            m_solution.actions.emplace_back(solver::Solution::Install{ std::move(node.value()) });
-        }
+        std::transform(
+            std::move_iterator(packages.begin()),
+            std::move_iterator(packages.end()),
+            std::back_insert_iterator(m_solution.actions),
+            [](specs::PackageInfo&& pkg) { return solver::Solution::Install{ std::move(pkg) }; }
+        );
 
         std::tie(
             m_py_versions,
@@ -466,6 +508,15 @@ namespace mamba
             {
                 LOG_ERROR << "Unexpected error while " << phase << " package '" << pkg.name
                           << "': " << e.what();
+#ifdef _WIN32
+                if ((phase == "linking" || phase == "unlinking") && !are_long_paths_enabled())
+                {
+                    LOG_WARNING << "Windows long path support is disabled, which can cause "
+                                << phase << " failures with deep cache or prefix paths. "
+                                << long_paths_support_diagnostic();
+                }
+                log_long_paths_support_hint_if_relevant(e);
+#endif
                 rethrow_transaction_cancelled_after_rollback(rollback, ctx, pkg, phase, e);
             }
             catch (...)
@@ -504,6 +555,10 @@ namespace mamba
 
         if (ctx.dry_run)
         {
+            if (ctx.output_params.json)
+            {
+                log_json();
+            }
             Console::stream() << "Dry run. Not executing the transaction.";
             return true;
         }
@@ -602,22 +657,25 @@ namespace mamba
 
         for (specs::PackageInfo& pkg : m_solution.packages())
         {
-            const auto unresolved_pkg_channel = mamba::specs::UnresolvedChannel::parse(pkg.channel)
-                                                    .value();
-            const auto pkg_channel = mamba::specs::Channel::resolve(
-                                         unresolved_pkg_channel,
-                                         channel_context.params()
-            )
+            using namespace mamba::specs;
+            const auto unresolved_pkg_channel = UnresolvedChannel::parse(pkg.channel).value();
+            const auto pkg_channel = Channel::resolve(unresolved_pkg_channel, channel_context.params())
                                          .value();
             assert(not pkg_channel.empty());
             const auto channel_url = pkg_channel.front().platform_url(pkg.platform).str();
-            pkg.channel = channel_url;
 
+            pkg.channel = channel_url;
             if (pkg.package_url.empty())
             {
                 pkg.package_url = pkg.url_for_channel_platform(channel_url);
             }
         };
+
+
+        if (ctx.output_params.json)
+        {
+            log_json();
+        }
 
         TransactionRollback rollback;
         TransactionContext transaction_context(
@@ -770,7 +828,7 @@ namespace mamba
             }
 
             Console::stream() << "Linking " << pkg.str();
-            const fs::u8path cache_path(m_multi_cache.get_extracted_dir_path(pkg, false));
+            const fs::u8path cache_path(resolve_extracted_cache_path(pkg, m_multi_cache, ctx));
             LinkPackage lp(pkg, cache_path, &transaction_context);
             try
             {
@@ -885,42 +943,8 @@ namespace mamba
         {
             FetcherList fetchers;
 
-            if (ctx.validation_params.verify_artifacts)
-            {
-                LOG_INFO << "Content trust is enabled, package(s) signatures will be verified";
-            }
             for (const auto& pkg : solution.packages_to_install())
             {
-                if (ctx.validation_params.verify_artifacts)
-                {
-                    LOG_INFO << "Creating RepoChecker...";
-                    auto repo_checker_store = RepoCheckerStore::make(ctx, channel_context, multi_cache);
-                    for (auto& chan : channel_context.make_channel(pkg.channel))
-                    {
-                        auto repo_checker = repo_checker_store.find_checker(chan);
-                        if (repo_checker)
-                        {
-                            LOG_INFO << "RepoChecker successfully created.";
-                            repo_checker->generate_index_checker();
-                            repo_checker->verify_package(
-                                pkg.json_signable(),
-                                std::string_view(pkg.signatures)
-                            );
-                        }
-                        else
-                        {
-                            LOG_ERROR << "Could not create a valid RepoChecker.";
-                            throw std::runtime_error(
-                                fmt::format(
-                                    R"(Could not verify "{}". Please make sure the package signatures are available and 'trusted-channels' are configured correctly. Alternatively, try downloading without '--verify-artifacts' flag.)",
-                                    pkg.name
-                                )
-                            );
-                        }
-                    }
-                    LOG_INFO << "'" << pkg.name << "' trusted from '" << pkg.channel << "'";
-                }
-
                 // FIXME: only do this for micromamba for now
                 if (ctx.command_params.is_mamba_exe)
                 {
@@ -960,17 +984,6 @@ namespace mamba
                 {
                     fetchers.emplace_back(pkg, multi_cache);
                 }
-            }
-
-            if (ctx.validation_params.verify_artifacts)
-            {
-                auto out = Console::stream();
-                fmt::print(
-                    out,
-                    "Content trust verifications successful, {} ",
-                    fmt::styled("package(s) are trusted", ctx.graphics_params.palette.safe)
-                );
-                LOG_INFO << "All package(s) are trusted";
             }
             return fetchers;
         }
@@ -1491,7 +1504,8 @@ namespace mamba
     }
 
     MTransaction create_explicit_transaction_from_lockfile(
-        const Context& ctx,
+        Context& ctx,
+        ChannelContext& channel_context,
         solver::libsolv::Database& database,
         const fs::u8path& env_lockfile_path,
         const std::vector<std::string>& categories,
@@ -1516,7 +1530,40 @@ namespace mamba
             LOG_DEBUG << "  manager = " << package.manager;
         }
 
-        // TODO: FIXME: inject channel info coming from the lockfile!
+        if (lockfile_data.get_metadata().enable_channels)
+        {
+            // We need to recreate the channel context using updated channel values
+            auto channel_context_params = channel_context.params();
+            auto zst_channels = channel_context.zst_channels();
+
+            for (const EnvironmentLockFile::Channel& channel_info :
+                 lockfile_data.get_metadata().channels)
+            {
+                // TODO C++23: replace all this by  std::vector(from_range_t, ...)
+                // or `channel_info.urls | as_conda_urls | to<vector>`
+                auto urls_view = specs::as_conda_urls(channel_info.urls);
+                std::vector<specs::CondaURL> mirror_urls(urls_view.begin(), urls_view.end());
+
+                auto channel_it = channel_context_params.custom_channels.find(channel_info.name);
+                if (channel_it == channel_context_params.custom_channels.end())
+                {
+                    channel_context_params.custom_channels.emplace(
+                        channel_info.name,
+                        specs::Channel{ std::move(mirror_urls), channel_info.name }
+                    );
+                }
+                else
+                {
+                    channel_it->second.add_mirror_urls(mirror_urls, specs::Channel::UrlPriority::high);
+                }
+            }
+
+            channel_context = ChannelContext{ std::move(channel_context_params),
+                                              std::move(zst_channels) };
+
+            init_channels(ctx, channel_context, specs::Channel::UrlPriority::high);  // update the
+                                                                                     // context too
+        }
 
         std::unordered_set<specs::PackageInfo> conda_package_set;
         std::unordered_set<specs::PackageInfo> pip_package_set;
@@ -1540,9 +1587,8 @@ namespace mamba
                   .platform = ctx.platform,
                   .manager = "pip",
                   // NOTE: sometime python packages can have no platform specified (mambajs lockfile
-                  // for
-                  //       example) in this case we just take the package if not specified, but if
-                  //       specified we filter to the current platform.
+                  // for example) in this case we just take the package if not specified, but if
+                  // specified we filter to the current platform.
                   .allow_no_platform = true }
             );
             pip_package_set.insert(selected_packages.begin(), selected_packages.end());
@@ -1571,7 +1617,27 @@ namespace mamba
             LOG_DEBUG << "pip package to install: " << package.name;
         }
 
-        return MTransaction{ ctx, database, std::move(conda_package_set), package_caches };
+        // Make sure package urls are set for conda packages if a channel is specified
+        std::vector<specs::PackageInfo> conda_packages_vec(
+            conda_package_set.begin(),
+            conda_package_set.end()
+        );
+        conda_package_set.clear();
+
+        for (auto& package : conda_packages_vec)
+        {
+            if (package.package_url.empty() and not package.channel.empty())
+            {
+                using Credentials = typename specs::CondaURL::Credentials;
+                auto channels = channel_context.make_channel(package.channel);
+                assert(channels.size() == 1);  // A URL can only resolve to one channel
+                const auto& channel = channels.front();
+
+                package.package_url = package.url_for_channel(channel.url().str(Credentials::Show));
+            }
+        }
+
+        return MTransaction{ ctx, database, std::move(conda_packages_vec), package_caches };
     }
 
 }  // namespace mamba

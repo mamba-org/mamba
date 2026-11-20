@@ -1,5 +1,6 @@
 #include <iostream>
 #include <regex>
+#include <vector>
 
 #ifndef _WIN32
 #include <clocale>
@@ -9,8 +10,14 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 #if defined(__APPLE__)
+#include <cerrno>
+#include <cstring>
+
+#include <fcntl.h>
 #include <libproc.h>
 #include <mach-o/dyld.h>
+#include <spawn.h>
+#include <sys/wait.h>
 #endif
 #include <inttypes.h>
 #include <limits.h>
@@ -31,11 +38,11 @@
 #include <fmt/color.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <reproc++/run.hpp>
 
 #include "mamba/core/error_handling.hpp"
 #include "mamba/core/output.hpp"
 #include "mamba/core/util_os.hpp"
+#include "mamba/fs/filesystem.hpp"
 #include "mamba/util/build.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/os_win.hpp"
@@ -43,6 +50,10 @@
 
 #ifdef _WIN32
 static_assert(std::is_same_v<mamba::DWORD, ::DWORD>);
+#endif
+
+#if defined(__APPLE__)
+extern "C" char** environ;
 #endif
 
 namespace mamba
@@ -149,6 +160,266 @@ namespace mamba
     }
 
 #ifdef _WIN32
+    namespace
+    {
+        // https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+        constexpr std::string_view windows_long_paths_doc_url = "https://learn.microsoft.com/en-us/windows/win32/fileio/"
+                                                                "maximum-file-path-limitation?tabs=registry"
+                                                                "#enable-long-paths-in-windows-10-version-1607-and-later";
+
+        constexpr auto file_system_registry_path = L"SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+        constexpr std::string_view file_system_registry_subkey = "SYSTEM\\CurrentControlSet\\Control\\FileSystem";
+        constexpr auto long_path_windows_settings_namespace = L"http://schemas.microsoft.com/SMI/2016/WindowsSettings";
+
+        struct LongPathsSupportInfo
+        {
+            bool os_supports = false;
+            bool registry_enabled = false;
+            bool manifest_long_path_aware = false;
+
+            [[nodiscard]] auto is_enabled() const -> bool
+            {
+                return os_supports && registry_enabled && manifest_long_path_aware;
+            }
+        };
+
+        auto windows_version_supports_long_paths() -> bool
+        {
+            // VerifyVersionInfoW is gated by the exe compatibility manifest and reports
+            // Windows 8 (6.2) unless Windows 10 GUIDs are declared. longpath.manifest only
+            // sets longPathAware. RtlGetVersion is not manifest-capped.
+            HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
+            if (ntdll == nullptr)
+            {
+                return false;
+            }
+
+            using RtlGetVersionFn = LONG(WINAPI*)(OSVERSIONINFOW*);
+            auto rtl_get_version = reinterpret_cast<RtlGetVersionFn>(
+                ::GetProcAddress(ntdll, "RtlGetVersion")
+            );
+            if (rtl_get_version == nullptr)
+            {
+                return false;
+            }
+
+            OSVERSIONINFOW version_info = {};
+            version_info.dwOSVersionInfoSize = sizeof(version_info);
+            if (rtl_get_version(&version_info) != 0)
+            {
+                return false;
+            }
+
+            // Windows 10 version 1607 (Anniversary Update) is build 14393.
+            return version_info.dwMajorVersion > 10
+                   || (version_info.dwMajorVersion == 10 && version_info.dwBuildNumber >= 14393);
+        }
+
+        auto read_long_paths_registry_enabled() -> bool
+        {
+            HKEY key = nullptr;
+            const LSTATUS open_status = RegOpenKeyExW(
+                HKEY_LOCAL_MACHINE,
+                file_system_registry_path,
+                0,
+                KEY_QUERY_VALUE,
+                &key
+            );
+            if (open_status == ERROR_FILE_NOT_FOUND)
+            {
+                return false;
+            }
+            if (open_status != ERROR_SUCCESS)
+            {
+                throw mamba_error(
+                    fmt::format(
+                        "Failed to open registry key '{}': {}",
+                        file_system_registry_subkey,
+                        open_status
+                    ),
+                    mamba_error_code::internal_failure
+                );
+            }
+
+            DWORD value = 0;
+            DWORD value_size = sizeof(value);
+            DWORD type = 0;
+            const LSTATUS query_status = RegQueryValueExW(
+                key,
+                L"LongPathsEnabled",
+                nullptr,
+                &type,
+                reinterpret_cast<LPBYTE>(&value),
+                &value_size
+            );
+            RegCloseKey(key);
+
+            if (query_status == ERROR_FILE_NOT_FOUND)
+            {
+                return false;
+            }
+            if (query_status != ERROR_SUCCESS)
+            {
+                throw mamba_error(
+                    fmt::format("Failed to read LongPathsEnabled registry value: {}", query_status),
+                    mamba_error_code::internal_failure
+                );
+            }
+            return value == 1;
+        }
+
+        auto read_long_path_aware_manifest() -> bool
+        {
+            // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryactctxsettingsw
+            wchar_t buffer[16] = {};
+            SIZE_T written = 0;
+            if (::QueryActCtxSettingsW(
+                    0,
+                    nullptr,
+                    long_path_windows_settings_namespace,
+                    L"longPathAware",
+                    buffer,
+                    std::size(buffer),
+                    &written
+                ))
+            {
+                return wcscmp(buffer, L"true") == 0;
+            }
+
+            const DWORD error = ::GetLastError();
+            if (error != ERROR_INSUFFICIENT_BUFFER || written == 0)
+            {
+                return false;
+            }
+
+            std::wstring large_buffer(written, L'\0');
+            if (!::QueryActCtxSettingsW(
+                    0,
+                    nullptr,
+                    long_path_windows_settings_namespace,
+                    L"longPathAware",
+                    large_buffer.data(),
+                    large_buffer.size(),
+                    &written
+                ))
+            {
+                return false;
+            }
+
+            if (written > 0 && large_buffer[written - 1] == L'\0')
+            {
+                large_buffer.resize(written - 1);
+            }
+            return large_buffer == L"true";
+        }
+
+        auto query_long_paths_support() -> LongPathsSupportInfo
+        {
+            return LongPathsSupportInfo{
+                .os_supports = windows_version_supports_long_paths(),
+                .registry_enabled = read_long_paths_registry_enabled(),
+                .manifest_long_path_aware = read_long_path_aware_manifest(),
+            };
+        }
+
+        auto make_long_paths_support_diagnostic(const LongPathsSupportInfo& info) -> std::string
+        {
+            if (info.is_enabled())
+            {
+                return {};
+            }
+
+            std::vector<std::string> messages;
+            if (!info.os_supports)
+            {
+                messages.push_back(
+                    fmt::format(
+                        "Windows long path support requires Windows 10 version 1607 (build 14393) or newer. "
+                        "See {}",
+                        windows_long_paths_doc_url
+                    )
+                );
+            }
+            if (!info.registry_enabled)
+            {
+                messages.push_back(
+                    fmt::format(
+                        "Windows long path support is disabled at the OS level "
+                        "(LongPathsEnabled registry key). "
+                        "Run 'micromamba shell enable_long_path_support' or follow Microsoft's guide: {}",
+                        windows_long_paths_doc_url
+                    )
+                );
+            }
+            if (!info.manifest_long_path_aware)
+            {
+                messages.push_back(
+                    fmt::format(
+                        "This executable is not long-path aware (missing longPathAware in the "
+                        "application manifest). Use an official micromamba build or embed "
+                        "longpath.manifest in your application. See {}",
+                        windows_long_paths_doc_url
+                    )
+                );
+            }
+
+            if (messages.empty())
+            {
+                return fmt::format(
+                    "Windows long path support appears to be disabled. See {}",
+                    windows_long_paths_doc_url
+                );
+            }
+
+            return util::join("\n", messages);
+        }
+
+        auto is_path_length_related_error(const std::error_code& ec) -> bool
+        {
+            // ERROR_FILENAME_EXCEED_RANGE; see
+            // https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+#ifndef ERROR_FILENAME_EXCEED_RANGE
+#define ERROR_FILENAME_EXCEED_RANGE 206
+#endif
+            return ec.category() == std::system_category()
+                   && ec.value() == ERROR_FILENAME_EXCEED_RANGE;
+        }
+
+        auto is_path_length_related_error(const std::exception& error) -> bool
+        {
+            const auto* fs_error = dynamic_cast<const fs::filesystem_error*>(&error);
+            if (fs_error == nullptr)
+            {
+                return false;
+            }
+            return is_path_length_related_error(fs_error->code());
+        }
+    }
+
+    auto are_long_paths_enabled() -> bool
+    {
+        return query_long_paths_support().is_enabled();
+    }
+
+    auto long_paths_support_diagnostic() -> std::string
+    {
+        return make_long_paths_support_diagnostic(query_long_paths_support());
+    }
+
+    void log_long_paths_support_hint_if_relevant(const std::exception& error)
+    {
+        if (!is_path_length_related_error(error))
+        {
+            return;
+        }
+
+        const auto hint = long_paths_support_diagnostic();
+        if (!hint.empty())
+        {
+            LOG_WARNING << "This error may be caused by disabled Windows long path support. " << hint;
+        }
+    }
+
     bool run_as_admin(const std::string& exe, const std::string& args)
     {
         SHELLEXECUTEINFO excinfo;
@@ -188,6 +459,20 @@ namespace mamba
     bool enable_long_paths_support(bool force, Palette palette)
     {
         // Needs to be set system-wide & can only be run as admin ...
+        const auto status = query_long_paths_support();
+        if (status.is_enabled())
+        {
+            const auto win_ver = util::windows_version();
+            LOG_INFO << "Windows long-path support already enabled. (Windows version = "
+                     << (win_ver ? win_ver.value() : "unknown") << ")";
+            return true;
+        }
+
+        if (status.registry_enabled && !status.manifest_long_path_aware)
+        {
+            LOG_WARNING << make_long_paths_support_diagnostic(status);
+            return false;
+        }
 
         const auto win_ver = util::windows_version();
         LOG_DEBUG << fmt::format(
@@ -198,54 +483,22 @@ namespace mamba
         static constexpr auto error_message_wrong_version = "Not setting long path registry key;"
                                                             "Windows version must be at least 10 with the fall 2016 \"Anniversary update\" or newer.";
 
-        if (!win_ver.has_value())
+        if (!status.os_supports)
         {
-            LOG_WARNING << "failed to acquire Windows version - " << error_message_wrong_version;
+            LOG_WARNING << "Windows version found:" << (win_ver ? win_ver.value() : "unknown")
+                        << " - " << error_message_wrong_version;
             return false;
         }
 
-
-        auto split_out = util::split(win_ver.value(), ".");
-        if (!(split_out.size() >= 3 && std::stoull(split_out[0]) >= 10
-              && std::stoull(split_out[2]) >= 14352))
+        if (!status.registry_enabled)
         {
-            LOG_WARNING << "Windows version found:" << win_ver.value() << " - "
-                        << error_message_wrong_version;
-            return false;
-        }
-
-        winreg::RegKey key;
-        key.Open(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Control\\FileSystem", KEY_QUERY_VALUE);
-        DWORD prev_value;
-        try
-        {
-            prev_value = key.GetDwordValue(L"LongPathsEnabled");
-        }
-        catch (const winreg::RegException& /*e*/)
-        {
-            LOG_INFO << "No LongPathsEnabled key detected. (Windows version = " << win_ver.value()
-                     << ")";
-            return false;
-        }
-
-        if (prev_value == 1)
-        {
-            auto out = Console::stream();
-            fmt::print(
-                out,
-                "{} (Windows version = {})",
-                fmt::styled("Windows long-path support already enabled.", palette.ignored),
-                win_ver.value()
-            );
-            return true;
+            LOG_INFO << "No LongPathsEnabled key detected. (Windows version = "
+                     << (win_ver ? win_ver.value() : "unknown") << ")";
         }
 
         if (force || is_admin())
         {
-            winreg::RegKey key_for_write(
-                HKEY_LOCAL_MACHINE,
-                L"SYSTEM\\CurrentControlSet\\Control\\FileSystem"
-            );
+            winreg::RegKey key_for_write(HKEY_LOCAL_MACHINE, file_system_registry_path);
             key_for_write.SetDwordValue(L"LongPathsEnabled", 1);
         }
         else
@@ -254,7 +507,10 @@ namespace mamba
             {
                 if (!run_as_admin(
                         "reg.exe",
-                        "ADD HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\FileSystem /v LongPathsEnabled /d 1 /t REG_DWORD /f"
+                        fmt::format(
+                            "ADD HKEY_LOCAL_MACHINE\\{} /v LongPathsEnabled /d 1 /t REG_DWORD /f",
+                            file_system_registry_subkey
+                        )
                     ))
                 {
                     return false;
@@ -267,8 +523,7 @@ namespace mamba
             }
         }
 
-        prev_value = key.GetDwordValue(L"LongPathsEnabled");
-        if (prev_value == 1)
+        if (read_long_paths_registry_enabled())
         {
             auto out = Console::stream();
             fmt::print(out, "{}", fmt::styled("Windows long-path support enabled.", palette.success));
@@ -513,23 +768,110 @@ namespace mamba
 #endif
     }
 
-    void codesign(const fs::u8path& path, bool verbose)
+    void codesign([[maybe_unused]] const fs::u8path& path, [[maybe_unused]] bool verbose)
     {
-        reproc::options options;
-        options.env.behavior = reproc::env::empty;
-        if (!verbose)
+#if defined(__APPLE__)
+        // Do not use `reproc` here. It forks and then `fcntl`/closes every FD up to
+        // `RLIMIT_NOFILE`; on GitHub Actions that limit is huge, the child aborts,
+        // and the parent sees `EINVAL`. `conda` and `rattler` just `posix_spawn` `codesign`
+        // with the inherited environment.
+
+        // Ad-hoc sign: `/usr/bin/codesign -s - -f <path>`
+        const std::string path_str = path.string();
+        char* argv[] = {
+            const_cast<char*>("/usr/bin/codesign"),
+            const_cast<char*>("-s"),
+            const_cast<char*>("-"),
+            const_cast<char*>("-f"),
+            const_cast<char*>(path_str.c_str()),
+            nullptr,
+        };
+
+        // File actions describe FD setup applied in the child before exec.
+        posix_spawn_file_actions_t file_actions;
+        int rc = posix_spawn_file_actions_init(&file_actions);
+        if (rc != 0)
         {
-            reproc::redirect silence;
-            silence.type = reproc::redirect::discard;
-            options.redirect.out = silence;
-            options.redirect.err = silence;
+            throw mamba_error(
+                std::string("Could not initialize codesign spawn file actions: ") + std::strerror(rc),
+                mamba_error_code::internal_failure
+            );
         }
 
-        const std::vector<std::string> cmd = { "/usr/bin/codesign", "-s", "-", "-f", path.string() };
-        auto [status, ec] = reproc::run(cmd, options);
-        if (ec)
+        // Quiet mode: redirect the child's `stdout` and `stderr` to `/dev/null`.
+        int devnull = -1;
+        if (!verbose)
         {
-            throw std::runtime_error(std::string("Could not codesign executable: ") + ec.message());
+            devnull = ::open("/dev/null", O_RDWR | O_CLOEXEC);
+            if (devnull >= 0)
+            {
+                rc = posix_spawn_file_actions_adddup2(&file_actions, devnull, STDOUT_FILENO);
+                if (rc == 0)
+                {
+                    rc = posix_spawn_file_actions_adddup2(&file_actions, devnull, STDERR_FILENO);
+                }
+                if (rc != 0)
+                {
+                    posix_spawn_file_actions_destroy(&file_actions);
+                    ::close(devnull);
+                    throw mamba_error(
+                        std::string("Could not redirect codesign stdout/stderr: ") + std::strerror(rc),
+                        mamba_error_code::internal_failure
+                    );
+                }
+            }
         }
+
+        // Spawn `codesign` with the inherited environment, then drop parent-side FDs.
+        pid_t pid = 0;
+        rc = posix_spawn(&pid, argv[0], &file_actions, nullptr, argv, ::environ);
+        posix_spawn_file_actions_destroy(&file_actions);
+        if (devnull >= 0)
+        {
+            ::close(devnull);
+        }
+        if (rc != 0)
+        {
+            throw mamba_error(
+                std::string("Could not spawn /usr/bin/codesign: ") + std::strerror(rc),
+                mamba_error_code::internal_failure
+            );
+        }
+
+        // Block until `codesign` exits and report a non-zero exit or signal.
+        int wstatus = 0;
+        if (waitpid(pid, &wstatus, 0) < 0)
+        {
+            throw mamba_error(
+                std::string("Could not wait for codesign process: ") + std::strerror(errno),
+                mamba_error_code::internal_failure
+            );
+        }
+        if (WIFEXITED(wstatus))
+        {
+            const int exit_status = WEXITSTATUS(wstatus);
+            if (exit_status != 0)
+            {
+                throw mamba_error(
+                    std::string("codesign failed with exit status ") + std::to_string(exit_status),
+                    mamba_error_code::internal_failure
+                );
+            }
+        }
+        else if (WIFSIGNALED(wstatus))
+        {
+            throw mamba_error(
+                std::string("codesign terminated by signal ") + std::to_string(WTERMSIG(wstatus)),
+                mamba_error_code::internal_failure
+            );
+        }
+        else
+        {
+            throw mamba_error(
+                "codesign ended with unexpected wait status",
+                mamba_error_code::internal_failure
+            );
+        }
+#endif
     }
 }

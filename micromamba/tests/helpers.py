@@ -48,6 +48,23 @@ channel = ["-c", "conda-forge"]
 dry_run_tests = DryRun(
     os.environ["MAMBA_DRY_RUN_TESTS"] if ("MAMBA_DRY_RUN_TESTS" in os.environ) else "OFF"
 )
+test_target_platform = None
+
+
+def package_target_args(args, enabled=True):
+    """Return an explicit target platform for package-backed test commands.
+
+    Some integration suites intentionally exercise a mature package inventory
+    from a different subdir than the native runner. Keep that test concern out
+    of Mamba's environment so tests for ``--no-env`` and platform precedence
+    retain their real semantics.
+    """
+    if not enabled or test_target_platform is None:
+        return []
+    if any(arg == "--platform" or str(arg).startswith("--platform=") for arg in args):
+        return []
+    return ["--platform", test_target_platform]
+
 
 MAMBA_NO_PREFIX_CHECK = 1 << 0
 MAMBA_ALLOW_EXISTING_PREFIX = 1 << 1
@@ -134,9 +151,17 @@ def logout(*args, **kwargs):
     return res.decode()
 
 
-def install(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs):
+def install(
+    *args,
+    default_channel=True,
+    no_rc=True,
+    no_dry_run=False,
+    use_target_platform=True,
+    **kwargs,
+):
     umamba = get_umamba()
     cmd = [umamba, "install", "-y"] + [arg for arg in args if arg]
+    cmd += package_target_args(args, use_target_platform)
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
@@ -177,10 +202,12 @@ def create(
     no_dry_run=False,
     always_yes=True,
     create_cmd="create",
+    use_target_platform=True,
     **kwargs,
 ):
     umamba = get_umamba()
     cmd = [umamba] + create_cmd.split() + [str(arg) for arg in args if arg]
+    cmd += package_target_args(args, use_target_platform)
 
     if "--print-config-only" in args:
         cmd += ["--debug"]
@@ -274,9 +301,17 @@ def clean(*args, no_dry_run=False, **kwargs):
         raise (e)
 
 
-def update(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs):
+def update(
+    *args,
+    default_channel=True,
+    no_rc=True,
+    no_dry_run=False,
+    use_target_platform=True,
+    **kwargs,
+):
     umamba = get_umamba()
     cmd = [umamba, "update", "-y"] + [arg for arg in args if arg]
+    cmd += package_target_args(args, use_target_platform)
     if use_offline:
         cmd += ["--offline"]
     if no_rc:
@@ -302,9 +337,11 @@ def update(*args, default_channel=True, no_rc=True, no_dry_run=False, **kwargs):
         raise (e)
 
 
-def run_env(*args, f=None, **kwargs):
+def run_env(*args, f=None, use_target_platform=True, **kwargs):
     umamba = get_umamba()
     cmd = [umamba, "env"] + [str(arg) for arg in args if arg]
+    if args and str(args[0]) in {"create", "update"}:
+        cmd += package_target_args(args, use_target_platform)
 
     res = subprocess_run(*cmd, **kwargs)
 
@@ -363,10 +400,11 @@ def umamba_run(*args, **kwargs):
     return res.decode()
 
 
-def umamba_repoquery(*args, no_rc=True, **kwargs):
+def umamba_repoquery(*args, no_rc=True, use_target_platform=True, **kwargs):
     umamba = get_umamba()
 
     cmd = [umamba, "repoquery"] + [str(arg) for arg in args if arg]
+    cmd += package_target_args(args, use_target_platform)
 
     if no_rc:
         cmd += ["--no-rc"]

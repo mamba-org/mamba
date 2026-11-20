@@ -34,7 +34,7 @@ namespace
             ->check(
                 CLI::IsMember(
                     std::set<std::string>(
-                        { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "tcsh", "dash", "nu" }
+                        { "bash", "posix", "powershell", "cmd.exe", "xonsh", "zsh", "fish", "csh", "tcsh", "dash", "nu" }
                     )
                 )
             )
@@ -362,19 +362,18 @@ namespace
                         return util::get_env("SHELL").value_or("bash");
                     };
 
-                    exit(
-                        mamba::run_in_environment(
-                            config.context(),
-                            config.context().prefix_params.target_prefix,
-                            { get_shell() },
-                            ".",
-                            static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),
-                            false,
-                            false,
-                            {},
-                            ""
-                        )
+                    const auto exit_code = mamba::run_in_environment(
+                        config.context(),
+                        config.context().prefix_params.target_prefix,
+                        { get_shell() },
+                        ".",
+                        static_cast<int>(STREAM_OPTIONS::ALL_STREAMS),
+                        false,
+                        false,
+                        {},
+                        ""
                     );
+                    umamba::request_exit_code(exit_code);
                 }
             }
         );

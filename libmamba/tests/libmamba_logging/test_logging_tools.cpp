@@ -235,7 +235,7 @@ namespace mamba::logging
             handler.start_log_handling({}, {});
             REQUIRE(handler.is_started());
 
-            handler.stop_log_handling(stop_reason::manual_stop);
+            handler.stop_log_handling();
             REQUIRE(not handler.is_started());
         }
 
@@ -301,7 +301,7 @@ namespace mamba::logging
             handler.start_log_handling({}, {});
             REQUIRE(handler.is_started());
 
-            handler.stop_log_handling(stop_reason::manual_stop);
+            handler.stop_log_handling();
             REQUIRE(not handler.is_started());
         }
 

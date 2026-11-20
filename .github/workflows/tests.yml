@@ -36,9 +36,9 @@ jobs:
     name: Windows
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, windows-11-arm]
         build_type: [release]
-      fail-fast: true
+      fail-fast: false
     uses: ./.github/workflows/windows_impl.yml
     with:
       os: ${{ matrix.os }}

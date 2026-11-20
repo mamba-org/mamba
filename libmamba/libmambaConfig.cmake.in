@@ -28,6 +28,10 @@ find_dependency(nlohmann_json)
 find_dependency(yaml-cpp)
 find_dependency(reproc++)
 
+if(@LIBMAMBA_USE_HOWARD_HINNANT_DATE@)
+    find_dependency(date)
+endif()
+
 if(NOT (TARGET libmamba-dyn OR TARGET libmamba-static))
     include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
 

@@ -54,59 +54,77 @@ namespace mamba
         );
     }
 
-    std::string guess_shell()
+    std::string guess_shell_from_parent_process_name(const std::string& parent_process_name)
     {
-        std::string parent_process_name = get_process_name_by_pid(getppid());
-
-        LOG_DEBUG << "Guessing shell. Parent process name: " << parent_process_name;
-
-        std::string parent_process_name_lower = util::to_lower(parent_process_name);
-
-        if (util::contains(parent_process_name_lower, "bash"))
+        const std::string pp_name_lower = util::to_lower(parent_process_name);
+        if (util::contains(pp_name_lower, "bash"))
         {
             return "bash";
         }
-        if (util::contains(parent_process_name_lower, "zsh"))
+        if (util::contains(pp_name_lower, "zsh"))
         {
             return "zsh";
         }
-        if (util::contains(parent_process_name_lower, "csh"))
+        if (util::contains(pp_name_lower, "tcsh"))
+        {
+            return "tcsh";
+        }
+        if (util::contains(pp_name_lower, "csh"))
         {
             return "csh";
         }
-        if (util::contains(parent_process_name_lower, "dash"))
+        if (util::contains(pp_name_lower, "dash"))
         {
             return "dash";
         }
-        if (util::contains(parent_process_name, "nu"))
+        // Search for nu or nushell as whole words,
+        // otherwise we could have false positives
+        // like in a process name containing `nu` (e.g: linux)
+        if (std::regex_search(pp_name_lower, std::regex(R"(\bnu(?:shell)?\b)")))
         {
             return "nu";
         }
-
         // xonsh in unix, Python in macOS
-        if (util::contains(parent_process_name_lower, "python"))
+        if (util::contains(pp_name_lower, "python"))
         {
             Console::stream() << "Your parent process name is " << parent_process_name
                               << ".\nIf your shell is xonsh, please use \"-s xonsh\".";
         }
-        if (util::contains(parent_process_name_lower, "xonsh"))
+        if (util::contains(pp_name_lower, "xonsh"))
         {
             return "xonsh";
         }
-        if (util::contains(parent_process_name_lower, "cmd.exe"))
+        if (util::contains(pp_name_lower, "cmd.exe"))
         {
             return "cmd.exe";
         }
-        if (util::contains(parent_process_name_lower, "powershell")
-            || util::contains(parent_process_name_lower, "pwsh"))
+        if (util::contains(pp_name_lower, "powershell") || util::contains(pp_name_lower, "pwsh"))
         {
             return "powershell";
         }
-        if (util::contains(parent_process_name_lower, "fish"))
+        if (util::contains(pp_name_lower, "fish"))
         {
             return "fish";
         }
 
+        LOG_DEBUG << "Couldn't guess shell from process, returning empty.";
+        return "";
+    }
+
+    std::string guess_shell()
+    {
+        const std::string parent_process_name = get_process_name_by_pid(getppid());
+
+        LOG_DEBUG << "Guessing shell. Parent process name: " << parent_process_name;
+
+        auto guessed_shell = guess_shell_from_parent_process_name(parent_process_name);
+
+        if (!guessed_shell.empty())
+        {
+            return guessed_shell;
+        }
+
+        // Fallback:
         // Get `SHELL` environment variable if set
         // Standard values are assumed to be `/bin/{shell_type}` or `/usr/bin/{shell_type}`
         if (util::get_env("SHELL").has_value())
@@ -114,6 +132,7 @@ namespace mamba
             return util::split(util::get_env("SHELL").value(), "/").back();
         }
 
+        LOG_DEBUG << "Couldn't guess shell, returning empty.";
         return "";
     }
 
@@ -648,7 +667,7 @@ namespace mamba
         {
             conda_init_content = nu_content(conda_prefix, shell, mamba_exe);
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             conda_init_content = csh_content(conda_prefix, shell, mamba_exe);
         }
@@ -746,7 +765,7 @@ namespace mamba
             util::replace_all(contents, "${MAMBA_EXE}", util::path_to_posix(exe.string()));
             return contents;
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             std::string contents = data_mamba_csh;
             // Using /unix/like/paths on Unix shell (even on Windows)
@@ -800,10 +819,20 @@ namespace mamba
     {
         const ShellInitPathsWindowsCmd paths{ root_prefix };
 
+        // The default root prefix is validated on the next invocation, so it must
+        // be a valid conda prefix (with `pkgs`, `conda-meta` or `envs` folder) from the start.
+        // It used to contain only the hook scripts -> every following run aborted silently.
+        std::error_code ec;
+        fs::create_directories(root_prefix / "conda-meta", ec);
+        if (ec)
+        {
+            LOG_ERROR << "Failed to create directory '" << (root_prefix / "conda-meta").string()
+                      << "' : " << ec.message();
+        }
         for (const auto& directory : paths.every_generated_directories_paths())
         {
             // Maybe the prefix isn't writable. No big deal, just keep going.
-            std::error_code maybe_error [[maybe_unused]];
+            std::error_code maybe_error;
             fs::create_directories(directory, maybe_error);
             if (maybe_error)
             {
@@ -945,7 +974,7 @@ namespace mamba
             std::ofstream sh_file = open_ofstream(sh_source_path);
             sh_file << data_mamba_sh;
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             CshActivator activator{ context };
             auto sh_source_path = activator.hook_source_path();
@@ -1042,7 +1071,7 @@ namespace mamba
             fs::remove(sh_source_path);
             LOG_INFO << "Removed " << sh_source_path << " file.";
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             CshActivator activator{ context };
             auto sh_source_path = activator.hook_source_path();
@@ -1287,7 +1316,7 @@ namespace mamba
             fs::u8path zshrc_path = home / ".zshrc";
             modify_rc_file(context, zshrc_path, conda_prefix, shell, mamba_exe);
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             fs::u8path cshrc_path = home / ".tcshrc";
             modify_rc_file(context, cshrc_path, conda_prefix, shell, mamba_exe);
@@ -1366,7 +1395,7 @@ namespace mamba
             fs::u8path xonshrc_path = home / ".xonshrc";
             reset_rc_file(context, xonshrc_path, shell, mamba_exe);
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             fs::u8path tcshrc_path = home / ".tcshrc";
             reset_rc_file(context, tcshrc_path, shell, mamba_exe);
@@ -1430,7 +1459,7 @@ namespace mamba
         {
             config_path = home / ".xonshrc";
         }
-        else if (shell == "csh")
+        else if (shell == "csh" || shell == "tcsh")
         {
             config_path = home / ".tcshrc";
         }
@@ -1450,7 +1479,8 @@ namespace mamba
         fs::u8path home = util::user_home_dir();
 
         std::vector<std::string> result;
-        std::vector<std::string> supported_shells = { "bash", "zsh", "xonsh", "csh", "fish", "nu" };
+        std::vector<std::string> supported_shells = { "bash", "zsh",  "xonsh", "csh",
+                                                      "tcsh", "fish", "nu" };
         for (const std::string& shell : supported_shells)
         {
             fs::u8path config_path = config_path_for_shell(shell);

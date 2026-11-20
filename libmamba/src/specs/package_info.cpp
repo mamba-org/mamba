@@ -42,11 +42,11 @@ namespace mamba::specs
 
         auto parse_extension(std::string_view spec) -> PackageType
         {
-            if (util::ends_with(spec, ".whl"))
+            if (spec.ends_with(".whl"))
             {
                 return PackageType::Wheel;
             }
-            else if (util::ends_with(spec, ".tar.gz"))
+            else if (spec.ends_with(".tar.gz"))
             {
                 return PackageType::TarGz;
             }
@@ -256,7 +256,7 @@ namespace mamba::specs
                 return parse_url(url).transform(
                     [&](PackageInfo&& pkg) -> PackageInfo
                     {
-                        if (util::starts_with(hash, "sha256:"))
+                        if (hash.starts_with("sha256:"))
                         {
                             hash = hash.substr(7);
                             if (hash.size() == 64 && is_hash(hash))
@@ -283,7 +283,7 @@ namespace mamba::specs
 
         // A git repository URL over https and used by `pip`
         // git+https://<repository-url>@<commit|branch|tag>#egg=<package-name>
-        if (util::starts_with(str, "git+https"))
+        if (str.starts_with("git+https"))
         {
             auto pkg = PackageInfo();
             pkg.package_url = str;
@@ -520,7 +520,6 @@ namespace mamba::specs
                 p.track_features,
                 p.dependencies,
                 p.constrains,
-                p.signatures,
                 p.python_site_packages_path,
                 p.defaulted_keys
             );
@@ -564,10 +563,6 @@ namespace mamba::specs
         {
             j["sha256"] = pkg.sha256;
         }
-        if (!pkg.signatures.empty())
-        {
-            j["signatures"] = pkg.signatures;
-        }
         if (!pkg.python_site_packages_path.empty())
         {
             j["python_site_packages_path"] = pkg.python_site_packages_path;
@@ -597,6 +592,14 @@ namespace mamba::specs
         pkg.version = j.value("version", "");
         pkg.channel = j.value("channel", "");
         pkg.package_url = j.value("url", "");
+        if (pkg.package_url.empty())
+        {
+            if (auto urls = j.find("urls");
+                urls != j.end() && urls->is_array() && !urls->empty() && urls->front().is_string())
+            {
+                pkg.package_url = urls->front().get<std::string>();
+            }
+        }
         pkg.platform = j.value("subdir", "");
         pkg.filename = j.value("fn", "");
         pkg.size = j.value("size", std::size_t(0));
@@ -613,7 +616,6 @@ namespace mamba::specs
         pkg.license = j.value("license", "");
         pkg.md5 = j.value("md5", "");
         pkg.sha256 = j.value("sha256", "");
-        pkg.signatures = j.value("signatures", "");
         pkg.python_site_packages_path = j.value("python_site_packages_path", "");
         if (auto it = j.find("track_features"); it != j.end())
         {

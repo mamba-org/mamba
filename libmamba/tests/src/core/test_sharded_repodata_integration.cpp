@@ -408,7 +408,7 @@ namespace
                 continue;
             }
             const auto filename = entry.path().filename().string();
-            if (util::ends_with(filename, ".msgpack.zst"))
+            if (filename.ends_with(".msgpack.zst"))
             {
                 paths.push_back(entry.path());
             }

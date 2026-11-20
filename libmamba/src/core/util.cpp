@@ -78,9 +78,10 @@ namespace mamba
     {
         // Usernames on anaconda.org can have a underscore, which influences the
         // first two characters.
-        // The `+` is there to make sure we dont match `/t/*` with `*` being literal or anything we
-        // don't capture here.
-        static const std::regex token_regex{ "/t/([a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-_]+)" };
+        // Masked tokens (five asterisks, as produced by `hide_secrets` or by
+        // `CondaURL::Credentials::Hide`) are matched too: package URLs built from
+        // cached repodata metadata carry them, and must still be treated as authenticated.
+        static const std::regex token_regex{ "/t/(\\*{5}|[a-zA-Z0-9-_]{0,2}[a-zA-Z0-9-]+)" };
         return token_regex;
     }
 
@@ -104,7 +105,7 @@ namespace mamba
         {
             std::smatch match = *matches;
             auto var = match[0].str();
-            if (util::starts_with(var, "${"))
+            if (var.starts_with("${"))
             {
                 // strip ${ and }
                 var = var.substr(2, var.size() - 3);
@@ -361,15 +362,15 @@ namespace mamba
             }
 
             // Skipping comment lines starting with #
-            if (util::starts_with(line, "#"))
+            if (line.starts_with("#"))
             {
                 continue;
             }
 
             // Skipping comment lines starting with @ BUT headers of explicit environment specs
-            if (util::starts_with(line, "@"))
+            if (line.starts_with("@"))
             {
-                auto is_explicit_header = util::starts_with(line, "@EXPLICIT");
+                auto is_explicit_header = line.starts_with("@EXPLICIT");
 
                 if (is_explicit_header)
                 {
@@ -388,17 +389,17 @@ namespace mamba
 
     void split_package_extension(const std::string& file, std::string& name, std::string& extension)
     {
-        if (util::ends_with(file, ".conda"))
+        if (file.ends_with(".conda"))
         {
             name = file.substr(0, file.size() - 6);
             extension = ".conda";
         }
-        else if (util::ends_with(file, ".tar.bz2"))
+        else if (file.ends_with(".tar.bz2"))
         {
             name = file.substr(0, file.size() - 8);
             extension = ".tar.bz2";
         }
-        else if (util::ends_with(file, ".json"))
+        else if (file.ends_with(".json"))
         {
             name = file.substr(0, file.size() - 5);
             extension = ".json";
@@ -1394,7 +1395,7 @@ namespace mamba
     bool ensure_comspec_set()
     {
         std::string cmd_exe = util::get_env("COMSPEC").value_or("");
-        if (!util::ends_with(util::to_lower(cmd_exe), "cmd.exe"))
+        if (!util::to_lower(cmd_exe).ends_with("cmd.exe"))
         {
             cmd_exe = (fs::u8path(util::get_env("SystemRoot").value_or("")) / "System32" / "cmd.exe")
                           .string();
@@ -1614,7 +1615,7 @@ namespace mamba
 
     bool is_yaml_file_name(std::string_view filename)
     {
-        return util::ends_with(filename, ".yml") || util::ends_with(filename, ".yaml");
+        return filename.ends_with(".yml") || filename.ends_with(".yaml");
     }
 
     std::optional<std::string>
@@ -1681,9 +1682,6 @@ namespace mamba
         if (util::contains(str, "/t/"))
         {
             copy = std::regex_replace(copy, token_regex(), "");
-            // Remove masked token pattern if present (escape * for regex)
-            static const std::regex masked_token_regex{ "/t/\\*{5}" };
-            copy = std::regex_replace(copy, masked_token_regex, "");
         }
 
         // Remove password from basic auth: user:password@domain -> preserve scheme and domain

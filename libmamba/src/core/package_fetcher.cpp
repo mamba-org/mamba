@@ -10,6 +10,7 @@
 #include "mamba/core/output.hpp"
 #include "mamba/core/package_fetcher.hpp"
 #include "mamba/core/util.hpp"
+#include "mamba/core/util_os.hpp"
 #include "mamba/specs/archive.hpp"
 #include "mamba/util/string.hpp"
 #include "mamba/validation/tools.hpp"
@@ -51,7 +52,7 @@ namespace mamba
     auto get_download_request_components(const specs::PackageInfo& pkg) -> DownloadRequestComponents
     {
         constexpr std::string_view oci_scheme = "oci://";
-        const bool use_oci = util::starts_with(pkg.package_url, oci_scheme);
+        const bool use_oci = pkg.package_url.starts_with(oci_scheme);
         const bool use_auth = std::regex_search(pkg.package_url, http_basicauth_regex())
                               || std::regex_search(pkg.package_url, token_regex());
 
@@ -139,12 +140,13 @@ namespace mamba
 
     PackageFetcher::PackageFetcher(const specs::PackageInfo& pkg_info, MultiPackageCache& caches)
         : m_package_info(pkg_info)
+        , m_caches(&caches)
     {
-        const fs::u8path extracted_cache = caches.get_extracted_dir_path(m_package_info);
+        const fs::u8path extracted_cache = m_caches->get_extracted_dir_path(m_package_info);
         if (extracted_cache.empty())
         {
-            const fs::u8path tarball_cache = caches.get_tarball_path(m_package_info);
-            auto& cache = caches.first_writable_cache(true);
+            const fs::u8path tarball_cache = m_caches->get_tarball_path(m_package_info);
+            auto& cache = m_caches->first_writable_cache(true);
             m_cache_path = cache.path() / package_cache_folder_relative_path(m_package_info);
             fs::create_directories(m_cache_path);
 
@@ -158,7 +160,7 @@ namespace mamba
             }
             else
             {
-                caches.clear_query_cache(m_package_info);
+                m_caches->clear_query_cache(m_package_info);
                 // need to download this file
                 const DownloadRequestComponents components = get_download_request_components(
                     m_package_info
@@ -292,11 +294,11 @@ namespace mamba
         fs::u8path get_extract_path(const std::string& filename, const fs::u8path& cache_path)
         {
             std::string fn = filename;
-            if (util::ends_with(fn, ".tar.bz2"))
+            if (fn.ends_with(".tar.bz2"))
             {
                 fn = fn.substr(0, fn.size() - 8);
             }
-            else if (util::ends_with(fn, ".conda"))
+            else if (fn.ends_with(".conda"))
             {
                 fn = fn.substr(0, fn.size() - 6);
             }
@@ -359,6 +361,7 @@ namespace mamba
                 LOG_DEBUG << "Extracted to '" << extract_path.string() << "'";
                 write_repodata_record(extract_path);
                 update_urls_txt();
+                m_caches->clear_query_cache(m_package_info);
                 update_monitor(cb, PackageExtractEvent::extract_success);
             }
             catch (const std::logic_error&)
@@ -371,6 +374,9 @@ namespace mamba
             {
                 Console::instance().print(filename() + " extraction failed");
                 LOG_ERROR << "Error when extracting package: " << e.what();
+#ifdef _WIN32
+                log_long_paths_support_hint_if_relevant(e);
+#endif
                 update_monitor(cb, PackageExtractEvent::extract_failure);
                 return false;
             }
@@ -386,9 +392,23 @@ namespace mamba
 
     void PackageFetcher::clear_cache() const
     {
+        const auto remove_extracted_at = [&](const fs::u8path& cache_path)
+        { fs::remove_all(get_extract_path(filename(), cache_path)); };
+
         fs::remove_all(m_tarball_path);
-        const fs::u8path dest_dir = specs::strip_archive_extension(m_tarball_path.string());
-        fs::remove_all(dest_dir);
+        remove_extracted_at(m_cache_path);
+
+        // Tarballs may use the flat layout while extraction uses the hierarchical layout.
+        const fs::u8path tarball_parent = m_tarball_path.parent_path();
+        if (tarball_parent != m_cache_path)
+        {
+            remove_extracted_at(tarball_parent);
+        }
+
+        if (m_caches)
+        {
+            m_caches->clear_query_cache(m_package_info);
+        }
     }
 
     /*******************

@@ -754,7 +754,7 @@ namespace mamba
             }
             else
             {
-                throw std::move(result).value();
+                throw std::move(result).error();
             }
 
             LOG_TRACE << "Using default root prefix for micromamba: " << root_prefix;
@@ -1043,9 +1043,12 @@ namespace mamba
             value = normalize_to_affinity_concurrency(static_cast<int>(value));
         }
 
-        void extract_threads_hook(const Context& context)
+        void extract_threads_hook(int& value)
         {
-            PackageFetcherSemaphore::set_max(context.threads_params.extract_threads);
+            // Normalize the extraction threads stored in the context, then configure the
+            // extraction semaphore from the same resolved value.
+            value = static_cast<int>(normalize_to_affinity_concurrency(value));
+            PackageFetcherSemaphore::set_max(value);
         }
     }
 
@@ -1092,8 +1095,7 @@ namespace mamba
         {
             const auto filename = fs::u8path(file).filename();
             return filename == ".condarc" || filename == "condarc" || filename == ".mambarc"
-                   || filename == "mambarc" || util::ends_with(file, ".yml")
-                   || util::ends_with(file, ".yaml");
+                   || filename == "mambarc" || file.ends_with(".yml") || file.ends_with(".yaml");
         }
 
         bool is_config_file(const fs::u8path& path)
@@ -1597,6 +1599,26 @@ namespace mamba
 
 
         // Solver
+        insert(Configurable("override_virtual_packages", &m_context.override_virtual_packages)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .description("Override values for virtual packages")
+                   .long_description(unindent(R"(
+                        A dictionary of virtual package overrides. Keys are virtual package names
+                        without the leading `__` (e.g. `cuda`, `glibc`, `archspec`), though names
+                        with `__` are also accepted. Values override the detected version (or the
+                        build string for `archspec`).
+
+                        Environment variables of the form `CONDA_OVERRIDE_<NAME>` take precedence
+                        over this setting.
+
+                        Example:
+                          override_virtual_packages:
+                            cuda: "12.8"
+                            glibc: "2.17"
+                            archspec: "x86_64_v3"
+                   )")));
+
         insert(Configurable("channel_priority", &m_context.channel_priority)
                    .group("Solver")
                    .set_rc_configurable()
@@ -1719,6 +1741,32 @@ namespace mamba
                    .set_env_var_names()
                    .description("Allow downgrade when installing packages. Default is false."));
 
+        insert(Configurable("exclude_newer", &m_context.exclude_newer_params.exclude_newer)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "CONDA_EXCLUDE_NEWER", "MAMBA_EXCLUDE_NEWER" })
+                   .description("Exclude packages published more recently than the given duration or date")
+                   .long_description(unindent(R"(
+                        Exclude packages with a policy timestamp newer than the cutoff.
+                        Accepts durations (e.g. 7d, 3d12h, 1w, P7D), ISO datetimes
+                        (e.g. 2026-04-01T12:00:00Z), or date-only values (e.g. 2026-04-01).
+                        Date-only values follow conda's exclude-newer convention: the given
+                        calendar day is included, so the cutoff is the start of the next UTC
+                        day. Plain integers are treated as durations in seconds. Supply 0
+                        for no delay, using the current time as the cutoff.)")));
+
+        insert(Configurable("exclude_newer_package", &m_context.exclude_newer_params.exclude_newer_package)
+                   .group("Solver")
+                   .set_rc_configurable()
+                   .set_env_var_names({ "CONDA_EXCLUDE_NEWER_PACKAGE", "MAMBA_EXCLUDE_NEWER_PACKAGE" })
+                   .description("Per-package overrides for the exclude_newer policy")
+                   .long_description(unindent(R"(
+                        Maps package names to durations, dates, timestamps, or false to exempt
+                        a package from the global exclude_newer policy. Package-specific values
+                        take precedence over the global cutoff. This must
+                        be expressed as a JSON dictionary with package names as keys (e.g.
+                        '{"numpy": "false", "pandas": "7d"}'.)")));
+
         insert(Configurable("order_solver_request", &m_context.solver_flags.order_request)
                    .group("Solver")
                    .set_rc_configurable()
@@ -1744,13 +1792,13 @@ namespace mamba
                    .long_description(unindent(R"(
                         Defines the number of threads for package download.
                         If set to 0, the number of threads is chosen automatically as the
-                        minimum between 10 and the number of CPUs available to the process.")));
+                        minimum between 10 and the number of CPUs available to the process.)")));
 
         insert(Configurable("extract_threads", &m_context.threads_params.extract_threads)
                    .group("Extract, Link & Install")
                    .set_rc_configurable()
                    .set_env_var_names()
-                   .set_post_context_hook([this] { return detail::extract_threads_hook(m_context); })
+                   .set_post_merge_hook(detail::extract_threads_hook)
                    .description("Defines the number of threads for package extraction")
                    .long_description(unindent(R"(
                         Defines the number of threads for package extraction.
@@ -1758,7 +1806,7 @@ namespace mamba
                         Negative values are interpreted as (available CPUs for this process
                         minus the absolute value).
                         If set to 0, the number of threads is chosen automatically as the
-                        minimum between 10 and the number of CPUs available to the process)")));
+                        minimum between 10 and the number of CPUs available to the process.)")));
 
         insert(Configurable("allow_softlinks", &m_context.link_params.allow_softlinks)
                    .group("Extract, Link & Install")
@@ -1827,27 +1875,6 @@ namespace mamba
                    .long_description(unindent(R"(
                         Spend extra time validating package contents. Currently, runs sha256
                         verification on every file within each package during installation.)")));
-
-        insert(Configurable("verify_artifacts", &m_context.validation_params.verify_artifacts)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description(  //
-                       "Run verifications on packages signatures.\n"
-                       "This is still experimental and may not be stable yet.\n"
-                   )
-                   .long_description(unindent(R"(
-                        Spend extra time validating package contents. It consists of running
-                        cryptographic verifications on channels and packages metadata.)")));
-
-        insert(Configurable("trusted_channels", &m_context.validation_params.trusted_channels)
-                   .group("Extract, Link & Install")
-                   .set_rc_configurable()
-                   .set_env_var_names()
-                   .description(  //
-                       "The list of trusted channels allowing artifacts verification.\n"
-                       "See `verify-artifacts` for more details.\n"
-                   ));
 
         insert(Configurable("lock_timeout", &m_context.lock_timeout)
                    .group("Extract, Link & Install")
@@ -2297,7 +2324,7 @@ namespace mamba
             int dump_opts = MAMBA_SHOW_CONFIG_VALUES | MAMBA_SHOW_CONFIG_SRCS
                             | MAMBA_SHOW_ALL_CONFIGS;
             print_dump(*this, dump_opts);
-            exit(0);
+            throw mamba_early_exit_request{};
         }
 
         m_context.set_log_level(m_context.output_params.logging_level);
@@ -2782,7 +2809,7 @@ namespace mamba
 
     void print_dump(const Configuration& config, int dump_opts, std::vector<std::string> dump_names)
     {
-        const std::string dump_text = hide_secrets(config.dump(dump_opts, std::move(dump_names)));
+        const std::string dump_text = config.dump(dump_opts, std::move(dump_names));
         if (config.context().output_params.json)
         {
             // merge the output with existing json output

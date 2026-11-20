@@ -1,3 +1,96 @@
+## libmambapy 2.10.0 (October 23, 2026)
+
+Enhancements:
+
+- feat: Complete `exclude_newer` policy by @jjerphan in <https://github.com/mamba-org/mamba/pull/4344>
+- feat: Remove stop-reason mechanism from logging system by @Klaim in <https://github.com/mamba-org/mamba/pull/4399>
+- feat: Inject channels+mirrors coming from mambajs env-lockfiles by @Klaim in <https://github.com/mamba-org/mamba/pull/4126>
+
+Bug fixes:
+
+- update_changelog: Handles issue number in PR titles by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4441>
+- fix: Honor `override_virtual_packages` configuration by @jjerphan in <https://github.com/mamba-org/mamba/pull/4364>
+
+CI fixes and doc:
+
+- ci: recreate coverage environment with cached downloads by @maresb in <https://github.com/mamba-org/mamba/pull/4424>
+- Add comments and documentation for `exclude_newer` policy by @Hind-M in <https://github.com/mamba-org/mamba/pull/4409>
+- ci: Add `win-arm64` static builds workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4357>
+
+Maintenance:
+
+- Remove `mamba-content-trust` entirely by @Hind-M in <https://github.com/mamba-org/mamba/pull/4417>
+- Removed implementations of TUF by @JohanMabille in <https://github.com/mamba-org/mamba/pull/4415>
+- build(deps): bump jlumbroso/free-disk-space from 1.3.1 to 2.0.0 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4408>
+- maint: Adapt build setup for `cxx-compiler >=2` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4382>
+- maint: Use cxx-compiler <2 by @jjerphan in <https://github.com/mamba-org/mamba/pull/4381>
+
+## libmambapy 2.9.0 (August 07, 2026)
+
+Enhancements:
+
+- feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+CI fixes and doc:
+
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
+## libmambapy 2.9.0.rc1 (August 05, 2026)
+
+Enhancements:
+
+- feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+CI fixes and doc:
+
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
+## libmambapy 2.9.0.rc0 (July 31, 2026)
+
+Enhancements:
+
+- feat: Support excluding recent builds using timestamp (`--exclude-newer`) by @jezdez in <https://github.com/mamba-org/mamba/pull/4228>
+- Opt out link scripts execution by @Hind-M in <https://github.com/mamba-org/mamba/pull/4325>
+
+CI fixes and doc:
+
+- docs: Update installation instructions by @jjerphan in <https://github.com/mamba-org/mamba/pull/4326>
+- ci: Specify `cache-environment-key` for Code Coverage workflows by @jjerphan in <https://github.com/mamba-org/mamba/pull/4315>
+
+Maintenance:
+
+- maint: Unpin `cxx-compiler` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4343>
+- build(deps): bump actions/cache from 5 to 6 in /.github/actions/workspace by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4341>
+- Clean up by @Hind-M in <https://github.com/mamba-org/mamba/pull/4336>
+- Install `git` explicitly in docker container by @Hind-M in <https://github.com/mamba-org/mamba/pull/4338>
+- build(deps): bump actions/checkout from 6 to 7 by @app/dependabot in <https://github.com/mamba-org/mamba/pull/4330>
+- maint: Require at least spdlog 1.16.0 for micromamba by @jjerphan in <https://github.com/mamba-org/mamba/pull/4318>
+- maint: Explicitly specify using Ninja for `libmambapy` by @jjerphan in <https://github.com/mamba-org/mamba/pull/4314>
+
 ## libmambapy 2.8.1 (June 08, 2026)
 
 Maintenance:

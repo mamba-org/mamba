@@ -15,6 +15,7 @@
 #include "mamba/core/package_handling.hpp"
 #include "mamba/core/util.hpp"
 #include "mamba/fs/filesystem.hpp"
+#include "mamba/specs/archive.hpp"
 #include "mamba/util/url_manip.hpp"
 
 #include "mambatests.hpp"
@@ -94,6 +95,37 @@ namespace
             REQUIRE(req.mirror_name == "oci://ghcr.io/channel-mirrors/conda-forge");
             // Should correspond to PackageFetcher::url_path()
             REQUIRE(req.url_path == "linux-64/xtensor-0.25.0-h00ab1b0_0.conda");
+        }
+
+        SECTION("From token channel")
+        {
+            static constexpr std::string_view url = "https://conda.anaconda.org/t/xy-12345678-1234-1234-1234-123456789012/private/linux-64/pkg-6.4-bld.conda";
+            auto pkg_info = specs::PackageInfo::from_url(url).value();
+            pkg_info.channel = "https://conda.anaconda.org/private";
+
+            PackageFetcher pkg_fetcher{ pkg_info, package_caches };
+
+            auto req = pkg_fetcher.build_download_request();
+            // The token must not be passed in the URL, the channel mirror provides it
+            REQUIRE(req.mirror_name == "https://conda.anaconda.org/private");
+            REQUIRE(req.url_path == "linux-64/pkg-6.4-bld.conda");
+        }
+
+        SECTION("From token channel with masked token")
+        {
+            // Package URLs built from cached repodata metadata have the token hidden
+            static constexpr std::string_view url = "https://conda.anaconda.org/t/*****/private/linux-64/pkg-6.4-bld.conda";
+            specs::PackageInfo pkg_info{ "pkg", "6.4", "bld", "https://conda.anaconda.org/private" };
+            pkg_info.package_url = url;
+            pkg_info.filename = "pkg-6.4-bld.conda";
+            pkg_info.platform = "linux-64";
+
+            PackageFetcher pkg_fetcher{ pkg_info, package_caches };
+
+            auto req = pkg_fetcher.build_download_request();
+            // Downloading the package URL as-is would send the literal "*****" as the token
+            REQUIRE(req.mirror_name == "https://conda.anaconda.org/private");
+            REQUIRE(req.url_path == "linux-64/pkg-6.4-bld.conda");
         }
     }
 
@@ -1299,5 +1331,80 @@ namespace
         // Size should be filled from tarball
         REQUIRE(repodata_record.contains("size"));
         CHECK(repodata_record["size"] == tarball_size);
+    }
+
+    // Non-regression for https://github.com/mamba-org/mamba/issues/4322 and
+    // https://github.com/mamba-org/mamba/issues/4331#issuecomment-4771693736
+    // When the tarball uses the flat layout but extraction targets the hierarchical layout,
+    // clear_cache() must remove the hierarchical extracted directory.
+    TEST_CASE("PackageFetcher::clear_cache removes hierarchical extracted directory", "[regression][4322][4331]")
+    {
+        auto& ctx = mambatests::context();
+        TemporaryDirectory temp_dir;
+        const fs::u8path pkgs_dir = temp_dir.path() / "pkgs";
+        fs::create_directories(pkgs_dir);
+        MultiPackageCache package_caches({ pkgs_dir }, ctx.validation_params);
+
+        specs::PackageInfo pkg;
+        pkg.name = "cuda-nvvp";
+        pkg.version = "12.9.79";
+        pkg.build_string = "he0c23c2_0";
+        pkg.platform = "win-64";
+        pkg.channel = "conda-forge";
+        pkg.package_url = "https://conda.anaconda.org/conda-forge/win-64/cuda-nvvp-12.9.79-he0c23c2_0.conda";
+        pkg.filename = "cuda-nvvp-12.9.79-he0c23c2_0.conda";
+
+        const auto cache_subdir = package_cache_folder_relative_path(pkg);
+        const std::string pkg_basename = std::string(specs::strip_archive_extension(pkg.filename));
+        const fs::u8path hierarchical_extract = pkgs_dir / cache_subdir / pkg_basename;
+        const fs::u8path flat_tarball = pkgs_dir / pkg.filename;
+
+        // Build a valid tarball at the flat cache location.
+        const fs::u8path build_dir = temp_dir.path() / "build";
+        const fs::u8path info_dir = build_dir / "info";
+        fs::create_directories(info_dir);
+        {
+            std::ofstream index_file((info_dir / "index.json").std_path());
+            index_file << R"({"name":"cuda-nvvp","version":"12.9.79","build":"he0c23c2_0"})";
+        }
+        {
+            std::ofstream paths_file((info_dir / "paths.json").std_path());
+            paths_file << R"({"paths": [], "paths_version": 1})";
+        }
+        create_archive(
+            build_dir,
+            flat_tarball,
+            compression_algorithm::bzip2,
+            /* compression_level= */ 1,
+            /* compression_threads= */ 1,
+            /* filter= */ nullptr
+        );
+        REQUIRE(fs::exists(flat_tarball));
+
+        // Simulate a stale partial extraction at the hierarchical location.
+        fs::create_directories(hierarchical_extract / "info");
+        {
+            auto out = open_ofstream(hierarchical_extract / "info" / "repodata_record.json");
+            out << R"({"name":"cuda-nvvp","version":"12.9.79","build":"he0c23c2_0","url":")"
+                << pkg.package_url << R"(","channel":")" << pkg.channel << R"("})";
+        }
+        {
+            std::ofstream paths_file((hierarchical_extract / "info" / "paths.json").std_path());
+            paths_file << R"({
+  "paths_version": 1,
+  "paths": [
+    {"_path": "Library/missing-file.txt", "path_type": "hardlink", "size_in_bytes": 42}
+  ]
+})";
+        }
+
+        PackageFetcher fetcher(pkg, package_caches);
+        REQUIRE(fetcher.needs_extract());
+
+        fetcher.clear_cache();
+
+        REQUIRE_FALSE(fs::exists(hierarchical_extract));
+        REQUIRE_FALSE(fs::exists(flat_tarball));
+        REQUIRE(package_caches.get_extracted_dir_path(pkg).empty());
     }
 }

@@ -102,8 +102,8 @@ namespace
             auto url = path_to_url("./folder/./../folder");
             if (on_win)
             {
-                REQUIRE(starts_with(url, concat("file://", win_drive, ":/")));
-                REQUIRE(ends_with(url, "/folder"));
+                REQUIRE(url.starts_with(concat("file://", win_drive, ":/")));
+                REQUIRE(url.ends_with("/folder"));
             }
             else
             {

@@ -26,6 +26,14 @@ __mamba_wrap() {
     \local cmd="${1-__missing__}"
     case "${cmd}" in
         activate|reactivate|deactivate)
+            for arg in "${@}"; do
+                case "${arg}" in
+                    -h|--help)
+                        __mamba_exe "${@}"
+                        return
+                        ;;
+                esac
+            done
             __mamba_xctivate "${@}"
             ;;
         install|update|upgrade|remove|uninstall)

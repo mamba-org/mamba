@@ -9,7 +9,6 @@
 #include <limits>
 #include <map>
 #include <sstream>
-#include <stdexcept>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -21,6 +20,7 @@
 
 #include "mamba/solver/problems_graph.hpp"
 #include "mamba/util/string.hpp"
+#include "mamba/util/variant_util.hpp"
 
 namespace mamba::solver
 {
@@ -259,11 +259,9 @@ namespace mamba::solver
         {
             using T = typename Range::value_type;
             using O = std::invoke_result_t<Func, T>;
-            // TODO(C++20) ranges::view::transform
-            auto tmp = std::vector<O>();
-            tmp.reserve(rng.size());
-            std::transform(rng.begin(), rng.end(), std::back_inserter(tmp), std::forward<Func>(f));
-            return CompressedProblemsGraph::NamedList<O>(tmp.begin(), tmp.end());
+            return CompressedProblemsGraph::NamedList<O>(
+                rng | std::views::transform(std::forward<Func>(f))
+            );
         }
 
 // GCC reports dangling reference when using std::invoke with data members
@@ -332,7 +330,7 @@ namespace mamba::solver
             }
             else
             {
-                return name;
+                return std::forward<Name>(name);
             }
         }
 
@@ -376,6 +374,20 @@ namespace mamba::solver
         auto node_name(const ProblemsGraph::node_t& node) -> std::string_view
         {
             return std::visit([](const auto& n) -> std::string_view { return name_or(n, ""); }, node);
+        }
+
+        /**
+         * The name of a CompressedProblemsGraph::node_t.
+         */
+        auto compressed_node_name(const CompressedProblemsGraph::node_t& node) -> std::string_view
+        {
+            return std::visit(
+                util::overloaded(
+                    [](const CompressedProblemsGraph::RootNode&) -> std::string_view { return ""; },
+                    [](const auto& n) -> std::string_view { return n.name(); }
+                ),
+                node
+            );
         }
 
         /**
@@ -533,7 +545,16 @@ namespace mamba::solver
                 {
                     new_graph.add_edge(new_from, new_to, CompressedProblemsGraph::edge_t());
                 }
-                new_graph.edge(new_from, new_to).insert(old_graph.edge(old_from, old_to));
+                // NamedList requires a single package name. Different dependency names can
+                // map to the same (from, to) pair after node merges (e.g. via provides);
+                // keep the first name and drop incompatible MatchSpecs rather than aborting
+                // problem reporting.
+                auto& new_edge = new_graph.edge(new_from, new_to);
+                const auto& old_edge = old_graph.edge(old_from, old_to);
+                if (new_edge.empty() || (invoke_name(old_edge) == new_edge.name()))
+                {
+                    new_edge.insert(old_edge);
+                }
             };
             old_graph.for_each_edge_id(add_new_edge);
         }
@@ -644,27 +665,29 @@ namespace mamba::solver
      **********************************************************/
 
     template <typename T, typename A>
-    template <typename InputIterator>
+    template <std::input_iterator InputIterator>
     CompressedProblemsGraph::NamedList<T, A>::NamedList(InputIterator first, InputIterator last)
     {
         if (first < last)
         {
+            const auto first_name = invoke_name(*first);
             for (auto it = first; it < last; ++it)
             {
-                if (invoke_name(*it) != invoke_name(*first))
+                // Keep a single package name per list. Divergent names can appear after
+                // aggressive graph merges; dropping them preserves explainability.
+                if (invoke_name(*it) == first_name)
                 {
-                    throw std::invalid_argument(
-                        util::concat(
-                            "iterator contains different names (",
-                            invoke_name(*first),
-                            ", ",
-                            invoke_name(*it)
-                        )
-                    );
+                    Base::insert(*it);
                 }
             }
         }
-        Base::insert(first, last);
+    }
+
+    template <typename T, typename A>
+    template <std::ranges::range R>
+    CompressedProblemsGraph::NamedList<T, A>::NamedList(R&& r)
+        : NamedList(r.begin(), r.end())
+    {
     }
 
     template <typename T, typename A>
@@ -799,12 +822,12 @@ namespace mamba::solver
     template <typename T_>
     void CompressedProblemsGraph::NamedList<T, A>::insert_impl(T_&& e)
     {
+        // NamedList is a same-name collection. When explaining complex unsolvable
+        // environments, incompatible names can show up after node/edge merges; skip
+        // them instead of aborting the error message with an exception.
         if ((size() > 0) && (invoke_name(e) != name()))
         {
-            throw std::invalid_argument(
-                "Name of new element (" + invoke_name(e) + ") does not match name of list ("
-                + name() + ')'
-            );
+            return;
         }
         Base::insert(std::forward<T_>(e));
     }
@@ -1115,9 +1138,11 @@ namespace mamba::solver
             }
 
             // All children are the same type of visited or leaves, no grand-children,
-            // and same status.
+            // same status, and same package name.
             // We dynamically delete all children and mark the whole node as such.
-            auto all_same_split_children = [](TreeNodeIter first, TreeNodeIter last) -> bool
+            // Name equality is required because NamedList / problem messaging assumes a
+            // single package name per node; providers of the same dependency can differ.
+            auto all_same_split_children = [&](TreeNodeIter first, TreeNodeIter last) -> bool
             {
                 if (last <= first)
                 {
@@ -1125,7 +1150,17 @@ namespace mamba::solver
                 }
                 auto same = [&first](const TreeNode& tn)
                 { return (tn.type == first->type) && (tn.status == first->status); };
-                return std::all_of(first, last, same);
+                if (!std::all_of(first, last, same))
+                {
+                    return false;
+                }
+                const auto first_name = compressed_node_name(m_pbs.graph().node(children_ids.front()));
+                return std::all_of(
+                    children_ids.begin(),
+                    children_ids.end(),
+                    [&](node_id id)
+                    { return compressed_node_name(m_pbs.graph().node(id)) == first_name; }
+                );
             };
             const TreeNodeIter children_end = out;
             if ((n_children >= 1) && all_same_split_children(children_begin, children_end))
@@ -1342,7 +1377,7 @@ namespace mamba::solver
             std::sort(
                 arr.begin(),
                 arr.end(),
-                [](const auto& str1, const auto& str2) { return util::ends_with(str1, str2); }
+                [](const auto& str1, const auto& str2) { return str1.ends_with(str2); }
             );
             return arr;
         }
@@ -1531,7 +1566,7 @@ namespace mamba::solver
                         write(", which");
                     }
                     // Virtual package
-                    if (util::starts_with(node.name(), "__"))
+                    if (node.name().starts_with("__"))
                     {
                         write(" is missing on the system");
                     }
@@ -1624,7 +1659,15 @@ namespace mamba::solver
             for (auto id : ids)
             {
                 const auto& node = std::get<Node>(m_pbs.graph().node(id));
-                out.insert(node.begin(), node.end());
+                // NamedList is single-name; when a split groups providers of different names,
+                // only keep entries that match the first name so messaging can still proceed.
+                for (const auto& pkg : node)
+                {
+                    if (out.empty() || (invoke_name(pkg) == out.name()))
+                    {
+                        out.insert(pkg);
+                    }
+                }
             }
             return out;
         }
@@ -1670,8 +1713,18 @@ namespace mamba::solver
             {
                 for (auto t : to)
                 {
+                    if (!m_pbs.graph().has_edge(f, t))
+                    {
+                        continue;
+                    }
                     const auto& e = m_pbs.graph().edge(f, t);
-                    out.insert(e.begin(), e.end());
+                    for (const auto& ms : e)
+                    {
+                        if (out.empty() || (invoke_name(ms) == out.name()))
+                        {
+                            out.insert(ms);
+                        }
+                    }
                 }
             }
             return out;

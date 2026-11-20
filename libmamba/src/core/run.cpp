@@ -166,7 +166,20 @@ namespace mamba
                 continue;
             }
 
-            auto running_processes_info = nlohmann::json::parse(pid_file);
+            nlohmann::json running_processes_info;
+            try
+            {
+                running_processes_info = nlohmann::json::parse(pid_file);
+            }
+            catch (const nlohmann::json::parse_error& e)
+            {
+                LOG_WARNING << fmt::format(
+                    "Failed to parse process record '{}': {}",
+                    file_location.string(),
+                    e.what()
+                );
+                continue;
+            }
             running_processes_info["pid"] = file_location.filename().replace_extension().string();
             if (!filter || filter(running_processes_info))
             {
@@ -243,7 +256,7 @@ namespace mamba
     }
 
 #ifndef _WIN32
-    void daemonize()
+    auto daemonize() -> std::optional<int>
     {
         pid_t pid, sid;
         int fd;
@@ -251,20 +264,20 @@ namespace mamba
         // already a daemon
         if (getppid() == 1)
         {
-            return;
+            return {};
         }
 
         // fork parent process
         pid = fork();
         if (pid < 0)
         {
-            exit(1);
+            return 1;
         }
 
         // exit parent process
         if (pid > 0)
         {
-            exit(0);
+            return 0;
         }
 
         // at this point we are executing as the child process
@@ -272,7 +285,7 @@ namespace mamba
         sid = setsid();
         if (sid < 0)
         {
-            exit(1);
+            return 1;
         }
 
         fd = open("/dev/null", O_RDWR, 0);
@@ -291,6 +304,8 @@ namespace mamba
                 close(fd);
             }
         }
+
+        return {};
     }
 #endif
 
@@ -400,7 +415,11 @@ namespace mamba
                 "Running wrapped script {} in the background\n",
                 fmt::join(command, " ")
             );
-            daemonize();
+            const auto maybe_exit_code = daemonize();
+            if (maybe_exit_code)
+            {
+                return maybe_exit_code.value();
+            }
         }
 #endif
         int status;
@@ -462,7 +481,7 @@ namespace mamba
 
             if (lec)
             {
-                std::cerr << ec.message() << '\n';
+                std::cerr << lec.message() << " ; error code " << lec.value() << '\n';
                 return 1;
             }
 

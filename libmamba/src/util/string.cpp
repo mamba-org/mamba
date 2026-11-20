@@ -10,6 +10,7 @@
 #include <cwchar>
 #include <cwctype>
 #include <iterator>
+#include <ranges>
 #include <stdexcept>
 
 #include "mamba/util/string.hpp"
@@ -226,17 +227,13 @@ namespace mamba::util
     template std::string to_upper(std::string&& str);
     template std::wstring to_upper(std::wstring&& str);
 
-    /*******************************************
-     *  Implementation of start_with functions  *
-     *******************************************/
-
-    // TODO(C++20) This is a method of string_view
+    // TODO(C++23) This is a method of string_view
     auto contains(std::string_view str, std::string_view sub_str) -> bool
     {
         return str.find(sub_str) != std::string::npos;
     }
 
-    // TODO(C++20) This is a method of string_view
+    // TODO(C++23) This is a method of string_view
     auto contains(std::string_view str, char c) -> bool
     {
         return str.find(c) != std::string::npos;
@@ -245,30 +242,6 @@ namespace mamba::util
     auto contains(char c1, char c2) -> bool
     {
         return c1 == c2;
-    }
-
-    // TODO(C++20) This is a method of string_view
-    auto ends_with(std::string_view str, std::string_view suffix) -> bool
-    {
-        return str.size() >= suffix.size()
-               && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-    }
-
-    auto ends_with(std::string_view str, std::string_view::value_type c) -> bool
-    {
-        return (!str.empty()) && (str.back() == c);
-    }
-
-    // TODO(C++20) This is a method of string_view
-    auto starts_with(std::string_view str, std::string_view prefix) -> bool
-    {
-        return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-    }
-
-    // TODO(C++20) This is a method of string_view
-    auto starts_with(std::string_view str, std::string_view::value_type c) -> bool
-    {
-        return (!str.empty()) && (str.front() == c);
     }
 
     /*************************************************
@@ -291,7 +264,7 @@ namespace mamba::util
     auto split_prefix(std::string_view str, std::string_view prefix)
         -> std::array<std::string_view, 2>
     {
-        if (starts_with(str, prefix))
+        if (str.starts_with(prefix))
         {
             return { str.substr(0, prefix.size()), str.substr(prefix.size()) };
         }
@@ -301,7 +274,7 @@ namespace mamba::util
     auto split_prefix(std::string_view str, std::string_view::value_type c)
         -> std::array<std::string_view, 2>
     {
-        if (starts_with(str, c))
+        if (str.starts_with(c))
         {
             return { str.substr(0, 1), str.substr(1) };
         }
@@ -321,7 +294,7 @@ namespace mamba::util
     auto split_suffix(std::string_view str, std::string_view suffix)
         -> std::array<std::string_view, 2>
     {
-        if (ends_with(str, suffix))
+        if (str.ends_with(suffix))
         {
             auto suffix_pos = str.size() - suffix.size();
             return { str.substr(0, suffix_pos), str.substr(suffix_pos) };
@@ -332,7 +305,7 @@ namespace mamba::util
     auto split_suffix(std::string_view str, std::string_view::value_type c)
         -> std::array<std::string_view, 2>
     {
-        if (ends_with(str, c))
+        if (str.ends_with(c))
         {
             auto suffix_pos = str.size() - 1;
             return { str.substr(0, suffix_pos), str.substr(suffix_pos) };
@@ -844,12 +817,12 @@ namespace mamba::util
             const auto str_size = str.size();
             return
                 // The substring is found
-                starts_with(str, prefix)
+                str.starts_with(prefix)
                 && (
                     // Either it ends at the end
                     (end == str_size)
                     // Or it is found before a separator
-                    || ((end <= str_size) && ends_with(str.substr(0, end + sep_size), sep))
+                    || ((end <= str_size) && str.substr(0, end + sep_size).ends_with(sep))
                 );
         }
 
@@ -988,5 +961,123 @@ namespace mamba::util
             return 1;
         }
 
+    }
+
+    /**************************************
+     *  Implementation of match / suggestion functions  *
+     **************************************/
+
+    namespace
+    {
+        // Total number of matched characters between strings `a` and `b`.
+        // Following Python's difflib.SequenceMatcher algorithm :
+        // Find the longest common contiguous block, then recurse on the left and right of the
+        // block.
+        auto ratcliff_obershelp_matches(std::string_view a, std::string_view b) -> std::size_t
+        {
+            if (a.empty() || b.empty())
+            {
+                return 0;
+            }
+
+            // Longest matching block via difflib DP.
+            std::size_t best_a = 0;
+            std::size_t best_b = 0;
+            std::size_t best_size = 0;
+            std::vector<std::size_t> j2len(b.size(), 0);
+            for (std::size_t i = 0; i < a.size(); ++i)
+            {
+                std::vector<std::size_t> new_j2len(b.size(), 0);
+                for (std::size_t j = 0; j < b.size(); ++j)
+                {
+                    if (a[i] != b[j])
+                    {
+                        continue;
+                    }
+                    const std::size_t k = (j == 0 ? 0 : j2len[j - 1]) + 1;
+                    new_j2len[j] = k;
+                    if (k > best_size)
+                    {
+                        best_a = i - k + 1;
+                        best_b = j - k + 1;
+                        best_size = k;
+                    }
+                }
+                j2len = std::move(new_j2len);
+            }
+
+            if (best_size == 0)
+            {
+                return 0;
+            }
+
+            const std::size_t left = ratcliff_obershelp_matches(
+                a.substr(0, best_a),
+                b.substr(0, best_b)
+            );
+            const std::size_t right = ratcliff_obershelp_matches(
+                a.substr(best_a + best_size),
+                b.substr(best_b + best_size)
+            );
+            return best_size + left + right;
+        }
+    }
+
+    auto similarity_ratio(std::string_view a, std::string_view b) -> double
+    {
+        const std::size_t total = a.size() + b.size();
+        if (total == 0)
+        {
+            return 1.0;
+        }
+        const std::size_t matches = ratcliff_obershelp_matches(a, b);
+        return (2.0 * static_cast<double>(matches)) / static_cast<double>(total);
+    }
+
+    auto closest_matches(
+        std::string_view input,
+        const std::vector<std::string>& candidates,
+        double cutoff,
+        std::size_t max_results
+    ) -> std::vector<std::string>
+    {
+        struct Scored
+        {
+            double ratio;
+            const std::string* value;
+        };
+
+        // Mirror difflib.get_close_matches() implementation.
+        namespace views = std::ranges::views;
+
+        auto scored_view = candidates
+                           | views::transform(
+                               [&](const std::string& candidate) -> Scored
+                               { return { similarity_ratio(input, candidate), &candidate }; }
+                           )
+                           | views::filter([cutoff](const Scored& s) { return s.ratio >= cutoff; });
+
+        // TODO(C++23): std::ranges::to<std::vector>
+        auto scored = std::vector<Scored>(scored_view.begin(), scored_view.end());
+
+        // difflib returns the n largest (ratio, candidate) pairs, so ties
+        // are broken by the larger candidate string.
+        std::stable_sort(
+            scored.begin(),
+            scored.end(),
+            [](const Scored& a, const Scored& b)
+            {
+                if (a.ratio != b.ratio)
+                {
+                    return a.ratio > b.ratio;
+                }
+                return *a.value > *b.value;
+            }
+        );
+
+        auto results_view = scored | views::take(max_results)
+                            | views::transform([](const Scored& s) { return *s.value; });
+        // TODO(C++23): std::ranges::to<std::vector>
+        return std::vector<std::string>(results_view.begin(), results_view.end());
     }
 }

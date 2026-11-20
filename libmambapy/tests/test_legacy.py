@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import libmambapy
 
 
@@ -25,3 +27,16 @@ def test_channel_context():
     cc = libmambapy.ChannelContext.make_simple(ctx)
     assert cc.make_channel("pkgs/main")[0].url.str() == "https://conda.anaconda.org/pkgs/main"
     assert len(cc.params().custom_channels) == 0
+
+
+def test_context_survives_interpreter_shutdown():
+    # Regression for mamba-org/mamba#4378 / conda/constructor#1319:
+    # destroying Context while the process exits must not segfault.
+    script = """
+import libmambapy
+ctx = libmambapy.Context()
+assert ctx is not None
+# Intentionally keep the Context alive until interpreter shutdown.
+"""
+    result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

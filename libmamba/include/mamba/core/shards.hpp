@@ -183,6 +183,11 @@ namespace mamba
         [[nodiscard]] auto relative_shard_path(const std::string& package) const -> std::string;
 
         /**
+         * Returns shard name for a given package.
+         */
+        [[nodiscard]] auto shard_name(const std::string& package) const -> std::string;
+
+        /**
          * Filter packages into those that need fetching vs already in memory.
          */
         void filter_packages_to_fetch(

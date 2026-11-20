@@ -33,7 +33,7 @@ jobs:
         run: |
           df -h
       - name: Free Disk Space (Base Runner)
-        uses: jlumbroso/free-disk-space@v1.3.1
+        uses: jlumbroso/free-disk-space@v2.0.0
         with:
           tool-cache: false
           large-packages: false
@@ -48,8 +48,8 @@ jobs:
         with:
           environment-file: ./dev/environment-dev.yml
           environment-name: build_env
-          cache-environment: true
-          cache-environment-key: >-
+          cache-downloads: true
+          cache-downloads-key: >-
             coverage-${{
               hashFiles(
                 'dev/environment-dev.yml',
@@ -69,12 +69,6 @@ jobs:
             ccache-libmamba-${{ github.runner.os }}
       - name: Build mamba with coverage
         run: |
-          # Ensure ar/ranlib are found: conda compiler activation may not set AR when
-          # mixing envs (dev + micromamba-static); CMAKE_AR from preset uses $env{AR}
-          # which can resolve to a bare name, causing "x86_64-conda-linux-gnu-ar: not found"
-          # when building the static libmamba (micromamba requires BUILD_STATIC).
-          export AR="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-ar"
-          export RANLIB="${CONDA_PREFIX}/bin/x86_64-conda-linux-gnu-ranlib"
           cmake -B build/ -G Ninja \
             --preset mamba-unix-shared-debug \
             -D CMAKE_CXX_COMPILER_LAUNCHER=sccache \
@@ -102,9 +96,9 @@ jobs:
           sudo apt-get install -y lcov
       - name: Generate C++ coverage report
         run: |
-          lcov --directory . --capture --output-file cpp_coverage.info
-          lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' 'libmamba/tests/*' --output-file cpp_coverage.info --ignore-errors unused
-          lcov --summary cpp_coverage.info --ignore-errors mismatch --rc geninfo_unexecuted_blocks=1
+          lcov --directory . --capture --output-file cpp_coverage.info --rc check_data_consistency=0
+          lcov --remove cpp_coverage.info '/usr/*' '*/tests/*' '*/build/*' 'libmamba/tests/*' --output-file cpp_coverage.info --ignore-errors unused --rc check_data_consistency=0
+          lcov --summary cpp_coverage.info --ignore-errors mismatch --rc geninfo_unexecuted_blocks=1 --rc check_data_consistency=0
 
       # TODO: Those steps need adaptations so that the coverage reports from the C++ and the python test suites are consolidated.
       # - name: Install libmambapy

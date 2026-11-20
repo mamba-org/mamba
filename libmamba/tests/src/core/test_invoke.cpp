@@ -28,7 +28,7 @@ namespace mamba
             const auto message = "expected failure";
             auto result = safe_invoke([&] { throw std::runtime_error(message); });
             REQUIRE_FALSE(result);
-            if (!util::ends_with(result.error().what(), message))
+            if (!std::string_view(result.error().what()).ends_with(message))
             {
                 INFO(result.error().what());
                 FAIL();
@@ -40,7 +40,7 @@ namespace mamba
             const auto message = "expected failure";
             auto result = safe_invoke([&] { throw message; });
             REQUIRE_FALSE(result);
-            if (!util::ends_with(result.error().what(), "unknown error"))
+            if (!std::string_view(result.error().what()).ends_with("unknown error"))
             {
                 INFO(result.error().what());
                 FAIL();
@@ -92,7 +92,7 @@ namespace mamba
 
             auto result = safe_invoke(DoNotDoThisAtHome{ did_move_happened });
             REQUIRE_FALSE(result);
-            if (!util::ends_with(result.error().what(), "unknown error"))
+            if (!std::string_view(result.error().what()).ends_with("unknown error"))
             {
                 INFO(result.error().what());
                 FAIL();

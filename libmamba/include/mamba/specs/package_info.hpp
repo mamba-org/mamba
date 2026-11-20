@@ -70,7 +70,6 @@ namespace mamba::specs
         std::string md5 = {};
         std::string sha256 = {};
         std::string python_site_packages_path = {};
-        std::string signatures = {};
         std::vector<std::string> track_features = {};
         std::vector<std::string> dependencies = {};
         std::vector<std::string> constrains = {};
@@ -178,8 +177,7 @@ struct std::hash<mamba::specs::PackageInfo>
             pkg.filename,
             pkg.license,
             pkg.md5,
-            pkg.sha256,
-            pkg.signatures
+            pkg.sha256
         );
         seed = mamba::util::hash_combine_val_range(
             seed,

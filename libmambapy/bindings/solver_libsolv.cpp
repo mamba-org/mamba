@@ -67,15 +67,6 @@ namespace mambapy
         );
 
         make_str_enum(
-            py::enum_<VerifyPackages>(m, "VerifyPackages"),
-            std::array{
-                std::pair{ "No", VerifyPackages::No },
-                std::pair{ "Yes", VerifyPackages::Yes },
-            }
-        );
-        py::implicitly_convertible<py::bool_, VerifyPackages>();
-
-        make_str_enum(
             py::enum_<LogLevel>(m, "LogLevel"),
             std::array{
                 std::pair{ "Debug", LogLevel::Debug },
@@ -151,7 +142,7 @@ namespace mambapy
                             channel_params,
                             Database::Settings{
                                 matchspec_parser,
-                                exclude_newer_timestamp,
+                                ExcludeNewerPolicy{ /* .global_cutoff= */ exclude_newer_timestamp },
                             }
                         );
                     }
@@ -169,7 +160,6 @@ namespace mambapy
                 py::arg("channel_id"),
                 py::arg("add_pip_as_python_dependency") = PipAsPythonDependency::No,
                 py::arg("package_types") = PackageTypes::CondaOrElseTarBz2,
-                py::arg("verify_packages") = VerifyPackages::No,
                 py::arg("repodata_parser") = RepodataParser::Mamba
             )
             .def(

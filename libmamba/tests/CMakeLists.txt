@@ -79,8 +79,6 @@ set(
     src/solver/libsolv/test_solver.cpp
     # Artifacts validation
     src/validation/test_tools.cpp
-    src/validation/test_update_framework_v0_6.cpp
-    src/validation/test_update_framework_v1.cpp
     # Implementation of downloaders and mirrors
     src/download/test_downloader.cpp
     src/download/test_mirror.cpp
@@ -90,12 +88,14 @@ set(
     src/core/test_channel_context.cpp
     src/core/test_channel_loader.cpp
     src/core/test_channels_hook.cpp
+    src/core/test_chrono_parse.cpp
     src/core/test_clean.cpp
     src/core/test_configuration.cpp
     src/core/test_cpp.cpp
     src/core/test_env_file_reading.cpp
     src/core/test_env_lockfile.cpp
     src/core/test_environments_manager.cpp
+    src/core/test_exclude_newer.cpp
     src/core/test_execution.cpp
     src/core/test_filesystem.cpp
     src/core/test_history.cpp
@@ -111,6 +111,7 @@ set(
     src/core/test_progress_bar.cpp
     src/core/test_query.cpp
     src/core/test_repoquery.cpp
+    src/core/test_sbom.cpp
     src/core/test_shell_init.cpp
     src/core/test_shard_python_minor_prefilter.cpp
     src/core/test_shards.cpp
@@ -122,6 +123,7 @@ set(
     src/core/test_subdir_index.cpp
     src/core/test_tasksync.cpp
     src/core/test_thread_utils.cpp
+    src/core/test_transaction.cpp
     src/core/test_transaction_context.cpp
     src/core/test_util.cpp
     src/core/test_virtual_packages.cpp

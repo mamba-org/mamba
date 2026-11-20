@@ -77,6 +77,8 @@ namespace mamba
             std::vector<Channel> channels;
             std::vector<std::string> platforms;
             std::vector<std::string> sources;
+            bool enable_channels = true;  ///< `true` if we need to take into account the specified
+                                          ///< channels, `false` if we should ignore them.
         };
 
         struct Package

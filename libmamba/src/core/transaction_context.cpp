@@ -10,6 +10,7 @@
 #include <reproc++/drain.hpp>
 
 #include "mamba/core/output.hpp"
+#include "mamba/core/thread_utils.hpp"
 #include "mamba/specs/platform.hpp"
 #include "mamba/util/environment.hpp"
 #include "mamba/util/string.hpp"
@@ -150,13 +151,13 @@ namespace mamba
         const fs::u8path& target_site_packages_short_path
     )
     {
-        if (util::starts_with(source_short_path, "site-packages/"))
+        if (source_short_path.starts_with("site-packages/"))
         {
             // replace `site_packages/` with prefix/site_packages
             return target_site_packages_short_path
                    / source_short_path.substr(14, source_short_path.size() - 14);
         }
-        else if (util::starts_with(source_short_path, "python-scripts/"))
+        else if (source_short_path.starts_with("python-scripts/"))
         {
             return get_bin_directory_short_path()
                    / source_short_path.substr(15, source_short_path.size() - 15);
@@ -218,10 +219,17 @@ namespace mamba
           )
         , m_requested_specs(std::move(lrequested_specs))
     {
+        // Normalize the copied value for callers bypassing Configuration; this is
+        // exported to `compile_pyc.py` as `MAMBA_EXTRACT_THREADS`.
+        m_transaction_params.threads_params.extract_threads = static_cast<int>(
+            normalize_to_affinity_concurrency(m_transaction_params.threads_params.extract_threads)
+        );
+
         if (m_python_params.python_version.size() == 0)
         {
             LOG_INFO << "No python version given to TransactionContext, leaving it empty";
         }
+
         PrefixParams& pp = m_transaction_params.prefix_params;
         if (pp.relocate_prefix.empty())
         {

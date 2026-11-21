@@ -32,11 +32,13 @@ namespace mamba
      */
     struct ShardDict
     {
+        using package_map = std::map<std::string, specs::RepoDataPackage>;
+
         /** Packages in .tar.bz2 format, keyed by filename. */
-        std::map<std::string, specs::RepoDataPackage> packages;
+        package_map packages;
 
         /** Packages in .conda format, keyed by filename. */
-        std::map<std::string, specs::RepoDataPackage> conda_packages;
+        package_map conda_packages;
     };
 
     /**

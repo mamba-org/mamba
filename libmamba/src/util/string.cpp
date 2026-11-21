@@ -742,35 +742,6 @@ namespace mamba::util
     }
 
     // TODO(C++20) lazy_split_view is a range
-    auto split(std::string_view input, std::string_view sep, std::size_t max_split)
-        -> std::vector<std::string>
-    {
-        return split<decltype(input)::value_type>(input, sep, max_split);
-    }
-
-    // TODO(C++20) lazy_split_view is a range
-    auto split(std::string_view input, char sep, std::size_t max_split) -> std::vector<std::string>
-    {
-        const auto sep_arr = std::array<char, 2>{ sep, '\0' };
-        return split<decltype(input)::value_type>(input, sep_arr.data(), max_split);
-    }
-
-    // TODO(C++20) lazy_split_view is a range
-    auto split(std::wstring_view input, std::wstring_view sep, std::size_t max_split)
-        -> std::vector<std::wstring>
-    {
-        return split<decltype(input)::value_type>(input, sep, max_split);
-    }
-
-    // TODO(C++20) lazy_split_view is a range
-    auto split(std::wstring_view input, wchar_t sep, std::size_t max_split)
-        -> std::vector<std::wstring>
-    {
-        const auto sep_arr = std::array<wchar_t, 2>{ sep, L'\0' };
-        return split<decltype(input)::value_type>(input, sep_arr.data(), max_split);
-    }
-
-    // TODO(C++20) lazy_split_view is a range
     auto rsplit(std::string_view input, std::string_view sep, std::size_t max_split)
         -> std::vector<std::string>
     {

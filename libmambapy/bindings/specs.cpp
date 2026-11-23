@@ -77,6 +77,7 @@ namespace mambapy
                 std::pair{ "linux_s390x", KnownPlatform::linux_s390x },
                 std::pair{ "linux_riscv32", KnownPlatform::linux_riscv32 },
                 std::pair{ "linux_riscv64", KnownPlatform::linux_riscv64 },
+                std::pair{ "linux_loongarch64", KnownPlatform::linux_loongarch64 },
                 std::pair{ "osx_64", KnownPlatform::osx_64 },
                 std::pair{ "osx_arm64", KnownPlatform::osx_arm64 },
                 std::pair{ "win_32", KnownPlatform::win_32 },

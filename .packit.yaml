@@ -1,0 +1,12 @@
+specfile_path: .distro/libmamba.spec
+
+targets:
+  - fedora-all_x86_64
+  - fedora-all_aarch64
+
+jobs:
+  - &build
+    job: copr_build
+    trigger: commit
+  - <<: *build
+    trigger: pull_request

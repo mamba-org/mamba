@@ -10,6 +10,33 @@ import yaml
 
 from . import helpers
 
+all_rc_files_list = [
+    # TODO: test system located sources?
+    # "/etc/conda/.condarc",
+    # "/etc/conda/condarc",
+    # "/etc/conda/condarc.d/",
+    # "/etc/conda/.mambarc",
+    # "/var/lib/conda/.condarc",
+    # "/var/lib/conda/condarc",
+    # "/var/lib/conda/condarc.d/",
+    # "/var/lib/conda/.mambarc",
+    ("root_prefix", ".condarc"),
+    ("root_prefix", "condarc"),
+    ("root_prefix", "condarc.d"),
+    ("root_prefix", ".mambarc"),
+    ("home", ".conda/.condarc"),
+    ("home", ".conda/condarc"),
+    ("home", ".conda/condarc.d"),
+    ("home", ".condarc"),
+    ("env_set_xdg", "mambarc"),
+    ("user_config_dir", "mambarc"),
+    ("home", ".mambarc"),
+    ("prefix", ".condarc"),
+    ("prefix", "condarc"),
+    ("prefix", "condarc.d"),
+    ("prefix", ".mambarc"),
+]
+
 
 @pytest.fixture
 def user_config_dir(tmp_home: Path):
@@ -59,6 +86,41 @@ def rc_file_text(rc_file_args):
     return yaml.dump(rc_file_args, Dumper=Dumper)
 
 
+def create_rc_file(
+    where,
+    rc_filename,
+    rc_file_text,
+    tmp_home,
+    tmp_root_prefix,
+    tmp_prefix,
+    tmp_path,
+    user_config_dir,
+    monkeypatch,
+):
+    if where == "home":
+        rc_file = tmp_home / rc_filename
+    elif where == "root_prefix":
+        rc_file = tmp_root_prefix / rc_filename
+    elif where == "prefix":
+        rc_file = tmp_prefix / rc_filename
+    elif where == "user_config_dir":
+        rc_file = user_config_dir / rc_filename
+    elif where == "env_set_xdg":
+        monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_home / "custom_xdg_config_dir"))
+        rc_file = tmp_home / "custom_xdg_config_dir" / "mamba" / rc_filename
+    elif where == "absolute":
+        rc_file = Path(rc_filename)
+    else:
+        raise ValueError("Bad rc file location")
+    if rc_file.suffix == ".d":
+        rc_file = rc_file / "test.yaml"
+
+    rc_file.parent.mkdir(parents=True, exist_ok=True)
+    rc_file.write_text(rc_file_text)
+
+    return rc_file
+
+
 @pytest.fixture
 def rc_file(
     request,
@@ -68,6 +130,7 @@ def rc_file(
     tmp_prefix,
     tmp_path,
     user_config_dir,
+    monkeypatch,
 ):
     """Parametrizable fixture to create an rc file at the desired location.
 
@@ -76,31 +139,53 @@ def rc_file(
     """
     if hasattr(request, "param"):
         where, rc_filename = request.param
-        if where == "home":
-            rc_file = tmp_home / rc_filename
-        elif where == "root_prefix":
-            rc_file = tmp_root_prefix / rc_filename
-        elif where == "prefix":
-            rc_file = tmp_prefix / rc_filename
-        elif where == "user_config_dir":
-            rc_file = user_config_dir / rc_filename
-        elif where == "env_set_xdg":
-            os.environ["XDG_CONFIG_HOME"] = str(tmp_home / "custom_xdg_config_dir")
-            rc_file = tmp_home / "custom_xdg_config_dir" / "mamba" / rc_filename
-        elif where == "absolute":
-            rc_file = Path(rc_filename)
-        else:
-            raise ValueError("Bad rc file location")
-        if rc_file.suffix == ".d":
-            rc_file = rc_file / "test.yaml"
     else:
-        rc_file = tmp_path / "umamba/config.yaml"
+        where, rc_filename = ("absolute", tmp_path / "umamba/config.yaml")
 
-    rc_file.parent.mkdir(parents=True, exist_ok=True)
-    with open(rc_file, "w+") as f:
-        f.write(rc_file_text)
+    rc_file = create_rc_file(
+        where,
+        rc_filename,
+        rc_file_text,
+        tmp_home,
+        tmp_root_prefix,
+        tmp_prefix,
+        tmp_path,
+        user_config_dir,
+        monkeypatch,
+    )
 
     return rc_file
+
+
+@pytest.fixture
+def all_rc_files(
+    rc_file_text, tmp_home, tmp_root_prefix, tmp_prefix, tmp_path, user_config_dir, monkeypatch
+):
+    """Fixture to create all rc files
+
+    The files are created in isolated folders and set as the prefix, root prefix, and
+    home folder.
+
+    """
+
+    files = []
+    for where, filename in all_rc_files_list:
+        if where == "user_config_dir":
+            continue  # redundant with XDG_HOME_DIR
+        f = create_rc_file(
+            where,
+            filename,
+            rc_file_text,
+            tmp_home,
+            tmp_root_prefix,
+            tmp_prefix,
+            tmp_path,
+            user_config_dir,
+            monkeypatch,
+        )
+
+        files.append(f)
+    return files
 
 
 class TestConfig:
@@ -140,34 +225,9 @@ class TestConfigSources:
             res = config("sources", quiet_flag)
             assert res.startswith("Configuration files (by precedence order):")
 
-    # TODO: test system located sources?
     @pytest.mark.parametrize(
         "rc_file",
-        (
-            # "/etc/conda/.condarc",
-            # "/etc/conda/condarc",
-            # "/etc/conda/condarc.d/",
-            # "/etc/conda/.mambarc",
-            # "/var/lib/conda/.condarc",
-            # "/var/lib/conda/condarc",
-            # "/var/lib/conda/condarc.d/",
-            # "/var/lib/conda/.mambarc",
-            ("user_config_dir", "mambarc"),
-            ("env_set_xdg", "mambarc"),
-            ("home", ".conda/.condarc"),
-            ("home", ".conda/condarc"),
-            ("home", ".conda/condarc.d"),
-            ("home", ".condarc"),
-            ("home", ".mambarc"),
-            ("root_prefix", ".condarc"),
-            ("root_prefix", "condarc"),
-            ("root_prefix", "condarc.d"),
-            ("root_prefix", ".mambarc"),
-            ("prefix", ".condarc"),
-            ("prefix", "condarc"),
-            ("prefix", "condarc.d"),
-            ("prefix", ".mambarc"),
-        ),
+        all_rc_files_list,
         indirect=True,
     )
     @pytest.mark.parametrize("rc_file_args", ({"override_channels_enabled": True},), indirect=True)
@@ -176,6 +236,28 @@ class TestConfigSources:
         short_name = str(rc_file).replace(os.path.expanduser("~"), "~")
         expected_srcs = f"Configuration files (by precedence order):\n{short_name}".splitlines()
         assert srcs == expected_srcs
+
+    @pytest.mark.parametrize("rc_file_args", ({"override_channels_enabled": True},), indirect=True)
+    def test_rc_file_precedence(
+        self, rc_file_text, all_rc_files, tmp_env_name, tmp_home, monkeypatch
+    ):
+        env_filenames = []
+        for x in ["conda", "mamba"]:
+            env_x_rc = tmp_home / f"env-{x}rc.yaml"
+            monkeypatch.setenv(f"{x.upper()}RC", f"{env_x_rc}")
+            env_x_rc.write_text(rc_file_text)
+            env_filenames.append(str(env_x_rc).replace(os.path.expanduser("~"), "~"))
+
+        srcs = config("sources", "-vvvv", "-n", tmp_env_name).strip().splitlines()
+        for rc_file in all_rc_files:
+            short_names = [
+                str(rc_file).replace(os.path.expanduser("~"), "~") for rc_file in all_rc_files
+            ]
+
+        short_names.extend(env_filenames)
+        short_names.reverse()
+
+        assert srcs[1:] == short_names
 
     @pytest.mark.parametrize(
         "rc_file",

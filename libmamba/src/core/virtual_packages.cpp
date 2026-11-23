@@ -4,6 +4,7 @@
 //
 // The full license is in the file LICENSE, distributed with this software.
 
+#include <charconv>
 #include <regex>
 #include <vector>
 
@@ -208,6 +209,88 @@ namespace mamba
 
             LOG_DEBUG << "CUDA not found";
             return "";
+        }
+
+        namespace
+        {
+            auto to_uint(std::string_view str) -> std::optional<unsigned>
+            {
+                unsigned val = 0;
+                const auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), val);
+                if (ec != std::errc() || ptr != str.data() + str.size())
+                {
+                    return std::nullopt;
+                }
+                return val;
+            }
+
+            // Parse a `major.minor` compute capability, e.g. "8.0".
+            auto parse_compute_cap(std::string_view str)
+                -> std::optional<std::pair<unsigned, unsigned>>
+            {
+                const auto [major_str, minor_str] = util::split_once(str, '.');
+                if (!minor_str)
+                {
+                    return std::nullopt;
+                }
+                const auto major = to_uint(major_str);
+                const auto minor = to_uint(*minor_str);
+                if (!major || !minor)
+                {
+                    return std::nullopt;
+                }
+                return std::pair{ *major, *minor };
+            }
+        }
+
+        std::string parse_min_compute_cap(std::string_view nvidia_smi_output)
+        {
+            // Compare numerically: "10.0" > "9.0".
+            std::optional<std::pair<unsigned, unsigned>> min_cap;
+            for (auto line : util::split(nvidia_smi_output, "\n"))
+            {
+                const auto cap = parse_compute_cap(util::strip(line));
+                if (cap && (!min_cap || *cap < *min_cap))
+                {
+                    min_cap = cap;
+                }
+            }
+            if (!min_cap)
+            {
+                return "";
+            }
+            return std::to_string(min_cap->first) + "." + std::to_string(min_cap->second);
+        }
+
+        std::string cuda_arch_version(const override_virtual_packages_map& overrides)
+        {
+            LOG_DEBUG << "Loading CUDA arch virtual package";
+
+            if (auto override_arch = get_virtual_package_override("cuda_arch", overrides))
+            {
+                LOG_DEBUG << "CUDA arch version set by override: " << override_arch.value();
+                return std::move(override_arch).value();
+            }
+
+            LOG_DEBUG << "Trying to find CUDA arch version by running "
+                         "`nvidia-smi --query-gpu=compute_cap --format=csv,noheader`";
+
+            std::string out, err;
+            std::vector<std::string> args = { "nvidia-smi",
+                                              "--query-gpu=compute_cap",
+                                              "--format=csv,noheader" };
+            auto [status, ec] = reproc::run(
+                args,
+                reproc::options{},
+                reproc::sink::string(out),
+                reproc::sink::string(err)
+            );
+            if (ec || status != 0)
+            {
+                LOG_DEBUG << "CUDA arch not found";
+                return "";
+            }
+            return parse_min_compute_cap(out);
         }
 
         auto make_virtual_package(  //
@@ -495,6 +578,13 @@ namespace mamba
         if (!cuda_ver.empty())
         {
             res.push_back(detail::make_virtual_package("__cuda", platform, cuda_ver));
+
+            // `__cuda_arch` must only exist when `__cuda` does.
+            auto cuda_arch = detail::cuda_arch_version(override_virtual_packages);
+            if (!cuda_arch.empty())
+            {
+                res.push_back(detail::make_virtual_package("__cuda_arch", platform, cuda_arch));
+            }
         }
 
         return res;

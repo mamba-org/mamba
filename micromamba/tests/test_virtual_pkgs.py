@@ -29,3 +29,18 @@ class TestVirtualPkgs:
         else:
             infos = info(env={**os.environ, "CONDA_SUBDIR": "linux-64"})
             assert "__linux=0=0" in infos
+
+    def test_virtual_cuda_arch(self):
+        env = {**os.environ, "CONDA_OVERRIDE_CUDA": "12.0"}
+
+        infos = info(env={**env, "CONDA_OVERRIDE_CUDA_ARCH": "8.0"})
+        assert "__cuda=12.0=0" in infos
+        assert "__cuda_arch=8.0=0" in infos
+
+        infos = info(env={**env, "CONDA_OVERRIDE_CUDA_ARCH": ""})
+        assert "__cuda=12.0=0" in infos
+        assert "__cuda_arch" not in infos
+
+        # `__cuda_arch` requires `__cuda`
+        infos = info(env={**env, "CONDA_OVERRIDE_CUDA": "", "CONDA_OVERRIDE_CUDA_ARCH": "8.0"})
+        assert "__cuda_arch" not in infos

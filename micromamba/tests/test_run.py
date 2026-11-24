@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import shutil
@@ -73,6 +74,33 @@ class TestRun:
         res = umamba_run(option_flag, *make_label_flags(), simple_short_program())
         print(res)
         assert len(res) > 0
+
+    @pytest.mark.skipif(platform != "linux", reason="uses XDG_CACHE_HOME")
+    @pytest.mark.parametrize("record", ["", '{"name":'])
+    @pytest.mark.parametrize("label_flags", [[], ["--label", "new-process"]])
+    def test_run_ignores_malformed_process_record(self, tmp_path, monkeypatch, record, label_flags):
+        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+        proc_dir = tmp_path / "mamba" / "proc"
+        proc_dir.mkdir(parents=True)
+        malformed_record = proc_dir / "999999.json"
+        malformed_record.write_text(record)
+        valid_record = proc_dir / f"{os.getpid()}.json"
+        valid_record.write_text(
+            json.dumps(
+                {"name": "existing-process", "command": ["true"], "prefix": self.current_prefix}
+            )
+        )
+
+        assert umamba_run(*label_flags, "true") == ""
+        assert malformed_record.read_text() == record
+        assert json.loads(valid_record.read_text())["name"] == "existing-process"
+
+        with pytest.raises(subprocess.CalledProcessError) as exc:
+            umamba_run("--label", "existing-process", "true")
+        assert (
+            "Another process with name 'existing-process' is currently running."
+            in exc.value.stderr.decode()
+        )
 
     @pytest.mark.skipif(platform == "win32", reason="bash specific test")
     @pytest.mark.parametrize("inp", ["(", "a\nb", "a'b\""])

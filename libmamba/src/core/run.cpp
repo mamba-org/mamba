@@ -166,7 +166,20 @@ namespace mamba
                 continue;
             }
 
-            auto running_processes_info = nlohmann::json::parse(pid_file);
+            nlohmann::json running_processes_info;
+            try
+            {
+                running_processes_info = nlohmann::json::parse(pid_file);
+            }
+            catch (const nlohmann::json::parse_error& e)
+            {
+                LOG_WARNING << fmt::format(
+                    "Failed to parse process record '{}': {}",
+                    file_location.string(),
+                    e.what()
+                );
+                continue;
+            }
             running_processes_info["pid"] = file_location.filename().replace_extension().string();
             if (!filter || filter(running_processes_info))
             {

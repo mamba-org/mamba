@@ -126,10 +126,17 @@ namespace mamba::util
         [[nodiscard]] auto push_operator_impl(O&& op) -> bool;
     };
 
+    /**
+     * Boolean operators, declared in increasing order of precedence.
+     *
+     * The default ``InfixParser`` comparator (``std::less<>``) orders operators by their
+     * enumeration value, so ``logical_and`` must come after ``logical_or`` for ``and`` to bind
+     * tighter than ``or`` (``a or b and c`` is ``a or (b and c)``).
+     */
     enum struct BoolOperator
     {
-        logical_and,
-        logical_or
+        logical_or,
+        logical_and
     };
 
     template <typename Variable>

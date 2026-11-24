@@ -520,20 +520,20 @@ namespace
                           .value();
             REQUIRE(ms.channel().value().str() == "anaconda");
             REQUIRE(ms.name().to_string() == "numpy");
-            REQUIRE(ms.version().to_string() == ">=1.8,(<2|==1.9)");
+            REQUIRE(ms.version().to_string() == "(>=1.8,<2)|==1.9");
             REQUIRE(ms.build_string().to_string() == "3");
-            REQUIRE(ms.to_string() == R"ms(anaconda::numpy[version=">=1.8,(<2|==1.9)",build="3"])ms");
+            REQUIRE(ms.to_string() == R"ms(anaconda::numpy[version="(>=1.8,<2)|==1.9",build="3"])ms");
         }
 
         SECTION("numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0")
         {
             auto ms = MatchSpec::parse(R"(numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0)").value();
             REQUIRE(ms.name().to_string() == "numpy");
-            REQUIRE(ms.version().to_string() == ">1.8,((<2|==1.7),(!=1.9,~=1.7.1))");
+            REQUIRE(ms.version().to_string() == "(>1.8,<2)|(==1.7,(!=1.9,~=1.7.1))");
             REQUIRE(ms.build_string().to_string() == "py34_0");
             REQUIRE(
                 ms.to_string()
-                == R"ms(numpy[version=">1.8,((<2|==1.7),(!=1.9,~=1.7.1))",build="py34_0"])ms"
+                == R"ms(numpy[version="(>1.8,<2)|(==1.7,(!=1.9,~=1.7.1))",build="py34_0"])ms"
             );
         }
 

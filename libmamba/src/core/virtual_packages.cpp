@@ -346,6 +346,15 @@ namespace mamba
             }
         }
 
+        // An empty override disables __osx and __win, as in conda.
+        [[nodiscard]] auto
+        is_disabled_by_override(std::string_view name, const override_virtual_packages_map& overrides)
+            -> bool
+        {
+            const auto override_version = get_virtual_package_override(name, overrides);
+            return override_version.has_value() && override_version->empty();
+        }
+
         [[nodiscard]] auto overridable_linux_version(const override_virtual_packages_map& overrides)
             -> tl::expected<std::string, util::OSError>
         {
@@ -392,7 +401,7 @@ namespace mamba
             std::string os = split_platform[0];
             std::string arch = split_platform[1];
 
-            if (os == "win")
+            if (os == "win" && !is_disabled_by_override("win", overrides))
             {
                 auto result = overridable_windows_version(overrides);
                 if (result)
@@ -441,7 +450,10 @@ namespace mamba
             if (os == "osx")
             {
                 res.push_back(make_virtual_package("__unix", platform));
+            }
 
+            if (os == "osx" && !is_disabled_by_override("osx", overrides))
+            {
                 auto result = overridable_osx_version(overrides);
                 if (result)
                 {

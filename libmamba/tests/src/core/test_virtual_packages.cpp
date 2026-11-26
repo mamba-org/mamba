@@ -297,6 +297,24 @@ namespace mamba
                 REQUIRE(has_virtual_package(pkgs, "__linux"));
             }
 
+            TEST_CASE("conda_parity_osx_win_empty_override_skips_package")
+            {
+                mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});
+                util::set_env("CONDA_OVERRIDE_OSX", "");
+                util::set_env("CONDA_OVERRIDE_WIN", "");
+
+                const auto osx_pkgs = get_virtual_packages("osx-64", {});
+                REQUIRE_FALSE(has_virtual_package(osx_pkgs, "__osx"));
+                REQUIRE(has_virtual_package(osx_pkgs, "__unix"));
+                REQUIRE_FALSE(has_virtual_package(get_virtual_packages("win-64", {}), "__win"));
+
+                util::unset_env("CONDA_OVERRIDE_OSX");
+                util::unset_env("CONDA_OVERRIDE_WIN");
+                const override_virtual_packages_map overrides = { { "osx", "" }, { "win", "" } };
+                REQUIRE_FALSE(has_virtual_package(get_virtual_packages("osx-64", overrides), "__osx"));
+                REQUIRE_FALSE(has_virtual_package(get_virtual_packages("win-64", overrides), "__win"));
+            }
+
             TEST_CASE("conda_parity_dunder_config_keys")
             {
                 mambatests::EnvironmentCleaner env_clean(mambatests::CleanMambaEnv{});

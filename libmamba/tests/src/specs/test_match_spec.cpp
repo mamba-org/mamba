@@ -765,6 +765,12 @@ namespace
                 REQUIRE(ms.filename() == "cph_test_data-0.0.1-0.tar.bz2");
             }
         }
+
+        SECTION("https://conda.com/pkg-1..2-0.conda")
+        {
+            auto ms = MatchSpec::parse_url("https://conda.com/pkg-1..2-0.conda");
+            REQUIRE_FALSE(ms.has_value());
+        }
     }
 
     TEST_CASE("MatchSpec::extract_name", "[mamba::specs][mamba::specs::MatchSpec]")

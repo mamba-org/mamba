@@ -420,6 +420,7 @@ TEST_CASE("matches_python_minor")
     SECTION("namespaced python pin")
     {
         REQUIRE(matches_python_minor("conda-forge::python 3.7.12 0_73_pypy", req("3.7")));
+        REQUIRE_FALSE(matches_python_minor("conda-forge::python 3.7.12 0_73_pypy", req("3.8")));
     }
 
     SECTION("only python in range with no upper bound")

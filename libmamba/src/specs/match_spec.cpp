@@ -20,38 +20,6 @@
 
 namespace mamba::specs
 {
-    auto MatchSpec::extract_name(std::string_view spec) -> expected_parse_t<std::string>
-    {
-        std::size_t i = 0;
-        while (i < spec.size() && std::isspace(static_cast<unsigned char>(spec[i])))
-        {
-            ++i;
-        }
-        if (i == spec.size())
-        {
-            return make_unexpected_parse("Empty package name.");
-        }
-
-        const std::size_t name_start = i;
-        constexpr std::string_view binary_ops = "<>=!~";
-        while (i < spec.size())
-        {
-            const char c = spec[i];
-            if (std::isspace(static_cast<unsigned char>(c))
-                || (binary_ops.find(c) != std::string_view::npos))
-            {
-                break;
-            }
-            ++i;
-        }
-
-        if (i == name_start)
-        {
-            return make_unexpected_parse("Empty package name.");
-        }
-        return { util::to_lower(std::string(spec.substr(name_start, i - name_start))) };
-    }
-
     auto MatchSpec::parse_url(std::string_view spec) -> expected_parse_t<MatchSpec>
     {
         auto out = MatchSpec();
@@ -534,6 +502,45 @@ namespace mamba::specs
             auto [version_str, build_string_str] = split_version_and_build(version_and_build);
             return std::tuple(pkg_name, version_str, build_string_str);
         }
+    }
+
+    auto MatchSpec::extract_name(std::string_view spec) -> expected_parse_t<std::string>
+    {
+        // Remove comments, as in ``MatchSpec::parse``
+        if (const auto idx = spec.find(" #"); idx != std::string_view::npos)
+        {
+            spec = spec.substr(0, idx);
+        }
+        spec = util::strip(spec);
+
+        // Package URLs encode the name in the filename
+        if (has_archive_extension(spec.substr(0, spec.rfind(url_md5_sep))))
+        {
+            return parse(spec).transform([](const MatchSpec& ms) { return ms.name().to_string(); });
+        }
+
+        // Drop the ``channel:namespace:`` prefix
+        auto maybe_chan_ns_spec = split_channel_namespace_spec(spec);
+        if (!maybe_chan_ns_spec)
+        {
+            return make_unexpected_parse(maybe_chan_ns_spec.error().what());
+        }
+        const auto name_and_rest = util::lstrip(std::get<2>(maybe_chan_ns_spec.value()));
+
+        // The name ends at whitespace, a version operator, or an attribute section
+        constexpr std::string_view name_end = "<>=!~[(";
+        std::size_t i = 0;
+        while (i < name_and_rest.size() && !std::isspace(static_cast<unsigned char>(name_and_rest[i]))
+               && (name_end.find(name_and_rest[i]) == std::string_view::npos))
+        {
+            ++i;
+        }
+
+        if (i == 0)
+        {
+            return make_unexpected_parse("Empty package name.");
+        }
+        return { util::to_lower(std::string(name_and_rest.substr(0, i))) };
     }
 
     auto MatchSpec::parse(std::string_view str) -> expected_parse_t<MatchSpec>

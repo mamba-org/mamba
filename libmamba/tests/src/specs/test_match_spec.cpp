@@ -817,6 +817,49 @@ namespace
             REQUIRE(name.value() == "python");
         }
 
+        SECTION("skip channel and namespace prefix")
+        {
+            for (const auto* spec : {
+                     "conda-forge::python=3.12",
+                     "conda-forge/linux-64::python",
+                     "conda-forge[linux-64]::python >=3.12",
+                     "https://conda.anaconda.org/conda-forge::python",
+                     "conda-forge:ns:python",
+                 })
+            {
+                CAPTURE(spec);
+                auto name = MatchSpec::extract_name(spec);
+                REQUIRE(name.has_value());
+                REQUIRE(name.value() == "python");
+            }
+        }
+
+        SECTION("stop before attribute section")
+        {
+            for (const auto* spec : {
+                     "python[version=\">=3.12\"]",
+                     "conda-forge::python[build=\"*_cp312\"]",
+                     "python(optional)",
+                     "python[url=\"https://example.com/a\"]",
+                     "python # note: comment",
+                 })
+            {
+                CAPTURE(spec);
+                auto name = MatchSpec::extract_name(spec);
+                REQUIRE(name.has_value());
+                REQUIRE(name.value() == "python");
+            }
+        }
+
+        SECTION("extract name from package URL")
+        {
+            auto name = MatchSpec::extract_name(
+                "https://conda.anaconda.org/conda-forge/linux-64/pkg-6.4-bld.conda"
+            );
+            REQUIRE(name.has_value());
+            REQUIRE(name.value() == "pkg");
+        }
+
         SECTION("empty and operator-only specs return empty")
         {
             REQUIRE_FALSE(MatchSpec::extract_name("").has_value());

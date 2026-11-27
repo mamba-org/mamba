@@ -97,7 +97,7 @@ namespace mamba::specs
         }
         else
         {
-            return make_unexpected_parse(std::move(maybe_channel).error());
+            return make_unexpected_parse(std::move(maybe_version).error());
         }
 
         if (!head.has_value())
